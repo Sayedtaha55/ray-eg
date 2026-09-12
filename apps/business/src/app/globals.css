@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* مسح كلاسات الباكدج المشترك عشان كلاسات مكوناته تتولد */
+@source "../../../../packages/shared/src";
+
+/* ألوان البراند — Bluora */
 @theme {
   --color-brand-cyan: #00E5FF;
   --color-brand-purple: #BD00FF;
@@ -147,26 +151,29 @@
 /* ===== هيرو صفحة البزنس — خلفية زي صفحة "جديد" (نمي أعمالك) ===== */
 @keyframes bl-cloud-drift { 50% { transform: translateX(18px); } }
 .biz-hero {
-  --sky: oklch(.955 .03 224); --sky-light: oklch(.985 .012 220);
+  --sky: #ffffff; --sky-light: #ffffff;
   --blue: oklch(.39 .18 257); --blue-deep: oklch(.31 .18 259);
   min-height: 100vh;
   display: flex;
   align-items: center;
-  --primary: oklch(0.208 0.042 265.755); --background: oklch(0.91 0.075 223);
-  background: linear-gradient(180deg, var(--sky) 0%, var(--sky-light) 37%, var(--sky) 73%, var(--sky-light) 100%);
+  --primary: oklch(0.208 0.042 265.755); --background: oklch(0.955 0.03 224);
+  /* أبيض نضيف + توهج بألوان البراند (سماوي/بنفسجي) */
+  background:
+    radial-gradient(56rem 32rem at 86% -10%, rgba(0, 229, 255, 0.16), transparent 62%),
+    radial-gradient(48rem 30rem at 5% 112%, rgba(189, 0, 255, 0.10), transparent 62%),
+    #ffffff;
 }
 .biz-hero::before {
   content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background: radial-gradient(circle at 70% 22%, color-mix(in oklab, white 70%, transparent) 0 8%, transparent 30%),
-              linear-gradient(180deg, transparent 65%, color-mix(in oklab, white 34%, transparent));
+  background: radial-gradient(circle at 16% 22%, rgba(0, 229, 255, 0.07) 0 10%, transparent 32%);
 }
 .biz-hero > div { position: relative; z-index: 1; width: 100%; }
 .biz-cloud {
   position: absolute; z-index: 0; display: block; width: 10rem; height: 3.8rem;
   border-radius: 999px; pointer-events: none;
-  background: color-mix(in oklab, white 90%, var(--background));
-  box-shadow: 0 20px 42px color-mix(in oklab, var(--primary) 10%, transparent);
-  opacity: .45; animation: bl-cloud-drift 12s ease-in-out infinite;
+  background: color-mix(in oklab, white 88%, var(--background));
+  box-shadow: 0 20px 42px rgba(0, 229, 255, 0.14);
+  opacity: .8; animation: bl-cloud-drift 12s ease-in-out infinite;
 }
 .biz-cloud i { position: absolute; bottom: 18%; display: block; border-radius: 999px; background: inherit; }
 .biz-cloud i:nth-child(1) { width: 4.8rem; height: 4.8rem; right: 12%; }

@@ -111,22 +111,21 @@ func (r *reportsRepository) GetProductPerformanceReport(ctx context.Context, sho
 		SELECT
 			p.id,
 			COALESCE(p.name, '') AS name,
-			COALESCE(p.name_ar, '') AS name_ar,
-			COALESCE(p.sku, '') AS sku,
-			COALESCE(c.name, '') AS category,
-			COALESCE(c.name_ar, '') AS category_ar,
+			'' AS name_ar,
+			'' AS sku,
+			COALESCE(p.category, '') AS category,
+			'' AS category_ar,
 			COALESCE(SUM(oi.quantity), 0) AS units_sold,
-			COALESCE(SUM(oi.subtotal), 0) AS revenue,
+			COALESCE(SUM(oi.quantity * oi.price), 0) AS revenue,
 			COALESCE(p.stock, 0) AS stock,
-			COALESCE(p.rating, 0) AS avg_rating
+			0 AS avg_rating
 		FROM products p
-		LEFT JOIN categories c ON p.category_id = c.id
 		LEFT JOIN order_items oi ON p.id = oi.product_id
 		LEFT JOIN orders o ON oi.order_id = o.id
 			AND o.created_at >= $2 AND o.created_at <= $3
 			AND o.status IN ('CONFIRMED','PREPARING','READY','DELIVERED')
 		WHERE p.shop_id = $1
-		GROUP BY p.id, p.name, p.name_ar, p.sku, c.name, c.name_ar, p.stock, p.rating
+		GROUP BY p.id, p.name, p.category, p.stock
 		ORDER BY revenue DESC
 		LIMIT 50
 	`
@@ -474,7 +473,7 @@ func (r *reportsRepository) getTopProductsOverview(ctx context.Context, shopID s
 	query := `
 		SELECT COALESCE(p.name, '') AS name,
 			COALESCE(SUM(oi.quantity), 0) AS sales,
-			COALESCE(SUM(oi.subtotal), 0) AS revenue
+			COALESCE(SUM(oi.quantity * oi.price), 0) AS revenue
 		FROM products p
 		LEFT JOIN order_items oi ON p.id = oi.product_id
 		LEFT JOIN orders o ON oi.order_id = o.id
@@ -529,17 +528,16 @@ func (r *reportsRepository) getSalesTrend(ctx context.Context, shopID string, st
 
 func (r *reportsRepository) getSalesByCategory(ctx context.Context, shopID string, start, end time.Time, totalRevenue float64) []SalesByCategory {
 	query := `
-		SELECT COALESCE(c.name, 'Uncategorized') AS category,
-			COALESCE(c.name_ar, '') AS category_ar,
-			COALESCE(SUM(oi.subtotal), 0) AS revenue,
+		SELECT COALESCE(p.category, 'Uncategorized') AS category,
+			'' AS category_ar,
+			COALESCE(SUM(oi.quantity * oi.price), 0) AS revenue,
 			COUNT(DISTINCT o.id) AS orders
 		FROM order_items oi
 		JOIN orders o ON oi.order_id = o.id
 		JOIN products p ON oi.product_id = p.id
-		LEFT JOIN categories c ON p.category_id = c.id
 		WHERE o.shop_id = $1 AND o.created_at >= $2 AND o.created_at <= $3
 			AND o.status IN ('CONFIRMED','PREPARING','READY','DELIVERED')
-		GROUP BY c.name, c.name_ar
+		GROUP BY p.category
 		ORDER BY revenue DESC
 	`
 	rows, err := r.pool.Query(ctx, query, shopID, start, end)

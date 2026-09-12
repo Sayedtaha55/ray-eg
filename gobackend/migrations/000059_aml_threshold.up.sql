@@ -1,4 +1,4 @@
-﻿-- AML: function to check merchant 24h transaction volume
+-- AML: function to check merchant 24h transaction volume
 CREATE OR REPLACE FUNCTION check_merchant_24h_volume(p_shop_id TEXT, p_threshold DECIMAL DEFAULT 100000)
 RETURNS TABLE(total_volume DECIMAL, exceeded BOOLEAN) AS 
 BEGIN

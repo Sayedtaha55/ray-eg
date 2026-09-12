@@ -13,7 +13,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   BUSINESS_ACTIVITIES, groupAccentColors, ActivityWithGroup,
 } from '@/lib/activities';
-import { BOOKING_ACTIVITIES, MODULE_DEFINITIONS, resolveDependencies, getActivityDefaultModules, type ModuleId } from '@/lib/moduleConfig';
+import { BOOKING_ACTIVITIES, MODULE_DEFINITIONS, resolveDependencies, type ModuleId } from '@/lib/moduleConfig';
 import {
   getQuestionsForActivity, modulesFromAnswers, specialtiesFromAnswers,
   dashboardEnabledFeatures, getBaseModules, type ActivityQuestion,
@@ -192,38 +192,10 @@ function SignupContent() {
         return;
       }
 
-      // Step 2: Create shop — modules come from activity defaults + answers,
-      // specialties from the answers; the merchant can upgrade everything later.
+      // Step 2: Create shop — the wizard answers define the real layout.
       const finalSpecialties = skipped
         ? []
         : specialtiesFromAnswers(questions, answers);
-      const shopPayload: any = {
-        name: formData.shopName,
-        category: selectedActivity.category,
-        phone: formData.shopPhone || formData.phone,
-        email: formData.email,
-        description: formData.shopDescription,
-        addressDetailed: formData.addressDetailed,
-        governorate: formData.governorate,
-        city: formData.city,
-        openingHours: formData.openingHours,
-        activityId: selectedActivity.id,
-        activity: selectedActivity.title,
-        enabledModules: Array.from(resolveDependencies(finalModules)),
-        specialties: finalSpecialties,
-        moduleFeatures: MODULE_DEFINITIONS.filter((m) =>
-          resolveDependencies(finalModules).includes(m.id),
-        ).map((m) => ({
-          moduleId: m.id,
-          features: m.features.map((f) => ({
-            id: f.id,
-            label: f.label,
-            enabled: true,
-          })),
-        })),
-        onboarding: { skipped, answers },
-      };
-
       const accessToken = data?.token?.accessToken || data?.data?.token?.accessToken || data?.session?.access_token;
       const user = data?.user || data?.data?.user;
 
@@ -259,6 +231,8 @@ function SignupContent() {
           })),
         })),
       };
+
+      const shopRes = await fetch(`${API_BASE}/api/v1/shops`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -473,6 +447,34 @@ function SignupContent() {
     </div>
   );
 
+  // Arabic labels for the live dashboard preview
+  const MODULE_PREVIEW: Record<string, { label: string; icon: string }> = {
+    core: { label: 'لوحة التحكم', icon: '📊' },
+    sales: { label: 'المبيعات والطلبات', icon: '🛒' },
+    pos: { label: 'الكاشير', icon: '🧾' },
+    inventory: { label: 'المخزون', icon: '📦' },
+    finance: { label: 'المالية والفواتير', icon: '💰' },
+    bookings: { label: 'الحجوزات', icon: '📅' },
+    hr: { label: 'الموظفين', icon: '👥' },
+    website: { label: 'متجر أونلاين', icon: '🌐' },
+    marketing: { label: 'التسويق', icon: '📣' },
+    customers: { label: 'العملاء', icon: '🤝' },
+    crm: { label: 'العملاء', icon: '🤝' },
+    accounting: { label: 'المحاسبة', icon: '📚' },
+    analytics: { label: 'التحليلات', icon: '📈' },
+  };
+
+  const previewModules = useMemo(() => {
+    const base = selectedActivity
+      ? getBaseModules(selectedActivity.id, BOOKING_ACTIVITIES.has(selectedActivity.id))
+      : [];
+    const baseSet = new Set(base.map((m) => String(m)));
+    return {
+      base: base.filter((m) => m !== 'core'),
+      added: finalModules.filter((m) => !baseSet.has(String(m)) && m !== 'core'),
+    };
+  }, [selectedActivity, finalModules]);
+
   const renderQuestionsStep = () => {
     if (!selectedActivity) return null;
     return (
@@ -531,6 +533,56 @@ function SignupContent() {
             </motion.div>
           );
         })}
+
+        {/* Live dashboard preview — the merchant watches his panel build itself */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-slate-900 rounded-[2rem] p-5 text-white sticky bottom-24"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">معاينة لوحتك</span>
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={finalModules.length}
+                initial={{ scale: 1.25, color: '#00E5FF' }}
+                animate={{ scale: 1, color: 'rgba(255,255,255,0.4)' }}
+                className="text-[10px] font-black"
+              >
+                {finalModules.length} تطبيق مفعّل
+              </motion.span>
+            </AnimatePresence>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {previewModules.base.map((m) => {
+              const meta = MODULE_PREVIEW[String(m)];
+              return (
+                <span key={String(m)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black text-white/80">
+                  <span>{meta?.icon || '📦'}</span> {meta?.label || String(m)}
+                </span>
+              );
+            })}
+            <AnimatePresence>
+              {previewModules.added.map((m) => {
+                const meta = MODULE_PREVIEW[String(m)];
+                return (
+                  <motion.span
+                    key={String(m)}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#00E5FF]/15 border border-[#00E5FF]/40 text-[11px] font-black text-[#00E5FF]"
+                  >
+                    <span>{meta?.icon || '✨'}</span> {meta?.label || String(m)}
+                  </motion.span>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+          <p className="text-[10px] font-bold text-white/30 mt-3">
+            الأزرار السماوية هي اللي فتحناها من إجاباتك — والباقي كله متاح في «الترقية» من لوحتك في أي وقت
+          </p>
+        </motion.div>
 
         {/* Skip + manual */}
         <div className="text-center pt-2">

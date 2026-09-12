@@ -61,25 +61,27 @@ func (r *Repository) SlugExists(ctx context.Context, slug string) (bool, error) 
 
 // Create inserts a new shop.
 func (r *Repository) Create(ctx context.Context, s *Shop) (*Shop, error) {
+	// Columns and VALUES must stay in lockstep: 1 uuid + $1..$26 identity,
+	// $27 builder_config, is_active literal, $28 owner_id, 2 literals, 2 NOW().
 	query := `
 		INSERT INTO shops (
 			id, name, slug, description, category, activity, governorate, city, address,
 			address_detailed, display_address, map_label, latitude, longitude,
 			location_source, location_accuracy, phone, email, opening_hours,
 			logo_url, banner_url, status, page_design, theme, custom_colors,
-			custom_fonts, layout_config, is_active, owner_id, public_disabled,
-			delivery_disabled, created_at, updated_at
+			custom_fonts, layout_config, builder_config, is_active, owner_id,
+			public_disabled, delivery_disabled, created_at, updated_at
 		) VALUES (
 			gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-			$13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27,
-			true, $28, false, false, NOW(), NOW()
+			$13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,
+			$27, true, $28, false, false, NOW(), NOW()
 		) RETURNING ` + shopReturnColumns
 	row := r.pool.QueryRow(ctx, query,
 		s.Name, s.Slug, s.Description, s.Category, s.Activity, s.Governorate, s.City, s.Address,
 		s.AddressDetailed, s.DisplayAddress, s.MapLabel, s.Latitude, s.Longitude,
 		s.LocationSource, s.LocationAccuracy, s.Phone, s.Email, s.OpeningHours,
 		s.LogoURL, s.BannerURL, s.Status, s.PageDesign, s.Theme, s.CustomColors,
-		s.CustomFonts, s.LayoutConfig, s.OwnerID,
+		s.CustomFonts, s.LayoutConfig, s.BuilderConfig, s.OwnerID,
 	)
 	return scanShopReturn(row)
 }
@@ -261,7 +263,7 @@ const shopColumns = `
 	s.rating, s.is_active, s.owner_id, s.created_at, s.updated_at, s.addons,
 	s.public_disabled, s.delivery_disabled, s.ai_tier, s.ai_usage_month,
 	s.ai_usage_reset_at,
-	u.id AS owner_user_id, u.name AS owner_name, u.email AS owner_email
+	u.id AS owner_user_id, u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone
 `
 
 const selectShop = `SELECT ` + shopColumns + ` FROM shops s LEFT JOIN users u ON u.id = s.owner_id`
@@ -331,7 +333,7 @@ func scanShop(row pgx.Row) (*Shop, error) {
 	var desc, address, addrDetailed, displayAddr, mapLabel, locationSrc, phone, email, opening, logo, banner, theme sql.NullString
 	var lat, lng, locAcc sql.NullFloat64
 	var locUpdated, aiReset sql.NullTime
-	var ownerID, ownerName, ownerEmail sql.NullString
+	var ownerID, ownerName, ownerEmail, ownerPhone sql.NullString
 	var ownerIDVal sql.NullString
 
 	var activity sql.NullString
@@ -342,7 +344,7 @@ func scanShop(row pgx.Row) (*Shop, error) {
 		&s.BuilderConfig, &theme, &s.CustomColors, &s.CustomFonts, &s.LayoutConfig, &s.Followers,
 		&s.Visitors, &s.Rating, &s.IsActive, &ownerIDVal, &s.CreatedAt, &s.UpdatedAt,
 		&s.Addons, &s.PublicDisabled, &s.DeliveryDisabled, &s.AiTier, &s.AiUsageMonth,
-		&aiReset, &ownerID, &ownerName, &ownerEmail,
+		&aiReset, &ownerID, &ownerName, &ownerEmail, &ownerPhone,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -376,6 +378,10 @@ func scanShop(row pgx.Row) (*Shop, error) {
 			ID:    ownerID.String,
 			Name:  ownerName.String,
 			Email: ownerEmail.String,
+		}
+		if ownerPhone.Valid {
+			p := ownerPhone.String
+			s.Owner.Phone = &p
 		}
 	}
 

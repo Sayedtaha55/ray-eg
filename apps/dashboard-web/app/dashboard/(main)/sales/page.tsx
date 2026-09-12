@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   CheckCircle2, XCircle, Eye, Loader2,
   Package2, Printer, ReceiptText,
@@ -19,6 +20,7 @@ import {
   isDeliveryDisabledOrder,
 } from '@/lib/sales-utils';
 import { useShop } from '@/hooks/useShop';
+import { PrintPreviewModal, parseOrderNotes } from '@/components/sales/print-utils';
 import OrderReturnsPanel from '@/components/sales/OrderReturnsPanel';
 
 type Order = {
@@ -96,291 +98,10 @@ function formatItemsSummary(order: Order): string {
   return formatOrderItemsSummary(order, undefined, true) || '-';
 }
 
-// order notes carry "discount:fixed:8|tip:fixed:34" style metadata from POS checkout
-function parseOrderNotes(order: Order): { discount: number; tip: number } {
-  const notes = String(order?.notes || '');
-  const grab = (key: string) => {
-    const m = notes.match(new RegExp(`${key}:fixed:(\\d+(?:\\.\\d+)?)`));
-    return m ? Number(m[1]) : 0;
-  };
-  return { discount: grab('discount'), tip: grab('tip') };
-}
 
-
-type PrintOverrides = {
-  customerName?: string;
-  customerPhone?: string;
-  customerAddress?: string;
-  customerNote?: string;
-  footerNote?: string;
-};
-
-function escapeHtmlText(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text ?? '';
-  return div.innerHTML;
-}
-
-// Builds the exact print document for the invoice (80mm thermal) or the
-// delivery waybill (A6 landscape). `ov` carries merchant edits from the preview.
-function buildPrintHtml(order: Order, shop: any, mode: 'invoice' | 'waybill', ov: PrintOverrides = {}): string {
-  const normalizeNumber = (v: any) => {
-    const n = Number(v ?? 0);
-    return Number.isFinite(n) ? n : 0;
-  };
-  const money = (n: number) => Math.round(n * 100) / 100;
-
-  const items = Array.isArray(order?.items) ? order.items : [];
-  const total = normalizeNumber(order?.total);
-  const computedSubtotal = items.reduce((sum: number, it: any) => {
-    const qty = normalizeNumber(it?.quantity ?? it?.qty ?? 0);
-    const unit = normalizeNumber(it?.unitPrice ?? it?.unit_price ?? it?.price ?? 0);
-    return sum + (qty * unit);
-  }, 0);
-
-  // discount/tip live inside notes, delivery fee is whatever remains of the total
-  const { discount, tip } = parseOrderNotes(order);
-  const deliveryFee = Math.max(total - computedSubtotal - discount - tip, 0);
-
-  const orderId = String(order?.id || '').slice(0, 8).toUpperCase();
-  const customerName = ov.customerName ?? order?.customerName ?? order?.customer_name ?? order?.user?.name ?? '';
-  const customerPhone = ov.customerPhone ?? order?.customerPhone ?? order?.customer_phone ?? order?.user?.phone ?? '';
-  const customerAddress = ov.customerAddress ?? getDeliveryAddress(order);
-  const customerNote = ov.customerNote ?? order?.customerNote ?? order?.customer_note ?? '';
-  const createdAtLabel = order?.createdAt || order?.created_at
-    ? new Date(order.createdAt || order.created_at || '').toLocaleString('ar-EG')
-    : '';
-
-  const shopName = shop?.name || 'المتجر';
-  const phone = shop?.phone || '';
-  const city = shop?.city || '';
-  const address = shop?.address || '';
-  const footerNote = ov.footerNote ?? 'شكراً لتسوقك معنا!';
-
-  if (mode === 'waybill') {
-    return `<!doctype html>
-      <html lang="ar" dir="rtl">
-        <head>
-          <meta charset="utf-8" />
-          <title>بوليصة توصيل ${orderId}</title>
-          <style>
-            @page { size: A6 landscape; margin: 8mm; }
-            body { font-family: Arial, sans-serif; direction: rtl; color: #111; margin: 0; padding: 4mm; }
-            .head { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #111; padding-bottom: 6px; }
-            .shop { font-size: 15px; font-weight: 700; }
-            .tag { font-size: 11px; border: 1.5px solid #111; border-radius: 6px; padding: 2px 8px; font-weight: 700; }
-            .oid { font-size: 20px; font-weight: 800; letter-spacing: 1px; margin-top: 8px; }
-            .block { border: 1.5px solid #111; border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
-            .block .lbl { font-size: 10px; color: #444; font-weight: 700; }
-            .block .val { font-size: 17px; font-weight: 800; margin-top: 2px; }
-            .addr .val { font-size: 15px; line-height: 1.5; }
-            .row2 { display: flex; gap: 8px; }
-            .row2 .block { flex: 1; }
-            .cod { display: flex; justify-content: space-between; align-items: center; border: 2px solid #111; border-radius: 8px; padding: 8px 10px; margin-top: 8px; font-size: 14px; font-weight: 800; }
-            .cod .amt { font-size: 20px; }
-            .sign { display: flex; gap: 8px; margin-top: 10px; }
-            .sign div { flex: 1; border-top: 1.5px dashed #666; padding-top: 4px; font-size: 10px; color: #444; text-align: center; }
-            .note { font-size: 11px; margin-top: 6px; }
-          </style>
-        </head>
-        <body>
-          <div class="head">
-            <span class="shop">${escapeHtmlText(shopName)}</span>
-            <span class="tag">بوليصة توصيل</span>
-          </div>
-          <div class="oid">طلب: ${escapeHtmlText(orderId)}</div>
-          <div class="block">
-            <div class="lbl">العميل</div>
-            <div class="val">${escapeHtmlText(customerName || '—')}</div>
-          </div>
-          <div class="row2">
-            <div class="block">
-              <div class="lbl">الهاتف</div>
-              <div class="val" dir="ltr">${escapeHtmlText(customerPhone || '—')}</div>
-            </div>
-            <div class="block">
-              <div class="lbl">التاريخ</div>
-              <div class="val" style="font-size:13px;">${escapeHtmlText(createdAtLabel)}</div>
-            </div>
-          </div>
-          <div class="block addr">
-            <div class="lbl">عنوان التوصيل</div>
-            <div class="val">${escapeHtmlText(customerAddress || 'استلام من المتجر')}${city ? ' — ' + escapeHtmlText(city) : ''}</div>
-          </div>
-          <div class="cod">
-            <span>المبلغ المطلوب تحصيله (دفع عند الاستلام)</span>
-            <span class="amt">ج.م ${money(total)}</span>
-          </div>
-          ${customerNote ? `<div class="note"><strong>ملاحظة:</strong> ${escapeHtmlText(customerNote)}</div>` : ''}
-          <div class="sign">
-            <div>توقيع المستلم</div>
-            <div>توقيع المندوب</div>
-          </div>
-        </body>
-      </html>`;
-  }
-
-  return `<!doctype html>
-      <html lang="ar" dir="rtl">
-        <head>
-          <meta charset="utf-8" />
-          <title>فاتورة ${orderId}</title>
-          <style>
-            @page { margin: 8mm; }
-            body { font-family: Arial, sans-serif; direction: rtl; margin: 0; padding: 4mm; }
-            .wrap { max-width: 80mm; margin: 0 auto; }
-            h1 { font-size: 16px; margin: 0 0 6px; text-align: center; }
-            .meta { font-size: 11px; color: #111; text-align: center; margin-bottom: 10px; }
-            .sep { border-top: 1px dashed #999; margin: 10px 0; }
-            table { width: 100%; border-collapse: collapse; font-size: 12px; }
-            .totals { font-size: 12px; }
-            .row { display:flex; justify-content: space-between; gap: 10px; padding: 4px 0; }
-            .row.total { font-weight:700; border-top: 1px solid #111; margin-top: 4px; padding-top: 6px; font-size: 13px; }
-            .foot { font-size: 11px; text-align:center; margin-top: 10px; }
-          </style>
-        </head>
-        <body>
-          <div class="wrap">
-            <h1>${escapeHtmlText(shopName)}</h1>
-            <div class="meta">
-              ${orderId ? `<div><strong>طلب:</strong> ${escapeHtmlText(orderId)}</div>` : ''}
-              ${phone ? `<div>${escapeHtmlText(phone)}</div>` : ''}
-              ${city ? `<div>${escapeHtmlText(city)}</div>` : ''}
-              ${address ? `<div>${escapeHtmlText(address)}</div>` : ''}
-              ${customerName ? `<div style="margin-top:6px;"><strong>العميل:</strong> ${escapeHtmlText(customerName)}</div>` : ''}
-              ${customerAddress ? `<div style="margin-top:4px;"><strong>العنوان:</strong> ${escapeHtmlText(customerAddress)}</div>` : ''}
-              ${customerNote ? `<div style="margin-top:4px;"><strong>ملاحظة:</strong> ${escapeHtmlText(customerNote)}</div>` : ''}
-              ${customerPhone ? `<div style="margin-top:6px;"><strong>الهاتف:</strong> ${escapeHtmlText(customerPhone)}</div>` : ''}
-              ${createdAtLabel ? `<div style="margin-top:6px;">${escapeHtmlText(createdAtLabel)}</div>` : ''}
-            </div>
-            <div class="sep"></div>
-            <table>
-              <tbody>
-                ${items
-                  .map((it: any) => {
-                    const baseName = it?.product?.name || it?.name || it?.title || '-';
-                    const name = escapeHtmlText(String(baseName).trim());
-                    const qty = normalizeNumber(it?.quantity ?? it?.qty ?? 0);
-                    const unit = normalizeNumber(it?.unitPrice ?? it?.unit_price ?? it?.price ?? 0);
-                    const lineTotal = qty * unit;
-                    return `
-                      <tr>
-                        <td style="padding: 6px 0;">${name || '-'}</td>
-                        <td style="padding: 6px 0; text-align:left;">${qty || 0}x</td>
-                        <td style="padding: 6px 0; text-align:left;">${money(lineTotal)}</td>
-                      </tr>
-                    `;
-                  })
-                  .join('')}
-              </tbody>
-            </table>
-            <div class="sep"></div>
-            <div class="totals">
-              <div class="row"><span>المجموع الفرعي</span><span>ج.م ${money(computedSubtotal)}</span></div>
-              ${deliveryFee > 0 ? `<div class="row"><span>الشحن</span><span>ج.م ${money(deliveryFee)}</span></div>` : ''}
-              ${discount > 0 ? `<div class="row"><span>الخصم</span><span>ج.م -${money(discount)}</span></div>` : ''}
-              ${tip > 0 ? `<div class="row"><span>إكرامية</span><span>ج.م ${money(tip)}</span></div>` : ''}
-              <div class="row total"><span>الإجمالي</span><span>ج.م ${money(total)}</span></div>
-            </div>
-            ${footerNote ? `<div class="sep"></div><div class="foot">${escapeHtmlText(footerNote)}</div>` : ''}
-          </div>
-        </body>
-      </html>`;
-}
-
-function PrintPreviewModal({ order, shop, mode, onClose }: {
-  order: Order; shop: any; mode: 'invoice' | 'waybill'; onClose: () => void;
-}) {
-  const [ov, setOv] = useState<PrintOverrides>({});
-  const iframeRef = React.useRef<HTMLIFrameElement>(null);
-  const html = useMemo(() => buildPrintHtml(order, shop, mode, ov), [order, shop, mode, ov]);
-  const isInvoice = mode === 'invoice';
-
-  const originalName = order?.customerName || order?.customer_name || order?.user?.name || '';
-  const originalPhone = order?.customerPhone || order?.customer_phone || order?.user?.phone || '';
-  const originalAddress = getDeliveryAddress(order);
-  const originalNote = order?.customerNote || order?.customer_note || '';
-
-  const handlePrint = () => {
-    const win = iframeRef.current?.contentWindow;
-    if (!win) return;
-    win.focus();
-    win.print();
-  };
-
-  const field = (label: string, key: keyof PrintOverrides, placeholder: string, multiline = false) => (
-    <div>
-      <label className="text-[11px] font-bold text-slate-500 mb-1 block">{label}</label>
-      {multiline ? (
-        <textarea
-          rows={2}
-          value={ov[key] ?? ''}
-          onChange={(e) => setOv((p) => ({ ...p, [key]: e.target.value }))}
-          placeholder={placeholder}
-          className="w-full px-2.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold outline-none focus:border-slate-900 resize-none"
-        />
-      ) : (
-        <input
-          type="text"
-          value={ov[key] ?? ''}
-          onChange={(e) => setOv((p) => ({ ...p, [key]: e.target.value }))}
-          placeholder={placeholder}
-          className="w-full px-2.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold outline-none focus:border-slate-900"
-        />
-      )}
-      {(ov[key] ?? '') !== '' && (
-        <button type="button" onClick={() => setOv((p) => ({ ...p, [key]: undefined }))} className="text-[10px] font-bold text-slate-400 hover:text-slate-700 mt-0.5">
-          رجوع للأصلي
-        </button>
-      )}
-    </div>
-  );
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-5xl w-full h-[88vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200">
-          <h2 className="text-[15px] font-extrabold text-slate-900">
-            {isInvoice ? 'معاينة الفاتورة' : 'معاينة بوليصة التوصيل'}
-            <span className="text-slate-400 font-bold text-xs mr-2">#{String(order.id || '').slice(0, 8).toUpperCase()}</span>
-          </h2>
-          <div className="flex items-center gap-2">
-            <button onClick={handlePrint} className="h-9 px-4 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-700 flex items-center gap-1.5">
-              <Printer size={14} /> طباعة
-            </button>
-            <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-lg">
-              <X size={18} className="text-slate-400" />
-            </button>
-          </div>
-        </div>
-        <div className="flex-1 flex min-h-0">
-          {/* preview */}
-          <div className="flex-1 bg-slate-100 p-4 overflow-auto">
-            <iframe
-              ref={iframeRef}
-              title="print-preview"
-              srcDoc={html}
-              className="w-full h-full bg-white border border-slate-200 rounded-lg shadow-sm"
-            />
-          </div>
-          {/* edit panel */}
-          <div className="w-72 shrink-0 border-l border-slate-200 p-4 space-y-3 overflow-y-auto">
-            <p className="text-[11px] font-bold text-slate-400 leading-4">
-              عدّل أي بيانات قبل الطباعة — المعاينة تتحدث فورًا. التعديل هنا لا يغير بيانات الطلب نفسه.
-            </p>
-            {field('اسم العميل', 'customerName', originalName || 'اكتب اسم العميل')}
-            {field('رقم الهاتف', 'customerPhone', originalPhone || '01xxxxxxxxx')}
-            {field('عنوان التوصيل', 'customerAddress', originalAddress || 'اكتب العنوان', true)}
-            {field('ملاحظة على الورقة', 'customerNote', originalNote || 'ملاحظة (اختياري)', true)}
-            {isInvoice && field('تذييل الفاتورة', 'footerNote', 'شكراً لتسوقك معنا!')}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function SalesPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -934,7 +655,7 @@ export default function SalesPage() {
                     {canPrepare && !canAccept && <button onClick={() => updateStatus(id, 'PREPARING')} className="flex-1 h-9 rounded-lg bg-slate-900 text-white text-[12px] font-bold">بدء التجهيز</button>}
                     {canReady && !canAccept && !canPrepare && <button onClick={() => updateStatus(id, 'READY')} className="flex-1 h-9 rounded-lg bg-slate-900 text-white text-[12px] font-bold">{isRestaurant ? 'جاهز للتقديم' : 'جاهز'}</button>}
                     {canDeliver && !canAccept && !canPrepare && !canReady && <button onClick={() => updateStatus(id, 'DELIVERED')} className="flex-1 h-9 rounded-lg bg-emerald-600 text-white text-[12px] font-bold">تم التسليم</button>}
-                    <button onClick={() => setSelectedOrder(order)} className="h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[12px] font-bold">التفاصيل</button>
+                    <button onClick={() => router.push(`/dashboard/sales/${id}`)} className="h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[12px] font-bold">التفاصيل</button>
                   </div>
                 )}
               </div>
@@ -1060,7 +781,7 @@ export default function SalesPage() {
                     )}
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-1">
-                        <button onClick={() => setSelectedOrder(order)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100" title="عرض الطلب">
+                        <button onClick={() => router.push(`/dashboard/sales/${id}`)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100" title="عرض الطلب">
                           <Eye size={15} />
                         </button>
                         <button onClick={() => printInvoice(order)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100" title="طباعة الفاتورة">
@@ -1164,7 +885,7 @@ export default function SalesPage() {
                               </div>
                             </div>
                             <div className="px-4 pb-3 pt-2 flex items-center gap-2">
-                              <button onClick={() => setSelectedOrder(order)} className="h-8 px-4 rounded-full bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-700">
+                              <button onClick={() => router.push(`/dashboard/sales/${id}`)} className="h-8 px-4 rounded-full bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-700">
                                 عرض
                               </button>
                               {customerPhone && (
@@ -1301,7 +1022,7 @@ export default function SalesPage() {
                 );
               })()}
 
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
                 <div className="border border-slate-200 rounded-lg p-3">
                   <div className="text-[11px] font-bold text-slate-400">رقم الطلب</div>
                   <div className="mt-2 font-bold text-slate-900 text-sm truncate">#{String(selectedOrder.id || '').slice(0, 8).toUpperCase() || '-'}</div>
@@ -1324,42 +1045,79 @@ export default function SalesPage() {
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الإجمالي</div>
                   <div className="mt-2 font-bold text-slate-900 text-sm">ج.م {Number(selectedOrder.total || 0).toLocaleString()}</div>
                 </div>
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الدفع</div>
+                  <div className="mt-2 font-bold text-slate-900 text-sm">
+                    {String((selectedOrder as any).paymentMethod || 'COD').toUpperCase() === 'COD' ? 'دفع عند الاستلام' : String((selectedOrder as any).paymentMethod || '').toUpperCase() || '—'}
+                  </div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">المصدر</div>
+                  <div className="mt-2 font-bold text-slate-900 text-sm">
+                    {(selectedOrder as any).source === 'pos' ? 'الكاشير' : (selectedOrder as any).source === 'manual' ? 'يدوي' : 'الموقع'}
+                  </div>
+                </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="flex items-center gap-2 text-slate-900 font-black text-sm">
-                  <ReceiptText size={16} /> ملخص الطلب
-                </div>
-                <div className="mt-3 space-y-2 text-sm font-bold text-slate-600">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="text-slate-400">الاسم</span>
-                    <span className="text-slate-900 text-left">{selectedOrder.customerName || selectedOrder.customer_name || selectedOrder.user?.name || '-'}</span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-center gap-2 text-slate-900 font-black text-sm">
+                    <ReceiptText size={16} /> بيانات العميل
                   </div>
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="text-slate-400">الهاتف</span>
-                    <span className="text-slate-900 text-left" dir="ltr">{selectedOrder.customerPhone || selectedOrder.customer_phone || selectedOrder.user?.phone || selectedOrder.phone || '-'}</span>
-                  </div>
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="text-slate-400">طريقة التوصيل</span>
-                    <span className="text-slate-900 text-left">{isDeliveryDisabledOrder(selectedOrder) ? 'استلام ذاتي' : 'عبر المندوب'}</span>
-                  </div>
-                  {isDeliveryDisabledOrder(selectedOrder) ? (
+                  <div className="mt-3 space-y-2 text-sm font-bold text-slate-600">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-slate-400">الاسم</span>
+                      <span className="text-slate-900 text-left">{selectedOrder.customerName || selectedOrder.customer_name || selectedOrder.user?.name || '-'}</span>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-slate-400">الهاتف</span>
+                      <span className="text-slate-900 text-left" dir="ltr">{selectedOrder.customerPhone || selectedOrder.customer_phone || selectedOrder.user?.phone || selectedOrder.phone || '-'}</span>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-slate-400">طريقة التوصيل</span>
+                      <span className="text-slate-900 text-left">{isDeliveryDisabledOrder(selectedOrder) ? 'استلام ذاتي' : 'عبر المندوب'}</span>
+                    </div>
                     <div className="flex items-start justify-between gap-3">
                       <span className="text-slate-400">العنوان</span>
                       <span className="text-slate-900 text-left">{getDeliveryAddress(selectedOrder) || '-'}</span>
                     </div>
-                  ) : (
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-slate-400">رسوم التوصيل</span>
-                      <span className="text-slate-900 text-left">{renderDeliveryFee(selectedOrder)}</span>
-                    </div>
-                  )}
-                  {selectedOrder.customerNote || selectedOrder.customer_note ? (
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-slate-400">ملاحظة</span>
-                      <span className="text-slate-900 text-left">{selectedOrder.customerNote || selectedOrder.customer_note}</span>
-                    </div>
-                  ) : null}
+                    {selectedOrder.customerNote || selectedOrder.customer_note ? (
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-slate-400">ملاحظة العميل</span>
+                        <span className="text-slate-900 text-left">{selectedOrder.customerNote || selectedOrder.customer_note}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-center gap-2 text-slate-900 font-black text-sm">
+                    <ReceiptText size={16} /> ملخص الفاتورة
+                  </div>
+                  {(() => {
+                    const _items = Array.isArray(selectedOrder.items) ? selectedOrder.items : [];
+                    const sub = _items.reduce((s: number, it: any) => s + Number(it?.quantity ?? it?.qty ?? 0) * Number(it?.unitPrice ?? it?.unit_price ?? it?.price ?? 0), 0);
+                    const nt = parseOrderNotes(selectedOrder);
+                    const del = Math.max(Number(selectedOrder.total || 0) - sub - nt.discount - nt.tip, 0);
+                    const rows: Array<{ label: string; value: number }> = [{ label: 'قيمة المنتجات', value: sub }];
+                    if (nt.discount > 0) rows.push({ label: 'الخصم', value: -nt.discount });
+                    if (nt.tip > 0) rows.push({ label: 'إكرامية', value: nt.tip });
+                    if (del > 0) rows.push({ label: 'الشحن', value: del });
+                    return (
+                      <div className="mt-3 divide-y divide-slate-50">
+                        {rows.map((r, i) => (
+                          <div key={i} className="flex items-center justify-between py-1.5">
+                            <span className="text-xs font-semibold text-slate-500">{r.label}</span>
+                            <span className="text-xs font-bold text-slate-700 tabular-nums">{r.value.toLocaleString('ar-EG')} ج.م</span>
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-between py-2">
+                          <span className="text-sm font-bold text-slate-900">الإجمالي</span>
+                          <span className="text-base font-extrabold text-slate-900 tabular-nums">{Number(selectedOrder.total || 0).toLocaleString('ar-EG')} ج.م</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

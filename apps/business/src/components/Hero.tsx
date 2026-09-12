@@ -15,8 +15,8 @@ export default function Hero() {
         <div className="grid md:grid-cols-2 gap-10 md:gap-8 items-center">
           {/* Text content - right side (RTL) */}
           <div className="order-2 md:order-1 text-center md:text-right">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full text-slate-800 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-4 md:mb-6 shadow-sm border border-slate-100">
-              <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#00E5FF]" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full text-slate-800 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-4 md:mb-6 shadow-sm border border-cyan-100">
+              <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#0057FF]" />
               نمو بلا حدود
             </div>
 
@@ -33,7 +33,7 @@ export default function Hero() {
             <div className="flex flex-col sm:flex-row items-center md:items-start gap-3 mb-6">
               <Link
                 href="/signup"
-                className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#00E5FF] text-slate-900 px-8 py-3.5 rounded-2xl font-black text-sm sm:text-base shadow-lg shadow-cyan-500/25 hover:shadow-xl hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+                className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#0057FF] text-white px-8 py-3.5 rounded-2xl font-black text-sm sm:text-base shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
               >
                 ابدأ تجارتك بشكل أذكى
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform" />
@@ -56,7 +56,7 @@ export default function Hero() {
                   key={i}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-100 text-slate-700 text-xs sm:text-sm font-medium shadow-sm"
                 >
-                  <item.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#00E5FF]" />
+                  <item.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0057FF]" />
                   {item.text}
                 </div>
               ))}
@@ -65,11 +65,24 @@ export default function Hero() {
 
           {/* Visual - left side */}
           <div className="order-1 md:order-2 relative">
-            <div className="absolute -inset-4 bg-[#00E5FF]/10 rounded-[2rem] blur-2xl" aria-hidden />
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-cyan-500/20 border border-white/60">
+            <div className="absolute -inset-4 bg-gradient-to-br from-[#00E5FF]/20 to-[#0057FF]/20 rounded-[2.5rem] blur-2xl" aria-hidden />
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-blue-600/25 border border-slate-200/80 bg-white">
+              {/* شريط متصفح */}
+              <div className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-50 border-b border-slate-200/80">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                <span
+                  className="mx-auto flex items-center h-6 px-4 rounded-md bg-white border border-slate-200 text-[10px] font-bold text-slate-400"
+                  dir="ltr"
+                >
+                  app.bluora.com/dashboard
+                </span>
+                <span className="w-10" aria-hidden />
+              </div>
               <img
-                src="/videos/business-hero-poster.png"
-                alt="لوحة تحكم من مكانك بيزنس"
+                src="/images/hero-dashboard.png"
+                alt="لوحة تحكم Bluora — مبيعات وطلبات ومخزون في مكان واحد"
                 className="w-full h-auto object-cover"
               />
             </div>

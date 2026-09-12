@@ -25,7 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ]
+      ],
+      "@ray-eg/shared": ["../../packages/shared/src/index.ts"],
+      "@ray-eg/shared/*": ["../../packages/shared/src/*"]
     }
   },
   "include": [

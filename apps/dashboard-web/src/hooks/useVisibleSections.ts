@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { sidebarSections, type SidebarSection } from '@/config/sidebar';
+import { sidebarSections, HIDE_UNPUBLISHED, type SidebarSection } from '@/config/sidebar';
 import { apiRequest } from '@/lib/auth';
 
 type Shop = {
@@ -103,7 +103,17 @@ export default function useVisibleSections() {
   }, [shop]);
 
   const visibleSections: SidebarSection[] = useMemo(() => {
-    return sidebarSections.map((section) => {
+    // Market-launch switch: strip everything marked as not-yet-published.
+    const base = HIDE_UNPUBLISHED
+      ? sidebarSections
+          .filter((section) => section.published !== false)
+          .map((section) => ({
+            ...section,
+            items: section.items.filter((item) => item.published !== false),
+          }))
+          .filter((section) => section.items.length > 0)
+      : sidebarSections;
+    return base.map((section) => {
       // Always show dashboard and settings
       if (section.id === 'dashboard' || section.id === 'settings') return section;
       if (!section.moduleId) return section;

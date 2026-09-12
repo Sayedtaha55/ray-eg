@@ -451,20 +451,24 @@ export default function DashboardOverview() {
       key: 'Revenue', label: 'الإيرادات', value: fmtEGP(statByLabel.Revenue || 0),
       delta: pctDelta(statByLabel.Revenue || 0, prevByLabel.Revenue || 0),
       spark: trend.map((t) => t.revenue), icon: <DollarSign size={14} />,
+      href: '/dashboard/analytics/sales-performance',
     },
     {
       key: 'Orders', label: 'الطلبات', value: fmtNum(statByLabel.Orders || 0),
       delta: pctDelta(statByLabel.Orders || 0, prevByLabel.Orders || 0),
       spark: trend.map((t) => t.orders), icon: <ShoppingCart size={14} />,
+      href: '/dashboard/analytics/sales-performance',
     },
     {
       key: 'Customers', label: 'عملاء اشتروا', value: fmtNum(statByLabel.Customers || 0),
       delta: pctDelta(statByLabel.Customers || 0, prevByLabel.Customers || 0),
       spark: [] as number[], icon: <Users size={14} />,
+      href: '/dashboard/analytics/customer-insights',
     },
     {
       key: 'Views', label: 'زوار المتجر', value: fmtNum(statByLabel.Views || 0),
       delta: null, spark: [] as number[], icon: <Eye size={14} />,
+      href: '/dashboard/analytics/conversions',
     },
   ]), [statByLabel, prevByLabel, trend]);
 
@@ -527,10 +531,18 @@ export default function DashboardOverview() {
       {/* ===== Header — هوية الصفحة ===== */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5 flex-wrap">
             {greeting()}، {user?.name || shop?.name || 'صاحب المتجر'}.
+            {shop && (
+              <span className={`inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2.5 py-1 border align-middle ${isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                {isActive ? 'فعّال' : 'موقوف'}
+              </span>
+            )}
           </h1>
           <p className="text-xs text-slate-400 mt-1.5 font-medium">
+            {shop?.name && <span className="text-slate-500 font-semibold">{shop.name}</span>}
+            {shop?.name && <span className="text-slate-300"> • </span>}
             إليك ما يحدث في متجرك — {todayLong()}
             {lastUpdated && <span className="text-slate-300"> • آخر تحديث {lastUpdated.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })}</span>}
             {refreshing && <span className="text-indigo-600 font-bold"> • جارٍ التحديث…</span>}
@@ -626,19 +638,26 @@ export default function DashboardOverview() {
         {kpis.map((k, i) => (
           <MotionCard key={k.key} delay={0.05 + i * 0.04} className="p-5">
             <div className="flex items-start justify-between gap-2">
-              <span className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconTint[['primary', 'violet', 'info', 'success'][i] || 'neutral']}`}>
-                {k.icon}
-              </span>
+              <p className="text-[11px] font-semibold text-slate-400">{k.label}</p>
               <DeltaInline delta={k.delta} />
             </div>
-            <p className="mt-3 text-[11px] font-semibold text-slate-400">{k.label}</p>
             {loading ? (
-              <Skeleton className="h-7 w-24 mt-1" />
+              <Skeleton className="h-7 w-24 mt-2" />
             ) : (
-              <div className="flex items-end justify-between gap-2 mt-0.5">
+              <div className="flex items-end justify-between gap-2 mt-1.5">
                 <span className="text-[22px] font-extrabold text-slate-900 tabular-nums leading-7">{k.value}</span>
                 <Sparkline values={k.spark} color={['#4F46E5', '#7C3AED', '#2563EB', '#059669'][i]} />
               </div>
+            )}
+            {!loading && k.href && (
+              <button
+                type="button"
+                onClick={() => router.push(k.href)}
+                className="mt-2 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline inline-flex items-center gap-0.5"
+              >
+                عرض المزيد
+                <ChevronLeft size={10} />
+              </button>
             )}
           </MotionCard>
         ))}
@@ -692,43 +711,19 @@ export default function DashboardOverview() {
 
         {/* --- Right column --- */}
         <div className="space-y-4">
-          {/* Shop card */}
+          {/* Shop stats — التقييم والمتابع فقط (الهوية فوق في الهيدر) */}
           <MotionCard className="p-5" delay={0.2}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-11 h-11 rounded-xl bg-slate-900 flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
-                  {shop?.logoUrl
-                    ? // eslint-disable-next-line @next/next/no-img-element
-                    <img src={shop.logoUrl} alt={shop?.name || ''} className="w-full h-full object-cover" />
-                    : (shop?.name || 'م')?.charAt(0)}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="text-center py-2">
+                <div className="flex items-center justify-center gap-1.5 text-amber-500 mb-1">
+                  <Star size={14} fill="currentColor" />
+                  <span className="text-xl font-extrabold text-slate-900 tabular-nums">{(shop?.rating || 0).toFixed(1)}</span>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-slate-900 truncate">{shop?.name || '—'}</p>
-                  <p className="text-[11px] text-slate-400 truncate">
-                    {[shop?.category, shop?.city && shop?.governorate].filter(Boolean).join(' • ') || 'متجر على منصة نمّي'}
-                  </p>
-                </div>
+                <span className="text-[11px] text-slate-400 font-semibold">التقييم</span>
               </div>
-              <span className={`inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5 border shrink-0 ${isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                {isActive ? 'فعّال' : 'موقوف'}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-100">
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1 text-amber-500 mb-0.5">
-                  <Star size={12} fill="currentColor" />
-                  <span className="text-sm font-bold text-slate-900 tabular-nums">{(shop?.rating || 0).toFixed(1)}</span>
-                </div>
-                <span className="text-[10px] text-slate-400 font-semibold">التقييم</span>
-              </div>
-              <div className="text-center border-x border-slate-100">
-                <span className="text-sm font-bold text-slate-900 tabular-nums">{fmtNum(shop?.followers || 0)}</span>
-                <div className="text-[10px] text-slate-400 font-semibold mt-0.5">متابع</div>
-              </div>
-              <div className="text-center">
-                <span className="text-sm font-bold text-slate-900 tabular-nums">{fmtNum(shop?.visitors || 0)}</span>
-                <div className="text-[10px] text-slate-400 font-semibold mt-0.5">زيارة</div>
+              <div className="text-center py-2 border-r border-slate-100">
+                <span className="text-xl font-extrabold text-slate-900 tabular-nums">{fmtNum(shop?.followers || 0)}</span>
+                <div className="text-[11px] text-slate-400 font-semibold mt-1">متابع</div>
               </div>
             </div>
           </MotionCard>

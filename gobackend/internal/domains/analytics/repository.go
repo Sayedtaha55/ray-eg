@@ -373,7 +373,7 @@ func (r *Repository) GetProductPerformance(ctx context.Context, shopID string, f
 			p.id,
 			p.name,
 			COALESCE(SUM(oi.quantity), 0) as orders,
-			COALESCE(SUM(oi.subtotal), 0) as revenue
+			COALESCE(SUM(oi.quantity * oi.price), 0) as revenue
 		FROM products p
 		LEFT JOIN order_items oi ON p.id = oi.product_id
 		LEFT JOIN orders o ON oi.order_id = o.id

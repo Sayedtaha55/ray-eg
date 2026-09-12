@@ -84,9 +84,10 @@ type Shop struct {
 
 // ShopOwner is a lightweight owner representation.
 type ShopOwner struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID    string  `json:"id"`
+	Name  string  `json:"name"`
+	Email string  `json:"email"`
+	Phone *string `json:"phone,omitempty"`
 }
 
 // CreateShopRequest is the payload to create a new shop.

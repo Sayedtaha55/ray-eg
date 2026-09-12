@@ -11,6 +11,14 @@ import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import useVisibleSections from '@/hooks/useVisibleSections';
 
+
+// Small amber tag for local-only / not-yet-released features
+const SoonBadge = () => (
+  <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[8px] font-black leading-none shrink-0">
+    قريباً
+  </span>
+);
+
 export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -132,6 +140,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
                       {section.titleAr}
                     </span>
                   )}
+                  {!collapsed && section.published === false && <SoonBadge />}
                   {active && !collapsed && (
                     <div className="w-1.5 h-1.5 rounded-full bg-[#00E5FF]" />
                   )}
@@ -163,6 +172,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
                       <span className="text-xs font-black text-slate-700 flex-1 text-right">
                         {section.titleAr}
                       </span>
+                      {section.published === false && <SoonBadge />}
                       <ExternalLink
                         size={12}
                         className="text-slate-300 group-hover:text-slate-500 transition-colors"
@@ -212,6 +222,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
                         {item.labelAr}
                       </span>
                     )}
+                    {!collapsed && item.published === false && <SoonBadge />}
                     {active && !collapsed && !isNewInvoice && (
                       <div className="w-1 h-1 rounded-full bg-[#00E5FF]" />
                     )}

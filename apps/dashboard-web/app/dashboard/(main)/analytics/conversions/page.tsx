@@ -1,21 +1,274 @@
 'use client';
 
-import PagePlaceholder from '@/components/PagePlaceholder';
-import { Target } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { RefreshCw, Target, TrendingDown, CircleDollarSign, Activity, Gauge } from 'lucide-react';
+import { apiRequest } from '@/lib/auth';
+import { useShop } from '@/hooks/useShop';
+
+/* صفحة التحويلات — بيانات حقيقية من /analytics/shop/:id/conversions */
+
+type FunnelStage = { id: string; label: string; label_ar: string; visitors: number };
+type ConversionGoal = { id: string; name: string; name_ar: string; conversions: number; visitors: number; rate: number; target: number; status: string };
+type ConversionSource = { id: string; source: string; source_ar: string; visits: number; conversions: number; rate: number; revenue: number; trend: number };
+type TimelinePoint = { day: string; rate: number; conversions: number };
+type ConversionsData = {
+  funnel: FunnelStage[];
+  goals: ConversionGoal[];
+  sources: ConversionSource[];
+  timeline: TimelinePoint[];
+  overall_rate: number;
+  total_conversions: number;
+  total_revenue: number;
+  avg_rate: number;
+};
+
+const LOCALE = 'ar-EG-u-nu-latn';
+const fmtNum = (n: number) => (Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 });
+const fmtEGP = (n: number) => `${(Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 })} ج.م`;
+const fmtPct = (n: number) => `${(Number.isFinite(n) ? n : 0).toFixed(1)}%`;
+
+type PeriodKey = '7' | '30' | '90';
+const PERIODS: Array<{ key: PeriodKey; label: string }> = [
+  { key: '7', label: '7 أيام' },
+  { key: '30', label: '30 يوم' },
+  { key: '90', label: '90 يوم' },
+];
+
+const GOAL_STATUS: Record<string, { label: string; cls: string }> = {
+  'on-track': { label: 'على المسار', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  'at-risk': { label: 'معرض للخطر', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  behind: { label: 'متأخر', cls: 'bg-red-50 text-red-700 border-red-200' },
+};
 
 export default function ConversionsPage() {
+  const { shop } = useShop();
+  const [period, setPeriod] = useState<PeriodKey>('30');
+  const [data, setData] = useState<ConversionsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async (p: PeriodKey) => {
+    const shopId = shop?.id;
+    if (!shopId) return;
+    setRefreshing(true);
+    setError('');
+    try {
+      const res = await apiRequest(`/analytics/shop/${shopId}/conversions?period=${p}d`);
+      setData(res || null);
+    } catch (e: any) {
+      setError(e?.message || 'تعذر تحميل بيانات التحويلات');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [shop?.id]);
+
+  useEffect(() => { load(period); }, [period, load]);
+
+  const funnel = useMemo(() => data?.funnel || [], [data]);
+  const funnelTop = funnel[0]?.visitors || 0;
+
+  const kpis = useMemo(() => ([
+    { label: 'معدل التحويل الكلي', value: fmtPct(data?.overall_rate || 0) },
+    { label: 'عدد التحويلات', value: fmtNum(data?.total_conversions || 0) },
+    { label: 'إيراد التحويلات', value: fmtEGP(data?.total_revenue || 0) },
+    { label: 'متوسط معدل المراحل', value: fmtPct(data?.avg_rate || 0) },
+  ]), [data]);
+
   return (
-    <PagePlaceholder
-      icon={Target}
-      title="التحويلات"
-      description="تتبع معدلات التحويل: من زائر إلى عميل، من سلة إلى طلب، من طلب إلى دفع."
-      features={[
-        'معدل تحويل الزوار إلى عملاء',
-        'معدل تحويل السلات إلى طلبات',
-        'معدل إتمام الدفع',
-        'تتبع مسار التحويل (Funnel)',
-        'تحليل نقاط التسرب في رحلة العميل',
-      ]}
-    />
+    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-[1400px] mx-auto">
+
+      {/* ===== Header ===== */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">التحويلات</h1>
+          <p className="text-xs text-slate-400 mt-1">من زائر إلى عميل — مسار التحويل كاملًا بالأرقام الحقيقية</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5">
+            {PERIODS.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setPeriod(p.key)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md tabular-nums transition-colors ${period === p.key ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => load(period)}
+            disabled={refreshing || !shop?.id}
+            className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            title="تحديث"
+          >
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="p-3 rounded-lg border border-red-200 bg-red-50 text-xs font-semibold text-red-800">{error}</div>
+      )}
+
+      {/* ===== KPIs ===== */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {kpis.map((k) => (
+          <div key={k.label} className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5">
+            <p className="text-[11px] font-semibold text-slate-400">{k.label}</p>
+            {loading ? (
+              <div className="h-7 w-24 bg-slate-100 rounded-md animate-pulse mt-2" />
+            ) : (
+              <div className="text-[22px] font-extrabold text-slate-900 tabular-nums leading-7 mt-1">{k.value}</div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ===== Funnel ===== */}
+      <div className="bg-white border border-slate-200 rounded-xl">
+        <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center gap-2">
+          <Target size={15} className="text-indigo-600" />
+          <h3 className="text-sm font-bold text-slate-800">مسار التحويل</h3>
+          <span className="text-[10px] text-slate-400 font-semibold mr-auto">نسبة كل مرحلة من إجمالي الزوار</span>
+        </div>
+        <div className="p-5 space-y-3">
+          {loading ? (
+            [0, 1, 2].map((i) => <div key={i} className="h-10 bg-slate-100 rounded-lg animate-pulse" />)
+          ) : funnel.length === 0 ? (
+            <p className="text-xs text-slate-400 font-semibold text-center py-6">لا توجد بيانات زوار بعد — أول زيارة للموقع ستغذي المسار تلقائيًا</p>
+          ) : (
+            funnel.map((s, i) => {
+              const width = funnelTop > 0 ? Math.max((s.visitors / funnelTop) * 100, 3) : 3;
+              const drop = i > 0 && funnel[i - 1].visitors > 0
+                ? Math.round((1 - s.visitors / funnel[i - 1].visitors) * 100)
+                : 0;
+              return (
+                <div key={s.id}>
+                  <div className="flex items-center justify-between text-[11px] font-semibold mb-1">
+                    <span className="text-slate-700 font-bold">{s.label_ar || s.label}</span>
+                    <span className="text-slate-500 tabular-nums">
+                      {fmtNum(s.visitors)}
+                      {drop > 0 && <span className="text-red-400 mr-2 inline-flex items-center gap-0.5"><TrendingDown size={10} />{drop}% تسرب</span>}
+                    </span>
+                  </div>
+                  <div className="h-7 bg-slate-50 rounded-lg overflow-hidden">
+                    <div
+                      className="h-full rounded-lg bg-indigo-600 transition-all duration-500"
+                      style={{ width: `${width}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* ===== Goals + Sources ===== */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="bg-white border border-slate-200 rounded-xl">
+          <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center gap-2">
+            <Gauge size={15} className="text-indigo-600" />
+            <h3 className="text-sm font-bold text-slate-800">أهداف التحويل</h3>
+          </div>
+          <div className="p-5 space-y-4">
+            {loading ? (
+              [0, 1].map((i) => <div key={i} className="h-8 bg-slate-100 rounded-lg animate-pulse" />)
+            ) : (data?.goals || []).length === 0 ? (
+              <p className="text-xs text-slate-400 font-semibold text-center py-4">لا توجد أهداف معرّفة</p>
+            ) : (
+              data!.goals.map((g) => {
+                const st = GOAL_STATUS[g.status] || GOAL_STATUS['behind'];
+                const progress = g.target > 0 ? Math.min((g.rate / g.target) * 100, 100) : 0;
+                return (
+                  <div key={g.id}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-800">{g.name_ar || g.name}</span>
+                        <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 border ${st.cls}`}>{st.label}</span>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-600 tabular-nums">{fmtPct(g.rate)} / {fmtPct(g.target)}</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-indigo-600 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center gap-2">
+            <Activity size={15} className="text-indigo-600" />
+            <h3 className="text-sm font-bold text-slate-800">مصادر التحويل</h3>
+          </div>
+          {loading ? (
+            <div className="p-5 space-y-2"><div className="h-8 bg-slate-100 rounded-lg animate-pulse" /><div className="h-8 bg-slate-100 rounded-lg animate-pulse" /></div>
+          ) : (data?.sources || []).length === 0 ? (
+            <p className="text-xs text-slate-400 font-semibold text-center py-8">لا توجد بيانات مصادر بعد</p>
+          ) : (
+            <table className="w-full text-right">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  <th className="text-[10px] font-semibold text-slate-400 pb-2 pr-5">المصدر</th>
+                  <th className="text-[10px] font-semibold text-slate-400 pb-2">زيارات</th>
+                  <th className="text-[10px] font-semibold text-slate-400 pb-2">تحويلات</th>
+                  <th className="text-[10px] font-semibold text-slate-400 pb-2">المعدل</th>
+                  <th className="text-[10px] font-semibold text-slate-400 pb-2 pl-5 text-left">الإيراد</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data!.sources.map((s) => (
+                  <tr key={s.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
+                    <td className="py-2.5 pr-5 text-xs font-bold text-slate-800">{s.source_ar || s.source}</td>
+                    <td className="py-2.5 text-xs text-slate-600 tabular-nums">{fmtNum(s.visits)}</td>
+                    <td className="py-2.5 text-xs text-slate-600 tabular-nums">{fmtNum(s.conversions)}</td>
+                    <td className="py-2.5 text-xs font-bold text-slate-800 tabular-nums">{fmtPct(s.rate)}</td>
+                    <td className="py-2.5 pl-5 text-xs font-bold text-slate-900 tabular-nums text-left">{fmtEGP(s.revenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* ===== Timeline ===== */}
+      <div className="bg-white border border-slate-200 rounded-xl">
+        <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center gap-2">
+          <Activity size={15} className="text-indigo-600" />
+          <h3 className="text-sm font-bold text-slate-800">معدل التحويل يوميًا</h3>
+        </div>
+        <div className="p-5">
+          {loading ? (
+            <div className="h-24 bg-slate-100 rounded-lg animate-pulse" />
+          ) : (data?.timeline || []).length === 0 ? (
+            <p className="text-xs text-slate-400 font-semibold text-center py-4">لا توجد بيانات يومية بعد</p>
+          ) : (
+            <div className="flex items-end gap-1.5 h-24 pt-4 border-b border-slate-200">
+              {data!.timeline.map((t, i) => {
+                const max = Math.max(...data!.timeline.map((x) => x.rate), 0.001);
+                return (
+                  <div key={i} className="flex-1 group relative h-full flex items-end">
+                    <span className="absolute -top-1 left-1/2 -translate-x-1/2 text-[9px] font-bold text-slate-600 bg-white border border-slate-200 rounded px-1 opacity-0 group-hover:opacity-100 whitespace-nowrap tabular-nums z-10">
+                      {t.day}: {fmtPct(t.rate)}
+                    </span>
+                    <div
+                      className="w-full bg-indigo-500 rounded-t"
+                      style={{ height: `${Math.max((t.rate / max) * 100, 3)}%` }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

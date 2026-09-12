@@ -1,6 +1,5 @@
 ﻿import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import ConsentBanner from '@ray-eg/shared/components/common/ConsentBanner';
 import BreachNotice from '@ray-eg/shared/components/common/BreachNotice';
 
 export const metadata: Metadata = {
@@ -45,7 +44,6 @@ export default function RootLayout({
       <body className="bg-white text-slate-900">
         <BreachNotice />
         {children}
-        <ConsentBanner />
       </body>
     </html>
   );

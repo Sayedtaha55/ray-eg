@@ -5,6 +5,12 @@ import { Shield, BarChart3, Megaphone, Check, ExternalLink } from 'lucide-react'
 
 const CONSENT_KEY = 'ray_consents';
 
+// البانر متوقف في الإنتاج لحد ما الإجراءات القانونية تخلص.
+// لتفعيله في الإنتاج: NEXT_PUBLIC_CONSENT_BANNER=true
+const consentBannerEnabled =
+  process.env.NODE_ENV !== 'production' ||
+  process.env.NEXT_PUBLIC_CONSENT_BANNER === 'true';
+
 type ConsentType = 'essential' | 'analytics' | 'marketing';
 
 interface ConsentState {
@@ -84,6 +90,7 @@ export default function ConsentBanner() {
   const [consents, setConsents] = useState<ConsentState>(defaultConsents);
 
   useEffect(() => {
+    if (!consentBannerEnabled) return;
     const stored = readConsents();
     if (!stored) {
       setVisible(true);
@@ -113,12 +120,13 @@ export default function ConsentBanner() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[9999] bg-slate-900 border-t border-white/10 shadow-2xl" dir="rtl">
-      <div className="container mx-auto px-4 py-5">
-        <div className="flex flex-col gap-4">
+    <div className="fixed bottom-3 left-3 right-3 z-[9999] flex justify-center pointer-events-none" dir="rtl">
+      <div className="pointer-events-auto w-full max-w-2xl rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-white/10 shadow-2xl">
+      <div className="px-5 py-4">
+        <div className="flex flex-col gap-3">
           <div className="flex items-start gap-3">
-            <Shield className="w-6 h-6 text-[#00E5FF] shrink-0 mt-0.5" />
-            <p className="text-white text-sm font-semibold leading-relaxed">
+            <Shield className="w-5 h-5 text-[#00E5FF] shrink-0 mt-0.5" />
+            <p className="text-white text-[13px] sm:text-sm font-semibold leading-relaxed">
               نستخدم الكوكيز لتحسين تجربتك وفقًا لقانون حماية البيانات الشخصية (151/2020).
               يمكنك اختيار أنواع الكوكيز التي تسمح بها.
             </p>
@@ -180,6 +188,7 @@ export default function ConsentBanner() {
             </a>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -244,6 +244,12 @@ export function GrowthJourney() {
       <div className="max-w-7xl mx-auto px-5 sm:px-6">
         {/* العنوان */}
         <div className="text-center mb-10 md:mb-14">
+          <div className="mb-4 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-100 bg-cyan-50/70 px-4 py-1.5 text-xs md:text-sm font-bold text-cyan-700">
+              <Rocket className="w-3.5 h-3.5" />
+              رحلة نموّك
+            </span>
+          </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-[1.35]">
             مهما كانت تجارتك النهارده..
             <br />
@@ -258,7 +264,9 @@ export function GrowthJourney() {
           {/* النص والسهم — على اليمين في الديسكتوب (أول عنصر = يمين في RTL) */}
           <div className="w-full lg:w-[300px] shrink-0 text-center lg:pt-10 order-1 lg:order-1">
             <div className="inline-block lg:block text-center">
-              <Send className="w-8 h-8 text-blue-600 mb-3 mx-auto" fill="currentColor" />
+              <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00E5FF] to-[#0057FF] shadow-lg shadow-cyan-500/30 mb-4">
+                <Send className="w-6 h-6 text-white" fill="currentColor" />
+              </span>
               <h3 className="text-2xl md:text-[28px] font-black text-slate-900 leading-snug mb-2">
                 من أول عملية بيع.. لأكبر فرع.
               </h3>
@@ -266,7 +274,7 @@ export function GrowthJourney() {
                 من محل واحد.. لمنظومة كاملة.
               </p>
               {/* سهم منقّط منحني — معكوس */}
-              <svg viewBox="0 0 220 60" className="w-48 h-12 mx-auto mb-4 text-blue-600" fill="none">
+              <svg viewBox="0 0 220 60" className="w-48 h-12 mx-auto mb-4 text-cyan-600" fill="none">
                 <path
                   d="M205 8 C 150 45, 80 50, 25 32"
                   stroke="currentColor"
@@ -278,7 +286,7 @@ export function GrowthJourney() {
               </svg>
               <Link
                 href="/signup"
-                className="inline-block text-blue-600 font-bold text-sm md:text-base hover:gap-3 gap-2 transition-all"
+                className="inline-block text-cyan-700 font-bold text-sm md:text-base hover:gap-3 gap-2 transition-all"
               >
                 ابدأ من مكانك الحالي وكبَّر واحنا معاك.
               </Link>
@@ -290,9 +298,9 @@ export function GrowthJourney() {
             {cards.map((c, i) => (
               <div
                 key={i}
-                className="reveal bg-white rounded-[2rem] border border-sky-100 shadow-[0_20px_60px_-20px_rgba(2,132,199,0.25)] p-6 md:p-7 text-center flex flex-col items-center hover:-translate-y-1.5 hover:shadow-[0_28px_70px_-20px_rgba(2,132,199,0.35)] transition-all duration-300"
+                className="reveal bg-white rounded-[2rem] border border-slate-200 shadow-[0_20px_60px_-20px_rgba(100,116,139,0.22)] p-6 md:p-7 text-center flex flex-col items-center hover:-translate-y-1.5 hover:shadow-[0_28px_70px_-20px_rgba(100,116,139,0.32)] transition-all duration-300"
               >
-                <div className="w-full h-44 md:h-52 rounded-3xl overflow-hidden bg-sky-50 border border-sky-100 mb-5">
+                <div className="w-full h-44 md:h-52 rounded-3xl overflow-hidden bg-slate-50 border border-slate-200 mb-5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={c.img} alt={c.title} className="w-full h-full object-cover" loading="lazy" />
                 </div>
@@ -330,20 +338,25 @@ export function ConnectedEcosystem() {
   ];
 
   return (
-    <section dir="rtl" className="relative overflow-hidden bg-[#001845] py-16 md:py-24">
-      {/* توهج خلفي */}
+    <section dir="rtl" className="relative overflow-hidden bg-white py-16 md:py-24">
+      {/* توهج خفيف بألوان البراند */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[640px] h-[640px] rounded-full bg-blue-600/25 blur-[140px]" />
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/30 to-transparent" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[640px] h-[640px] rounded-full bg-cyan-100/50 blur-[140px]" />
       </div>
 
       <div className="relative max-w-7xl mx-auto px-5 sm:px-6">
         {/* العنوان */}
         <div className="text-center mb-10 md:mb-14">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-[1.4]">
+          <div className="mb-4 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-100 bg-cyan-50/70 px-4 py-1.5 text-xs md:text-sm font-bold text-cyan-700">
+              <Layers className="w-3.5 h-3.5" />
+              منظومة واحدة
+            </span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-[1.4]">
             كل حاجة متصلة
           </h2>
-          <p className="mt-3 text-slate-300/90 text-sm sm:text-base md:text-lg">
+          <p className="mt-3 text-slate-500 text-sm sm:text-base md:text-lg">
             نربط كل أدوات تجارتك في منظومة واحدة.
           </p>
         </div>
@@ -351,12 +364,12 @@ export function ConnectedEcosystem() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-6 items-center">
           {/* النص + الزر — يمين في الديسكتوب (أول عنصر في RTL) */}
           <div className="text-center lg:text-right order-1">
-            <h3 className="text-xl sm:text-2xl md:text-[26px] font-black text-white leading-[1.9]">
+            <h3 className="text-xl sm:text-2xl md:text-[26px] font-black text-slate-900 leading-[1.9]">
               إنت شايف عملية بيع.
               <br />
               إحنا شايفين تجارتك كلها.
             </h3>
-            <p className="mt-4 text-slate-300/80 text-sm md:text-base leading-[2.1]">
+            <p className="mt-4 text-slate-500 text-sm md:text-base leading-[2.1]">
               كل فاتورة، كل منتج، كل حركة في المخزون، وكل عميل..
               <br />
               بنتحول لبيانات تساعدك تعرف إيه اللي بيحصل في
@@ -365,7 +378,7 @@ export function ConnectedEcosystem() {
             </p>
             <Link
               href="/solutions"
-              className="mt-7 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/5 px-7 py-3 text-white font-bold text-sm md:text-base hover:bg-white/10 transition-colors"
+              className="mt-7 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white px-7 py-3 text-cyan-700 font-bold text-sm md:text-base hover:bg-cyan-50 shadow-sm transition-colors"
             >
               اكتشف كل الحلول
               <ArrowLeft className="w-4 h-4" />
@@ -375,7 +388,7 @@ export function ConnectedEcosystem() {
           {/* المدار — النص في الوسط */}
           <div className="relative mx-auto w-full max-w-[420px] aspect-square order-2">
             {/* خطوط الربط */}
-            <svg viewBox="0 0 400 400" className="absolute inset-0 w-full h-full text-cyan-400/50" fill="none">
+            <svg viewBox="0 0 400 400" className="absolute inset-0 w-full h-full text-cyan-400/60" fill="none">
               {[
                 'M200 40 L200 130',
                 'M110 95 L155 145',
@@ -392,8 +405,8 @@ export function ConnectedEcosystem() {
 
             {/* المتجر في النص */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="absolute inset-0 -m-8 rounded-[2.5rem] bg-blue-500/40 blur-3xl" />
-              <div className="relative w-32 h-32 md:w-36 md:h-36 rounded-[1.8rem] overflow-hidden border border-cyan-300/40 shadow-[0_0_60px_-10px_rgba(34,211,238,0.7)] bg-[#02163f]">
+              <div className="absolute inset-0 -m-8 rounded-[2.5rem] bg-cyan-300/40 blur-3xl" />
+              <div className="relative w-32 h-32 md:w-36 md:h-36 rounded-[1.8rem] overflow-hidden border border-white shadow-[0_0_60px_-10px_rgba(0,87,255,0.45)] bg-cyan-50">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/images/new/store-island.webp" alt="متجرك" className="w-full h-full object-cover" loading="lazy" />
               </div>
@@ -403,23 +416,23 @@ export function ConnectedEcosystem() {
             {orbit.map((o, i) => (
               <span
                 key={i}
-                className={`absolute ${o.pos} inline-flex items-center gap-1.5 rounded-full border border-cyan-300/25 bg-[#021a4d]/90 px-3.5 py-1.5 text-[13px] font-bold text-slate-100 shadow-lg whitespace-nowrap`}
+                className={`absolute ${o.pos} inline-flex items-center gap-1.5 rounded-full border border-cyan-100 bg-white/90 backdrop-blur px-3.5 py-1.5 text-[13px] font-bold text-slate-800 shadow-md shadow-cyan-500/10 whitespace-nowrap`}
               >
                 {o.label}
-                <o.icon className="w-4 h-4 text-cyan-300" />
+                <o.icon className="w-4 h-4 text-cyan-600" />
               </span>
             ))}
           </div>
 
           {/* حلولنا تشمل — شمال في الديسكتوب */}
           <div className="order-3">
-            <div className="mx-auto lg:mx-0 max-w-[320px] rounded-[2rem] border border-cyan-300/20 bg-[#022064]/60 backdrop-blur p-7 md:p-8 text-center">
-              <h4 className="text-white font-black text-lg md:text-xl mb-5">حلولنا تشمل</h4>
+            <div className="mx-auto lg:mx-0 max-w-[320px] rounded-[2rem] border border-cyan-100 bg-white shadow-xl shadow-cyan-100/70 p-7 md:p-8 text-center">
+              <h4 className="text-slate-900 font-black text-lg md:text-xl mb-5">حلولنا تشمل</h4>
               <ul className="space-y-3.5">
                 {list.map((t, i) => (
-                  <li key={i} className="flex items-center justify-center lg:justify-start gap-2.5 text-slate-200 text-sm md:text-[15px]">
-                    <span className="w-6 h-6 rounded-full bg-cyan-400/15 border border-cyan-300/20 flex items-center justify-center shrink-0">
-                      <Check className="w-3.5 h-3.5 text-cyan-300" strokeWidth={3} />
+                  <li key={i} className="flex items-center justify-center lg:justify-start gap-2.5 text-slate-600 text-sm md:text-[15px]">
+                    <span className="w-6 h-6 rounded-full bg-cyan-100 border border-cyan-200 flex items-center justify-center shrink-0">
+                      <Check className="w-3.5 h-3.5 text-cyan-700" strokeWidth={3} />
                     </span>
                     {t}
                   </li>
@@ -447,11 +460,17 @@ export function ShopTypes() {
     <section dir="rtl" className="relative overflow-hidden bg-white py-16 md:py-24">
       {/* توهج علوي خفيف */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[720px] h-[320px] rounded-full bg-sky-100/80 blur-[100px]" />
+        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[720px] h-[320px] rounded-full bg-white/60 blur-[100px]" />
       </div>
 
       <div className="relative max-w-7xl mx-auto px-5 sm:px-6">
         <div className="text-center mb-10 md:mb-14">
+          <div className="mb-4 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-100 bg-cyan-50/70 px-4 py-1.5 text-xs md:text-sm font-bold text-cyan-700">
+              <Store className="w-3.5 h-3.5" />
+              لكل نشاط حله
+            </span>
+          </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-[1.4]">
             مصممة لكل أنواع التجارة
           </h2>
@@ -464,9 +483,9 @@ export function ShopTypes() {
           {types.map((t, i) => (
             <div
               key={i}
-              className="group rounded-[2rem] border border-slate-100 bg-white p-3 pb-5 text-center shadow-[0_10px_40px_-15px_rgba(2,132,199,0.15)] hover:shadow-[0_20px_50px_-15px_rgba(2,132,199,0.3)] hover:-translate-y-1 transition-all duration-300"
+              className="group rounded-[2rem] border border-slate-100 bg-white p-3 pb-5 text-center shadow-[0_10px_40px_-15px_rgba(100,116,139,0.15)] hover:shadow-[0_20px_50px_-15px_rgba(0,87,255,0.22)] hover:border-cyan-200 hover:-translate-y-1 transition-all duration-300"
             >
-              <div className="rounded-[1.5rem] bg-sky-50/80 overflow-hidden aspect-square flex items-center justify-center">
+              <div className="rounded-[1.5rem] bg-white overflow-hidden aspect-square flex items-center justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={t.img}
@@ -504,11 +523,17 @@ export function BeforeAfter() {
     <section dir="rtl" className="relative overflow-hidden bg-white py-16 md:py-24">
       {/* توهج أزرق خفيف */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[480px] rounded-full bg-sky-100/70 blur-[110px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[480px] rounded-full bg-white/50 blur-[110px]" />
       </div>
 
       <div className="relative max-w-6xl mx-auto px-5 sm:px-6">
         <div className="text-center mb-10 md:mb-14">
+          <div className="mb-4 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-100 bg-cyan-50/70 px-4 py-1.5 text-xs md:text-sm font-bold text-cyan-700">
+              <Zap className="w-3.5 h-3.5" />
+              الفرق واضح
+            </span>
+          </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-[1.4]">
             الفرق اللي هتحسه من أول أسبوع
           </h2>
@@ -519,8 +544,8 @@ export function BeforeAfter() {
 
         <div className="relative flex flex-col md:flex-row items-stretch justify-center gap-6 md:gap-0">
           {/* كارت بعد */}
-          <div className="flex-1 rounded-[2rem] bg-white border border-slate-100 shadow-[0_20px_60px_-20px_rgba(2,132,199,0.25)] p-6 md:p-10 md:ml-10">
-            <div className="text-[#0066FF] font-black text-sm md:text-base mb-5">بعد</div>
+          <div className="flex-1 rounded-[2rem] bg-white border border-cyan-100 shadow-[0_20px_60px_-20px_rgba(0,87,255,0.25)] p-6 md:p-10 md:ml-10">
+            <div className="text-[#0057FF] font-black text-sm md:text-base mb-5">بعد</div>
             <ul className="space-y-4 md:space-y-5">
               {after.map((t, i) => (
                 <li key={i} className="flex items-center gap-3">
@@ -535,13 +560,13 @@ export function BeforeAfter() {
 
           {/* زر التحويل */}
           <div className="flex md:absolute md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 items-center justify-center z-10">
-            <span className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#0066FF] shadow-lg shadow-blue-500/40 flex items-center justify-center rotate-90 md:rotate-0">
+            <span className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-[#00E5FF] to-[#0057FF] shadow-lg shadow-blue-500/40 flex items-center justify-center rotate-90 md:rotate-0">
               <ArrowLeft className="w-6 h-6 text-white rotate-180" />
             </span>
           </div>
 
           {/* كارت قبل */}
-          <div className="flex-1 rounded-[2rem] bg-sky-50/60 border border-sky-100/60 p-6 md:p-10 md:mr-10">
+          <div className="flex-1 rounded-[2rem] bg-white border border-slate-100 p-6 md:p-10 md:mr-10">
             <div className="text-slate-700 font-black text-sm md:text-base mb-5">قبل</div>
             <ul className="space-y-4 md:space-y-5">
               {before.map((t, i) => (
@@ -570,13 +595,8 @@ export function MahallyShowcase() {
 
   return (
     <section dir="rtl" className="relative overflow-hidden bg-white pb-16 md:pb-24 pt-0">
-      {/* توهج بألواننا */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[900px] h-[400px] rounded-full bg-sky-100/70 blur-[110px]" />
-      </div>
-
       <div className="relative max-w-6xl mx-auto px-5 sm:px-6">
-        <div className="relative overflow-hidden rounded-[2rem] biz-hero !min-h-0 px-6 py-8 md:p-10">
+        <div className="relative overflow-hidden rounded-[2rem] bg-white border border-slate-100 px-6 py-8 md:p-10">
           <div className="relative grid md:grid-cols-2 gap-10 items-center">
             {/* النص */}
             <div>
@@ -655,9 +675,11 @@ export function HowItWorks() {
 
         <div className="max-w-7xl mx-auto px-5 sm:px-6 relative w-full">
           <RevealSection className="text-center mb-12 md:mb-20">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-sm font-bold mb-6">
-              <Sparkles className="w-4 h-4" />
-              ثلاث خطوات فقط
+            <div className="mb-4 flex justify-center">
+              <span className="inline-flex items-center gap-2 rounded-full border border-cyan-100 bg-cyan-50/70 px-4 py-1.5 text-xs md:text-sm font-bold text-cyan-700">
+                <Sparkles className="w-3.5 h-3.5" />
+                ابدأ في دقائق
+              </span>
             </div>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
               ثلاث خطوات فقط

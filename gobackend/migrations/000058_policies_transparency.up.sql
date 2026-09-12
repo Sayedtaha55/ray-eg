@@ -1,4 +1,4 @@
-﻿-- Shop policies + product transparency
+-- Shop policies + product transparency
 CREATE TABLE IF NOT EXISTS shop_policies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     shop_id TEXT NOT NULL,

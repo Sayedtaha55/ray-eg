@@ -16,7 +16,7 @@ import {
   Briefcase, KeyRound, UserCheck, Timer, Coins, Hourglass, ClipboardCheck,
   PenLine, Palette, LayoutTemplate, Gem, Wand2, ImagePlus, SearchCheck,
   BrainCircuit, Lightbulb, FileSpreadsheet, Radar, Workflow,
-  Presentation, Activity, ChartPie, Eye, MousePointerClick,
+  Presentation, Activity, ChartPie, Eye, MousePointerClick, Boxes,
   Building2, GitBranch, UsersRound, FileCheck, PackageCheck, Tags,
   ScrollText, PiggyBank, ScanLine,
 } from 'lucide-react';
@@ -28,6 +28,8 @@ export type SidebarItem = {
   labelAr: string;
   icon: LucideIcon;
   href: string;
+  /** false = local-only / not yet released (shows a "قريباً" badge) */
+  published?: boolean;
 };
 
 export type SidebarSection = {
@@ -38,6 +40,8 @@ export type SidebarSection = {
   icon?: LucideIcon;
   items: SidebarItem[];
   mainHref?: string;
+  /** false = local-only / not yet released section */
+  published?: boolean;
 };
 
 // Colored accent per section — used by TopNav and Sidebar so each
@@ -62,6 +66,10 @@ export const SECTION_COLORS: Record<string, string> = {
   settings: 'text-slate-500',
 };
 
+// Market-launch switch: when true, items/sections marked `published: false`
+// are hidden from every merchant — flip it once when going live.
+export const HIDE_UNPUBLISHED = false;
+
 export const sidebarSections: SidebarSection[] = [
   {
     id: 'dashboard',
@@ -80,15 +88,15 @@ export const sidebarSections: SidebarSection[] = [
     icon: CreditCard,
     items: [
       { id: 'sales', label: 'Orders', labelAr: 'الطلبات', icon: ShoppingCart, href: '/dashboard/sales' },
-      { id: 'salesOrders', label: 'Sales Orders', labelAr: 'أوامر البيع', icon: FileCheck, href: '/dashboard/sales/orders' },
-      { id: 'deliveryNotes', label: 'Delivery Notes', labelAr: 'أوراق الصرف', icon: PackageCheck, href: '/dashboard/sales/delivery-notes' },
-      { id: 'quotes', label: 'Quotes', labelAr: 'عروض الأسعار', icon: FileText, href: '/dashboard/sales/quotes' },
+      { id: 'salesOrders', published: false, label: 'Sales Orders', labelAr: 'أوامر البيع', icon: FileCheck, href: '/dashboard/sales/orders' },
+      { id: 'deliveryNotes', published: false, label: 'Delivery Notes', labelAr: 'أوراق الصرف', icon: PackageCheck, href: '/dashboard/sales/delivery-notes' },
+      { id: 'quotes', published: false, label: 'Quotes', labelAr: 'عروض الأسعار', icon: FileText, href: '/dashboard/sales/quotes' },
       { id: 'returns', label: 'Returns', labelAr: 'المرتجعات', icon: Undo2, href: '/dashboard/sales/returns' },
-      { id: 'abandonedCart', label: 'Abandoned Carts', labelAr: 'السلات المتروكة', icon: ShoppingBag, href: '/dashboard/sales/abandoned-cart' },
-      { id: 'loyalty', label: 'Loyalty Points', labelAr: 'نقاط الولاء', icon: Award, href: '/dashboard/sales/loyalty' },
-      { id: 'loyaltyCard', label: 'Loyalty Card', labelAr: 'بطاقة الولاء', icon: Gift, href: '/dashboard/sales/loyalty-card' },
-      { id: 'subscriptions', label: 'Subscriptions', labelAr: 'الاشتراكات', icon: Repeat, href: '/dashboard/sales/subscriptions' },
-      { id: 'epayment', label: 'E-Payment', labelAr: 'الدفع الإلكتروني', icon: CreditCard, href: '/dashboard/sales/epayment' },
+      { id: 'abandonedCart', published: false, label: 'Abandoned Carts', labelAr: 'السلات المتروكة', icon: ShoppingBag, href: '/dashboard/sales/abandoned-cart' },
+      { id: 'loyalty', published: false, label: 'Loyalty Points', labelAr: 'نقاط الولاء', icon: Award, href: '/dashboard/sales/loyalty' },
+      { id: 'loyaltyCard', published: false, label: 'Loyalty Card', labelAr: 'بطاقة الولاء', icon: Gift, href: '/dashboard/sales/loyalty-card' },
+      { id: 'subscriptions', published: false, label: 'Subscriptions', labelAr: 'الاشتراكات', icon: Repeat, href: '/dashboard/sales/subscriptions' },
+      { id: 'epayment', published: false, label: 'E-Payment', labelAr: 'الدفع الإلكتروني', icon: CreditCard, href: '/dashboard/sales/epayment' },
       { id: 'orderStatus', label: 'Order Status', labelAr: 'حالة الطلب', icon: ListChecks, href: '/dashboard/sales/order-status' },
       { id: 'payments', label: 'Payments', labelAr: 'المدفوعات', icon: Banknote, href: '/dashboard/sales/payments' },
     ],
@@ -104,7 +112,7 @@ export const sidebarSections: SidebarSection[] = [
       { id: 'posCheckout', label: 'Cashier', labelAr: 'الكاشير', icon: ScanBarcode, href: '/dashboard/pos' },
       { id: 'posInvoices', label: 'POS Invoices', labelAr: 'فواتير الكاشير', icon: Receipt, href: '/dashboard/pos/invoices' },
       { id: 'posReturns', label: 'POS Returns', labelAr: 'مرتجعات الكاشير', icon: RotateCcw, href: '/dashboard/pos/returns' },
-      { id: 'posWebsiteReturns', label: 'Website Returns', labelAr: 'مرتجعات الموقع', icon: Globe, href: '/dashboard/pos/website-returns' },
+      { id: 'posWebsiteReturns', published: false, label: 'Website Returns', labelAr: 'مرتجعات الموقع', icon: Globe, href: '/dashboard/pos/website-returns' },
       { id: 'posShifts', label: 'Shifts', labelAr: 'الورديات', icon: Clock, href: '/dashboard/pos/shifts' },
       { id: 'posReports', label: 'POS Reports', labelAr: 'تقارير الكاشير', icon: BarChart3, href: '/dashboard/pos/reports' },
     ],
@@ -119,20 +127,21 @@ export const sidebarSections: SidebarSection[] = [
       { id: 'products', label: 'Products', labelAr: 'المنتجات', icon: Package, href: '/dashboard/inventory' },
       { id: 'addProduct', label: 'Add Product', labelAr: 'إضافة منتج', icon: PackagePlus, href: '/dashboard/inventory/add-product' },
       { id: 'categories', label: 'Categories', labelAr: 'الفئات', icon: FolderOpen, href: '/dashboard/inventory/categories' },
-      { id: 'variants', label: 'Variants', labelAr: 'الأنواع', icon: Layers, href: '/dashboard/inventory/variants' },
+      { id: 'variants', published: false, label: 'Variants', labelAr: 'الأنواع', icon: Layers, href: '/dashboard/inventory/variants' },
       { id: 'stocktake', label: 'Stock Take', labelAr: 'جرد المخزون', icon: ClipboardList, href: '/dashboard/inventory/stocktake' },
-      { id: 'suppliers', label: 'Suppliers', labelAr: 'الموردين', icon: Truck, href: '/dashboard/inventory/suppliers' },
-      { id: 'purchaseOrders', label: 'Purchase Orders', labelAr: 'أوامر الشراء', icon: FileStack, href: '/dashboard/inventory/purchase-orders' },
-      { id: 'warehouses', label: 'Warehouses', labelAr: 'المخازن', icon: Warehouse, href: '/dashboard/inventory/warehouses' },
-      { id: 'transfers', label: 'Transfers', labelAr: 'النقل بين المخازن', icon: ArrowLeftRight, href: '/dashboard/inventory/transfers' },
+      { id: 'suppliers', published: false, label: 'Suppliers', labelAr: 'الموردين', icon: Truck, href: '/dashboard/inventory/suppliers' },
+      { id: 'purchaseOrders', published: false, label: 'Purchase Orders', labelAr: 'أوامر الشراء', icon: FileStack, href: '/dashboard/inventory/purchase-orders' },
+      { id: 'warehouses', published: false, label: 'Warehouses', labelAr: 'المخازن', icon: Warehouse, href: '/dashboard/inventory/warehouses' },
+      { id: 'transfers', published: false, label: 'Transfers', labelAr: 'النقل بين المخازن', icon: ArrowLeftRight, href: '/dashboard/inventory/transfers' },
       { id: 'barcode', label: 'Barcode', labelAr: 'الباركود', icon: Barcode, href: '/dashboard/inventory/barcode' },
-      { id: 'qrCode', label: 'QR Code', labelAr: 'QR Code', icon: QrCode, href: '/dashboard/inventory/qr-code' },
-      { id: 'stockTracking', label: 'Stock Tracking', labelAr: 'تتبع الكميات', icon: PackageSearch, href: '/dashboard/inventory/stock-tracking' },
+      { id: 'qrCode', published: false, label: 'QR Code', labelAr: 'QR Code', icon: QrCode, href: '/dashboard/inventory/qr-code' },
+      { id: 'stockTracking', published: false, label: 'Stock Tracking', labelAr: 'تتبع الكميات', icon: PackageSearch, href: '/dashboard/inventory/stock-tracking' },
       { id: 'lowStockAlerts', label: 'Low Stock', labelAr: 'تنبيهات النفاد', icon: AlertTriangle, href: '/dashboard/inventory/low-stock' },
     ],
   },
   {
     id: 'branches',
+    published: false,
     title: 'Branches',
     titleAr: 'الفروع',
     moduleId: 'branches',
@@ -152,15 +161,16 @@ export const sidebarSections: SidebarSection[] = [
       { id: 'invoice', label: 'Invoices', labelAr: 'الفواتير', icon: ReceiptText, href: '/dashboard/finance' },
       { id: 'newInvoice', label: 'New Invoice', labelAr: 'فاتورة جديدة', icon: Plus, href: '/dashboard/finance?action=new' },
       { id: 'revenue', label: 'Revenue', labelAr: 'الإيرادات', icon: TrendingUp, href: '/dashboard/finance/revenue' },
-      { id: 'wallets', label: 'Wallets', labelAr: 'المحافظ والخزائن', icon: WalletIcon, href: '/dashboard/finance/wallets' },
-      { id: 'cashflow', label: 'Cash Flow', labelAr: 'التدفق النقدي', icon: Share2, href: '/dashboard/finance/cashflow' },
-      { id: 'profits', label: 'Profits', labelAr: 'الأرباح', icon: LineChart, href: '/dashboard/finance/profits' },
-      { id: 'eta', label: 'E-Invoice (ETA)', labelAr: 'الفاتورة الإلكترونية', icon: ScanLine, href: '/dashboard/finance/eta' },
+      { id: 'wallets', published: false, label: 'Wallets', labelAr: 'المحافظ والخزائن', icon: WalletIcon, href: '/dashboard/finance/wallets' },
+      { id: 'cashflow', published: false, label: 'Cash Flow', labelAr: 'التدفق النقدي', icon: Share2, href: '/dashboard/finance/cashflow' },
+      { id: 'profits', published: false, label: 'Profits', labelAr: 'الأرباح', icon: LineChart, href: '/dashboard/finance/profits' },
+      { id: 'eta', published: false, label: 'E-Invoice (ETA)', labelAr: 'الفاتورة الإلكترونية', icon: ScanLine, href: '/dashboard/finance/eta' },
       { id: 'payments', label: 'Payments', labelAr: 'المدفوعات والتحصيلات', icon: HandCoins, href: '/dashboard/sales/payments' },
     ],
   },
   {
     id: 'accounting',
+    published: false,
     title: 'Accounting',
     titleAr: 'المحاسبة',
     moduleId: 'accounting',
@@ -176,6 +186,7 @@ export const sidebarSections: SidebarSection[] = [
   },
   {
     id: 'team',
+    published: false,
     title: 'Team',
     titleAr: 'فريق العمل',
     moduleId: 'team',
@@ -187,6 +198,7 @@ export const sidebarSections: SidebarSection[] = [
   },
   {
     id: 'marketing',
+    published: false,
     title: 'Marketing',
     titleAr: 'التسويق',
     moduleId: 'marketing',
@@ -215,13 +227,14 @@ export const sidebarSections: SidebarSection[] = [
       { id: 'customers', label: 'Customers', labelAr: 'العملاء', icon: Users, href: '/dashboard/crm' },
       { id: 'customerStatements', label: 'Statements', labelAr: 'كشوف الحساب', icon: ScrollText, href: '/dashboard/customers/statements' },
       { id: 'creditLimits', label: 'Credit Limits', labelAr: 'حدود الائتمان', icon: PiggyBank, href: '/dashboard/customers/credit-limits' },
-      { id: 'wholesalePricing', label: 'Wholesale Pricing', labelAr: 'أسعار الجملة', icon: Tags, href: '/dashboard/customers/wholesale-pricing' },
-      { id: 'customerSegments', label: 'Segments', labelAr: 'الشرائح', icon: UserRoundSearch, href: '/dashboard/customers/segments' },
-      { id: 'customerTags', label: 'Tags', labelAr: 'الوسوم', icon: Tag, href: '/dashboard/customers/tags' },
+      { id: 'wholesalePricing', published: false, label: 'Wholesale Pricing', labelAr: 'أسعار الجملة', icon: Tags, href: '/dashboard/customers/wholesale-pricing' },
+      { id: 'customerSegments', published: false, label: 'Segments', labelAr: 'الشرائح', icon: UserRoundSearch, href: '/dashboard/customers/segments' },
+      { id: 'customerTags', published: false, label: 'Tags', labelAr: 'الوسوم', icon: Tag, href: '/dashboard/customers/tags' },
     ],
   },
   {
     id: 'crm',
+    published: false,
     title: 'Customer Service',
     titleAr: 'خدمة العملاء',
     moduleId: 'crm',
@@ -254,6 +267,7 @@ export const sidebarSections: SidebarSection[] = [
   },
   {
     id: 'hr',
+    published: false,
     title: 'Human Resources',
     titleAr: 'الموارد البشرية',
     moduleId: 'hr',
@@ -287,16 +301,19 @@ export const sidebarSections: SidebarSection[] = [
     icon: BarChart3,
     items: [
       { id: 'reports', label: 'Reports', labelAr: 'التقارير', icon: Presentation, href: '/dashboard/analytics' },
-      { id: 'kpi', label: 'KPIs', labelAr: 'المؤشرات', icon: Activity, href: '/dashboard/analytics/kpi' },
-      { id: 'charts', label: 'Charts', labelAr: 'الرسوم البيانية', icon: ChartPie, href: '/dashboard/analytics/charts' },
+      { id: 'kpi', published: false, label: 'KPIs', labelAr: 'المؤشرات', icon: Activity, href: '/dashboard/analytics/kpi' },
+      { id: 'charts', published: false, label: 'Charts', labelAr: 'الرسوم البيانية', icon: ChartPie, href: '/dashboard/analytics/charts' },
       { id: 'salesPerformance', label: 'Sales Performance', labelAr: 'أداء المبيعات', icon: TrendingUp, href: '/dashboard/analytics/sales-performance' },
       { id: 'productPerformance', label: 'Product Performance', labelAr: 'أداء المنتجات', icon: PackageSearch, href: '/dashboard/analytics/product-performance' },
+      { id: 'inventoryReports', label: 'Inventory Reports', labelAr: 'تقارير المخزون', icon: Boxes, href: '/dashboard/analytics/inventory' },
+      { id: 'customerInsights', label: 'Customer Insights', labelAr: 'تحليلات العملاء', icon: Users, href: '/dashboard/analytics/customer-insights' },
       { id: 'visitors', label: 'Visitors', labelAr: 'الزوار', icon: Eye, href: '/dashboard/analytics/visitors' },
       { id: 'conversions', label: 'Conversions', labelAr: 'التحويلات', icon: MousePointerClick, href: '/dashboard/analytics/conversions' },
     ],
   },
   {
     id: 'ai',
+    published: false,
     title: 'AI Assistant',
     titleAr: 'الذكاء الاصطناعي',
     moduleId: 'ai',

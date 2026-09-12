@@ -299,9 +299,11 @@ export function FaqSection() {
     <section id="faq" className="relative z-20 bg-white py-20 md:py-32">
       <div className="max-w-4xl mx-auto px-5 sm:px-6">
         <RevealSection className="text-center mb-12 md:mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-600 text-sm font-bold mb-6">
-            <MessageSquare className="w-4 h-4" />
-            الأسئلة الشائعة
+          <div className="mb-4 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-100 bg-cyan-50/70 px-4 py-1.5 text-xs md:text-sm font-bold text-cyan-700">
+              <MessageSquare className="w-3.5 h-3.5" />
+              عندك سؤال؟
+            </span>
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
             الأسئلة الشائعة
@@ -341,7 +343,7 @@ export function FaqSection() {
 
 export function FinalCta() {
   return (
-    <section dir="rtl" className="biz-hero relative overflow-hidden">
+    <section dir="rtl" className="relative overflow-hidden bg-white">
       {/* سحاب زي الهيرو */}
       <span className="biz-cloud biz-cloud-top" aria-hidden="true"><i /><i /><i /></span>
       <span className="biz-cloud biz-cloud-right" aria-hidden="true"><i /><i /><i /></span>
@@ -412,7 +414,6 @@ export function Footer() {
   return (
     <footer className="relative z-20">
       <FooterVideoBackground
-        overlayClassName="bg-slate-950/50"
         className="pt-20 md:pt-32 pb-8"
       >
         {/* ── Footer links ── */}
@@ -425,7 +426,7 @@ export function Footer() {
               </div>
               <span className="text-white font-black text-lg">{businessBrand.name}</span>
             </div>
-            <p className="text-white/40 text-sm leading-relaxed mb-4 max-w-xs">
+            <p className="text-slate-400 text-sm leading-relaxed mb-4 max-w-xs">
               منصة عربية متكاملة لإدارة وتنمية أعمالك التجارية.
             </p>
             <div className="flex gap-3">
@@ -437,7 +438,7 @@ export function Footer() {
                 <a
                   key={i}
                   href="#"
-                  className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-cyan-400 hover:border-cyan-400/30 transition-all duration-300 cursor-pointer"
+                  className="w-9 h-9 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center text-slate-300 hover:text-[#00E5FF] hover:border-[#00E5FF]/50 hover:bg-white/15 transition-all duration-300 cursor-pointer"
                   aria-label={social.label}
                 >
                   <social.icon className="w-4 h-4" />
@@ -478,7 +479,7 @@ export function Footer() {
                   <li key={j}>
                     <a
                       href={link.href}
-                      className="text-white/40 text-sm hover:text-cyan-400 transition-colors duration-200"
+                      className="text-slate-400 text-sm hover:text-[#00E5FF] transition-colors duration-200"
                     >
                       {link.label}
                     </a>
@@ -488,13 +489,13 @@ export function Footer() {
             </div>
           ))}
         </div>
-        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-white/30 text-xs sm:text-sm">
+        <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-slate-400 text-xs sm:text-sm">
             © {new Date().getFullYear()} من مكانك. جميع الحقوق محفوظة.
           </p>
-          <div className="flex items-center gap-4 text-white/30 text-xs">
+          <div className="flex items-center gap-4 text-slate-400 text-xs">
             <span className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               كل الأنظمة تعمل
             </span>
           </div>

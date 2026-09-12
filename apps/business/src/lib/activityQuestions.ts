@@ -325,7 +325,11 @@ const DASHBOARD_FEATURE_MAP: Record<string, string[]> = {
 
 export function dashboardEnabledFeatures(moduleIds: ModuleId[]): Record<string, string[]> {
   const out: Record<string, string[]> = {};
-  for (const id of moduleIds) {
+  // Sales always brings basic customer management with it (orders create customers).
+  const withCustomers = moduleIds.includes('sales')
+    ? Array.from(new Set<ModuleId>([...moduleIds, 'customers']))
+    : moduleIds;
+  for (const id of withCustomers) {
     const features = DASHBOARD_FEATURE_MAP[id];
     if (!features) continue;
     const key = id === 'customers' ? 'crm' : id;

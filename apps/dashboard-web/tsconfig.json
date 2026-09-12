@@ -27,6 +27,8 @@
       "@/*": [
         "./src/*"
       ],
+      "@ray-eg/shared": ["../../packages/shared/src/index.ts"],
+      "@ray-eg/shared/*": ["../../packages/shared/src/*"],
       "@shared/*": [
         "../../packages/shared/src/*"
       ]

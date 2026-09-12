@@ -1,4 +1,4 @@
-﻿-- Rollback compliance tables
+-- Rollback compliance tables
 -- (tables dropped in reverse order)
 DROP TABLE IF EXISTS aml_alerts;
 DROP TABLE IF EXISTS product_reports;

@@ -25,7 +25,19 @@ func NewRepository(pool *db.Pool) *Repository {
 // FindByID returns an order by ID.
 func (r *Repository) FindByID(ctx context.Context, id string) (*Order, error) {
 	row := r.pool.QueryRow(ctx, selectOrder+" WHERE o.id = $1 LIMIT 1", id)
-	return scanOrder(row)
+	order, err := scanOrder(row)
+	if err != nil || order == nil {
+		return order, err
+	}
+	// attach items like the list endpoints do, so the order detail view is complete
+	items, err := r.scanOrderItems(ctx, []string{order.ID})
+	if err != nil {
+		return nil, err
+	}
+	if len(items) > 0 {
+		order.Items = items
+	}
+	return order, nil
 }
 
 // ListByShop returns orders for a shop with optional date range.

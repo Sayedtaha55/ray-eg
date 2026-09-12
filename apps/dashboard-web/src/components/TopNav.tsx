@@ -19,6 +19,14 @@ type TopNavProps = {
   onSwitchNav: () => void;
 };
 
+
+// Small amber tag for local-only / not-yet-released features
+const SoonBadge = ({ className = '' }: { className?: string }) => (
+  <span className={`px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[8px] font-black leading-none shrink-0 ${className}`}>
+    قريباً
+  </span>
+);
+
 export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -151,10 +159,11 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
                 onMouseEnter={() => handleSectionEnter(section.id)}
                 className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all ${
                   active || hovered ? 'text-[#00E5FF] bg-white/10' : 'text-white/80 hover:text-white hover:bg-white/5'
-                }`}
+                } ${section.published === false ? 'opacity-60' : ''}`}
               >
                 {SectionIcon && <SectionIcon size={16} className="shrink-0" />}
                 <span>{section.titleAr}</span>
+                {section.published === false && <SoonBadge />}
                 {section.items.length > 1 && (
                   <ChevronDown
                     size={12}
@@ -320,7 +329,7 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
                         active
                           ? 'bg-slate-900/5 text-slate-900'
                           : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                      }`}
+                      } ${item.published === false ? 'opacity-60' : ''}`}
                     >
                       {ItemIcon && (
                         <span className={`w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 ${active ? 'ring-1 ring-[#00E5FF]/40' : ''}`}>
@@ -328,6 +337,7 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
                         </span>
                       )}
                       <span className="flex-1 text-right">{item.labelAr}</span>
+                      {item.published === false && <SoonBadge />}
                       {active && <span className="w-1.5 h-1.5 rounded-full bg-[#00E5FF] shrink-0" />}
                     </Link>
                   );
@@ -369,12 +379,13 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
                       active
                         ? 'text-slate-900 bg-slate-900/5'
                         : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-                    }`}
+                    } ${item.published === false ? 'opacity-60' : ''}`}
                   >
                     {ItemIcon && (
                       <ItemIcon size={14} className={`shrink-0 ${SECTION_COLORS[activeSection.id] || 'text-slate-400'}`} />
                     )}
                     <span>{item.labelAr}</span>
+                    {item.published === false && <SoonBadge />}
                     {active && (
                       <motion.span
                         layoutId="topnav-active-underline"

@@ -1,4 +1,4 @@
-﻿-- KYC columns for shops (AML/KYC)
+-- KYC columns for shops (AML/KYC)
 ALTER TABLE shops ADD COLUMN IF NOT EXISTS tax_registration_number TEXT;
 ALTER TABLE shops ADD COLUMN IF NOT EXISTS commercial_registry_number TEXT;
 ALTER TABLE shops ADD COLUMN IF NOT EXISTS id_document_url TEXT;

@@ -75,8 +75,9 @@ export default function AdminNewShopsPage() {
     })
     .sort((a, b) => new Date(String(b?.createdAt || 0)).getTime() - new Date(String(a?.createdAt || 0)).getTime());
 
+  // The owner's real account phone (from signup); falls back to the shop phone.
   const ownerPhone = (s: any) => {
-    const raw = String(s?.phone || s?.owner_phone || s?.ownerPhone || '');
+    const raw = String(s?.owner?.phone || s?.owner_phone || s?.phone || '');
     const digits = raw.replace(/[^\d+]/g, '');
     if (!digits) return '';
     if (digits.startsWith('+')) return digits;
@@ -84,6 +85,7 @@ export default function AdminNewShopsPage() {
     if (digits.startsWith('0')) return `+2${digits}`;
     return digits;
   };
+  const ownerName = (s: any) => String(s?.owner?.name || s?.name || 'متجر');
 
   const formatPhone = (p: string) => {
     const m = p.match(/^\+20(1[0125])(\d{4})(\d{4})$/);
@@ -168,10 +170,11 @@ export default function AdminNewShopsPage() {
                     </div>
                     <div>
                       <h4 className="text-lg font-black text-white flex items-center gap-2">
-                        {shop?.name || 'متجر'}
+                        {ownerName(shop)}
                         {status === 'APPROVED' && <CheckCircle2 size={15} className="text-emerald-400" />}
                       </h4>
                       <div className="text-slate-500 text-[11px] font-bold mt-0.5 flex items-center gap-2 flex-wrap">
+                        <span className="flex items-center gap-1"><Store size={11} /> {shop?.name || '—'}</span>
                         <span>{shop?.category || '—'}</span>
                         {shop?.createdAt && <span>· {timeAgo(String(shop.createdAt))}</span>}
                         {locked && <span className="text-red-400">· مقفول</span>}
@@ -218,9 +221,9 @@ export default function AdminNewShopsPage() {
                   )}
                 </div>
 
-                {shop?.owner_email || shop?.ownerEmail ? (
+                {shop?.owner?.email ? (
                   <div className="text-[11px] font-bold text-slate-500 mt-2.5" dir="ltr">
-                    {String(shop.owner_email || shop.ownerEmail)}
+                    {String(shop.owner.email)}
                   </div>
                 ) : null}
               </MotionDiv>
