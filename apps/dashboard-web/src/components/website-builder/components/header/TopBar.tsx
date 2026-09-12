@@ -12,6 +12,7 @@ import {
   Globe,
   CheckCircle2,
   Loader2,
+  AlertTriangle,
   ChevronDown,
   FileText,
   Terminal,
@@ -271,6 +272,12 @@ export const TopBar: React.FC = () => {
               <span>غير محفوظ</span>
             </>
           )}
+          {autosaveStatus === 'error' && (
+            <>
+              <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+              <span className="text-red-600">تعذّر الحفظ</span>
+            </>
+          )}
         </div>
 
         {/* Direct Save Button (Hidden on xs mobile because it's in the bottom tab bar) */}
@@ -407,7 +414,7 @@ export const TopBar: React.FC = () => {
             <span className="font-bold text-slate-800">إجراءات سريعة</span>
             <div className="flex items-center gap-1 text-[11px] text-slate-500">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>{autosaveStatus === 'saved' ? 'محفوظ تلقائياً' : 'تعديلات معلقة'}</span>
+              <span>{autosaveStatus === 'saved' ? 'محفوظ تلقائياً' : autosaveStatus === 'error' ? 'تعذّر الحفظ — أعد المحاولة' : 'تعديلات معلقة'}</span>
             </div>
           </div>
 

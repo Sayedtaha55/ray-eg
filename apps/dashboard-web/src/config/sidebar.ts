@@ -15,7 +15,7 @@ import {
   CalendarClock, CalendarCheck, CalendarRange, Stethoscope, BedDouble, Utensils,
   Briefcase, KeyRound, UserCheck, Timer, Coins, Hourglass, ClipboardCheck,
   PenLine, Palette, LayoutTemplate, Gem, Wand2, ImagePlus, SearchCheck,
-  BrainCircuit, Lightbulb, Frame, FileSpreadsheet, Radar, Workflow,
+  BrainCircuit, Lightbulb, FileSpreadsheet, Radar, Workflow,
   Presentation, Activity, ChartPie, Eye, MousePointerClick,
   Building2, GitBranch, UsersRound, FileCheck, PackageCheck, Tags,
   ScrollText, PiggyBank, ScanLine,
@@ -312,7 +312,7 @@ export const sidebarSections: SidebarSection[] = [
       { id: 'aiAnalysis', label: 'AI Analysis', labelAr: 'تحليل النشاط', icon: BrainCircuit, href: '/dashboard/ai/analysis' },
       { id: 'aiReplies', label: 'AI Replies', labelAr: 'الردود التلقائية', icon: MessageCircle, href: '/dashboard/ai/replies' },
       { id: 'aiSuggestions', label: 'AI Suggestions', labelAr: 'الاقتراحات', icon: Lightbulb, href: '/dashboard/ai/suggestions' },
-      { id: 'aiPageGen', label: 'AI Page Builder', labelAr: 'إنشاء الصفحات', icon: Frame, href: '/dashboard/ai/page-builder' },
+      // aiPageGen (AI Page Builder) مخفي مؤقتًا — ميزة مستقبلية حتى تنضج (المسار /dashboard/ai/page-builder ما زال موجودًا)
       { id: 'aiDataAnalysis', label: 'AI Data Analysis', labelAr: 'تحليل البيانات', icon: FileSpreadsheet, href: '/dashboard/ai/data-analysis' },
       { id: 'aiInsights', label: 'AI Insights', labelAr: 'رؤى AI', icon: Radar, href: '/dashboard/ai/insights' },
       { id: 'aiAutomations', label: 'AI Automations', labelAr: 'أتمتة AI', icon: Workflow, href: '/dashboard/ai/automations' },

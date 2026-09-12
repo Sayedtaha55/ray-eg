@@ -1,11 +1,7 @@
 import { api } from '../api';
 import type {
-  Website,
   Template,
   Theme,
-  Domain,
-  PublishRecord,
-  VersionHistory,
   MediaAsset,
   AnalyticsSummary,
   SeoReport,
@@ -18,43 +14,7 @@ import type {
   Collection,
   MarketplaceItem,
   PlatformSettings,
-  WebsiteStatus,
 } from './types';
-
-// ─── Website Services ──────────────────────────────────────────
-
-export async function getWebsites(shopId: string, status?: WebsiteStatus): Promise<Website[]> {
-  const path = `/shops/${shopId}/websites${status ? `?status=${status}` : ''}`;
-  return api.get<Website[]>(path, { revalidate: 0, tags: [`websites:${shopId}`] });
-}
-
-export async function getWebsite(id: string): Promise<Website | null> {
-  try {
-    return await api.get<Website>(`/websites/${id}`, { revalidate: 0, tags: [`website:${id}`] });
-  } catch {
-    return null;
-  }
-}
-
-export async function createWebsite(shopId: string, data: Partial<Website>): Promise<Website> {
-  return api.post<Website>(`/shops/${shopId}/websites`, data);
-}
-
-export async function updateWebsite(id: string, data: Partial<Website>): Promise<Website> {
-  return api.patch<Website>(`/websites/${id}`, data);
-}
-
-export async function deleteWebsite(id: string): Promise<void> {
-  await api.delete(`/websites/${id}`);
-}
-
-export async function duplicateWebsite(id: string): Promise<Website> {
-  return api.post<Website>(`/websites/${id}/duplicate`, {});
-}
-
-export async function archiveWebsite(id: string): Promise<Website> {
-  return api.post<Website>(`/websites/${id}/archive`, {});
-}
 
 // ─── Template Services ─────────────────────────────────────────
 
@@ -79,46 +39,6 @@ export async function getTemplate(id: string): Promise<Template | null> {
 export async function getThemes(category?: string): Promise<Theme[]> {
   const query = category ? `?category=${category}` : '';
   return api.get<Theme[]>(`/themes${query}`, { revalidate: 3600, tags: ['themes'] });
-}
-
-// ─── Domain Services ────────────────────────────────────────────
-
-export async function getDomains(websiteId: string): Promise<Domain[]> {
-  return api.get<Domain[]>(`/websites/${websiteId}/domains`, { revalidate: 0, tags: [`domains:${websiteId}`] });
-}
-
-export async function connectDomain(websiteId: string, domain: string, isCustom: boolean): Promise<Domain> {
-  return api.post<Domain>(`/websites/${websiteId}/domains`, { domain, isCustom });
-}
-
-export async function verifyDomain(websiteId: string, domainId: string): Promise<Domain> {
-  return api.post<Domain>(`/websites/${websiteId}/domains/${domainId}/verify`, {});
-}
-
-export async function removeDomain(websiteId: string, domainId: string): Promise<void> {
-  await api.delete(`/websites/${websiteId}/domains/${domainId}`);
-}
-
-// ─── Publishing Services ───────────────────────────────────────
-
-export async function publishWebsite(websiteId: string): Promise<PublishRecord> {
-  return api.post<PublishRecord>(`/websites/${websiteId}/publish`, {});
-}
-
-export async function unpublishWebsite(websiteId: string): Promise<PublishRecord> {
-  return api.post<PublishRecord>(`/websites/${websiteId}/unpublish`, {});
-}
-
-export async function schedulePublish(websiteId: string, scheduledAt: string): Promise<PublishRecord> {
-  return api.post<PublishRecord>(`/websites/${websiteId}/schedule`, { scheduledAt });
-}
-
-export async function rollbackWebsite(websiteId: string, version: number): Promise<PublishRecord> {
-  return api.post<PublishRecord>(`/websites/${websiteId}/rollback`, { version });
-}
-
-export async function getVersionHistory(websiteId: string): Promise<VersionHistory[]> {
-  return api.get<VersionHistory[]>(`/websites/${websiteId}/versions`, { revalidate: 0, tags: [`versions:${websiteId}`] });
 }
 
 // ─── Media Services ────────────────────────────────────────────

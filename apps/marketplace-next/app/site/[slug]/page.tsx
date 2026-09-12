@@ -82,23 +82,25 @@ export default async function PublishedSitePage({ params }: Props) {
   const tRadius = theme.radius || {};
   const tShadows = theme.shadows || {};
 
-  const primary = c.primaryColor || tColors.primary || '#00E5FF';
-  const headerBg = c.headerBackgroundColor || tColors.surface || '#FFFFFF';
-  const headerText = c.headerTextColor || tColors.textPrimary || '#0F172A';
-  const pageBg = c.pageBackgroundColor || tColors.background || '#FFFFFF';
+  // Fallbacks mirror the builder's defaultDesignTokens so a site without a
+  // published theme still renders exactly as it looks in the editor.
+  const primary = c.primaryColor || tColors.primary || '#1d4ed8';
+  const headerBg = c.headerBackgroundColor || tColors.surface || '#f8fafc';
+  const headerText = c.headerTextColor || tColors.textPrimary || '#0f172a';
+  const pageBg = c.pageBackgroundColor || tColors.background || '#ffffff';
   const bannerUrl = c.bannerUrl;
-  const footerBg = c.footerBackgroundColor || tColors.surface || '#FFFFFF';
-  const footerText = c.footerTextColor || tColors.textPrimary || '#0F172A';
+  const footerBg = c.footerBackgroundColor || tColors.surface || '#f8fafc';
+  const footerText = c.footerTextColor || tColors.textPrimary || '#0f172a';
 
   // Full theme tokens from the builder (typography, radius, shadows)
   const fontBody = tTypo.fontBody || 'inherit';
   const fontHeading = tTypo.fontHeading || 'inherit';
   const rSm = tRadius.sm || '6px';
-  const rMd = tRadius.md || '12px';
+  const rMd = tRadius.md || '10px';
   const rLg = tRadius.lg || '16px';
   const rXl = tRadius.xl || '24px';
-  const shadowSm = tShadows.sm || '0 1px 3px rgba(0,0,0,0.08)';
-  const shadowMd = tShadows.md || '0 4px 12px rgba(0,0,0,0.1)';
+  const shadowSm = tShadows.sm || '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
+  const shadowMd = tShadows.md || '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)';
   const cardRadius = c.productsLayout === 'horizontal' ? rLg : rMd;
 
   let products: Product[] = [];

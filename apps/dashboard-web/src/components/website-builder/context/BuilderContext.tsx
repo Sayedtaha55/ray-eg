@@ -83,8 +83,8 @@ interface BuilderContextType {
   setViewport: (vp: ViewportBreakpoint) => void;
   zoom: number;
   setZoom: (zoom: number) => void;
-  activeSidebarTab: 'pages' | 'layers' | 'sections' | 'design' | 'assets' | 'seo';
-  setActiveSidebarTab: (tab: 'pages' | 'layers' | 'sections' | 'design' | 'assets' | 'seo') => void;
+  activeSidebarTab: 'pages' | 'layers' | 'sections' | 'design' | 'assets';
+  setActiveSidebarTab: (tab: 'pages' | 'layers' | 'sections' | 'design' | 'assets') => void;
   activeInspectorTab: 'style' | 'props' | 'responsive' | 'animation' | 'code';
   setActiveInspectorTab: (tab: 'style' | 'props' | 'responsive' | 'animation' | 'code') => void;
   isRtl: boolean;
@@ -116,7 +116,7 @@ interface BuilderContextType {
   undo: () => void;
   redo: () => void;
   historyLog: string[];
-  autosaveStatus: 'saved' | 'saving' | 'unsaved';
+  autosaveStatus: 'saved' | 'saving' | 'unsaved' | 'error';
   saveDraft: (manual?: boolean) => void;
 
   // Version Snapshots
@@ -267,7 +267,7 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   // Viewport & Layout
   const [viewport, setViewport] = useState<ViewportBreakpoint>('desktop');
   const [zoom, setZoom] = useState<number>(100);
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'pages' | 'layers' | 'sections' | 'design' | 'assets' | 'seo'>('layers');
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'pages' | 'layers' | 'sections' | 'design' | 'assets'>('layers');
   const [activeInspectorTab, setActiveInspectorTab] = useState<'style' | 'props' | 'responsive' | 'animation' | 'code'>('style');
   const [isRtl, setIsRtl] = useState<boolean>(true);
 
@@ -286,22 +286,14 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   const [pastStates, setPastStates] = useState<Website[]>([]);
   const [futureStates, setFutureStates] = useState<Website[]>([]);
   const [historyLog, setHistoryLog] = useState<string[]>(['بدء جلسة العمل']);
-  const [autosaveStatus, setAutosaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const [autosaveStatus, setAutosaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        let shop: any = null;
-        try {
-          shop = await apiRequest('/shops/me');
-        } catch {
-          // Dev fallback: fetch dev shop directly if /shops/me is unauthenticated
-          const res = await fetch('http://localhost:4000/api/v1/shops/dev-shop-13e8de3a').then((r) => r.json()).catch(() => null);
-          if (res?.success && res?.data) {
-            shop = res.data;
-          }
-        }
+        // بلا جلسة صالحة لا يوجد متجر — يبقى المحرر على الحالة التجريبية المحلية فقط
+        const shop = await apiRequest('/shops/me').catch(() => null);
 
         if (!shop || cancelled) return;
         const shopId = shop.id;
@@ -332,14 +324,17 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
           setActivePageId(config.website.pages[0]?.id || 'page_home');
         }
       } catch {
-        // Fallback to local storage if available
+        // Fallback to local storage if available — drafts are keyed per shop,
+        // so scan every ray_builder_site_* key instead of assuming one key.
         if (typeof window !== 'undefined') {
-          const cached = localStorage.getItem('ray_builder_site_local');
-          if (cached) {
+          for (let i = 0; i < localStorage.length && !cancelled; i++) {
+            const key = localStorage.key(i);
+            if (!key || !key.startsWith('ray_builder_site_')) continue;
             try {
-              const parsed = JSON.parse(cached);
+              const parsed = JSON.parse(localStorage.getItem(key) || '');
               if (parsed?.pages?.length && parsed?.components) {
                 setWebsite(parsed);
+                break;
               }
             } catch {}
           }
@@ -450,7 +445,8 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
         });
         setAutosaveStatus('saved');
       } catch {
-        setAutosaveStatus('unsaved');
+        // 'error' يوقف حلقة إعادة المحاولة التلقائية حتى التعديل القادم
+        setAutosaveStatus('error');
       }
     }, 1500);
     return () => clearTimeout(timer);
@@ -1925,11 +1921,13 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
       }
     } catch (err) {
       if (typeof window !== 'undefined') {
-        localStorage.setItem(`ray_builder_site_${builderShopId || 'local'}`, JSON.stringify(website));
+        try {
+          localStorage.setItem(`ray_builder_site_${builderShopId || 'local'}`, JSON.stringify(website));
+        } catch {}
       }
-      setAutosaveStatus('saved');
+      setAutosaveStatus('error');
       if (manual) {
-        setHistoryLog((prev) => ['تم حفظ الموقع بنجاح في الذاكرة المحلية', ...prev]);
+        setHistoryLog((prev) => ['تعذّر الحفظ على السيرفر — حُفظت نسخة محلية فقط، أعد المحاولة', ...prev]);
       }
     }
   }, [builderShopId, website]);

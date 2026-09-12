@@ -29,9 +29,10 @@ export const CustomCodeRenderer: React.FC<CustomCodeRendererProps> = ({
   const customJs = node.customCode?.js || node.customCode?.jsSnippet || '';
 
   // Listen for height reports from the sandboxed iframe so the canvas
-  // sizes the component correctly.
+  // sizes the component correctly. Only trust messages from our own iframe.
   useEffect(() => {
     const handler = (e: MessageEvent) => {
+      if (e.source !== iframeRef.current?.contentWindow) return;
       const d = e.data;
       if (d && d.type === 'custom-code-height' && d.id === node.id && typeof d.height === 'number') {
         setIframeHeight(Math.max(40, Math.min(d.height + 8, 4000)));

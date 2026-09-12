@@ -21,12 +21,12 @@ const DEFAULT_FEATURES: Record<string, string[]> = {
   accounting: ['accounts', 'journal', 'trialBalance', 'financialReports', 'expenses', 'taxes'],
   crm: ['customers', 'customerStatements', 'creditLimits', 'wholesalePricing'],
   pos: ['posCheckout'],
+  website: ['website'],
 };
 
 const FEATURE_ALIASES: Record<string, string> = {
   sales: 'orders',
   addProduct: 'products',
-  'my-site': 'website',
   customerSegments: 'customers',
   customerTags: 'customers',
   marketingHub: 'campaigns',
@@ -88,11 +88,17 @@ export default function useVisibleSections() {
     for (const [k, v] of Object.entries(DEFAULT_FEATURES)) merged[k] = [...v];
     if (saved && typeof saved === 'object') {
       for (const [k, v] of Object.entries(saved)) {
-        merged[k] = [...(merged[k] || []), ...(Array.isArray(v) ? v : [])];
+        const key = k.toLowerCase();
+        if (!Array.isArray(v)) continue;
+        // Explicit onboarding/module-config wins over defaults per module —
+        // an empty array means the merchant really turned this module off
+        // (e.g. answered "no cashier" at signup). Missing keys (new modules)
+        // still fall back to defaults.
+        merged[key] = v.map((f) => String(f).toLowerCase());
       }
     }
     return Object.fromEntries(Object.entries(merged).map(([moduleId, features]) => [
-      moduleId.toLowerCase(), new Set((Array.isArray(features) ? features : []).map((feature) => String(feature).toLowerCase())),
+      moduleId.toLowerCase(), new Set(features),
     ])) as Record<string, Set<string>>;
   }, [shop]);
 
