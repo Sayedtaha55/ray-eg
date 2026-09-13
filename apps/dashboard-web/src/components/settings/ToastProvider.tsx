@@ -6,7 +6,7 @@ type Toast = {
   id: number;
   title: string;
   description?: string;
-  variant?: 'default' | 'destructive' | 'success';
+  variant?: 'default' | 'destructive' | 'success' | 'info';
 };
 
 type ToastContextType = {
@@ -28,11 +28,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const toast = useCallback((t: Omit<Toast, 'id'>) => {
-    const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { ...t, id }]);
-    setTimeout(() => dismiss(id), 4000);
-  }, [dismiss]);
+  const toast = useCallback(
+    (t: Omit<Toast, 'id'>) => {
+      const id = Date.now() + Math.random();
+      setToasts((prev) => [...prev, { ...t, id }]);
+      setTimeout(() => dismiss(id), 4000);
+    },
+    [dismiss]
+  );
 
   return (
     <ToastContext.Provider value={{ toast, toasts, dismiss }}>
@@ -45,8 +48,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               t.variant === 'destructive'
                 ? 'bg-red-50 border-red-200 text-red-700'
                 : t.variant === 'success'
-                ? 'bg-green-50 border-green-200 text-green-700'
-                : 'bg-white border-slate-200 text-slate-700'
+                  ? 'bg-green-50 border-green-200 text-green-700'
+                  : t.variant === 'info'
+                    ? 'bg-sky-50 border-sky-200 text-sky-700'
+                    : 'bg-white border-slate-200 text-slate-700'
             }`}
           >
             <p className="font-bold text-sm">{t.title}</p>

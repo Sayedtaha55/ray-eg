@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
+  Plus,
   Trash2,
   Edit,
   Eye,
@@ -366,6 +367,13 @@ export default function InventoryPage() {
                 <Download size={14} />
               )}
               تصدير
+            </button>
+            <button
+              onClick={() => router.push('/dashboard/inventory/add-product')}
+              className="h-10 px-5 rounded-full bg-slate-900 text-white text-[12px] font-bold hover:bg-slate-700 flex items-center gap-1.5"
+            >
+              <Plus size={14} />
+              إضافة منتج
             </button>
           </div>
         </div>
