@@ -87,8 +87,8 @@ func (r *Repository) ListShopApps(ctx context.Context, shopID string) ([]ShopApp
 // UpsertShopApp installs or reinstalls an app for a shop.
 func (r *Repository) UpsertShopApp(ctx context.Context, shopID, appID string) (*ShopApp, error) {
 	row := r.pool.QueryRow(ctx, `
-		INSERT INTO shop_apps (shop_id, app_id, status, is_active, installed_at)
-		VALUES ($1, $2, 'INSTALLED', true, NOW())
+		INSERT INTO shop_apps (id, shop_id, app_id, status, is_active, installed_at, updated_at)
+		VALUES (gen_random_uuid()::text, $1, $2, 'INSTALLED', true, NOW(), NOW())
 		ON CONFLICT (shop_id, app_id) DO UPDATE
 			SET status = 'INSTALLED', is_active = true, installed_at = NOW(), updated_at = NOW()
 		RETURNING id, shop_id, app_id, status, is_active, installed_at, updated_at
