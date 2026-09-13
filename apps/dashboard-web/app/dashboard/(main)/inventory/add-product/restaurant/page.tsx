@@ -1,7 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, Trash2, X, Loader2, Save, Upload, Image as ImageIcon, ChevronDown, ChevronUp, Map } from 'lucide-react';
+import {
+  Package,
+  Plus,
+  Trash2,
+  X,
+  Loader2,
+  Save,
+  Upload,
+  Image as ImageIcon,
+  ChevronDown,
+  ChevronUp,
+  Map,
+  ArrowRight,
+} from 'lucide-react';
 import { useShop } from '@/hooks/useShop';
 import { useInstalledApps } from '@/hooks/useInstalledApps';
 import { apiRequest } from '@/lib/auth';
@@ -41,8 +54,26 @@ const parseNumberInput = (value: any) => {
   const cleaned = raw
     .replace(/[٠-٩۰-۹]/g, (d) => {
       const map: Record<string, string> = {
-        '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
-        '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+        '٠': '0',
+        '١': '1',
+        '٢': '2',
+        '٣': '3',
+        '٤': '4',
+        '٥': '5',
+        '٦': '6',
+        '٧': '7',
+        '٨': '8',
+        '٩': '9',
+        '۰': '0',
+        '۱': '1',
+        '۲': '2',
+        '۳': '3',
+        '۴': '4',
+        '۵': '5',
+        '۶': '6',
+        '۷': '7',
+        '۸': '8',
+        '۹': '9',
       };
       return map[d] || d;
     })
@@ -91,7 +122,7 @@ export default function RestaurantAddProductPage() {
   const loadProducts = async () => {
     try {
       const data = await apiRequest('/products');
-      const list = Array.isArray(data) ? data : (data?.products || data?.data || []);
+      const list = Array.isArray(data) ? data : data?.products || data?.data || [];
       setProducts(list);
     } catch (err) {
       console.error('Failed to load products:', err);
@@ -101,7 +132,7 @@ export default function RestaurantAddProductPage() {
   const loadCategories = async () => {
     try {
       const data = await apiRequest('/categories');
-      const list = Array.isArray(data) ? data : (data?.categories || data?.data || []);
+      const list = Array.isArray(data) ? data : data?.categories || data?.data || [];
       setCategories(list);
     } catch (err) {
       console.error('Failed to load categories:', err);
@@ -110,50 +141,56 @@ export default function RestaurantAddProductPage() {
 
   const handleAddMenuVariant = () => {
     const newId = `variant_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-    setMenuVariants([...menuVariants, {
-      id: newId,
-      name: '',
-      hasSmall: true,
-      hasMedium: true,
-      hasLarge: true,
-      priceSmall: '',
-      priceMedium: '',
-      priceLarge: '',
-    }]);
+    setMenuVariants([
+      ...menuVariants,
+      {
+        id: newId,
+        name: '',
+        hasSmall: true,
+        hasMedium: true,
+        hasLarge: true,
+        priceSmall: '',
+        priceMedium: '',
+        priceLarge: '',
+      },
+    ]);
   };
 
   const handleRemoveMenuVariant = (id: string) => {
-    setMenuVariants(menuVariants.filter(v => v.id !== id));
+    setMenuVariants(menuVariants.filter((v) => v.id !== id));
   };
 
   const handleUpdateMenuVariant = (id: string, field: keyof MenuVariantItem, value: any) => {
-    setMenuVariants(menuVariants.map(v => v.id === id ? { ...v, [field]: value } : v));
+    setMenuVariants(menuVariants.map((v) => (v.id === id ? { ...v, [field]: value } : v)));
   };
 
   const handleAddAddon = () => {
     const newId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    setAddonItems([...addonItems, {
-      id: newId,
-      name: '',
-      imageUrl: null,
-      imageUploadFile: null,
-      hasSmall: true,
-      hasMedium: true,
-      hasLarge: true,
-      priceSmall: '',
-      priceMedium: '',
-      priceLarge: '',
-    }]);
+    setAddonItems([
+      ...addonItems,
+      {
+        id: newId,
+        name: '',
+        imageUrl: null,
+        imageUploadFile: null,
+        hasSmall: true,
+        hasMedium: true,
+        hasLarge: true,
+        priceSmall: '',
+        priceMedium: '',
+        priceLarge: '',
+      },
+    ]);
     setOpenAddonId(newId);
   };
 
   const handleRemoveAddon = (id: string) => {
-    setAddonItems(addonItems.filter(a => a.id !== id));
+    setAddonItems(addonItems.filter((a) => a.id !== id));
     if (openAddonId === id) setOpenAddonId('');
   };
 
   const handleUpdateAddon = (id: string, field: keyof AddonItem, value: any) => {
-    setAddonItems(addonItems.map(a => a.id === id ? { ...a, [field]: value } : a));
+    setAddonItems(addonItems.map((a) => (a.id === id ? { ...a, [field]: value } : a)));
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,51 +228,65 @@ export default function RestaurantAddProductPage() {
     if (baseSizesEnabled) {
       if (String(priceSmall) !== RESTAURANT_SIZE_NONE) {
         const ps = parseNumberInput(priceSmall);
-        if (!Number.isFinite(ps) || ps <= 0) { alert('سعر الحجم الصغير غير صحيح'); return; }
+        if (!Number.isFinite(ps) || ps <= 0) {
+          alert('سعر الحجم الصغير غير صحيح');
+          return;
+        }
         baseSizes.push({ id: 'small', label: 'صغير', price: ps });
       }
       if (String(priceMedium) !== RESTAURANT_SIZE_NONE) {
         const pm = parseNumberInput(priceMedium);
-        if (!Number.isFinite(pm) || pm <= 0) { alert('سعر الحجم المتوسط غير صحيح'); return; }
+        if (!Number.isFinite(pm) || pm <= 0) {
+          alert('سعر الحجم المتوسط غير صحيح');
+          return;
+        }
         baseSizes.push({ id: 'medium', label: 'متوسط', price: pm });
       }
       if (String(priceLarge) !== RESTAURANT_SIZE_NONE) {
         const pl = parseNumberInput(priceLarge);
-        if (!Number.isFinite(pl) || pl <= 0) { alert('سعر الحجم الكبير غير صحيح'); return; }
+        if (!Number.isFinite(pl) || pl <= 0) {
+          alert('سعر الحجم الكبير غير صحيح');
+          return;
+        }
         baseSizes.push({ id: 'large', label: 'كبير', price: pl });
       }
-      if (baseSizes.length === 0) { alert('اختر حجم واحد على الأقل'); return; }
+      if (baseSizes.length === 0) {
+        alert('اختر حجم واحد على الأقل');
+        return;
+      }
     }
 
-    const mappedVariants = menuVariants.map(v => {
-      const tid = v.id.trim();
-      const tname = v.name.trim();
-      if (!tid || !tname) return null;
-      const sizes: Array<{ id: string; label: string; price: number }> = [];
-      if (v.hasSmall) {
-        const ps = parseNumberInput(v.priceSmall);
-        if (!Number.isFinite(ps) || ps <= 0) return null;
-        sizes.push({ id: 'small', label: 'صغير', price: ps });
-      }
-      if (v.hasMedium) {
-        const pm = parseNumberInput(v.priceMedium);
-        if (!Number.isFinite(pm) || pm <= 0) return null;
-        sizes.push({ id: 'medium', label: 'متوسط', price: pm });
-      }
-      if (v.hasLarge) {
-        const pl = parseNumberInput(v.priceLarge);
-        if (!Number.isFinite(pl) || pl <= 0) return null;
-        sizes.push({ id: 'large', label: 'كبير', price: pl });
-      }
-      if (sizes.length === 0) return null;
-      return { id: tid, name: tname, sizes };
-    }).filter(Boolean);
+    const mappedVariants = menuVariants
+      .map((v) => {
+        const tid = v.id.trim();
+        const tname = v.name.trim();
+        if (!tid || !tname) return null;
+        const sizes: Array<{ id: string; label: string; price: number }> = [];
+        if (v.hasSmall) {
+          const ps = parseNumberInput(v.priceSmall);
+          if (!Number.isFinite(ps) || ps <= 0) return null;
+          sizes.push({ id: 'small', label: 'صغير', price: ps });
+        }
+        if (v.hasMedium) {
+          const pm = parseNumberInput(v.priceMedium);
+          if (!Number.isFinite(pm) || pm <= 0) return null;
+          sizes.push({ id: 'medium', label: 'متوسط', price: pm });
+        }
+        if (v.hasLarge) {
+          const pl = parseNumberInput(v.priceLarge);
+          if (!Number.isFinite(pl) || pl <= 0) return null;
+          sizes.push({ id: 'large', label: 'كبير', price: pl });
+        }
+        if (sizes.length === 0) return null;
+        return { id: tid, name: tname, sizes };
+      })
+      .filter(Boolean);
 
     // Calculate resolved base price
     const parsedPrice = parseNumberInput(price);
     let resolvedBasePrice = parsedPrice;
     if (baseSizesEnabled && baseSizes.length > 0) {
-      const prices = baseSizes.map(s => s.price).filter(n => Number.isFinite(n) && n > 0);
+      const prices = baseSizes.map((s) => s.price).filter((n) => Number.isFinite(n) && n > 0);
       const min = prices.length > 0 ? Math.min(...prices) : NaN;
       if (Number.isFinite(min)) resolvedBasePrice = min;
     }
@@ -245,40 +296,51 @@ export default function RestaurantAddProductPage() {
       return;
     }
 
-    const finalMenuVariants = baseSizes.length > 0
-      ? [{ id: 'base', name: name.trim(), sizes: baseSizes }, ...mappedVariants]
-      : mappedVariants.length > 0 ? mappedVariants : undefined;
+    const finalMenuVariants =
+      baseSizes.length > 0
+        ? [{ id: 'base', name: name.trim(), sizes: baseSizes }, ...mappedVariants]
+        : mappedVariants.length > 0
+          ? mappedVariants
+          : undefined;
 
     // Build addons payload
-    const addonsPayload = addonItems.length > 0
-      ? [{
-          id: 'addons',
-          name: 'إضافات',
-          label: 'إضافات',
-          title: 'إضافات',
-          options: addonItems.map(a => {
-            const variants: Array<{ id: string; label: string; price: number }> = [];
-            if (a.hasSmall) {
-              const ps = parseNumberInput(a.priceSmall);
-              if (Number.isFinite(ps) && ps > 0) variants.push({ id: 'small', label: 'صغير', price: ps });
-            }
-            if (a.hasMedium) {
-              const pm = parseNumberInput(a.priceMedium);
-              if (Number.isFinite(pm) && pm > 0) variants.push({ id: 'medium', label: 'متوسط', price: pm });
-            }
-            if (a.hasLarge) {
-              const pl = parseNumberInput(a.priceLarge);
-              if (Number.isFinite(pl) && pl > 0) variants.push({ id: 'large', label: 'كبير', price: pl });
-            }
-            return {
-              id: a.id,
-              name: a.name.trim(),
-              imageUrl: a.imageUrl,
-              variants,
-            };
-          }).filter(o => o.name && o.variants.length > 0),
-        }]
-      : undefined;
+    const addonsPayload =
+      addonItems.length > 0
+        ? [
+            {
+              id: 'addons',
+              name: 'إضافات',
+              label: 'إضافات',
+              title: 'إضافات',
+              options: addonItems
+                .map((a) => {
+                  const variants: Array<{ id: string; label: string; price: number }> = [];
+                  if (a.hasSmall) {
+                    const ps = parseNumberInput(a.priceSmall);
+                    if (Number.isFinite(ps) && ps > 0)
+                      variants.push({ id: 'small', label: 'صغير', price: ps });
+                  }
+                  if (a.hasMedium) {
+                    const pm = parseNumberInput(a.priceMedium);
+                    if (Number.isFinite(pm) && pm > 0)
+                      variants.push({ id: 'medium', label: 'متوسط', price: pm });
+                  }
+                  if (a.hasLarge) {
+                    const pl = parseNumberInput(a.priceLarge);
+                    if (Number.isFinite(pl) && pl > 0)
+                      variants.push({ id: 'large', label: 'كبير', price: pl });
+                  }
+                  return {
+                    id: a.id,
+                    name: a.name.trim(),
+                    imageUrl: a.imageUrl,
+                    variants,
+                  };
+                })
+                .filter((o) => o.name && o.variants.length > 0),
+            },
+          ]
+        : undefined;
 
     setSaving(true);
     try {
@@ -340,8 +402,17 @@ export default function RestaurantAddProductPage() {
         </div>
         <div className="text-right flex-1">
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900">إضافة منتج مطعم</h1>
-          <p className="text-sm font-bold text-slate-400 mt-1">إضافة منتج مع خيارات الأحجام والأنواع والإضافات</p>
+          <p className="text-sm font-bold text-slate-400 mt-1">
+            إضافة منتج مع خيارات الأحجام والأنواع والإضافات
+          </p>
         </div>
+        <button
+          onClick={() => router.push('/dashboard/inventory')}
+          className="h-10 w-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all shrink-0"
+          title="رجوع إلى المنتجات"
+        >
+          <ArrowRight size={18} />
+        </button>
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-all"
@@ -405,7 +476,9 @@ export default function RestaurantAddProductPage() {
           >
             <option value="">اختر الفئة</option>
             {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
             ))}
           </select>
         </div>
@@ -455,7 +528,9 @@ export default function RestaurantAddProductPage() {
             onChange={(e) => setIsActive(e.target.checked)}
             className="w-4 h-4 rounded border-slate-300"
           />
-          <label htmlFor="isActive" className="text-sm font-medium text-slate-700">نشط</label>
+          <label htmlFor="isActive" className="text-sm font-medium text-slate-700">
+            نشط
+          </label>
         </div>
       </div>
 
@@ -515,7 +590,9 @@ export default function RestaurantAddProductPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-slate-900">أنواع / متغيرات القائمة</h2>
-            <p className="text-xs text-slate-400 mt-1">مثال: دجاج، لحم، نباتي — كل نوع له أحجام وأسعار خاصة</p>
+            <p className="text-xs text-slate-400 mt-1">
+              مثال: دجاج، لحم، نباتي — كل نوع له أحجام وأسعار خاصة
+            </p>
           </div>
           <button
             onClick={handleAddMenuVariant}
@@ -555,14 +632,18 @@ export default function RestaurantAddProductPage() {
                     <input
                       type="checkbox"
                       checked={variant.hasSmall}
-                      onChange={(e) => handleUpdateMenuVariant(variant.id, 'hasSmall', e.target.checked)}
+                      onChange={(e) =>
+                        handleUpdateMenuVariant(variant.id, 'hasSmall', e.target.checked)
+                      }
                       className="w-4 h-4 rounded border-slate-300"
                     />
                     <label className="text-sm text-slate-700">صغير</label>
                     <input
                       type="number"
                       value={variant.priceSmall}
-                      onChange={(e) => handleUpdateMenuVariant(variant.id, 'priceSmall', e.target.value)}
+                      onChange={(e) =>
+                        handleUpdateMenuVariant(variant.id, 'priceSmall', e.target.value)
+                      }
                       disabled={!variant.hasSmall}
                       className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400 disabled:opacity-50"
                       placeholder="السعر"
@@ -572,14 +653,18 @@ export default function RestaurantAddProductPage() {
                     <input
                       type="checkbox"
                       checked={variant.hasMedium}
-                      onChange={(e) => handleUpdateMenuVariant(variant.id, 'hasMedium', e.target.checked)}
+                      onChange={(e) =>
+                        handleUpdateMenuVariant(variant.id, 'hasMedium', e.target.checked)
+                      }
                       className="w-4 h-4 rounded border-slate-300"
                     />
                     <label className="text-sm text-slate-700">متوسط</label>
                     <input
                       type="number"
                       value={variant.priceMedium}
-                      onChange={(e) => handleUpdateMenuVariant(variant.id, 'priceMedium', e.target.value)}
+                      onChange={(e) =>
+                        handleUpdateMenuVariant(variant.id, 'priceMedium', e.target.value)
+                      }
                       disabled={!variant.hasMedium}
                       className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400 disabled:opacity-50"
                       placeholder="السعر"
@@ -589,14 +674,18 @@ export default function RestaurantAddProductPage() {
                     <input
                       type="checkbox"
                       checked={variant.hasLarge}
-                      onChange={(e) => handleUpdateMenuVariant(variant.id, 'hasLarge', e.target.checked)}
+                      onChange={(e) =>
+                        handleUpdateMenuVariant(variant.id, 'hasLarge', e.target.checked)
+                      }
                       className="w-4 h-4 rounded border-slate-300"
                     />
                     <label className="text-sm text-slate-700">كبير</label>
                     <input
                       type="number"
                       value={variant.priceLarge}
-                      onChange={(e) => handleUpdateMenuVariant(variant.id, 'priceLarge', e.target.value)}
+                      onChange={(e) =>
+                        handleUpdateMenuVariant(variant.id, 'priceLarge', e.target.value)
+                      }
                       disabled={!variant.hasLarge}
                       className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400 disabled:opacity-50"
                       placeholder="السعر"
@@ -653,7 +742,9 @@ export default function RestaurantAddProductPage() {
                 {openAddonId === addon.id && (
                   <div className="p-4 space-y-4">
                     <div className="text-right">
-                      <label className="text-xs font-bold text-slate-500 mb-1.5 block">اسم الإضافة</label>
+                      <label className="text-xs font-bold text-slate-500 mb-1.5 block">
+                        اسم الإضافة
+                      </label>
                       <input
                         type="text"
                         value={addon.name}
@@ -664,11 +755,17 @@ export default function RestaurantAddProductPage() {
                     </div>
 
                     <div className="text-right">
-                      <label className="text-xs font-bold text-slate-500 mb-1.5 block">صورة الإضافة</label>
+                      <label className="text-xs font-bold text-slate-500 mb-1.5 block">
+                        صورة الإضافة
+                      </label>
                       <div className="flex items-center gap-4">
                         {addon.imageUrl ? (
                           <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
-                            <img src={addon.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                            <img
+                              src={addon.imageUrl}
+                              alt="Preview"
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                         ) : (
                           <div className="w-16 h-16 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
@@ -689,20 +786,26 @@ export default function RestaurantAddProductPage() {
                     </div>
 
                     <div className="space-y-3">
-                      <label className="text-xs font-bold text-slate-500 block">الأحجام والأسعار</label>
+                      <label className="text-xs font-bold text-slate-500 block">
+                        الأحجام والأسعار
+                      </label>
 
                       <div className="flex items-center gap-4">
                         <input
                           type="checkbox"
                           checked={addon.hasSmall}
-                          onChange={(e) => handleUpdateAddon(addon.id, 'hasSmall', e.target.checked)}
+                          onChange={(e) =>
+                            handleUpdateAddon(addon.id, 'hasSmall', e.target.checked)
+                          }
                           className="w-4 h-4 rounded border-slate-300"
                         />
                         <label className="text-sm text-slate-700">صغير</label>
                         <input
                           type="number"
                           value={addon.priceSmall}
-                          onChange={(e) => handleUpdateAddon(addon.id, 'priceSmall', e.target.value)}
+                          onChange={(e) =>
+                            handleUpdateAddon(addon.id, 'priceSmall', e.target.value)
+                          }
                           disabled={!addon.hasSmall}
                           className="w-24 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400 disabled:opacity-50"
                           placeholder="السعر"
@@ -713,14 +816,18 @@ export default function RestaurantAddProductPage() {
                         <input
                           type="checkbox"
                           checked={addon.hasMedium}
-                          onChange={(e) => handleUpdateAddon(addon.id, 'hasMedium', e.target.checked)}
+                          onChange={(e) =>
+                            handleUpdateAddon(addon.id, 'hasMedium', e.target.checked)
+                          }
                           className="w-4 h-4 rounded border-slate-300"
                         />
                         <label className="text-sm text-slate-700">متوسط</label>
                         <input
                           type="number"
                           value={addon.priceMedium}
-                          onChange={(e) => handleUpdateAddon(addon.id, 'priceMedium', e.target.value)}
+                          onChange={(e) =>
+                            handleUpdateAddon(addon.id, 'priceMedium', e.target.value)
+                          }
                           disabled={!addon.hasMedium}
                           className="w-24 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400 disabled:opacity-50"
                           placeholder="السعر"
@@ -731,14 +838,18 @@ export default function RestaurantAddProductPage() {
                         <input
                           type="checkbox"
                           checked={addon.hasLarge}
-                          onChange={(e) => handleUpdateAddon(addon.id, 'hasLarge', e.target.checked)}
+                          onChange={(e) =>
+                            handleUpdateAddon(addon.id, 'hasLarge', e.target.checked)
+                          }
                           className="w-4 h-4 rounded border-slate-300"
                         />
                         <label className="text-sm text-slate-700">كبير</label>
                         <input
                           type="number"
                           value={addon.priceLarge}
-                          onChange={(e) => handleUpdateAddon(addon.id, 'priceLarge', e.target.value)}
+                          onChange={(e) =>
+                            handleUpdateAddon(addon.id, 'priceLarge', e.target.value)
+                          }
                           disabled={!addon.hasLarge}
                           className="w-24 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400 disabled:opacity-50"
                           placeholder="السعر"

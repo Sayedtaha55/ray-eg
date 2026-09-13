@@ -1,7 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Loader2, Upload, Image as ImageIcon, Clock, Stethoscope } from 'lucide-react';
+import {
+  Plus,
+  X,
+  Loader2,
+  Upload,
+  Image as ImageIcon,
+  Clock,
+  Stethoscope,
+  ArrowRight,
+} from 'lucide-react';
 import { useShop } from '@/hooks/useShop';
 import { apiRequest } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
@@ -37,7 +46,7 @@ export default function ServiceAddProductPage() {
   const loadCategories = async () => {
     try {
       const data = await apiRequest('/categories');
-      const list = Array.isArray(data) ? data : (data?.categories || data?.data || []);
+      const list = Array.isArray(data) ? data : data?.categories || data?.data || [];
       setCategories(list);
     } catch (err) {
       console.error('Failed to load categories:', err);
@@ -153,8 +162,17 @@ export default function ServiceAddProductPage() {
         </div>
         <div className="text-right flex-1">
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900">إضافة خدمة</h1>
-          <p className="text-sm font-bold text-slate-400 mt-1">أضف خدمة بمواعيدها ومدتها وسعرها — بدون مخزون</p>
+          <p className="text-sm font-bold text-slate-400 mt-1">
+            أضف خدمة بمواعيدها ومدتها وسعرها — بدون مخزون
+          </p>
         </div>
+        <button
+          onClick={() => router.push('/dashboard/inventory')}
+          className="h-10 w-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all shrink-0"
+          title="رجوع إلى المنتجات"
+        >
+          <ArrowRight size={18} />
+        </button>
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-all"
@@ -216,7 +234,9 @@ export default function ServiceAddProductPage() {
                 const val = cat.name || cat.nameAr || cat.name_ar || String(cat.id || '');
                 const label = cat.nameAr || cat.name || cat.name_ar || val;
                 return (
-                  <option key={cat.id || val} value={val}>{label}</option>
+                  <option key={cat.id || val} value={val}>
+                    {label}
+                  </option>
                 );
               })}
             </select>
@@ -239,7 +259,10 @@ export default function ServiceAddProductPage() {
                 />
                 <button
                   type="button"
-                  onClick={() => { setCustomDuration(false); setDurationMinutes('60'); }}
+                  onClick={() => {
+                    setCustomDuration(false);
+                    setDurationMinutes('60');
+                  }}
                   className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all shrink-0"
                 >
                   قوائم جاهزة
@@ -259,7 +282,9 @@ export default function ServiceAddProductPage() {
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
               >
                 {DURATION_PRESETS.map((d) => (
-                  <option key={d.value} value={d.value}>{d.label}</option>
+                  <option key={d.value} value={d.value}>
+                    {d.label}
+                  </option>
                 ))}
                 <option value="__CUSTOM__">مدة أخرى...</option>
               </select>
@@ -293,12 +318,7 @@ export default function ServiceAddProductPage() {
             <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-all cursor-pointer">
               <Upload size={16} />
               <span>رفع صورة</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-              />
+              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
             </label>
           </div>
         </div>
@@ -311,7 +331,9 @@ export default function ServiceAddProductPage() {
             onChange={(e) => setIsActive(e.target.checked)}
             className="w-4 h-4 rounded border-slate-300"
           />
-          <label htmlFor="isActive" className="text-sm font-medium text-slate-700">متاحة للحجز</label>
+          <label htmlFor="isActive" className="text-sm font-medium text-slate-700">
+            متاحة للحجز
+          </label>
         </div>
       </div>
 
@@ -319,8 +341,8 @@ export default function ServiceAddProductPage() {
       <div className="flex items-start gap-3 p-4 rounded-xl bg-sky-50 border border-sky-100">
         <Stethoscope size={18} className="text-sky-600 shrink-0 mt-0.5" />
         <p className="text-xs text-sky-700 leading-relaxed">
-          الخدمات لا تتبع المخزون — العملاء يحجزون مواعيد ويختارون مقدم الخدمة والوقت المناسب.
-          يمكنك إدارة مواعيد الحجز وقائمة مقدمي الخدمة من قسم الحجوزات.
+          الخدمات لا تتبع المخزون — العملاء يحجزون مواعيد ويختارون مقدم الخدمة والوقت المناسب. يمكنك
+          إدارة مواعيد الحجز وقائمة مقدمي الخدمة من قسم الحجوزات.
         </p>
       </div>
 
@@ -343,18 +365,31 @@ export default function ServiceAddProductPage() {
       </div>
       {/* Quick Add Category Modal */}
       {showQuickCategoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowQuickCategoryModal(false)}>
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowQuickCategoryModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between flex-row-reverse">
               <h3 className="text-lg font-black text-slate-900">إضافة تخصص/فئة جديدة سريعة</h3>
-              <button onClick={() => setShowQuickCategoryModal(false)} className="p-1 hover:bg-slate-100 rounded-lg"><X size={18} className="text-slate-400" /></button>
+              <button
+                onClick={() => setShowQuickCategoryModal(false)}
+                className="p-1 hover:bg-slate-100 rounded-lg"
+              >
+                <X size={18} className="text-slate-400" />
+              </button>
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block">اسم التخصص / الفئة *</label>
+              <label className="text-xs font-bold text-slate-500 mb-1 block">
+                اسم التخصص / الفئة *
+              </label>
               <input
                 type="text"
                 value={newCategoryName}
-                onChange={e => setNewCategoryName(e.target.value)}
+                onChange={(e) => setNewCategoryName(e.target.value)}
                 placeholder="مثال: استشارات عامة"
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
               />

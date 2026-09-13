@@ -26,6 +26,7 @@ import { apiRequest } from '@/lib/auth';
 import { useShop } from '@/hooks/useShop';
 import { useInstalledApps } from '@/hooks/useInstalledApps';
 import { useRouter } from 'next/navigation';
+import { PRODUCT_TYPES } from '@/config/productTypes';
 import ImageMapEditorModal from '@/components/apps/image-editor/ImageMapEditor';
 
 type Product = {
@@ -66,6 +67,7 @@ export default function InventoryPage() {
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const [showAddonsModal, setShowAddonsModal] = useState(false);
   const [showImageMapModal, setShowImageMapModal] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [addonItems, setAddonItems] = useState<any[]>([]);
   const [savingAddons, setSavingAddons] = useState(false);
 
@@ -368,13 +370,71 @@ export default function InventoryPage() {
               )}
               تصدير
             </button>
-            <button
-              onClick={() => router.push('/dashboard/inventory/add-product')}
-              className="h-10 px-5 rounded-full bg-slate-900 text-white text-[12px] font-bold hover:bg-slate-700 flex items-center gap-1.5"
-            >
-              <Plus size={14} />
-              إضافة منتج
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setAddMenuOpen((v) => !v)}
+                className={`h-10 px-5 rounded-full text-[12px] font-bold flex items-center gap-1.5 transition-colors ${
+                  addMenuOpen
+                    ? 'bg-slate-700 text-white'
+                    : 'bg-slate-900 text-white hover:bg-slate-700'
+                }`}
+              >
+                <Plus size={14} />
+                إضافة منتج
+              </button>
+              {/* بطاقة اختيار النوع — تفتح من تحت الزر */}
+              {addMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setAddMenuOpen(false)} />
+                  <div className="absolute top-12 left-0 z-40 w-80 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 max-h-[70vh] overflow-y-auto">
+                    {PRODUCT_TYPES.map((type) => {
+                      const Icon = type.icon;
+                      return (
+                        <button
+                          key={type.id}
+                          type="button"
+                          disabled={!type.available}
+                          onClick={() => {
+                            setAddMenuOpen(false);
+                            if (type.href) router.push(type.href);
+                          }}
+                          className={`w-full flex items-center gap-3 px-2.5 py-2.5 rounded-lg text-right transition-colors ${
+                            type.available
+                              ? 'hover:bg-slate-50 cursor-pointer'
+                              : 'opacity-50 cursor-not-allowed'
+                          }`}
+                        >
+                          <span
+                            className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                              type.id === 'clothing'
+                                ? 'bg-teal-500 text-white'
+                                : 'bg-teal-50 text-teal-600'
+                            }`}
+                          >
+                            <Icon size={16} />
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-slate-900 truncate">
+                                {type.title}
+                              </span>
+                              {!type.available && (
+                                <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[8px] font-black shrink-0">
+                                  قريباً
+                                </span>
+                              )}
+                            </span>
+                            <span className="block text-[10px] text-slate-400 truncate">
+                              {type.subtitle}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

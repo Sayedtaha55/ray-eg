@@ -12,71 +12,8 @@ import {
   ChevronLeft,
   ArrowRight,
 } from 'lucide-react';
+import { PRODUCT_TYPES } from '@/config/productTypes';
 import { useShop } from '@/hooks/useShop';
-
-/**
- * Product-type picker shown when the merchant taps "إضافة منتج".
- * Types without a dedicated page yet are marked قريباً — service and the
- * physical (clothing) page are the launch types.
- */
-const PRODUCT_TYPES = [
-  {
-    id: 'clothing',
-    title: 'منتج ملابس (ملموس)',
-    subtitle: 'منتجات جاهزة يمكن شحنها أو استلامها — بالألوان والمقاسات',
-    icon: Shirt,
-    href: '/dashboard/inventory/add-product/clothing',
-    available: true,
-  },
-  {
-    id: 'service',
-    title: 'خدمة حسب الطلب',
-    subtitle: 'الخدمات التصميم والكتابة والحلاقة وغيرها',
-    icon: ClipboardList,
-    href: '/dashboard/inventory/add-product/service',
-    available: true,
-  },
-  {
-    id: 'restaurant',
-    title: 'أكله ومشروبات',
-    subtitle: 'منتجات غذائية قابلة لطلب سريع',
-    icon: UtensilsCrossed,
-    href: '/dashboard/inventory/add-product/restaurant',
-    available: true,
-  },
-  {
-    id: 'digital',
-    title: 'منتج رقمي',
-    subtitle: 'ملفات وكتب إلكترونية ودورات مسجلة',
-    icon: Gamepad2,
-    href: null,
-    available: false,
-  },
-  {
-    id: 'giftcard',
-    title: 'بطاقة رقمية',
-    subtitle: 'بطاقات مسبقة الدفع أو اشترات مرقّمة',
-    icon: CreditCard,
-    href: null,
-    available: false,
-  },
-  {
-    id: 'bundle',
-    title: 'مجموعة منتجات',
-    subtitle: 'منتجات متعددة تُباع كمنتج واحد',
-    icon: Package,
-    href: null,
-    available: false,
-  },
-  {
-    id: 'bookings',
-    title: 'حجوزات',
-    subtitle: 'دورات واستشارات وخدمات طبية أو سبايك',
-    icon: CalendarClock,
-    href: '/dashboard/bookings',
-    available: true,
-  },
-];
 
 export default function AddProductPage() {
   const router = useRouter();

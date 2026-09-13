@@ -6,6 +6,7 @@ import {
   Plus,
   Trash2,
   X,
+  ArrowRight,
   Loader2,
   Save,
   Upload,
@@ -589,6 +590,13 @@ export default function ClothingAddProductPage() {
               : 'إضافة ملابس مع خيارات الألوان والمقاسات والمنتجات التكميلية'}
           </p>
         </div>
+        <button
+          onClick={() => router.push('/dashboard/inventory')}
+          className="h-10 w-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all shrink-0"
+          title="رجوع إلى المنتجات"
+        >
+          <ArrowRight size={18} />
+        </button>
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-all"
