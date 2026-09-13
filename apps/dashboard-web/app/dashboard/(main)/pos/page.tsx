@@ -1401,10 +1401,18 @@ const POSSystemPage: React.FC = () => {
     return 'bg-emerald-50 text-emerald-600';
   };
 
-  // Re-print an existing invoice without touching the cart
+  // Re-print an existing invoice. Fetches the order's recorded returns so the
+  // printed receipt always reflects them (returned items + net total).
   const reprintInvoice = useCallback(
-    (order: any) => {
+    async (order: any) => {
       if (!order) return;
+      // Latest returns recorded against this invoice (empty when none)
+      let returns: any[] = [];
+      try {
+        const data = await apiRequest(`/shops/${shopId}/orders/${order.id}/returns`);
+        returns = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+      } catch {}
+
       const escapeHtml = (value: any) =>
         String(value ?? '')
           .replace(/&/g, '&amp;')
@@ -1417,6 +1425,30 @@ const POSSystemPage: React.FC = () => {
         .replace('T', ' ')
         .slice(0, 16);
       const items = Array.isArray(order.items) ? order.items : [];
+
+      const originalTotal = Number(order.total || 0);
+      const totalReturned = returns.reduce(
+        (sum: number, r: any) => sum + Number(r?.totalAmount || 0),
+        0
+      );
+      const netTotal = Math.max(0, originalTotal - totalReturned);
+      const fullyReturned =
+        String(order.status || '').toUpperCase() === 'RETURNED' ||
+        String(order.status || '').toUpperCase() === 'REFUNDED' ||
+        (returns.length > 0 && netTotal <= 0.009);
+
+      // Aggregate returned quantity per item name for the returns section
+      const returnedByItem = new Map<string, { name: string; qty: number; amount: number }>();
+      returns.forEach((r: any) => {
+        (Array.isArray(r?.items) ? r.items : []).forEach((it: any) => {
+          const name = String(it.name || it.productId || '');
+          const prev = returnedByItem.get(name) || { name, qty: 0, amount: 0 };
+          prev.qty += Number(it.quantity) || 0;
+          prev.amount += Number(it.price || 0) * Number(it.quantity || 0);
+          returnedByItem.set(name, prev);
+        });
+      });
+
       const linesHtml = items
         .map(
           (it: any) =>
@@ -1429,6 +1461,16 @@ const POSSystemPage: React.FC = () => {
             )}</td></tr>`
         )
         .join('');
+      const returnsHtml =
+        returnedByItem.size > 0
+          ? `<div class="sep"></div><div style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:4px;">المرتجعات</div>
+      <table><tbody>${Array.from(returnedByItem.values())
+        .map(
+          (r) =>
+            `<tr><td style="padding:6px 0;color:#dc2626;">${escapeHtml(r.name)}</td><td style="padding:6px 0;text-align:left;color:#dc2626;">${r.qty}x</td><td style="padding:6px 0;text-align:left;color:#dc2626;">- ${fmt(r.amount)}</td></tr>`
+        )
+        .join('')}</tbody></table>`
+          : '';
       const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Receipt</title>
       <style>@page{margin:8mm}body{font-family:Arial,sans-serif;direction:rtl}.wrap{max-width:80mm;margin:0 auto}h1{font-size:16px;text-align:center}.meta{font-size:11px;text-align:center;margin-bottom:10px}.sep{border-top:1px dashed #999;margin:10px 0}table{width:100%;border-collapse:collapse;font-size:12px}.row{display:flex;justify-content:space-between;padding:4px 0}.foot{font-size:11px;text-align:center;margin-top:10px}</style>
       </head><body><div class="wrap">
@@ -1438,15 +1480,24 @@ const POSSystemPage: React.FC = () => {
       ${order.customerPhone ? `<div>العميل: ${escapeHtml(order.customerPhone)}</div>` : ''}
       <div>${escapeHtml(created)}</div>
       ${shiftOwnerName ? `<div>الكاشير: ${escapeHtml(shiftOwnerName)}</div>` : ''}
-      ${String(order.status || '').toUpperCase() === 'RETURNED' || String(order.status || '').toUpperCase() === 'REFUNDED' ? '<div style="color:#dc2626;font-weight:700">مرتجعة</div>' : ''}
+      ${fullyReturned ? '<div style="color:#dc2626;font-weight:700">مرتجعة بالكامل</div>' : returns.length > 0 ? '<div style="color:#d97706;font-weight:700">مرتجع جزئي</div>' : ''}
       </div>
-      <div class="sep"></div><table><tbody>${linesHtml}</tbody></table><div class="sep"></div>
-      <div class="row" style="font-weight:700;"><span>الإجمالي</span><span>ج.م ${fmt(order.total)}</span></div>
+      <div class="sep"></div><table><tbody>${linesHtml}</tbody></table>
+      ${returnsHtml}
+      <div class="sep"></div>
+      <div class="row"><span>الإجمالي الأصلي</span><span>ج.م ${fmt(originalTotal)}</span></div>
+      ${totalReturned > 0 ? `<div class="row" style="color:#dc2626;"><span>إجمالي المرتجع</span><span>- ج.م ${fmt(totalReturned)}</span></div>` : ''}
+      <div class="row" style="font-weight:700;"><span>${totalReturned > 0 ? 'الصافي بعد المرتجع' : 'الإجمالي'}</span><span>ج.م ${fmt(totalReturned > 0 ? netTotal : originalTotal)}</span></div>
       <div class="foot">شكرًا لتعاملكم معنا</div>
       </div></body></html>`;
       try {
         const w = window.open('', '_blank', 'noopener,noreferrer,width=480,height=720');
-        if (!w) return;
+        if (!w) {
+          try {
+            window.alert('المتصفح منع نافذة الطباعة — اسمح بالنوافذ المنبثقة للموقع');
+          } catch {}
+          return;
+        }
         w.document.open();
         w.document.write(html);
         w.document.close();
@@ -1459,7 +1510,7 @@ const POSSystemPage: React.FC = () => {
         }, 15000);
       } catch {}
     },
-    [shop, products, shiftOwnerName]
+    [shop, products, shiftOwnerName, shopId]
   );
 
   const startReturn = useCallback((order: any) => {
