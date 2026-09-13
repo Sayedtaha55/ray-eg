@@ -10,6 +10,7 @@ import {
   Package,
   CalendarClock,
   ChevronLeft,
+  ArrowRight,
 } from 'lucide-react';
 import { useShop } from '@/hooks/useShop';
 
@@ -88,11 +89,20 @@ export default function AddProductPage() {
       style={{ fontFamily: "'Cairo','Tajawal',system-ui,sans-serif" }}
     >
       <div className="bg-white border-b border-slate-200">
-        <div className="px-4 sm:px-6 py-5 max-w-[900px] mx-auto">
-          <h1 className="text-xl font-bold text-slate-900">إضافة منتج</h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            اختار نوع اللي هتضيفه وابدأ — تقدر تضيف أي نوع في أي وقت
-          </p>
+        <div className="px-4 sm:px-6 py-5 max-w-[900px] mx-auto flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">إضافة منتج</h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              اختار نوع اللي هتضيفه وابدأ — تقدر تضيف أي نوع في أي وقت
+            </p>
+          </div>
+          <button
+            onClick={() => router.push('/dashboard/inventory')}
+            className="h-10 w-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors shrink-0"
+            title="رجوع إلى المنتجات"
+          >
+            <ArrowRight size={18} />
+          </button>
         </div>
       </div>
 
