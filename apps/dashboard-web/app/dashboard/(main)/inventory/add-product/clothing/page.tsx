@@ -1,7 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, Trash2, X, Loader2, Save, Upload, Image as ImageIcon, Map } from 'lucide-react';
+import {
+  Package,
+  Plus,
+  Trash2,
+  X,
+  Loader2,
+  Save,
+  Upload,
+  Image as ImageIcon,
+  Map,
+} from 'lucide-react';
 import { useShop } from '@/hooks/useShop';
 import { useInstalledApps } from '@/hooks/useInstalledApps';
 import { apiRequest } from '@/lib/auth';
@@ -49,8 +59,26 @@ const parseNumberInput = (value: any) => {
   const cleaned = raw
     .replace(/[٠-٩۰-۹]/g, (d) => {
       const map: Record<string, string> = {
-        '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
-        '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+        '٠': '0',
+        '١': '1',
+        '٢': '2',
+        '٣': '3',
+        '٤': '4',
+        '٥': '5',
+        '٦': '6',
+        '٧': '7',
+        '٨': '8',
+        '٩': '9',
+        '۰': '0',
+        '۱': '1',
+        '۲': '2',
+        '۳': '3',
+        '۴': '4',
+        '۵': '5',
+        '۶': '6',
+        '۷': '7',
+        '۸': '8',
+        '۹': '9',
       };
       return map[d] || d;
     })
@@ -103,15 +131,71 @@ export default function ClothingAddProductPage() {
   // Addons / complementary products
   const [addonItems, setAddonItems] = useState<AddonItem[]>([]);
 
+  // Edit mode: /dashboard/inventory/add-product/clothing?edit=<productId>
+  const [editId, setEditId] = useState('');
+  const [loadingProduct, setLoadingProduct] = useState(false);
+
   useEffect(() => {
     loadCategories();
     loadProducts();
+    const editParam = new URLSearchParams(window.location.search).get('edit');
+    if (editParam) loadProductForEdit(editParam);
   }, []);
+
+  const loadProductForEdit = async (id: string) => {
+    setLoadingProduct(true);
+    try {
+      const data: any = await apiRequest(`/products/${id}`);
+      const p = data?.data || data;
+      if (!p || !p.id) throw new Error('المنتج غير موجود');
+      setEditId(String(p.id));
+      setName(String(p.name || ''));
+      setDescription(String(p.description || ''));
+      setBasePrice(p.price != null ? String(p.price) : '');
+      setStock(p.stock != null ? String(p.stock) : '');
+      setCategory(typeof p.category === 'string' ? p.category : String(p.category?.name || ''));
+      setImageUrl(String(p.imageUrl || p.image_url || ''));
+      setIsActive(p.isActive !== false);
+      setMaterial(String(p.material || ''));
+      setBrand(String(p.brand || ''));
+      setGender(String(p.gender || ''));
+      if (Array.isArray(p.colors) && p.colors.length > 0) {
+        setSelectedColors(
+          p.colors
+            .map((c: any) =>
+              typeof c === 'string'
+                ? { name: c, value: '#000000' }
+                : { name: String(c.name || ''), value: String(c.value || c.hex || '#000000') }
+            )
+            .filter((c: any) => c.name)
+        );
+      }
+      if (Array.isArray(p.sizes) && p.sizes.length > 0) {
+        setFashionSizeItems(
+          p.sizes
+            .map((s: any) =>
+              typeof s === 'string'
+                ? { label: s, price: '' }
+                : {
+                    label: String(s.label || s.name || ''),
+                    price: s.price != null ? String(s.price) : '',
+                  }
+            )
+            .filter((s: any) => s.label)
+        );
+      }
+    } catch (err: any) {
+      console.error('Failed to load product for edit:', err);
+      alert(err?.message || 'تعذر تحميل بيانات المنتج للتعديل');
+    } finally {
+      setLoadingProduct(false);
+    }
+  };
 
   const loadProducts = async () => {
     try {
       const data = await apiRequest('/products');
-      const list = Array.isArray(data) ? data : (data?.products || data?.data || []);
+      const list = Array.isArray(data) ? data : data?.products || data?.data || [];
       setProducts(list);
     } catch (err) {
       console.error('Failed to load products:', err);
@@ -120,14 +204,16 @@ export default function ClothingAddProductPage() {
 
   useEffect(() => {
     if (packEnabled && packOptionItems.length === 0) {
-      setPackOptionItems([{ id: `pack_${Date.now()}_${Math.random().toString(16).slice(2)}`, qty: '', price: '' }]);
+      setPackOptionItems([
+        { id: `pack_${Date.now()}_${Math.random().toString(16).slice(2)}`, qty: '', price: '' },
+      ]);
     }
   }, [packEnabled]);
 
   const loadCategories = async () => {
     try {
       const data = await apiRequest('/categories');
-      const list = Array.isArray(data) ? data : (data?.categories || data?.data || []);
+      const list = Array.isArray(data) ? data : data?.categories || data?.data || [];
       setCategories(list);
     } catch (err) {
       console.error('Failed to load categories:', err);
@@ -163,58 +249,61 @@ export default function ClothingAddProductPage() {
   };
 
   const removeExtraImage = (idx: number) => {
-    setExtraImagePreviews(prev => prev.filter((_, i) => i !== idx));
-    setExtraImageFiles(prev => prev.filter((_, i) => i !== idx));
+    setExtraImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+    setExtraImageFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
   // Colors handlers
   const toggleColor = (c: { name: string; value: string }) => {
-    setSelectedColors(prev => {
-      const exists = prev.some(x => x.value === c.value);
-      return exists ? prev.filter(x => x.value !== c.value) : [...prev, c];
+    setSelectedColors((prev) => {
+      const exists = prev.some((x) => x.value === c.value);
+      return exists ? prev.filter((x) => x.value !== c.value) : [...prev, c];
     });
   };
 
   const addCustomColor = () => {
     const hex = customColor.trim();
     if (!hex) return;
-    if (selectedColors.some(x => x.value === hex)) return;
+    if (selectedColors.some((x) => x.value === hex)) return;
     setSelectedColors([...selectedColors, { name: hex.toUpperCase(), value: hex }]);
   };
 
   // Sizes handlers
   const addPresetSize = (s: string) => {
-    if (fashionSizeItems.some(x => x.label === s)) return;
+    if (fashionSizeItems.some((x) => x.label === s)) return;
     setFashionSizeItems([...fashionSizeItems, { label: s, price: '' }]);
   };
 
   const addCustomSizeItem = () => {
     const v = customSize.trim();
     if (!v) return;
-    if (fashionSizeItems.some(x => x.label === v)) return;
+    if (fashionSizeItems.some((x) => x.label === v)) return;
     setFashionSizeItems([...fashionSizeItems, { label: v, price: '' }]);
     setCustomSize('');
   };
 
   const updateSizePrice = (idx: number, price: string) => {
-    setFashionSizeItems(prev => prev.map((s, i) => i === idx ? { ...s, price } : s));
+    setFashionSizeItems((prev) => prev.map((s, i) => (i === idx ? { ...s, price } : s)));
   };
 
   const removeSize = (idx: number) => {
-    setFashionSizeItems(prev => prev.filter((_, i) => i !== idx));
+    setFashionSizeItems((prev) => prev.filter((_, i) => i !== idx));
   };
 
   // Pack options handlers
   const addPackOption = () => {
-    setPackOptionItems([...packOptionItems, { id: `pack_${Date.now()}_${Math.random().toString(16).slice(2)}`, qty: '', price: '' }]);
+    setPackOptionItems([
+      ...packOptionItems,
+      { id: `pack_${Date.now()}_${Math.random().toString(16).slice(2)}`, qty: '', price: '' },
+    ]);
   };
 
   const updatePackOption = (id: string, field: 'qty' | 'price', value: string) => {
-    setPackOptionItems(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+    setPackOptionItems((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
   };
 
   const removePackOption = (id: string) => {
-    setPackOptionItems(prev => prev.filter(p => p.id !== id));
+    setPackOptionItems((prev) => prev.filter((p) => p.id !== id));
   };
 
   // Addon handlers
@@ -227,65 +316,84 @@ export default function ClothingAddProductPage() {
       nextFiles.push(file);
       nextPreviews.push(URL.createObjectURL(file));
     }
-    setAddonItems(prev => prev.map(x => {
-      if (x.id !== addonId) return x;
-      return {
-        ...x,
-        imageUploadFiles: [...x.imageUploadFiles, ...nextFiles].slice(0, 5),
-        imagePreviews: [...x.imagePreviews, ...nextPreviews].slice(0, 5),
-      };
-    }));
+    setAddonItems((prev) =>
+      prev.map((x) => {
+        if (x.id !== addonId) return x;
+        return {
+          ...x,
+          imageUploadFiles: [...x.imageUploadFiles, ...nextFiles].slice(0, 5),
+          imagePreviews: [...x.imagePreviews, ...nextPreviews].slice(0, 5),
+        };
+      })
+    );
   };
 
   const removeAddonImage = (addonId: string, idx: number) => {
-    setAddonItems(prev => prev.map(x => {
-      if (x.id !== addonId) return x;
-      return {
-        ...x,
-        imagePreviews: x.imagePreviews.filter((_, i) => i !== idx),
-        imageUploadFiles: x.imageUploadFiles.filter((_, i) => i !== idx),
-        imageUrls: x.imageUrls.filter((_, i) => i !== idx),
-      };
-    }));
+    setAddonItems((prev) =>
+      prev.map((x) => {
+        if (x.id !== addonId) return x;
+        return {
+          ...x,
+          imagePreviews: x.imagePreviews.filter((_, i) => i !== idx),
+          imageUploadFiles: x.imageUploadFiles.filter((_, i) => i !== idx),
+          imageUrls: x.imageUrls.filter((_, i) => i !== idx),
+        };
+      })
+    );
   };
 
   const addAddon = () => {
-    setAddonItems([...addonItems, {
-      id: `addon_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      name: '',
-      price: '',
-      imagePreviews: [],
-      imageUrls: [],
-      imageUploadFiles: [],
-      selectedColors: [],
-      customColor: '#000000',
-      selectedSizes: [],
-      customSize: '',
-    }]);
+    setAddonItems([
+      ...addonItems,
+      {
+        id: `addon_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        name: '',
+        price: '',
+        imagePreviews: [],
+        imageUrls: [],
+        imageUploadFiles: [],
+        selectedColors: [],
+        customColor: '#000000',
+        selectedSizes: [],
+        customSize: '',
+      },
+    ]);
   };
 
   const removeAddon = (id: string) => {
-    setAddonItems(prev => prev.filter(x => x.id !== id));
+    setAddonItems((prev) => prev.filter((x) => x.id !== id));
   };
 
   const updateAddon = (id: string, field: keyof AddonItem, value: any) => {
-    setAddonItems(prev => prev.map(x => x.id === id ? { ...x, [field]: value } : x));
+    setAddonItems((prev) => prev.map((x) => (x.id === id ? { ...x, [field]: value } : x)));
   };
 
   const toggleAddonColor = (addonId: string, c: { name: string; value: string }) => {
-    setAddonItems(prev => prev.map(x => {
-      if (x.id !== addonId) return x;
-      const exists = x.selectedColors.some(t => t.value === c.value);
-      return { ...x, selectedColors: exists ? x.selectedColors.filter(t => t.value !== c.value) : [...x.selectedColors, c] };
-    }));
+    setAddonItems((prev) =>
+      prev.map((x) => {
+        if (x.id !== addonId) return x;
+        const exists = x.selectedColors.some((t) => t.value === c.value);
+        return {
+          ...x,
+          selectedColors: exists
+            ? x.selectedColors.filter((t) => t.value !== c.value)
+            : [...x.selectedColors, c],
+        };
+      })
+    );
   };
 
   const toggleAddonSize = (addonId: string, s: string) => {
-    setAddonItems(prev => prev.map(x => {
-      if (x.id !== addonId) return x;
-      const exists = x.selectedSizes.some(t => t === s);
-      return { ...x, selectedSizes: exists ? x.selectedSizes.filter(t => t !== s) : [...x.selectedSizes, s] };
-    }));
+    setAddonItems((prev) =>
+      prev.map((x) => {
+        if (x.id !== addonId) return x;
+        const exists = x.selectedSizes.some((t) => t === s);
+        return {
+          ...x,
+          selectedSizes: exists ? x.selectedSizes.filter((t) => t !== s) : [...x.selectedSizes, s],
+        };
+      })
+    );
   };
 
   const handleSave = async () => {
@@ -297,29 +405,44 @@ export default function ClothingAddProductPage() {
     const parsedPrice = parseNumberInput(basePrice);
 
     // Build sizes
-    const sizes = fashionSizeItems.map(s => {
-      const label = s.label.trim();
-      const p = parseNumberInput(s.price);
-      if (!label) return null;
-      if (!Number.isFinite(p) || p < 0) return null;
-      return { label, price: Math.round(p * 100) / 100 };
-    }).filter(Boolean) as any[];
+    const sizes = fashionSizeItems
+      .map((s) => {
+        const label = s.label.trim();
+        const p = parseNumberInput(s.price);
+        if (!label) return null;
+        if (!Number.isFinite(p) || p < 0) return null;
+        return { label, price: Math.round(p * 100) / 100 };
+      })
+      .filter(Boolean) as any[];
 
     // Calculate resolved base price
     let resolvedBasePrice = parsedPrice;
     if (sizes.length > 0) {
-      const min = Math.min(...sizes.map((t: any) => Number(t.price || 0)).filter((n: any) => Number.isFinite(n) && n >= 0));
+      const min = Math.min(
+        ...sizes
+          .map((t: any) => Number(t.price || 0))
+          .filter((n: any) => Number.isFinite(n) && n >= 0)
+      );
       if (Number.isFinite(min)) resolvedBasePrice = min;
     }
 
     // Pack options
-    const packOptions = packEnabled ? packOptionItems.map(p => {
-      const qty = parseNumberInput(p.qty);
-      const pr = parseNumberInput(p.price);
-      if (!Number.isFinite(qty) || qty <= 0) return null;
-      if (!Number.isFinite(pr) || pr < 0) return null;
-      return { id: p.id, qty: Math.round(qty * 1000) / 1000, unit: null, price: Math.round(pr * 100) / 100 };
-    }).filter(Boolean) as any[] : undefined;
+    const packOptions = packEnabled
+      ? (packOptionItems
+          .map((p) => {
+            const qty = parseNumberInput(p.qty);
+            const pr = parseNumberInput(p.price);
+            if (!Number.isFinite(qty) || qty <= 0) return null;
+            if (!Number.isFinite(pr) || pr < 0) return null;
+            return {
+              id: p.id,
+              qty: Math.round(qty * 1000) / 1000,
+              unit: null,
+              price: Math.round(pr * 100) / 100,
+            };
+          })
+          .filter(Boolean) as any[])
+      : undefined;
 
     if (packEnabled && Array.isArray(packOptions) && packOptions.length === 0) {
       alert('أضف خيار pack واحد على الأقل');
@@ -327,22 +450,34 @@ export default function ClothingAddProductPage() {
     }
 
     // Colors
-    const colors = selectedColors.map(c => ({ name: c.name.trim(), value: c.value.trim() })).filter(c => c.name && c.value);
+    const colors = selectedColors
+      .map((c) => ({ name: c.name.trim(), value: c.value.trim() }))
+      .filter((c) => c.name && c.value);
 
     // Addons
-    const addonsPayload = addonItems.length > 0 ? [{
-      id: 'addons',
-      name: 'منتجات تكميلية',
-      label: 'منتجات تكميلية',
-      title: 'منتجات تكميلية',
-      options: addonItems.map(a => ({
-        id: a.id,
-        name: a.name.trim(),
-        price: Number.isFinite(parseNumberInput(a.price)) && parseNumberInput(a.price) >= 0 ? Math.round(parseNumberInput(a.price) * 100) / 100 : undefined,
-        colors: a.selectedColors.map(c => c.name).filter(Boolean),
-        sizes: a.selectedSizes.filter(Boolean),
-      })).filter(o => o.name),
-    }] : undefined;
+    const addonsPayload =
+      addonItems.length > 0
+        ? [
+            {
+              id: 'addons',
+              name: 'منتجات تكميلية',
+              label: 'منتجات تكميلية',
+              title: 'منتجات تكميلية',
+              options: addonItems
+                .map((a) => ({
+                  id: a.id,
+                  name: a.name.trim(),
+                  price:
+                    Number.isFinite(parseNumberInput(a.price)) && parseNumberInput(a.price) >= 0
+                      ? Math.round(parseNumberInput(a.price) * 100) / 100
+                      : undefined,
+                  colors: a.selectedColors.map((c) => c.name).filter(Boolean),
+                  sizes: a.selectedSizes.filter(Boolean),
+                }))
+                .filter((o) => o.name),
+            },
+          ]
+        : undefined;
 
     if (!Number.isFinite(resolvedBasePrice) || resolvedBasePrice < 0) {
       alert('السعر غير صحيح');
@@ -379,7 +514,7 @@ export default function ClothingAddProductPage() {
       }
 
       // Upload extra images
-      let extraUrls: string[] = [];
+      const extraUrls: string[] = [];
       if (extraImageFiles.length > 0) {
         for (const f of extraImageFiles) {
           const formData = new FormData();
@@ -415,12 +550,19 @@ export default function ClothingAddProductPage() {
         ...(addonsPayload ? { addons: addonsPayload } : {}),
       };
 
-      await apiRequest('/products', {
-        method: 'POST',
-        body: JSON.stringify(productData),
-      });
-
-      alert('تم إضافة المنتج بنجاح');
+      if (editId) {
+        await apiRequest(`/products/${editId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(productData),
+        });
+        alert('تم تحديث المنتج بنجاح');
+      } else {
+        await apiRequest('/products', {
+          method: 'POST',
+          body: JSON.stringify(productData),
+        });
+        alert('تم إضافة المنتج بنجاح');
+      }
       router.push('/dashboard/inventory');
     } catch (err: any) {
       console.error('Failed to save product:', err);
@@ -438,8 +580,14 @@ export default function ClothingAddProductPage() {
           <span className="text-2xl">👕</span>
         </div>
         <div className="text-right flex-1">
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">إضافة منتج ملابس</h1>
-          <p className="text-sm font-bold text-slate-400 mt-1">إضافة ملابس مع خيارات الألوان والمقاسات والمنتجات التكميلية</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
+            {editId ? 'تعديل منتج' : 'إضافة منتج ملابس'}
+          </h1>
+          <p className="text-sm font-bold text-slate-400 mt-1">
+            {editId
+              ? 'عدّل بيانات المنتج مع خيارات الألوان والمقاسات والمنتجات التكميلية'
+              : 'إضافة ملابس مع خيارات الألوان والمقاسات والمنتجات التكميلية'}
+          </p>
         </div>
         <button
           onClick={() => router.back()}
@@ -467,7 +615,9 @@ export default function ClothingAddProductPage() {
             />
           </div>
           <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">السعر الأساسي (ج.م) *</label>
+            <label className="text-xs font-bold text-slate-500 mb-1.5 block">
+              السعر الأساسي (ج.م) *
+            </label>
             <input
               type="number"
               value={basePrice}
@@ -501,7 +651,9 @@ export default function ClothingAddProductPage() {
             >
               <option value="">اختر الفئة</option>
               {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
               ))}
             </select>
           </div>
@@ -549,7 +701,12 @@ export default function ClothingAddProductPage() {
               <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-all cursor-pointer">
                 <Upload size={16} />
                 <span>رفع صورة</span>
-                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
               </label>
               {isInstalled('image-editor') && (
                 <button
@@ -567,10 +724,15 @@ export default function ClothingAddProductPage() {
 
         {/* Additional Images */}
         <div className="text-right">
-          <label className="text-xs font-bold text-slate-500 mb-1.5 block">صور إضافية (حتى 5)</label>
+          <label className="text-xs font-bold text-slate-500 mb-1.5 block">
+            صور إضافية (حتى 5)
+          </label>
           <div className="flex flex-wrap gap-2 justify-end">
             {extraImagePreviews.map((src, idx) => (
-              <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200">
+              <div
+                key={idx}
+                className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200"
+              >
                 <img src={src} className="w-full h-full object-cover" alt={`extra ${idx + 1}`} />
                 <button
                   onClick={() => removeExtraImage(idx)}
@@ -582,7 +744,13 @@ export default function ClothingAddProductPage() {
             ))}
             <label className="w-20 h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-slate-400 transition-all">
               <Upload size={18} className="text-slate-300" />
-              <input type="file" accept="image/*" multiple onChange={handleExtraImagesChange} className="hidden" />
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleExtraImagesChange}
+                className="hidden"
+              />
             </label>
           </div>
         </div>
@@ -595,7 +763,9 @@ export default function ClothingAddProductPage() {
             onChange={(e) => setIsActive(e.target.checked)}
             className="w-4 h-4 rounded border-slate-300"
           />
-          <label htmlFor="isActive" className="text-sm font-medium text-slate-700">نشط</label>
+          <label htmlFor="isActive" className="text-sm font-medium text-slate-700">
+            نشط
+          </label>
         </div>
       </div>
 
@@ -614,7 +784,9 @@ export default function ClothingAddProductPage() {
             />
           </div>
           <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">العلامة التجارية</label>
+            <label className="text-xs font-bold text-slate-500 mb-1.5 block">
+              العلامة التجارية
+            </label>
             <input
               type="text"
               value={brand}
@@ -631,21 +803,27 @@ export default function ClothingAddProductPage() {
         <h2 className="text-lg font-bold text-slate-900">الألوان</h2>
         <div className="flex flex-wrap gap-2 justify-end">
           {presetColors.map((c) => {
-            const isActive = selectedColors.some(x => x.value === c.value);
+            const isActive = selectedColors.some((x) => x.value === c.value);
             return (
               <button
                 key={c.value}
                 onClick={() => toggleColor(c)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-full border font-bold text-xs transition-all ${isActive ? 'bg-white border-slate-900' : 'bg-white/70 border-slate-200 hover:bg-white'}`}
               >
-                <span className="w-4 h-4 rounded-full border border-slate-200" style={{ background: c.value }} />
+                <span
+                  className="w-4 h-4 rounded-full border border-slate-200"
+                  style={{ background: c.value }}
+                />
                 {c.name}
               </button>
             );
           })}
         </div>
         <div className="flex items-center justify-between gap-3 flex-row-reverse">
-          <button onClick={addCustomColor} className="px-4 py-2 rounded-xl font-bold text-xs bg-slate-900 text-white">
+          <button
+            onClick={addCustomColor}
+            className="px-4 py-2 rounded-xl font-bold text-xs bg-slate-900 text-white"
+          >
             إضافة لون مخصص
           </button>
           <div className="flex items-center gap-3">
@@ -661,10 +839,19 @@ export default function ClothingAddProductPage() {
         {selectedColors.length > 0 && (
           <div className="flex flex-wrap gap-2 justify-end">
             {selectedColors.map((c) => (
-              <span key={c.value} className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white border border-slate-200 font-bold text-xs">
-                <span className="w-4 h-4 rounded-full border border-slate-200" style={{ background: c.value }} />
+              <span
+                key={c.value}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white border border-slate-200 font-bold text-xs"
+              >
+                <span
+                  className="w-4 h-4 rounded-full border border-slate-200"
+                  style={{ background: c.value }}
+                />
                 {c.name}
-                <button onClick={() => toggleColor(c)} className="p-1 rounded-full hover:bg-slate-50">
+                <button
+                  onClick={() => toggleColor(c)}
+                  className="p-1 rounded-full hover:bg-slate-50"
+                >
                   <X size={12} />
                 </button>
               </span>
@@ -681,7 +868,7 @@ export default function ClothingAddProductPage() {
             <button
               key={s}
               onClick={() => addPresetSize(s)}
-              disabled={fashionSizeItems.some(x => x.label === s)}
+              disabled={fashionSizeItems.some((x) => x.label === s)}
               className="px-4 py-2 rounded-full border font-bold text-xs transition-all bg-white/70 border-slate-200 hover:bg-white disabled:opacity-40"
             >
               {s}
@@ -689,7 +876,10 @@ export default function ClothingAddProductPage() {
           ))}
         </div>
         <div className="flex items-center justify-between gap-3 flex-row-reverse">
-          <button onClick={addCustomSizeItem} className="px-4 py-2 rounded-xl font-bold text-xs bg-slate-900 text-white">
+          <button
+            onClick={addCustomSizeItem}
+            className="px-4 py-2 rounded-xl font-bold text-xs bg-slate-900 text-white"
+          >
             إضافة مقاس مخصص
           </button>
           <input
@@ -703,7 +893,10 @@ export default function ClothingAddProductPage() {
           <div className="space-y-2">
             {fashionSizeItems.map((s, idx) => (
               <div key={idx} className="flex items-center gap-3 justify-end">
-                <button onClick={() => removeSize(idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                <button
+                  onClick={() => removeSize(idx)}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                >
                   <Trash2 size={14} />
                 </button>
                 <input
@@ -738,7 +931,10 @@ export default function ClothingAddProductPage() {
           <>
             {packOptionItems.map((p) => (
               <div key={p.id} className="flex items-center gap-3 justify-end">
-                <button onClick={() => removePackOption(p.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                <button
+                  onClick={() => removePackOption(p.id)}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                >
                   <Trash2 size={14} />
                 </button>
                 <input
@@ -791,7 +987,10 @@ export default function ClothingAddProductPage() {
             {addonItems.map((a) => (
               <div key={a.id} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <button onClick={() => removeAddon(a.id)} className="px-3 py-2 rounded-xl bg-red-50 text-red-600 font-bold text-xs">
+                  <button
+                    onClick={() => removeAddon(a.id)}
+                    className="px-3 py-2 rounded-xl bg-red-50 text-red-600 font-bold text-xs"
+                  >
                     حذف
                   </button>
                   <input
@@ -813,7 +1012,11 @@ export default function ClothingAddProductPage() {
                 <div className="flex flex-wrap gap-2 justify-end">
                   {a.imagePreviews.map((u, idx) => (
                     <div key={idx} className="relative">
-                      <img src={u} alt="addon" className="w-14 h-14 rounded-xl object-cover border border-slate-200" />
+                      <img
+                        src={u}
+                        alt="addon"
+                        className="w-14 h-14 rounded-xl object-cover border border-slate-200"
+                      />
                       <button
                         onClick={() => removeAddonImage(a.id, idx)}
                         className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-white border border-slate-200 flex items-center justify-center"
@@ -840,17 +1043,22 @@ export default function ClothingAddProductPage() {
 
                 {/* Addon colors */}
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block pr-1 mb-2">الألوان</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block pr-1 mb-2">
+                    الألوان
+                  </label>
                   <div className="flex flex-wrap gap-2 justify-end">
                     {presetColors.map((c) => {
-                      const isActive = a.selectedColors.some(x => x.value === c.value);
+                      const isActive = a.selectedColors.some((x) => x.value === c.value);
                       return (
                         <button
                           key={c.value}
                           onClick={() => toggleAddonColor(a.id, c)}
                           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border font-bold text-xs transition-all ${isActive ? 'bg-white border-slate-900' : 'bg-white/70 border-slate-200 hover:bg-white'}`}
                         >
-                          <span className="w-3 h-3 rounded-full border border-slate-200" style={{ background: c.value }} />
+                          <span
+                            className="w-3 h-3 rounded-full border border-slate-200"
+                            style={{ background: c.value }}
+                          />
                           {c.name}
                         </button>
                       );
@@ -860,7 +1068,9 @@ export default function ClothingAddProductPage() {
 
                 {/* Addon sizes */}
                 <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block pr-1 mb-2">المقاسات</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block pr-1 mb-2">
+                    المقاسات
+                  </label>
                   <div className="flex flex-wrap gap-2 justify-end">
                     {presetSizes.map((s) => {
                       const isActive = a.selectedSizes.includes(s);
@@ -913,11 +1123,11 @@ export default function ClothingAddProductPage() {
         </button>
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || loadingProduct}
           className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-black transition-all disabled:opacity-50"
         >
           {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-          <span>حفظ المنتج</span>
+          <span>{editId ? 'حفظ التعديلات' : 'حفظ المنتج'}</span>
         </button>
       </div>
 

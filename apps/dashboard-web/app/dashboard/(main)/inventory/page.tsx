@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  Plus,
   Trash2,
   Edit,
   Eye,
@@ -25,6 +24,7 @@ import {
 import { apiRequest } from '@/lib/auth';
 import { useShop } from '@/hooks/useShop';
 import { useInstalledApps } from '@/hooks/useInstalledApps';
+import { useRouter } from 'next/navigation';
 import ImageMapEditorModal from '@/components/apps/image-editor/ImageMapEditor';
 
 type Product = {
@@ -46,15 +46,13 @@ type Product = {
 export default function InventoryPage() {
   const { shop } = useShop();
   const { isInstalled } = useInstalledApps();
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [shopId, setShopId] = useState('');
   const [togglingId, setTogglingId] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [saving, setSaving] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [previewImageSrc, setPreviewImageSrc] = useState('');
   const [bulkImporting, setBulkImporting] = useState(false);
@@ -208,33 +206,6 @@ export default function InventoryPage() {
       setError(err?.message || 'فشل الحذف');
     }
   }, []);
-
-  const handleSave = useCallback(
-    async (data: Partial<Product>) => {
-      setSaving(true);
-      try {
-        if (editingProduct) {
-          await apiRequest(`/products/${editingProduct.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify(data),
-          });
-        } else {
-          await apiRequest('/products', {
-            method: 'POST',
-            body: JSON.stringify({ ...data, shopId }),
-          });
-        }
-        setShowAddModal(false);
-        setEditingProduct(null);
-        await fetchProducts();
-      } catch (err: any) {
-        setError(err?.message || 'فشل الحفظ');
-      } finally {
-        setSaving(false);
-      }
-    },
-    [editingProduct, shopId, fetchProducts]
-  );
 
   const handleBulkImport = async (file: File) => {
     if (!shopId) return;
@@ -395,16 +366,6 @@ export default function InventoryPage() {
                 <Download size={14} />
               )}
               تصدير
-            </button>
-            <button
-              onClick={() => {
-                setEditingProduct(null);
-                setShowAddModal(true);
-              }}
-              className="h-10 px-5 rounded-full bg-slate-900 text-white text-[12px] font-bold hover:bg-slate-700 flex items-center gap-1.5"
-            >
-              <Plus size={14} />
-              إضافة منتج
             </button>
           </div>
         </div>
@@ -612,10 +573,11 @@ export default function InventoryPage() {
                         {isInactive ? 'مخفي' : 'معروض'}
                       </button>
                       <button
-                        onClick={() => {
-                          setEditingProduct(product);
-                          setShowAddModal(true);
-                        }}
+                        onClick={() =>
+                          router.push(
+                            `/dashboard/inventory/add-product/clothing?edit=${product.id}`
+                          )
+                        }
                         title="تعديل المنتج"
                         className="h-8 w-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors"
                       >
@@ -704,19 +666,6 @@ export default function InventoryPage() {
           </>
         )}
       </div>
-
-      {/* Add/Edit modal */}
-      {showAddModal && (
-        <ProductModal
-          product={editingProduct}
-          saving={saving}
-          onClose={() => {
-            setShowAddModal(false);
-            setEditingProduct(null);
-          }}
-          onSave={handleSave}
-        />
-      )}
 
       {/* Image Preview Modal */}
       {previewImageSrc && (
@@ -898,140 +847,6 @@ export default function InventoryPage() {
           onProductsSynced={fetchProducts}
         />
       )}
-    </div>
-  );
-}
-
-function ProductModal({
-  product,
-  saving,
-  onClose,
-  onSave,
-}: {
-  product: Product | null;
-  saving: boolean;
-  onClose: () => void;
-  onSave: (data: Partial<Product>) => void;
-}) {
-  const [name, setName] = useState(product?.name || '');
-  const [price, setPrice] = useState(String(product?.price || ''));
-  const [stock, setStock] = useState(String(product?.stock ?? ''));
-  const [category, setCategory] = useState(
-    typeof product?.category === 'string' ? product.category : ''
-  );
-  const [imageUrl, setImageUrl] = useState(product?.imageUrl || product?.image_url || '');
-  const [description, setDescription] = useState(product?.description || '');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({
-      name: name.trim(),
-      price: Number(price) || 0,
-      stock: Number(stock) || 0,
-      category: category.trim() || 'عام',
-      imageUrl: imageUrl.trim() || undefined,
-      description: description.trim() || undefined,
-    });
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-6 flex-row-reverse">
-          <h2 className="text-xl font-black text-slate-900">
-            {product ? 'تعديل منتج' : 'إضافة منتج'}
-          </h2>
-          <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-lg">
-            <X size={20} className="text-slate-400" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">اسم المنتج</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="text-right">
-              <label className="text-xs font-bold text-slate-500 mb-1.5 block">السعر (ج.م)</label>
-              <input
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-                min="0"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-              />
-            </div>
-            <div className="text-right">
-              <label className="text-xs font-bold text-slate-500 mb-1.5 block">المخزون</label>
-              <input
-                type="number"
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                min="0"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-              />
-            </div>
-          </div>
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">الفئة</label>
-            <input
-              type="text"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="عام"
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-            />
-          </div>
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">رابط الصورة</label>
-            <input
-              type="text"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://..."
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-            />
-          </div>
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">الوصف</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400 resize-none"
-            />
-          </div>
-          <div className="flex gap-3 flex-row-reverse pt-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 px-4 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-all disabled:opacity-50"
-            >
-              {saving ? <Loader2 size={18} className="animate-spin mx-auto" /> : 'حفظ'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all"
-            >
-              إلغاء
-            </button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 }
