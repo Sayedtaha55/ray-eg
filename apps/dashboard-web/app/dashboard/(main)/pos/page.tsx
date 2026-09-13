@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search,
   ChevronRight,
@@ -50,6 +51,11 @@ import {
   Zap,
   Sliders,
   UserRound,
+  CloudOff,
+  Lock,
+  Eye,
+  EyeOff,
+  WifiOff,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest, useAuth } from '@/lib/auth';
@@ -105,8 +111,82 @@ import {
   type CashMovement,
   type DrawerDeclaration,
 } from '@/lib/pos-utils';
+import { printHtmlReceipt, buildReturnReceiptHtml } from '@/lib/print-receipt';
+import {
+  loadPosSettings,
+  writeCurrentCashier,
+  cashierHasPermission,
+  type PosCashier,
+} from '@/lib/posSettings';
 
 const MotionDiv = motion.div as any;
+
+// ─── Offline helpers (cache-first hydration + pending orders queue) ─────────
+
+/** Read a JSON array from localStorage (never throws). */
+function readCachedList(key: string): any[] {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(key) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Full order payload queued while offline. */
+interface PendingOrder {
+  id: string;
+  createdAt: number;
+  payload: any;
+}
+
+function readPendingOrders(shopId: string): PendingOrder[] {
+  if (!shopId || typeof window === 'undefined') return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(`pos_pending_orders_${shopId}`) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePendingOrders(shopId: string, list: PendingOrder[]) {
+  if (!shopId || typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(`pos_pending_orders_${shopId}`, JSON.stringify(list));
+  } catch {}
+}
+
+function enqueuePendingOrder(shopId: string, payload: any): PendingOrder {
+  const entry: PendingOrder = {
+    id: `pend_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`,
+    createdAt: Date.now(),
+    payload,
+  };
+  writePendingOrders(shopId, [...readPendingOrders(shopId), entry]);
+  return entry;
+}
+
+/**
+ * Network-type failure only (fetch TypeError / no response at all) — NOT a
+ * 4xx business error (those arrive as { status, message }).
+ */
+function isNetworkError(err: any): boolean {
+  if (!err) return false;
+  if (typeof err.status === 'number') return false;
+  if (err instanceof TypeError) return true;
+  const name = String(err?.name || '');
+  if (name === 'TypeError' || name === 'AbortError') return true;
+  const msg = String(err?.message || err || '').toLowerCase();
+  return (
+    msg.includes('failed to fetch') ||
+    msg.includes('networkerror') ||
+    msg.includes('network request failed') ||
+    msg.includes('load failed') ||
+    msg.includes('fetch failed') ||
+    msg.includes('internet connection')
+  );
+}
 
 // Features that are not part of the first public release (loyalty, gift cards,
 // layaway, …) stay visible on local/dev machines only — production builds
@@ -184,6 +264,39 @@ const POSSystemPage: React.FC = () => {
       window.removeEventListener('storage', sync);
     };
   }, []);
+
+  // ─── POS gate (shift + cashier identity) ─────────────────────────────────
+  const [shiftLoaded, setShiftLoaded] = useState(false);
+  const [gateOpeningCash, setGateOpeningCash] = useState(0);
+  const [gateCashierId, setGateCashierId] = useState('');
+  const [gatePin, setGatePin] = useState('');
+  const [gateShowPin, setGateShowPin] = useState(false);
+  const [gateError, setGateError] = useState('');
+  const [gateSubmitting, setGateSubmitting] = useState(false);
+
+  const posSettings = useMemo(() => loadPosSettings(shop), [shop]);
+  const hasCashiers = posSettings.cashiers.length > 0;
+  const gateCashiers = useMemo(
+    () => posSettings.cashiers.filter((c) => cashierHasPermission(c, 'open_shift')),
+    [posSettings.cashiers]
+  );
+  const shiftOpen = Boolean(
+    activeShift?.id || String(activeShift?.status || '').toUpperCase() === 'OPEN'
+  );
+  /**
+   * 'open'   → no active shift: full gate (cash + cashier + PIN)
+   * 'resume' → shift open but no cashier session on this device (browser
+   *            reopened): cashier + PIN only, does NOT open a new shift
+   * 'none'   → gate passed (or shift still loading / legacy shop)
+   */
+  const gateMode: 'none' | 'open' | 'resume' = !shiftLoaded
+    ? 'none'
+    : !shiftOpen
+      ? 'open'
+      : !posCashier && hasCashiers
+        ? 'resume'
+        : 'none';
+  const isGated = gateMode !== 'none';
 
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'wallet' | 'credit'>('cash');
@@ -314,7 +427,7 @@ const POSSystemPage: React.FC = () => {
     return found || cashierId;
   }, [activeShift, user, cashierId]);
 
-  // Load the active shift once (for the invoice + reports).
+  // Load the active shift once (for the invoice + reports + gate).
   useEffect(() => {
     if (!shopId) return;
     let cancelled = false;
@@ -322,11 +435,60 @@ const POSSystemPage: React.FC = () => {
       .then((data: any) => {
         if (!cancelled) setActiveShift(data?.data ?? data ?? null);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setShiftLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [shopId]);
+
+  // Gate submit: verify PIN against settings, open the shift (in 'open' mode)
+  // and store the cashier identity (with permissions) in localStorage.
+  const submitGate = async () => {
+    if (!shopId || gateSubmitting) return;
+    setGateError('');
+    const selected: PosCashier | undefined = gateCashiers.find((c) => c.id === gateCashierId);
+    if (gateMode === 'resume' && !selected) {
+      setGateError('اختار الكاشير الأول');
+      return;
+    }
+    if (gateMode === 'open' && gateCashiers.length > 0 && !selected) {
+      setGateError('اختار الكاشير الأول');
+      return;
+    }
+    if (selected && gatePin !== selected.pin) {
+      setGateError('الرقم السري غير صحيح');
+      return;
+    }
+    setGateSubmitting(true);
+    try {
+      if (gateMode === 'open') {
+        const resp = await apiRequest(`/shops/${shopId}/shifts`, {
+          method: 'POST',
+          body: JSON.stringify({ openingAmount: Math.max(0, gateOpeningCash) }),
+        });
+        const shift = resp?.data ?? resp ?? null;
+        setActiveShift(shift && (shift.id || shift.status) ? shift : { ...shift, status: 'OPEN' });
+      }
+      if (selected) {
+        // belt & suspenders: permissions stored alongside id/name
+        writeCurrentCashier({
+          id: selected.id,
+          name: selected.name,
+          permissions: selected.permissions,
+        });
+      }
+      setGatePin('');
+      setGateOpeningCash(0);
+      setGateCashierId('');
+    } catch (e: any) {
+      setGateError(String(e?.message || '').trim() || 'فشل بدء الوردية');
+    } finally {
+      setGateSubmitting(false);
+    }
+  };
   // ─── Z/X Report + Cash In/Out + Drawer Declaration + Quick Keys ──────────
   const [showZReport, setShowZReport] = useState(false);
   const [showXReport, setShowXReport] = useState(false);
@@ -398,19 +560,86 @@ const POSSystemPage: React.FC = () => {
     } catch {}
   };
 
+  // ─── Offline order queue (pending orders) ────────────────────────────────
+  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingToast, setPendingToast] = useState('');
+  const flushingRef = useRef(false);
+  // set below (after flushPendingOrders is defined) — lets loadProducts/loadCustomers
+  // trigger a flush on the next successful fetch without reordering hooks
+  const flushPendingOrdersRef = useRef<(() => void) | null>(null);
+
+  // Flush the offline order queue FIFO through the same endpoint. Runs on the
+  // window 'online' event and on the next successful fetch (see ref below).
+  const flushPendingOrders = useCallback(async () => {
+    if (!shopId || flushingRef.current) return;
+    const queue = readPendingOrders(shopId);
+    if (queue.length === 0) return;
+    flushingRef.current = true;
+    try {
+      let flushed = 0;
+      while (queue.length > 0) {
+        const next = queue[0];
+        await apiRequest(`/shops/${shopId}/orders`, {
+          method: 'POST',
+          body: JSON.stringify(next.payload),
+        });
+        queue.shift();
+        writePendingOrders(shopId, queue);
+        flushed += 1;
+      }
+      if (flushed > 0) {
+        setPendingCount(readPendingOrders(shopId).length);
+        try {
+          playCashRegisterSound();
+        } catch {}
+      }
+    } catch {
+      // still offline — leave the queue untouched
+    } finally {
+      flushingRef.current = false;
+    }
+  }, [shopId]);
+
+  useEffect(() => {
+    flushPendingOrdersRef.current = () => {
+      void flushPendingOrders();
+    };
+  }, [flushPendingOrders]);
+
+  useEffect(() => {
+    const onOnline = () => flushPendingOrdersRef.current?.();
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, []);
+
+  const showPendingToast = useCallback((msg: string) => {
+    setPendingToast(msg);
+    try {
+      window.setTimeout(() => setPendingToast(''), 6000);
+    } catch {}
+  }, []);
+
   const loadCustomers = useCallback(async () => {
     if (!shopId) return;
     setIsLoadingCustomers(true);
+    // cache-first: show the saved list instantly, refresh in the background
+    try {
+      const cachedCustomers = readCachedList(`pos_customers_${shopId}`);
+      if (cachedCustomers.length > 0) setSavedCustomers(cachedCustomers);
+    } catch {}
     try {
       const data = await apiRequest(`/shops/${shopId}/customers`);
       const list = Array.isArray(data) ? data : data?.customers ? data.customers : [];
       setSavedCustomers(list);
       localStorage.setItem(`pos_customers_${shopId}`, JSON.stringify(list));
+      // connection is back — flush anything queued while offline
+      flushPendingOrdersRef.current?.();
     } catch {
-      try {
-        const cached = JSON.parse(localStorage.getItem(`pos_customers_${shopId}`) || '[]');
-        if (Array.isArray(cached)) setSavedCustomers(cached);
-      } catch {}
+      const cached = readCachedList(`pos_customers_${shopId}`);
+      if (cached.length > 0) {
+        setSavedCustomers(cached);
+        setUsingOfflineData(true);
+      }
     } finally {
       setIsLoadingCustomers(false);
     }
@@ -436,19 +665,24 @@ const POSSystemPage: React.FC = () => {
       setProducts(list);
       setUsingOfflineData(false);
       localStorage.setItem(`pos_products_${shopId}`, JSON.stringify(list));
+      // connection is back — flush anything queued while offline (FIFO)
+      flushPendingOrdersRef.current?.();
     } catch {
-      let cached: any[] = [];
-      try {
-        cached = JSON.parse(localStorage.getItem(`pos_products_${shopId}`) || '[]');
-      } catch {}
-      if (cached.length > 0) {
-        setProducts(cached);
-        setUsingOfflineData(true);
-      } else {
-        setProducts([]);
-        setUsingOfflineData(true);
-      }
+      // fetch failed: keep the cache (already rendered) + flag offline mode
+      const cached = readCachedList(`pos_products_${shopId}`);
+      if (cached.length > 0) setProducts(cached);
+      setUsingOfflineData(true);
     }
+  }, [shopId]);
+
+  // Cache-first hydration: render the cached grid synchronously on mount
+  // (before any fetch) so the POS paints instantly, then refresh in background.
+  useEffect(() => {
+    if (!shopId) return;
+    const cachedProducts = readCachedList(`pos_products_${shopId}`);
+    if (cachedProducts.length > 0) setProducts(cachedProducts);
+    // pending orders count for the header chip
+    setPendingCount(readPendingOrders(shopId).length);
   }, [shopId]);
 
   useEffect(() => {
@@ -881,18 +1115,7 @@ const POSSystemPage: React.FC = () => {
     </div></body></html>`;
 
     try {
-      const w = window.open('', '_blank', 'noopener,noreferrer,width=480,height=720');
-      if (!w) return;
-      w.document.open();
-      w.document.write(html);
-      w.document.close();
-      w.focus();
-      w.print();
-      setTimeout(() => {
-        try {
-          w.close();
-        } catch {}
-      }, 15000);
+      printHtmlReceipt(html);
     } catch {}
   }, [
     shopId,
@@ -924,6 +1147,7 @@ const POSSystemPage: React.FC = () => {
   const processPayment = async () => {
     if (cart.length === 0) return;
     setIsProcessing(true);
+    let orderPayload: Record<string, unknown> | null = null;
     try {
       const trimmedPhone = String(customerPhone || '').trim();
       const trimmedName = String(customerName || '').trim();
@@ -1002,23 +1226,25 @@ const POSSystemPage: React.FC = () => {
         }
       }
 
+      orderPayload = {
+        items: cart.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          addons: i.addons,
+          variantSelection: i.variantSelection,
+        })),
+        total,
+        paymentMethod: paymentMethodValue,
+        source: 'pos',
+        customerName: trimmedName,
+        customerPhone: trimmedPhone,
+        notes: notesParts.length > 0 ? notesParts.join('|') : undefined,
+        ...(selectedTableId ? { tableId: selectedTableId } : {}),
+      };
+
       await apiRequest(`/shops/${shopId}/orders`, {
         method: 'POST',
-        body: JSON.stringify({
-          items: cart.map((i) => ({
-            productId: i.productId,
-            quantity: i.quantity,
-            addons: i.addons,
-            variantSelection: i.variantSelection,
-          })),
-          total,
-          paymentMethod: paymentMethodValue,
-          source: 'pos',
-          customerName: trimmedName,
-          customerPhone: trimmedPhone,
-          notes: notesParts.length > 0 ? notesParts.join('|') : undefined,
-          ...(selectedTableId ? { tableId: selectedTableId } : {}),
-        }),
+        body: JSON.stringify(orderPayload),
       });
 
       // Audit + broadcast
@@ -1067,6 +1293,34 @@ const POSSystemPage: React.FC = () => {
       } catch {}
       setTimeout(() => setShowSuccess(false), 1500);
     } catch (err: any) {
+      // Offline (network-type failure only — never a 4xx business error):
+      // queue the full order locally; it flushes FIFO when the connection is
+      // back (window 'online' event / next successful fetch).
+      if (shopId && orderPayload && cart.length > 0 && !editingOrder && isNetworkError(err)) {
+        enqueuePendingOrder(shopId, orderPayload);
+        setPendingCount(readPendingOrders(shopId).length);
+        showPendingToast(
+          isArabic
+            ? 'الطلب محفوظ محليًا — هيتسجل أول ما النت يرجع'
+            : 'Order saved locally — it will sync when back online'
+        );
+        // behave like a completed sale locally: clear the cart
+        setCart([]);
+        setGiftCardApplied(null);
+        setGiftCardCode('');
+        setGiftCardError('');
+        setRedeemPoints(0);
+        setTipType('none');
+        setTipValue(0);
+        setSignatureData(null);
+        setSelectedTableId(null);
+        setSplitPayments([]);
+        setShowSplitPayment(false);
+        try {
+          localStorage.removeItem(`pos_cart_${shopId}`);
+        } catch {}
+        return;
+      }
       const msg = String(err?.message || '').trim() || 'فشل إنشاء الطلب';
       try {
         window.alert(msg);
@@ -1491,23 +1745,7 @@ const POSSystemPage: React.FC = () => {
       <div class="foot">شكرًا لتعاملكم معنا</div>
       </div></body></html>`;
       try {
-        const w = window.open('', '_blank', 'noopener,noreferrer,width=480,height=720');
-        if (!w) {
-          try {
-            window.alert('المتصفح منع نافذة الطباعة — اسمح بالنوافذ المنبثقة للموقع');
-          } catch {}
-          return;
-        }
-        w.document.open();
-        w.document.write(html);
-        w.document.close();
-        w.focus();
-        w.print();
-        setTimeout(() => {
-          try {
-            w.close();
-          } catch {}
-        }, 15000);
+        printHtmlReceipt(html);
       } catch {}
     },
     [shop, products, shiftOwnerName, shopId]
@@ -1566,6 +1804,23 @@ const POSSystemPage: React.FC = () => {
         cashierId,
         amount: returnTotal,
       });
+      // إشعار مرتجع — طباعة تلقائية (iframe — مش بيتمنع من المتصفح)
+      try {
+        printHtmlReceipt(
+          buildReturnReceiptHtml({
+            shopName: String(shop?.name || ''),
+            orderNo: String(returnOrder.id || ''),
+            cashierName: posCashier?.name || shiftOwnerName,
+            items: items.map((it: any) => ({
+              name: it.name || String(it.productId || ''),
+              qty: it.quantity,
+              amount: Number(it.price) * Number(it.quantity),
+            })),
+            total: Number(returnTotal.toFixed(2)),
+            reason: returnReason.trim() || undefined,
+          })
+        );
+      } catch {}
       setReturnOrder(null);
       loadPosInvoices();
       loadProducts();
@@ -2684,69 +2939,93 @@ const POSSystemPage: React.FC = () => {
             </button>
           </div>
 
-          {/* Quick action buttons */}
-          <div className="flex items-center gap-1.5 md:gap-2">
-            {posCashier?.name && (
-              <div
-                className="p-2.5 md:p-3 rounded-xl bg-purple-50 border border-purple-100 flex items-center gap-1.5 text-xs font-black text-[#BD00FF]"
-                title={isArabic ? 'الكاشير الحالي' : 'Current cashier'}
+          {/* Quick action buttons — hidden while the shift/cashier gate is up */}
+          {!isGated && (
+            <div className="flex items-center gap-1.5 md:gap-2">
+              {posCashier?.name && (
+                <div
+                  className="p-2.5 md:p-3 rounded-xl bg-purple-50 border border-purple-100 flex items-center gap-1.5 text-xs font-black text-[#BD00FF]"
+                  title={isArabic ? 'الكاشير الحالي' : 'Current cashier'}
+                >
+                  <UserRound size={16} className="md:hidden" />
+                  <UserRound size={18} className="hidden md:block" />
+                  <span className="hidden md:inline">
+                    {isArabic ? `الكاشير: ${posCashier.name}` : `Cashier: ${posCashier.name}`}
+                  </span>
+                  <span className="md:hidden">{posCashier.name}</span>
+                </div>
+              )}
+              {pendingCount > 0 && (
+                <div
+                  className="p-2.5 md:p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-1.5 text-xs font-black text-amber-700"
+                  title={
+                    isArabic
+                      ? 'طلبات محفوظة محليًا في انتظار المزامنة'
+                      : 'Orders saved locally, pending sync'
+                  }
+                >
+                  <CloudOff size={16} className="md:hidden" />
+                  <CloudOff size={18} className="hidden md:block" />
+                  <span className="hidden md:inline">
+                    {isArabic ? `${pendingCount} طلب معلق` : `${pendingCount} pending`}
+                  </span>
+                  <span className="md:hidden">{pendingCount}</span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={openInvoices}
+                className="p-2.5 md:p-3 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/30 text-[#0098a8] hover:bg-[#00E5FF]/20 transition-all flex items-center gap-1.5 text-xs font-black"
+                title={isArabic ? 'فواتير الكاشير — رجوع سريع وتعديل' : 'Cashier invoices'}
               >
-                <UserRound size={16} className="md:hidden" />
-                <UserRound size={18} className="hidden md:block" />
+                <Receipt size={16} className="md:hidden" />
+                <Receipt size={18} className="hidden md:block" />
+                <span className="hidden md:inline">{isArabic ? 'فواتير' : 'Invoices'}</span>
+              </button>
+              <Link
+                href="/dashboard/sales"
+                className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
+                title={isArabic ? 'مرتجع من الطلبات' : 'Return from Orders'}
+              >
+                <RotateCcw size={16} className="md:hidden" />
+                <RotateCcw size={18} className="hidden md:block" />
                 <span className="hidden md:inline">
-                  {isArabic ? `الكاشير: ${posCashier.name}` : `Cashier: ${posCashier.name}`}
+                  {isArabic ? 'مرتجع من الطلبات' : 'Return from Orders'}
                 </span>
-                <span className="md:hidden">{posCashier.name}</span>
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={openInvoices}
-              className="p-2.5 md:p-3 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/30 text-[#0098a8] hover:bg-[#00E5FF]/20 transition-all flex items-center gap-1.5 text-xs font-black"
-              title={isArabic ? 'فواتير الكاشير — رجوع سريع وتعديل' : 'Cashier invoices'}
-            >
-              <Receipt size={16} className="md:hidden" />
-              <Receipt size={18} className="hidden md:block" />
-              <span className="hidden md:inline">{isArabic ? 'فواتير' : 'Invoices'}</span>
-            </button>
-            <Link
-              href="/dashboard/sales"
-              className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
-              title={isArabic ? 'مرتجع من الطلبات' : 'Return from Orders'}
-            >
-              <RotateCcw size={16} className="md:hidden" />
-              <RotateCcw size={18} className="hidden md:block" />
-              <span className="hidden md:inline">
-                {isArabic ? 'مرتجع من الطلبات' : 'Return from Orders'}
-              </span>
-            </Link>
-            <Link
-              href="/dashboard/pos/shifts"
-              className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
-              title={isArabic ? 'ورديتي' : 'My Shift'}
-            >
-              <Clock size={16} className="md:hidden" />
-              <Clock size={18} className="hidden md:block" />
-              <span className="hidden md:inline">{isArabic ? 'ورديتي' : 'Shift'}</span>
-            </Link>
-            <Link
-              href="/dashboard/pos/reports"
-              className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
-              title={isArabic ? 'تقرير' : 'Report'}
-            >
-              <BarChart3 size={16} className="md:hidden" />
-              <BarChart3 size={18} className="hidden md:block" />
-              <span className="hidden md:inline">{isArabic ? 'تقرير' : 'Report'}</span>
-            </Link>
-          </div>
+              </Link>
+              <Link
+                href="/dashboard/pos/shifts"
+                className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
+                title={isArabic ? 'ورديتي' : 'My Shift'}
+              >
+                <Clock size={16} className="md:hidden" />
+                <Clock size={18} className="hidden md:block" />
+                <span className="hidden md:inline">{isArabic ? 'ورديتي' : 'Shift'}</span>
+              </Link>
+              <Link
+                href="/dashboard/pos/reports"
+                className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
+                title={isArabic ? 'تقرير' : 'Report'}
+              >
+                <BarChart3 size={16} className="md:hidden" />
+                <BarChart3 size={18} className="hidden md:block" />
+                <span className="hidden md:inline">{isArabic ? 'تقرير' : 'Report'}</span>
+              </Link>
+            </div>
+          )}
         </header>
 
         {usingOfflineData && (
           <div className="bg-amber-50 border-b border-amber-100 px-4 py-2 text-xs font-bold text-amber-700 flex items-center gap-2">
-            <Clock size={14} />{' '}
-            {isArabic
-              ? 'وضع عدم الاتصال - يتم استخدام البيانات المخزنة محلياً'
-              : 'Offline mode - using cached data'}
+            <WifiOff size={14} />{' '}
+            {isArabic ? 'أوفلاين — بيتم استخدام البيانات المحفوظة' : 'Offline — using saved data'}
+          </div>
+        )}
+
+        {pendingToast && (
+          <div className="bg-amber-500 border-b border-amber-600 px-4 py-2.5 text-xs font-black text-white flex items-center gap-2 shadow-md">
+            <CloudOff size={14} />
+            {pendingToast}
           </div>
         )}
 
@@ -4984,6 +5263,135 @@ const POSSystemPage: React.FC = () => {
           </MotionDiv>
         )}
       </AnimatePresence>
+
+      {/* ─── POS gate — full-screen blocking card shown INSTEAD of the checkout
+              UI until the shift/cashier session is ready ─── */}
+      {isGated &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[10050] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+            dir="rtl"
+          >
+            <div className="w-full max-w-sm bg-white rounded-[2rem] border border-slate-100 shadow-2xl p-6 space-y-4">
+              <div className="text-center">
+                <div className="w-14 h-14 mx-auto rounded-2xl bg-[#BD00FF]/10 flex items-center justify-center mb-3">
+                  {gateMode === 'open' ? (
+                    <Play size={26} className="text-[#BD00FF]" />
+                  ) : (
+                    <Lock size={26} className="text-[#BD00FF]" />
+                  )}
+                </div>
+                <h2 className="text-xl font-black text-slate-900">
+                  {gateMode === 'open' ? 'ابدأ الوردية' : 'سجّل الكاشير'}
+                </h2>
+                <p className="text-xs font-bold text-slate-400 mt-1">
+                  {gateMode === 'open'
+                    ? 'افتح وردية جديدة لتبدأ البيع'
+                    : 'الوردية مفتوحة — سجّل دخولك لتكمل البيع'}
+                </p>
+              </div>
+
+              {gateMode === 'open' && (
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-500">العهدة الافتتاحية</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={gateOpeningCash || ''}
+                    onChange={(e) => setGateOpeningCash(Number(e.target.value) || 0)}
+                    placeholder="مبلغ العهدة"
+                    className="w-full bg-slate-50 border rounded-xl py-3 px-4 outline-none text-sm font-black text-center focus:ring-2 focus:ring-[#BD00FF]"
+                  />
+                </div>
+              )}
+
+              {gateCashiers.length > 0 && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-500">اسم الكاشير</label>
+                    <select
+                      value={gateCashierId}
+                      onChange={(e) => setGateCashierId(e.target.value)}
+                      className="w-full bg-slate-50 border rounded-xl py-3 px-4 outline-none text-sm font-black text-right focus:ring-2 focus:ring-[#BD00FF]"
+                    >
+                      <option value="">اختار الكاشير...</option>
+                      {gateCashiers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-500">الرقم السري</label>
+                    <div className="relative">
+                      <input
+                        type={gateShowPin ? 'text' : 'password'}
+                        inputMode="numeric"
+                        value={gatePin}
+                        onChange={(e) => setGatePin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="أدخل الرقم السري"
+                        className="w-full bg-slate-50 border rounded-xl py-3 px-4 outline-none text-sm font-black text-center tracking-[0.4em] focus:ring-2 focus:ring-[#BD00FF]"
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setGateShowPin((v) => !v)}
+                        className="absolute inset-y-0 left-3 flex items-center text-slate-400 hover:text-slate-600"
+                        tabIndex={-1}
+                        aria-label="إظهار الرقم السري"
+                      >
+                        {gateShowPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {gateError && (
+                <div className="p-2.5 rounded-xl bg-red-50 text-red-600 text-xs font-bold text-center">
+                  {gateError}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={submitGate}
+                disabled={gateSubmitting}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-l from-[#BD00FF] to-[#8A00C2] text-white font-black text-sm shadow-lg shadow-[#BD00FF]/25 hover:from-[#8A00C2] hover:to-[#BD00FF] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {gateSubmitting ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <Play size={18} />
+                )}
+                {gateMode === 'open' ? 'فتح الوردية ودخول الكاشير' : 'دخول'}
+              </button>
+
+              {gateMode === 'open' && !hasCashiers && (
+                <button
+                  type="button"
+                  onClick={submitGate}
+                  disabled={gateSubmitting}
+                  className="w-full text-center text-xs font-black text-slate-400 hover:text-slate-600 underline"
+                >
+                  فتح بدون كاشير
+                </button>
+              )}
+
+              {gateMode === 'open' && hasCashiers && gateCashiers.length === 0 && (
+                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-100 text-amber-700 text-[11px] font-bold text-center">
+                  مفيش كاشير عنده صلاحية فتح الوردية — عدّل الصلاحيات من{' '}
+                  <Link href="/dashboard/pos/settings" className="underline font-black">
+                    إعدادات الكاشير
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

@@ -19,7 +19,7 @@ export default function PaymentsAnalyticsPage() {
         'تسويات المدفوعات',
       ]}
       related={[
-        { label: 'المدفوعات والتحصيلات', href: '/dashboard/sales/payments' },
+        { label: 'الطلبات', href: '/dashboard/sales' },
         { label: 'تقارير المالية', href: '/dashboard/analytics/finance' },
       ]}
     />

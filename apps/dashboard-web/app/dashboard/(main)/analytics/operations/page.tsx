@@ -21,7 +21,7 @@ export default function OperationsAnalyticsPage() {
       related={[
         { label: 'تقارير الكاشير', href: '/dashboard/pos/reports' },
         { label: 'الورديات', href: '/dashboard/pos/shifts' },
-        { label: 'حالة الطلب', href: '/dashboard/sales/order-status' },
+        { label: 'الطلبات', href: '/dashboard/sales' },
       ]}
     />
   );

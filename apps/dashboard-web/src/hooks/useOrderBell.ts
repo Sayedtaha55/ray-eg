@@ -28,7 +28,7 @@ export type OrderBellEvent = {
   body: string;
 };
 
-const POLL_MS = 12_000;
+const POLL_MS = 6_000;
 const SOUND_ENABLED_KEY = 'ray_sound_enabled';
 
 export function isSoundEnabled(): boolean {
@@ -116,8 +116,8 @@ export function useOrderBell(onOrder?: (evt: OrderBellEvent) => void) {
         }
       }
       // newest first
-      merged.sort((a, b) =>
-        new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      merged.sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
       );
       setNotifications(merged);
 
@@ -188,18 +188,19 @@ export function useOrderBell(onOrder?: (evt: OrderBellEvent) => void) {
     setUnreadCount(0);
   }, []);
 
-  const markRead = useCallback(async (id: string) => {
-    const n = notifications.find((x) => x.id === id);
-    const path =
-      n?.shop_id && currentShopId()
-        ? `/notifications/shop/${currentShopId()}/${id}/read`
-        : `/notifications/me/${id}/read`;
-    await apiRequest(path, { method: 'PATCH' });
-    setNotifications((prev) =>
-      prev.map((x) => (x.id === id ? { ...x, read: true } : x))
-    );
-    setUnreadCount((c) => Math.max(0, c - 1));
-  }, [notifications]);
+  const markRead = useCallback(
+    async (id: string) => {
+      const n = notifications.find((x) => x.id === id);
+      const path =
+        n?.shop_id && currentShopId()
+          ? `/notifications/shop/${currentShopId()}/${id}/read`
+          : `/notifications/me/${id}/read`;
+      await apiRequest(path, { method: 'PATCH' });
+      setNotifications((prev) => prev.map((x) => (x.id === id ? { ...x, read: true } : x)));
+      setUnreadCount((c) => Math.max(0, c - 1));
+    },
+    [notifications]
+  );
 
   return {
     notifications,

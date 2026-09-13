@@ -28,6 +28,7 @@ import {
   Boxes,
   Heart,
   MousePointerClick,
+  Undo2,
   Landmark,
   Megaphone,
   Workflow,
@@ -133,6 +134,14 @@ const ANALYTICS_PAGES: HubPage[] = [
     icon: MousePointerClick,
     href: '/dashboard/analytics/conversions',
     tile: 'bg-teal-50 text-teal-600',
+  },
+  {
+    id: 'returnsReport',
+    label: 'تقارير المرتجعات',
+    desc: 'كل مرتجعات المتجر من الموقع والكاشير والفواتير',
+    icon: Undo2,
+    href: '/dashboard/analytics/returns',
+    tile: 'bg-orange-50 text-orange-600',
   },
   {
     id: 'financeAnalytics',

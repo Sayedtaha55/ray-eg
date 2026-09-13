@@ -273,7 +273,11 @@ const BASE_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
       tablesSubtitle: 'إدارة طاولات المطعم وأماكن الجلوس',
       activityNamePlaceholder: 'مثال: مطعم كشري الشام',
       demoNotifications: [
-        { title: 'حجز طاولة جديد', desc: 'عميل حجز طاولة لأربعة أشخاص الساعة ٩ مساءً', tone: 'blue' },
+        {
+          title: 'حجز طاولة جديد',
+          desc: 'عميل حجز طاولة لأربعة أشخاص الساعة ٩ مساءً',
+          tone: 'blue',
+        },
         { title: 'تم تأكيد حجز', desc: 'تم تأكيد حجز طاولة السيد أحمد محمد', tone: 'green' },
         { title: 'إلغاء حجز', desc: 'تم إلغاء حجز طاولة السيدة سارة علي', tone: 'red' },
         { title: 'تذكير بحجز', desc: 'حجز طاولة بعد ٣٠ دقيقة — جهز الطاولة', tone: 'amber' },
@@ -288,8 +292,14 @@ const BASE_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
       hiddenItems: {
         bookings: ['rooms', 'doctors'],
         [INVENTORY_SECTION]: [
-          'variants', 'stocktake', 'warehouses', 'transfers',
-          'barcode', 'qrCode', 'stockTracking', 'lowStockAlerts',
+          'variants',
+          'stocktake',
+          'warehouses',
+          'transfers',
+          'barcode',
+          'qrCode',
+          'stockTracking',
+          'lowStockAlerts',
         ],
       },
       itemLabels: {
@@ -341,7 +351,11 @@ const BASE_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
       tablesSubtitle: 'إدارة طاولات المقهى',
       activityNamePlaceholder: 'مثال: مقهى الأنس',
       demoNotifications: [
-        { title: 'حجز طاولة جديد', desc: 'عميل حجز طاولة جلوس على التراس الساعة ٦ مساءً', tone: 'blue' },
+        {
+          title: 'حجز طاولة جديد',
+          desc: 'عميل حجز طاولة جلوس على التراس الساعة ٦ مساءً',
+          tone: 'blue',
+        },
         { title: 'تم تأكيد حجز', desc: 'تم تأكيد حجز السيد أحمد محمد', tone: 'green' },
         { title: 'إلغاء حجز', desc: 'تم إلغاء حجز السيدة سارة علي', tone: 'red' },
         { title: 'تذكير بحجز', desc: 'حجز تراس بعد ٣٠ دقيقة — جهز الطاولة', tone: 'amber' },
@@ -356,8 +370,14 @@ const BASE_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
       hiddenItems: {
         bookings: ['rooms', 'doctors'],
         [INVENTORY_SECTION]: [
-          'variants', 'stocktake', 'warehouses', 'transfers',
-          'barcode', 'qrCode', 'stockTracking', 'lowStockAlerts',
+          'variants',
+          'stocktake',
+          'warehouses',
+          'transfers',
+          'barcode',
+          'qrCode',
+          'stockTracking',
+          'lowStockAlerts',
         ],
       },
       itemLabels: {
@@ -612,8 +632,16 @@ const BASE_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
       hiddenItems: {
         bookings: ['rooms', 'tables'],
         [INVENTORY_SECTION]: [
-          'variants', 'stocktake', 'suppliers', 'purchaseOrders',
-          'warehouses', 'transfers', 'barcode', 'qrCode', 'stockTracking', 'lowStockAlerts',
+          'variants',
+          'stocktake',
+          'suppliers',
+          'purchaseOrders',
+          'warehouses',
+          'transfers',
+          'barcode',
+          'qrCode',
+          'stockTracking',
+          'lowStockAlerts',
         ],
       },
       itemLabels: {
@@ -680,10 +708,17 @@ const BASE_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
       },
       hiddenItems: {
         bookings: ['tables'],
-        sales: ['returns'],
         [INVENTORY_SECTION]: [
-          'variants', 'stocktake', 'suppliers', 'purchaseOrders',
-          'warehouses', 'transfers', 'barcode', 'qrCode', 'stockTracking', 'lowStockAlerts',
+          'variants',
+          'stocktake',
+          'suppliers',
+          'purchaseOrders',
+          'warehouses',
+          'transfers',
+          'barcode',
+          'qrCode',
+          'stockTracking',
+          'lowStockAlerts',
         ],
       },
       itemLabels: {
@@ -765,7 +800,6 @@ const BASE_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
       itemLabels: {},
     },
   }),
-
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -872,7 +906,11 @@ const DERIVED_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
     headerBadgeClass: 'bg-amber-700',
     tagline: 'تنجيد وإنتاج وترميم — كل اللي يخص شغلك في مكان واحد',
     features: { trackStock: false, showVariants: true },
-    samples: { itemWord: 'طلب تنجيد', plural: 'طلبات التنجيد', exampleItem: 'إعادة تنجيد كنب ثلاثي' },
+    samples: {
+      itemWord: 'طلب تنجيد',
+      plural: 'طلبات التنجيد',
+      exampleItem: 'إعادة تنجيد كنب ثلاثي',
+    },
   }),
 
   mattressesBedding: deriveFrom('homeTextiles', {
@@ -889,7 +927,11 @@ const DERIVED_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
     nameAr: 'مستلزمات المنزل',
     emoji: '🏠',
     headerBadgeClass: 'bg-teal-600',
-    samples: { itemWord: 'أداة منزلية', plural: 'الأدوات المنزلية', exampleItem: 'طقم أواني جرانيت ٩ قطع' },
+    samples: {
+      itemWord: 'أداة منزلية',
+      plural: 'الأدوات المنزلية',
+      exampleItem: 'طقم أواني جرانيت ٩ قطع',
+    },
     terms: { categoriesPageTitle: 'أقسام المنزل' },
   }),
 
@@ -925,8 +967,17 @@ const DERIVED_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
     emoji: '🏢',
     headerBadgeClass: 'bg-cyan-700',
     tagline: 'وحدات وعروض وعملاء — كل اللي يخص مكتب العقارات في مكان واحد',
-    features: { trackStock: false, showVariants: false, showBookings: true, showImageMapEditor: false },
-    samples: { itemWord: 'وحدة عقارية', plural: 'الوحدات', exampleItem: 'شقة ٣ غرف بالتجمع الخامس' },
+    features: {
+      trackStock: false,
+      showVariants: false,
+      showBookings: true,
+      showImageMapEditor: false,
+    },
+    samples: {
+      itemWord: 'وحدة عقارية',
+      plural: 'الوحدات',
+      exampleItem: 'شقة ٣ غرف بالتجمع الخامس',
+    },
     terms: { pageTitle: 'الوحدات', categoriesPageTitle: 'مناطق العروض' },
   }),
 
@@ -973,7 +1024,11 @@ const DERIVED_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
     nameAr: 'ثروة سمكية',
     emoji: '🐟',
     headerBadgeClass: 'bg-blue-400',
-    samples: { itemWord: 'بضاعة سمكية', plural: 'البضائع السمكية', exampleItem: 'بلطي طازج بالكيلو' },
+    samples: {
+      itemWord: 'بضاعة سمكية',
+      plural: 'البضائع السمكية',
+      exampleItem: 'بلطي طازج بالكيلو',
+    },
     terms: { categoriesPageTitle: 'أنواع الأسماك' },
   }),
 
@@ -983,7 +1038,11 @@ const DERIVED_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
     emoji: '⚡',
     headerBadgeClass: 'bg-yellow-500',
     features: { trackStock: false, showVariants: false, showBookings: false },
-    samples: { itemWord: 'حل طاقة', plural: 'حلول الطاقة', exampleItem: 'نظام طاقة شمسية ٥ كيلووات' },
+    samples: {
+      itemWord: 'حل طاقة',
+      plural: 'حلول الطاقة',
+      exampleItem: 'نظام طاقة شمسية ٥ كيلووات',
+    },
     terms: { pageTitle: 'حلول الطاقة' },
   }),
 
@@ -1001,7 +1060,11 @@ const DERIVED_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
     nameAr: 'فنيين مستقلين',
     emoji: '🔧',
     headerBadgeClass: 'bg-orange-700',
-    samples: { itemWord: 'خدمة صيانة', plural: 'خدمات الصيانة', exampleItem: 'تصليح تكييف بالمنزل' },
+    samples: {
+      itemWord: 'خدمة صيانة',
+      plural: 'خدمات الصيانة',
+      exampleItem: 'تصليح تكييف بالمنزل',
+    },
     terms: { pageTitle: 'خدمات الصيانة' },
   }),
 
@@ -1036,7 +1099,11 @@ const DERIVED_ENVIRONMENTS: Record<string, ActivityEnvironment> = {
     nameAr: 'مصانع وإنتاج',
     emoji: '🏭',
     headerBadgeClass: 'bg-zinc-500',
-    samples: { itemWord: 'منتج إنتاج', plural: 'منتجات الإنتاج', exampleItem: 'دفعة تغليف جملة ١٠٠٠ وحدة' },
+    samples: {
+      itemWord: 'منتج إنتاج',
+      plural: 'منتجات الإنتاج',
+      exampleItem: 'دفعة تغليف جملة ١٠٠٠ وحدة',
+    },
   }),
 
   tourismTravel: deriveFrom('service', {
@@ -1060,7 +1127,11 @@ export const ACTIVITY_ENVIRONMENTS: Record<ActivityId, ActivityEnvironment> = {
     nameAr: 'خدمات مهنية',
     emoji: '💼',
     headerBadgeClass: 'bg-indigo-500',
-    samples: { itemWord: 'خدمة مهنية', plural: 'الخدمات المهنية', exampleItem: 'مراجعة حسابات شهرية' },
+    samples: {
+      itemWord: 'خدمة مهنية',
+      plural: 'الخدمات المهنية',
+      exampleItem: 'مراجعة حسابات شهرية',
+    },
   }),
 
   homeServices: deriveFrom('individualTechnicians', {
@@ -1068,7 +1139,11 @@ export const ACTIVITY_ENVIRONMENTS: Record<ActivityId, ActivityEnvironment> = {
     nameAr: 'خدمات منزلية',
     emoji: '🛠️',
     headerBadgeClass: 'bg-teal-700',
-    samples: { itemWord: 'خدمة منزلية', plural: 'الخدمات المنزلية', exampleItem: 'تنظيف واجهات عمارات' },
+    samples: {
+      itemWord: 'خدمة منزلية',
+      plural: 'الخدمات المنزلية',
+      exampleItem: 'تنظيف واجهات عمارات',
+    },
   }),
 
   other: deriveFrom('retail', {
@@ -1144,16 +1219,21 @@ export const CATEGORY_TO_ACTIVITY: Record<string, ActivityId> = {
 };
 
 export function resolveActivity(category?: string | null): ActivityEnvironment {
-  const key = String(category || '').trim().toUpperCase();
+  const key = String(category || '')
+    .trim()
+    .toUpperCase();
   return ACTIVITY_ENVIRONMENTS[CATEGORY_TO_ACTIVITY[key] || 'retail'];
 }
 
 /** شكل المتجر كما يرجع من /shops/me */
-type ShopLike = {
-  category?: string | null;
-  activity?: string | null;
-  layoutConfig?: { activityId?: string } | null;
-} | null | undefined;
+type ShopLike =
+  | {
+      category?: string | null;
+      activity?: string | null;
+      layoutConfig?: { activityId?: string } | null;
+    }
+  | null
+  | undefined;
 
 /**
  * حل بيئة النشاط من المتجر نفسه:
@@ -1167,8 +1247,6 @@ export function resolveShopActivity(shop: ShopLike): ActivityEnvironment {
   }
   return resolveActivity(shop?.category);
 }
-
-
 
 /** اسم جمع لعناصر النشاط (أصناف / بضائع / خدمات...) مشتق من الإحصائيات */
 export function activityItemsPlural(env: ActivityEnvironment): string {
@@ -1203,7 +1281,8 @@ export function applyActivityToSidebar(
     const items = section.items
       .filter((item) => {
         if (customHidden.has(item.id) || customHidden.has(`${section.id}:${item.id}`)) return false;
-        const isExplicitlyEnabledFeature = Array.isArray(sectionEnabledFeatures) && sectionEnabledFeatures.includes(item.id);
+        const isExplicitlyEnabledFeature =
+          Array.isArray(sectionEnabledFeatures) && sectionEnabledFeatures.includes(item.id);
         if (hiddenForSection?.includes(item.id) && !isExplicitlyEnabledFeature) return false;
         return true;
       })

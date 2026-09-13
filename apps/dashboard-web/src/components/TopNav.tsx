@@ -42,6 +42,16 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const appsRef = useRef<HTMLDivElement>(null);
 
+  // عرض مقتطف من الأقسام والصفحات + زر "عرض المزيد" بدل ازدحام الشريط
+  const MAX_NAV_SECTIONS = 8;
+  const MAX_SUB_ITEMS = 6;
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  const [subExpanded, setSubExpanded] = useState(false);
+
+  const navSections = sections.slice(0, MAX_NAV_SECTIONS);
+  const extraSections = sections.slice(MAX_NAV_SECTIONS);
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -49,6 +59,9 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
       }
       if (appsRef.current && !appsRef.current.contains(e.target as Node)) {
         setAppsOpen(false);
+      }
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -99,6 +112,18 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
   const activeSectionId = openSection ?? currentSectionId;
   const activeSection = sections.find((s) => s.id === activeSectionId) || null;
   const previewSection = sections.find((s) => s.id === hoverSection) || null;
+
+  // تصفير التوسيع عند تغيير القسم النشط — ويفتح تلقائيًا لو الصفحة النشطة من المخفية
+  useEffect(() => {
+    setMoreOpen(false);
+    const sec = sections.find((s) => s.id === activeSectionId);
+    if (sec) {
+      const idx = sec.items.findIndex((it) => it.href.split('?')[0] === pathname);
+      setSubExpanded(idx >= MAX_SUB_ITEMS);
+    } else {
+      setSubExpanded(false);
+    }
+  }, [activeSectionId, pathname, sections]);
 
   const handleSectionEnter = (sectionId: string, e?: React.MouseEvent<HTMLElement>) => {
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
@@ -171,7 +196,7 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
 
         {/* Section nav (desktop) */}
         <nav className="hidden md:flex items-center gap-0.5 flex-1 overflow-x-auto no-scrollbar">
-          {sections.map((section) => {
+          {navSections.map((section) => {
             const SectionIcon = section.icon;
             const active = activeSectionId === section.id;
             const hovered = hoverSection === section.id;
@@ -198,6 +223,23 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
               </button>
             );
           })}
+          {/* عرض المزيد — باقي الأقسام (بتتفتح في شريط عريض تحت) */}
+          {extraSections.length > 0 && (
+            <button
+              onClick={() => setMoreOpen(!moreOpen)}
+              className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap shrink-0 transition-all ${
+                moreOpen
+                  ? 'text-[#00E5FF] bg-white/10'
+                  : 'text-white/80 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              المزيد
+              <ChevronDown
+                size={12}
+                className={`transition-transform duration-300 ${moreOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+          )}
         </nav>
 
         {/* Left utilities */}
@@ -338,6 +380,52 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
         </div>
       </header>
 
+      {/* ===== شريط الأقسام الإضافية — يتفتح بالطول عند "المزيد" ===== */}
+      <AnimatePresence initial={false}>
+        {moreOpen && extraSections.length > 0 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            className="bg-white border-b border-slate-100 overflow-hidden"
+          >
+            <div className="px-3 md:px-5 py-2.5 flex flex-wrap items-center gap-1">
+              {extraSections.map((section) => {
+                const SectionIcon = section.icon;
+                const active = activeSectionId === section.id;
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      handleSectionClick(section);
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                      active
+                        ? 'text-slate-900 bg-slate-900/5'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    } ${section.published === false ? 'opacity-60' : ''}`}
+                  >
+                    {SectionIcon && (
+                      <SectionIcon
+                        size={14}
+                        className={`shrink-0 ${SECTION_COLORS[section.id] || 'text-slate-400'}`}
+                      />
+                    )}
+                    <span>{section.titleAr}</span>
+                    {section.published === false && <SoonBadge />}
+                    {section.items.length > 1 && (
+                      <ChevronDown size={11} className="text-slate-300 -rotate-90" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ===== Hover dropdown — vertical page list anchored under the hovered section ===== */}
       <AnimatePresence>
         {previewSection && previewSection.items.length > 0 && hoverPos && (
@@ -416,7 +504,9 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             className="bg-white border-b border-slate-100 overflow-hidden"
           >
-            <div className="flex items-center gap-1 px-3 md:px-5 py-2.5 overflow-x-auto no-scrollbar">
+            <div
+              className={`px-3 md:px-5 py-2.5 flex items-center gap-1 ${subExpanded ? 'flex-wrap' : 'overflow-x-auto no-scrollbar'}`}
+            >
               {/* Section anchor on the right */}
               <div className="flex items-center gap-2 pl-3 ml-1 border-l border-slate-100 shrink-0">
                 {activeSection.icon && (
@@ -429,7 +519,10 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
                   {activeSection.titleAr}
                 </span>
               </div>
-              {activeSection.items.map((item) => {
+              {(subExpanded
+                ? activeSection.items
+                : activeSection.items.slice(0, MAX_SUB_ITEMS)
+              ).map((item) => {
                 const ItemIcon = item.icon;
                 const active = isActive(item.href);
                 return (
@@ -460,6 +553,25 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
                   </Link>
                 );
               })}
+              {/* عرض المزيد / عرض أقل */}
+              {activeSection.items.length > MAX_SUB_ITEMS && (
+                <button
+                  onClick={() => setSubExpanded(!subExpanded)}
+                  className={`relative flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                    subExpanded
+                      ? 'text-slate-900 bg-slate-900/5'
+                      : 'text-indigo-600 hover:bg-indigo-50'
+                  }`}
+                >
+                  {subExpanded
+                    ? 'عرض أقل'
+                    : `عرض المزيد (${activeSection.items.length - MAX_SUB_ITEMS})`}
+                  <ChevronDown
+                    size={12}
+                    className={`transition-transform duration-300 ${subExpanded ? 'rotate-180' : ''}`}
+                  />
+                </button>
+              )}
             </div>
           </motion.div>
         )}
