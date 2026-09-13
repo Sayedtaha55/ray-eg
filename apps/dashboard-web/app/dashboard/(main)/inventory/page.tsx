@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useShop } from '@/hooks/useShop';
+import { useInstalledApps } from '@/hooks/useInstalledApps';
 import ImageMapEditorModal from '@/components/apps/image-editor/ImageMapEditor';
 
 type Product = {
@@ -44,6 +45,7 @@ type Product = {
 
 export default function InventoryPage() {
   const { shop } = useShop();
+  const { isInstalled } = useInstalledApps();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -354,7 +356,8 @@ export default function InventoryPage() {
                 الإضافات
               </button>
             )}
-            {canUseImageMapEditor && (
+            {/* تطبيق محرر الصور — يظهر فقط بعد تثبيته من صفحة التطبيقات */}
+            {canUseImageMapEditor && isInstalled('image-editor') && (
               <button
                 onClick={() => setShowImageMapModal(true)}
                 className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 hidden sm:flex items-center gap-1.5"
@@ -791,7 +794,9 @@ export default function InventoryPage() {
                   <li>• استيراد وتصدير CSV</li>
                   <li>• ترقيم الصفحات</li>
                   {isRestaurant && <li>• إدارة الإضافات (للمطاعم)</li>}
-                  {isRetail && <li>• محرر خريطة الصور (للمتاجر الأخرى)</li>}
+                  {isRetail && (
+                    <li>• محرر خريطة الصور (تطبيق اختياري — ثبّته من صفحة التطبيقات)</li>
+                  )}
                 </ul>
               </div>
               <div>
@@ -809,7 +814,11 @@ export default function InventoryPage() {
                   {isRestaurant && (
                     <li>7. استخدم "إدارة الإضافات" لإضافة خيارات إضافية للمنتجات</li>
                   )}
-                  {isRetail && <li>7. استخدم "محرر خريطة الصور" لإنشاء خريطة تفاعلية للمنتجات</li>}
+                  {isRetail && (
+                    <li>
+                      7. ثبّت تطبيق "محرر الصور التفاعلي" من صفحة التطبيقات لتفعيل خريطة الصور
+                    </li>
+                  )}
                 </ol>
               </div>
               <div>
