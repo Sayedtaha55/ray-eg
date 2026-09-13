@@ -49,6 +49,7 @@ import {
   Calculator,
   Zap,
   Sliders,
+  UserRound,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest, useAuth } from '@/lib/auth';
@@ -107,6 +108,11 @@ import {
 
 const MotionDiv = motion.div as any;
 
+// Features that are not part of the first public release (loyalty, gift cards,
+// layaway, …) stay visible on local/dev machines only — production builds
+// never render them.
+const SHOW_UNPUBLISHED = process.env.NODE_ENV !== 'production';
+
 interface CartItem {
   id: string;
   productId: string;
@@ -153,6 +159,31 @@ const POSSystemPage: React.FC = () => {
 
   // Active shift / cashier name (shift owner printed on the invoice)
   const [activeShift, setActiveShift] = useState<any>(null);
+
+  // Current POS cashier identity (set when a shift is opened from the shifts page)
+  const [posCashier, setPosCashier] = useState<{ id: string; name: string } | null>(null);
+  useEffect(() => {
+    const sync = () => {
+      try {
+        const raw = window.localStorage.getItem('pos_current_cashier');
+        const parsed = raw ? JSON.parse(raw) : null;
+        setPosCashier(
+          parsed && parsed.id && parsed.name
+            ? { id: String(parsed.id), name: String(parsed.name) }
+            : null
+        );
+      } catch {
+        setPosCashier(null);
+      }
+    };
+    sync();
+    window.addEventListener('pos-cashier-changed', sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener('pos-cashier-changed', sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
 
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'wallet' | 'credit'>('cash');
@@ -319,6 +350,22 @@ const POSSystemPage: React.FC = () => {
   // Quick keys / favorites
   const [quickKeyIds, setQuickKeyIds] = useState<string[]>([]);
   const [showQuickKeys, setShowQuickKeys] = useState(false);
+
+  // ─── Cashier invoices (quick access for the shift owner) ─────────────────
+  const [showInvoices, setShowInvoices] = useState(false);
+  const [posInvoices, setPosInvoices] = useState<any[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
+
+  // Quick return from a POS invoice
+  const [returnOrder, setReturnOrder] = useState<any | null>(null);
+  const [returnQtys, setReturnQtys] = useState<Record<string, number>>({});
+  const [returnToStock, setReturnToStock] = useState(true);
+  const [returnReason, setReturnReason] = useState('');
+  const [returnSubmitting, setReturnSubmitting] = useState(false);
+
+  // Edit an existing invoice: items go back to the cart; on checkout the
+  // original order is fully returned and replaced by the new one.
+  const [editingOrder, setEditingOrder] = useState<any | null>(null);
 
   const playCashRegisterSound = () => {
     try {
@@ -920,6 +967,41 @@ const POSSystemPage: React.FC = () => {
               ? 'WALLET'
               : 'CREDIT';
 
+      // Invoice edit mode: fully return the original order first, then the
+      // freshly paid cart replaces it. Abort if the return fails so the
+      // original invoice is never silently duplicated.
+      if (editingOrder) {
+        try {
+          await apiRequest(`/shops/${shopId}/orders/${editingOrder.id}/returns`, {
+            method: 'POST',
+            body: JSON.stringify({
+              reason: 'تعديل فاتورة من الكاشير',
+              returnToStock: true,
+              totalAmount: Number(editingOrder.total || 0),
+              markReturned: true,
+              items: (Array.isArray(editingOrder.items) ? editingOrder.items : []).map(
+                (it: any) => ({
+                  orderItemId: it.id,
+                  productId: it.productId,
+                  name: it.productName || '',
+                  quantity: Number(it.quantity) || 0,
+                  price: Number(it.price) || 0,
+                })
+              ),
+            }),
+          });
+        } catch (retErr: any) {
+          const msg =
+            String(retErr?.message || '').trim() ||
+            'فشل إرجاع الفاتورة الأصلية — لم يتم تنفيذ التعديل';
+          try {
+            window.alert(msg);
+          } catch {}
+          setIsProcessing(false);
+          return;
+        }
+      }
+
       await apiRequest(`/shops/${shopId}/orders`, {
         method: 'POST',
         body: JSON.stringify({
@@ -979,6 +1061,7 @@ const POSSystemPage: React.FC = () => {
       setSelectedTableId(null);
       setSplitPayments([]);
       setShowSplitPayment(false);
+      setEditingOrder(null);
       try {
         localStorage.removeItem(`pos_cart_${shopId}`);
       } catch {}
@@ -1288,6 +1371,189 @@ const POSSystemPage: React.FC = () => {
     setQuickKeyIds(next);
   };
 
+  // ─── Cashier invoices: list, re-print, quick return, edit ────────────────
+  const loadPosInvoices = useCallback(async () => {
+    if (!shopId) return;
+    setInvoicesLoading(true);
+    try {
+      const data = await apiRequest(`/shops/${shopId}/orders`);
+      const list = Array.isArray(data) ? data : data?.orders ? data.orders : [];
+      const pos = (Array.isArray(list) ? list : [])
+        .filter((o: any) => String(o?.source || '').toUpperCase() === 'POS')
+        .slice(0, 50);
+      setPosInvoices(pos);
+    } catch {
+      setPosInvoices([]);
+    } finally {
+      setInvoicesLoading(false);
+    }
+  }, [shopId]);
+
+  const openInvoices = useCallback(() => {
+    setShowInvoices(true);
+    loadPosInvoices();
+  }, [loadPosInvoices]);
+
+  const invoiceStatusStyle = (status: any) => {
+    const s = String(status || '').toUpperCase();
+    if (s === 'RETURNED' || s === 'REFUNDED') return 'bg-red-50 text-red-600';
+    if (s === 'PENDING' || s === 'PROCESSING') return 'bg-amber-50 text-amber-600';
+    return 'bg-emerald-50 text-emerald-600';
+  };
+
+  // Re-print an existing invoice without touching the cart
+  const reprintInvoice = useCallback(
+    (order: any) => {
+      if (!order) return;
+      const escapeHtml = (value: any) =>
+        String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      const fmt = (n: any) => (Number.isFinite(Number(n)) ? Number(n).toFixed(2) : '0.00');
+      const created = String(order.createdAt || '')
+        .replace('T', ' ')
+        .slice(0, 16);
+      const items = Array.isArray(order.items) ? order.items : [];
+      const linesHtml = items
+        .map(
+          (it: any) =>
+            `<tr><td style="padding:6px 0;">${escapeHtml(
+              it.productName ||
+                products.find((p: any) => p.id === it.productId)?.name ||
+                it.productId
+            )}</td><td style="padding:6px 0;text-align:left;">${it.quantity}x</td><td style="padding:6px 0;text-align:left;">${fmt(
+              Number(it.price) * Number(it.quantity)
+            )}</td></tr>`
+        )
+        .join('');
+      const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Receipt</title>
+      <style>@page{margin:8mm}body{font-family:Arial,sans-serif;direction:rtl}.wrap{max-width:80mm;margin:0 auto}h1{font-size:16px;text-align:center}.meta{font-size:11px;text-align:center;margin-bottom:10px}.sep{border-top:1px dashed #999;margin:10px 0}table{width:100%;border-collapse:collapse;font-size:12px}.row{display:flex;justify-content:space-between;padding:4px 0}.foot{font-size:11px;text-align:center;margin-top:10px}</style>
+      </head><body><div class="wrap">
+      <h1>${escapeHtml(shop?.name || 'Receipt')}</h1>
+      <div class="meta">
+      <div><strong>فاتورة كاشير #${escapeHtml(String(order.id || '').slice(0, 8))}</strong></div>
+      ${order.customerPhone ? `<div>العميل: ${escapeHtml(order.customerPhone)}</div>` : ''}
+      <div>${escapeHtml(created)}</div>
+      ${shiftOwnerName ? `<div>الكاشير: ${escapeHtml(shiftOwnerName)}</div>` : ''}
+      ${String(order.status || '').toUpperCase() === 'RETURNED' || String(order.status || '').toUpperCase() === 'REFUNDED' ? '<div style="color:#dc2626;font-weight:700">مرتجعة</div>' : ''}
+      </div>
+      <div class="sep"></div><table><tbody>${linesHtml}</tbody></table><div class="sep"></div>
+      <div class="row" style="font-weight:700;"><span>الإجمالي</span><span>ج.م ${fmt(order.total)}</span></div>
+      <div class="foot">شكرًا لتعاملكم معنا</div>
+      </div></body></html>`;
+      try {
+        const w = window.open('', '_blank', 'noopener,noreferrer,width=480,height=720');
+        if (!w) return;
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+        w.focus();
+        w.print();
+        setTimeout(() => {
+          try {
+            w.close();
+          } catch {}
+        }, 15000);
+      } catch {}
+    },
+    [shop, products, shiftOwnerName]
+  );
+
+  const startReturn = useCallback((order: any) => {
+    const qtys: Record<string, number> = {};
+    (Array.isArray(order?.items) ? order.items : []).forEach((it: any) => {
+      qtys[String(it.id)] = 0;
+    });
+    setReturnQtys(qtys);
+    setReturnToStock(true);
+    setReturnReason('');
+    setReturnOrder(order);
+  }, []);
+
+  const returnTotal = useMemo(() => {
+    if (!returnOrder) return 0;
+    return (Array.isArray(returnOrder.items) ? returnOrder.items : []).reduce(
+      (sum: number, it: any) => sum + (returnQtys[String(it.id)] || 0) * Number(it.price || 0),
+      0
+    );
+  }, [returnOrder, returnQtys]);
+
+  const submitReturn = async () => {
+    if (!returnOrder || !shopId || returnSubmitting) return;
+    const items = (Array.isArray(returnOrder.items) ? returnOrder.items : [])
+      .filter((it: any) => (returnQtys[String(it.id)] || 0) > 0)
+      .map((it: any) => ({
+        orderItemId: it.id,
+        productId: it.productId,
+        name: it.productName || '',
+        quantity: returnQtys[String(it.id)],
+        price: Number(it.price) || 0,
+      }));
+    if (items.length === 0) return;
+    const allReturned = items.every((it: any, idx: number) => {
+      const orig = (returnOrder.items || []).find((x: any) => x.id === it.orderItemId);
+      return orig ? it.quantity >= Number(orig.quantity) : false;
+    });
+    setReturnSubmitting(true);
+    try {
+      await apiRequest(`/shops/${shopId}/orders/${returnOrder.id}/returns`, {
+        method: 'POST',
+        body: JSON.stringify({
+          reason: returnReason.trim() || 'مرتجع كاشير',
+          returnToStock,
+          totalAmount: Number(returnTotal.toFixed(2)),
+          markReturned: allReturned,
+          items,
+        }),
+      });
+      logAudit(shopId, {
+        action: 'pos_return_created',
+        detail: `order:${returnOrder.id} items:${items.length}`,
+        cashierId,
+        amount: returnTotal,
+      });
+      setReturnOrder(null);
+      loadPosInvoices();
+      loadProducts();
+      try {
+        window.alert('تم تسجيل المرتجع بنجاح');
+      } catch {}
+    } catch (err: any) {
+      const msg = String(err?.message || '').trim() || 'فشل تسجيل المرتجع';
+      try {
+        window.alert(msg);
+      } catch {}
+    } finally {
+      setReturnSubmitting(false);
+    }
+  };
+
+  // Load an existing invoice back into the cart for editing. On checkout the
+  // original order is returned in full and the edited cart becomes a new one.
+  const startEditOrder = useCallback(
+    (order: any) => {
+      const items: CartItem[] = (Array.isArray(order?.items) ? order.items : []).map((it: any) => ({
+        id: `${it.productId}__${it.id}`,
+        productId: it.productId,
+        name:
+          it.productName ||
+          products.find((p: any) => p.id === it.productId)?.name ||
+          String(it.productId),
+        price: Number(it.price) || 0,
+        quantity: Number(it.quantity) || 1,
+      }));
+      setCart(items);
+      setCustomerPhone(String(order?.customerPhone || ''));
+      setEditingOrder(order);
+      setShowInvoices(false);
+      setReturnOrder(null);
+    },
+    [products]
+  );
+
   // ─── Barcode scanning (defined here so it can reference addToCart) ───────
   const handleBarcodeScanned = useCallback(
     (code: string) => {
@@ -1421,6 +1687,8 @@ const POSSystemPage: React.FC = () => {
           setShowAudit(false);
           setShowPriceLevelMenu(false);
           setShowSplitPayment(false);
+          setShowInvoices(false);
+          setReturnOrder(null);
         },
       },
       {
@@ -1465,6 +1733,23 @@ const POSSystemPage: React.FC = () => {
             {cart.length} {isArabic ? 'صنف' : 'items'}
           </span>
         </div>
+        {editingOrder && (
+          <div className="mt-3 flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+            <span className="text-[11px] font-black text-amber-700 flex items-center gap-1.5">
+              <Receipt size={13} />
+              {isArabic
+                ? `بتعدّل الفاتورة #${String(editingOrder.id || '').slice(0, 8)} — عند الدفع هتترجع الأصلية وتتسجل الجديدة`
+                : `Editing invoice #${String(editingOrder.id || '').slice(0, 8)}`}
+            </span>
+            <button
+              type="button"
+              onClick={() => setEditingOrder(null)}
+              className="text-[10px] font-black text-amber-600 hover:text-amber-800 underline"
+            >
+              {isArabic ? 'إلغاء التعديل' : 'Cancel'}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3">
@@ -1749,27 +2034,31 @@ const POSSystemPage: React.FC = () => {
                     >
                       <DollarSign size={12} /> {isArabic ? 'إكرامية' : 'Tip'}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowLoyaltySettings(true)}
-                      className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black flex items-center gap-1 border transition-all ${loyaltyCfg.enabled ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'}`}
-                      title={isArabic ? 'نقاط الولاء' : 'Loyalty'}
-                    >
-                      <Crown size={12} /> {isArabic ? 'ولاء' : 'Loyalty'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const c = prompt(isArabic ? 'كود القسيمة' : 'Gift card code');
-                        if (c) {
-                          setGiftCardCode(c);
-                        }
-                      }}
-                      className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black flex items-center gap-1 border transition-all ${giftCardAmount > 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'}`}
-                      title={isArabic ? 'قسيمة شراء' : 'Gift card'}
-                    >
-                      <Gift size={12} /> {isArabic ? 'قسيمة' : 'Gift'}
-                    </button>
+                    {SHOW_UNPUBLISHED && (
+                      <button
+                        type="button"
+                        onClick={() => setShowLoyaltySettings(true)}
+                        className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black flex items-center gap-1 border transition-all ${loyaltyCfg.enabled ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'}`}
+                        title={isArabic ? 'نقاط الولاء' : 'Loyalty'}
+                      >
+                        <Crown size={12} /> {isArabic ? 'ولاء' : 'Loyalty'}
+                      </button>
+                    )}
+                    {SHOW_UNPUBLISHED && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const c = prompt(isArabic ? 'كود القسيمة' : 'Gift card code');
+                          if (c) {
+                            setGiftCardCode(c);
+                          }
+                        }}
+                        className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black flex items-center gap-1 border transition-all ${giftCardAmount > 0 ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'}`}
+                        title={isArabic ? 'قسيمة شراء' : 'Gift card'}
+                      >
+                        <Gift size={12} /> {isArabic ? 'قسيمة' : 'Gift'}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => setShowPriceLevelMenu((v) => !v)}
@@ -1831,30 +2120,34 @@ const POSSystemPage: React.FC = () => {
                             : 'Table'}
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setShowLayaway(true)}
-                      className="px-2.5 py-1.5 rounded-lg text-[10px] font-black flex items-center gap-1 border bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100"
-                      title={isArabic ? 'بيع بالتقسيط' : 'Layaway'}
-                    >
-                      <Clock size={12} /> {isArabic ? 'تقسيط' : 'Layaway'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleReadScale}
-                      disabled={scaleLoading}
-                      className="px-2.5 py-1.5 rounded-lg text-[10px] font-black flex items-center gap-1 border bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
-                      title={isArabic ? 'قراءة ميزان' : 'Scale'}
-                    >
-                      <Scale size={12} />{' '}
-                      {scaleLoading
-                        ? '...'
-                        : scaleReading != null
-                          ? `${scaleReading}kg`
-                          : isArabic
-                            ? 'ميزان'
-                            : 'Scale'}
-                    </button>
+                    {SHOW_UNPUBLISHED && (
+                      <button
+                        type="button"
+                        onClick={() => setShowLayaway(true)}
+                        className="px-2.5 py-1.5 rounded-lg text-[10px] font-black flex items-center gap-1 border bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100"
+                        title={isArabic ? 'بيع بالتقسيط' : 'Layaway'}
+                      >
+                        <Clock size={12} /> {isArabic ? 'تقسيط' : 'Layaway'}
+                      </button>
+                    )}
+                    {SHOW_UNPUBLISHED && (
+                      <button
+                        type="button"
+                        onClick={handleReadScale}
+                        disabled={scaleLoading}
+                        className="px-2.5 py-1.5 rounded-lg text-[10px] font-black flex items-center gap-1 border bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                        title={isArabic ? 'قراءة ميزان' : 'Scale'}
+                      >
+                        <Scale size={12} />{' '}
+                        {scaleLoading
+                          ? '...'
+                          : scaleReading != null
+                            ? `${scaleReading}kg`
+                            : isArabic
+                              ? 'ميزان'
+                              : 'Scale'}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => setShowReceiptSettings(true)}
@@ -2342,23 +2635,39 @@ const POSSystemPage: React.FC = () => {
 
           {/* Quick action buttons */}
           <div className="flex items-center gap-1.5 md:gap-2">
-            <Link
-              href="/dashboard/pos/invoices"
-              className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
-              title={isArabic ? 'الفواتير' : 'Invoices'}
+            {posCashier?.name && (
+              <div
+                className="p-2.5 md:p-3 rounded-xl bg-purple-50 border border-purple-100 flex items-center gap-1.5 text-xs font-black text-[#BD00FF]"
+                title={isArabic ? 'الكاشير الحالي' : 'Current cashier'}
+              >
+                <UserRound size={16} className="md:hidden" />
+                <UserRound size={18} className="hidden md:block" />
+                <span className="hidden md:inline">
+                  {isArabic ? `الكاشير: ${posCashier.name}` : `Cashier: ${posCashier.name}`}
+                </span>
+                <span className="md:hidden">{posCashier.name}</span>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={openInvoices}
+              className="p-2.5 md:p-3 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/30 text-[#0098a8] hover:bg-[#00E5FF]/20 transition-all flex items-center gap-1.5 text-xs font-black"
+              title={isArabic ? 'فواتير الكاشير — رجوع سريع وتعديل' : 'Cashier invoices'}
             >
               <Receipt size={16} className="md:hidden" />
               <Receipt size={18} className="hidden md:block" />
-              <span className="hidden md:inline">{isArabic ? 'الفواتير' : 'Invoices'}</span>
-            </Link>
+              <span className="hidden md:inline">{isArabic ? 'فواتير' : 'Invoices'}</span>
+            </button>
             <Link
-              href="/dashboard/pos/returns"
+              href="/dashboard/sales"
               className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
-              title={isArabic ? 'مرتجع' : 'Return'}
+              title={isArabic ? 'مرتجع من الطلبات' : 'Return from Orders'}
             >
               <RotateCcw size={16} className="md:hidden" />
               <RotateCcw size={18} className="hidden md:block" />
-              <span className="hidden md:inline">{isArabic ? 'مرتجع' : 'Return'}</span>
+              <span className="hidden md:inline">
+                {isArabic ? 'مرتجع من الطلبات' : 'Return from Orders'}
+              </span>
             </Link>
             <Link
               href="/dashboard/pos/shifts"
@@ -4389,6 +4698,237 @@ const POSSystemPage: React.FC = () => {
                   </button>
                 ))}
               </div>
+            </MotionDiv>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
+      {/* Cashier invoices modal — quick access for the shift owner */}
+      <AnimatePresence>
+        {showInvoices && (
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[950] bg-black/40 flex items-center justify-center p-4"
+            onClick={() => setShowInvoices(false)}
+          >
+            <MotionDiv
+              initial={{ y: 18, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 18, opacity: 0 }}
+              className="w-full max-w-2xl bg-white rounded-[2rem] p-5 max-h-[85vh] overflow-hidden flex flex-col"
+              onClick={(e: any) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4 flex-row-reverse">
+                <h3 className="text-base font-black flex items-center gap-2">
+                  <Receipt size={16} className="text-[#0098a8]" />{' '}
+                  {isArabic ? 'فواتير الكاشير' : 'Cashier Invoices'}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowInvoices(false)}
+                  className="p-2 rounded-xl hover:bg-slate-100"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-2">
+                {invoicesLoading ? (
+                  <div className="flex items-center justify-center py-12 text-slate-300">
+                    <Loader2 size={28} className="animate-spin" />
+                  </div>
+                ) : posInvoices.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-slate-300">
+                    <Receipt size={48} className="mb-3 opacity-30" />
+                    <p className="font-black text-sm">
+                      {isArabic ? 'لا توجد فواتير كاشير بعد' : 'No cashier invoices yet'}
+                    </p>
+                  </div>
+                ) : (
+                  posInvoices.map((inv: any) => {
+                    const returned =
+                      String(inv?.status || '').toUpperCase() === 'RETURNED' ||
+                      String(inv?.status || '').toUpperCase() === 'REFUNDED';
+                    return (
+                      <div
+                        key={inv.id}
+                        className={`border rounded-2xl p-3 ${returned ? 'border-red-100 bg-red-50/40' : 'border-slate-100 bg-white'}`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-2 flex-row-reverse">
+                          <div className="text-right min-w-0">
+                            <div className="text-xs font-black text-slate-900 flex items-center gap-2 justify-end">
+                              <span>#{String(inv.id || '').slice(0, 8)}</span>
+                              <span
+                                className={`px-1.5 py-0.5 rounded-md text-[9px] font-black ${invoiceStatusStyle(inv.status)}`}
+                              >
+                                {returned ? 'مرتجعة' : 'مكتملة'}
+                              </span>
+                            </div>
+                            <div className="text-[10px] font-bold text-slate-400 mt-0.5">
+                              {String(inv.createdAt || '')
+                                .replace('T', ' ')
+                                .slice(0, 16)}
+                              {inv.customerPhone ? ` • ${inv.customerPhone}` : ''}
+                            </div>
+                          </div>
+                          <span className="text-sm font-black text-slate-900 shrink-0">
+                            ج.م {Number(inv.total || 0).toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-row-reverse">
+                          <button
+                            type="button"
+                            onClick={() => reprintInvoice(inv)}
+                            className="flex-1 py-2 rounded-xl bg-slate-50 border border-slate-100 text-[10px] font-black text-slate-600 hover:bg-slate-100 flex items-center justify-center gap-1"
+                          >
+                            <Printer size={12} /> {isArabic ? 'طباعة' : 'Print'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={returned}
+                            onClick={() => startReturn(inv)}
+                            className="flex-1 py-2 rounded-xl bg-red-50 border border-red-100 text-[10px] font-black text-red-600 hover:bg-red-100 flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <RotateCcw size={12} /> {isArabic ? 'مرتجع سريع' : 'Return'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={returned}
+                            onClick={() => startEditOrder(inv)}
+                            className="flex-1 py-2 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/30 text-[10px] font-black text-[#0098a8] hover:bg-[#00E5FF]/20 flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <Sliders size={12} /> {isArabic ? 'تعديل' : 'Edit'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </MotionDiv>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
+
+      {/* Quick return modal */}
+      <AnimatePresence>
+        {returnOrder && (
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[960] bg-black/40 flex items-center justify-center p-4"
+            onClick={() => !returnSubmitting && setReturnOrder(null)}
+          >
+            <MotionDiv
+              initial={{ y: 18, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 18, opacity: 0 }}
+              className="w-full max-w-md bg-white rounded-[2rem] p-5 max-h-[85vh] overflow-y-auto"
+              onClick={(e: any) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-1 flex-row-reverse">
+                <h3 className="text-base font-black flex items-center gap-2">
+                  <RotateCcw size={16} className="text-red-500" />{' '}
+                  {isArabic ? 'مرتجع سريع' : 'Quick Return'}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setReturnOrder(null)}
+                  disabled={returnSubmitting}
+                  className="p-2 rounded-xl hover:bg-slate-100 disabled:opacity-40"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="text-[10px] font-bold text-slate-400 mb-3">
+                {isArabic
+                  ? `فاتورة #${String(returnOrder.id || '').slice(0, 8)} — حدّد الكمية المرتجعة من كل صنف`
+                  : `Invoice #${String(returnOrder.id || '').slice(0, 8)}`}
+              </p>
+              <div className="space-y-2 mb-3">
+                {(Array.isArray(returnOrder.items) ? returnOrder.items : []).map((it: any) => {
+                  const qty = returnQtys[String(it.id)] || 0;
+                  const orig = Number(it.quantity) || 0;
+                  return (
+                    <div
+                      key={it.id}
+                      className={`border rounded-xl p-2.5 flex items-center justify-between gap-2 ${qty > 0 ? 'border-red-200 bg-red-50/40' : 'border-slate-100'}`}
+                    >
+                      <div className="min-w-0 text-right">
+                        <div className="text-xs font-black text-slate-900 truncate">
+                          {it.productName || it.productId}
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-400">
+                          ج.م {Number(it.price || 0).toFixed(2)} × {orig}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setReturnQtys((prev) => ({
+                              ...prev,
+                              [String(it.id)]: Math.max(0, (prev[String(it.id)] || 0) - 1),
+                            }))
+                          }
+                          className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:border-red-400 hover:text-red-500"
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <span className="w-6 text-center font-black text-sm">{qty}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setReturnQtys((prev) => ({
+                              ...prev,
+                              [String(it.id)]: Math.min(orig, (prev[String(it.id)] || 0) + 1),
+                            }))
+                          }
+                          className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:border-red-400 hover:text-red-500"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <label className="flex items-center justify-between bg-slate-50 rounded-xl px-3 py-2.5 mb-2 cursor-pointer">
+                <span className="text-xs font-black text-slate-600">
+                  {isArabic ? 'إرجاع الأصناف للمخزون' : 'Return items to stock'}
+                </span>
+                <input
+                  type="checkbox"
+                  checked={returnToStock}
+                  onChange={(e) => setReturnToStock(e.target.checked)}
+                  className="w-4 h-4 accent-red-500"
+                />
+              </label>
+              <input
+                type="text"
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+                placeholder={isArabic ? 'السبب (اختياري)' : 'Reason (optional)'}
+                className="w-full bg-slate-50 border rounded-xl py-2.5 px-4 outline-none text-xs font-bold mb-3"
+              />
+              <div className="flex items-center justify-between bg-red-50 rounded-xl px-3 py-2.5 mb-3">
+                <span className="text-xs font-black text-red-600">
+                  {isArabic ? 'إجمالي المرتجع' : 'Return total'}
+                </span>
+                <span className="text-sm font-black text-red-600">
+                  ج.م {returnTotal.toFixed(2)}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={submitReturn}
+                disabled={returnTotal <= 0 || returnSubmitting}
+                className="w-full py-3 rounded-2xl bg-red-500 text-white font-black text-sm hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {returnSubmitting && <Loader2 size={14} className="animate-spin" />}
+                {isArabic ? 'تأكيد المرتجع' : 'Confirm Return'}
+              </button>
             </MotionDiv>
           </MotionDiv>
         )}

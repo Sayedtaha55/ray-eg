@@ -23,7 +23,6 @@ import {
   User,
   Plus,
   ShoppingCart,
-  RotateCcw,
   Scale,
   BookOpen,
   Wallet as WalletIcon,
@@ -33,7 +32,6 @@ import {
   Award,
   Gift,
   Repeat,
-  ListChecks,
   Banknote,
   Calculator,
   Receipt,
@@ -53,7 +51,6 @@ import {
   AlertTriangle,
   ReceiptText,
   LineChart,
-  HandCoins,
   Landmark,
   FileBarChart,
   Percent,
@@ -158,9 +155,10 @@ export const SECTION_COLORS: Record<string, string> = {
   settings: 'text-slate-500',
 };
 
-// Market-launch switch: when true, items/sections marked `published: false`
-// are hidden from every merchant — flip it once when going live.
-export const HIDE_UNPUBLISHED = false;
+// Market-launch switch: items/sections marked `published: false` are hidden
+// from merchants in production builds and stay visible on local/dev machines
+// so the team can keep working on them before release.
+export const HIDE_UNPUBLISHED = process.env.NODE_ENV === 'production';
 
 export const sidebarSections: SidebarSection[] = [
   {
@@ -223,13 +221,6 @@ export const sidebarSections: SidebarSection[] = [
         href: '/dashboard/sales/quotes',
       },
       {
-        id: 'returns',
-        label: 'Returns',
-        labelAr: 'المرتجعات',
-        icon: Undo2,
-        href: '/dashboard/sales/returns',
-      },
-      {
         id: 'abandonedCart',
         published: false,
         label: 'Abandoned Carts',
@@ -269,20 +260,6 @@ export const sidebarSections: SidebarSection[] = [
         icon: CreditCard,
         href: '/dashboard/sales/epayment',
       },
-      {
-        id: 'orderStatus',
-        label: 'Order Status',
-        labelAr: 'حالة الطلب',
-        icon: ListChecks,
-        href: '/dashboard/sales/order-status',
-      },
-      {
-        id: 'payments',
-        label: 'Payments',
-        labelAr: 'المدفوعات',
-        icon: Banknote,
-        href: '/dashboard/sales/payments',
-      },
     ],
   },
   {
@@ -301,33 +278,18 @@ export const sidebarSections: SidebarSection[] = [
         href: '/dashboard/pos',
       },
       {
-        id: 'posInvoices',
-        label: 'POS Invoices',
-        labelAr: 'فواتير الكاشير',
-        icon: Receipt,
-        href: '/dashboard/pos/invoices',
-      },
-      {
-        id: 'posReturns',
-        label: 'POS Returns',
-        labelAr: 'مرتجعات الكاشير',
-        icon: RotateCcw,
-        href: '/dashboard/pos/returns',
-      },
-      {
-        id: 'posWebsiteReturns',
-        published: false,
-        label: 'Website Returns',
-        labelAr: 'مرتجعات الموقع',
-        icon: Globe,
-        href: '/dashboard/pos/website-returns',
-      },
-      {
         id: 'posShifts',
         label: 'Shifts',
         labelAr: 'الورديات',
         icon: Clock,
         href: '/dashboard/pos/shifts',
+      },
+      {
+        id: 'posSettings',
+        label: 'POS Settings',
+        labelAr: 'إعدادات الكاشير',
+        icon: Settings,
+        href: '/dashboard/pos/settings',
       },
       {
         id: 'posReports',
@@ -528,13 +490,6 @@ export const sidebarSections: SidebarSection[] = [
         labelAr: 'الفاتورة الإلكترونية',
         icon: ScanLine,
         href: '/dashboard/finance/eta',
-      },
-      {
-        id: 'payments',
-        label: 'Payments',
-        labelAr: 'المدفوعات والتحصيلات',
-        icon: HandCoins,
-        href: '/dashboard/sales/payments',
       },
     ],
   },
@@ -1018,6 +973,13 @@ export const sidebarSections: SidebarSection[] = [
         labelAr: 'التحويلات',
         icon: MousePointerClick,
         href: '/dashboard/analytics/conversions',
+      },
+      {
+        id: 'returnsReport',
+        label: 'Returns Reports',
+        labelAr: 'تقارير المرتجعات',
+        icon: Undo2,
+        href: '/dashboard/analytics/returns',
       },
       {
         id: 'financeAnalytics',
