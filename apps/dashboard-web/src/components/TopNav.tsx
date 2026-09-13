@@ -5,9 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Menu, Bell, Search, LogOut, User, ChevronDown, PanelLeft, LayoutGrid,
-} from 'lucide-react';
+import { Menu, Bell, Search, LogOut, User, ChevronDown, PanelLeft, LayoutGrid } from 'lucide-react';
 import type { SidebarSection } from '@/config/sidebar';
 import { SECTION_COLORS } from '@/config/sidebar';
 import { useAuth } from '@/lib/auth';
@@ -19,10 +17,11 @@ type TopNavProps = {
   onSwitchNav: () => void;
 };
 
-
 // Small amber tag for local-only / not-yet-released features
 const SoonBadge = ({ className = '' }: { className?: string }) => (
-  <span className={`px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[8px] font-black leading-none shrink-0 ${className}`}>
+  <span
+    className={`px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[8px] font-black leading-none shrink-0 ${className}`}
+  >
     قريباً
   </span>
 );
@@ -36,6 +35,7 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
 
   const [openSection, setOpenSection] = useState<string | null>(null);
   const [hoverSection, setHoverSection] = useState<string | null>(null);
+  const [hoverPos, setHoverPos] = useState<{ top: number; right: number } | null>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [appsOpen, setAppsOpen] = useState(false);
@@ -52,8 +52,15 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
+    // Close the hover dropdown when the page scrolls or the window resizes,
+    // otherwise the fixed panel would drift away from its section button
+    const closeHover = () => setHoverSection(null);
+    window.addEventListener('scroll', closeHover, true);
+    window.addEventListener('resize', closeHover);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', closeHover, true);
+      window.removeEventListener('resize', closeHover);
       if (hoverTimer.current) clearTimeout(hoverTimer.current);
     };
   }, []);
@@ -73,15 +80,18 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
   const currentSectionId = useMemo(() => {
     for (const section of sections) {
       if (section.mainHref && pathname === section.mainHref.split('?')[0]) return section.id;
-      if (section.items.some((item) => {
-        const itemPath = item.href.split('?')[0];
-        if (itemPath !== pathname) return false;
-        if (item.href.startsWith('/dashboard/settings?tab=')) {
-          const tabParam = new URL(item.href, 'http://localhost').searchParams.get('tab');
-          return tabParam != null; // settings tab pages belong to settings section
-        }
-        return true;
-      })) return section.id;
+      if (
+        section.items.some((item) => {
+          const itemPath = item.href.split('?')[0];
+          if (itemPath !== pathname) return false;
+          if (item.href.startsWith('/dashboard/settings?tab=')) {
+            const tabParam = new URL(item.href, 'http://localhost').searchParams.get('tab');
+            return tabParam != null; // settings tab pages belong to settings section
+          }
+          return true;
+        })
+      )
+        return section.id;
     }
     return null;
   }, [pathname, sections]);
@@ -90,9 +100,13 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
   const activeSection = sections.find((s) => s.id === activeSectionId) || null;
   const previewSection = sections.find((s) => s.id === hoverSection) || null;
 
-  const handleSectionEnter = (sectionId: string) => {
+  const handleSectionEnter = (sectionId: string, e?: React.MouseEvent<HTMLElement>) => {
     if (hoverTimer.current) clearTimeout(hoverTimer.current);
     setHoverSection(sectionId);
+    if (e) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setHoverPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+    }
   };
 
   const handleSectionLeave = () => {
@@ -134,14 +148,23 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
       {/* ===== Dark main header ===== */}
       <header className="h-16 bg-[#1A1A1A] flex items-center gap-2 px-3 md:px-5">
         {/* Mobile menu */}
-        <button onClick={onMenuClick} className="md:hidden p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
+        <button
+          onClick={onMenuClick}
+          className="md:hidden p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+        >
           <Menu size={20} />
         </button>
 
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-2 shrink-0 ml-1 md:ml-4">
           <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center overflow-hidden">
-            <Image src="/brand/logo-business.png" alt="نمّي أعمالك" width={28} height={28} className="w-6 h-6 object-contain" />
+            <Image
+              src="/brand/logo-business.png"
+              alt="نمّي أعمالك"
+              width={28}
+              height={28}
+              className="w-6 h-6 object-contain"
+            />
           </div>
           <span className="hidden lg:block font-black text-sm text-white">نمّي أعمالك</span>
         </Link>
@@ -156,9 +179,11 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
               <button
                 key={section.id}
                 onClick={() => handleSectionClick(section)}
-                onMouseEnter={() => handleSectionEnter(section.id)}
+                onMouseEnter={(e) => handleSectionEnter(section.id, e)}
                 className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all ${
-                  active || hovered ? 'text-[#00E5FF] bg-white/10' : 'text-white/80 hover:text-white hover:bg-white/5'
+                  active || hovered
+                    ? 'text-[#00E5FF] bg-white/10'
+                    : 'text-white/80 hover:text-white hover:bg-white/5'
                 } ${section.published === false ? 'opacity-60' : ''}`}
               >
                 {SectionIcon && <SectionIcon size={16} className="shrink-0" />}
@@ -181,7 +206,7 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
           <div className="relative hidden md:block" ref={appsRef}>
             <button
               onClick={() => setAppsOpen(!appsOpen)}
-              onMouseEnter={() => handleSectionEnter('__none__')}
+              onMouseEnter={(e) => handleSectionEnter('__none__', e)}
               className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
             >
               <LayoutGrid size={18} />
@@ -208,10 +233,15 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
                           className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 transition-colors text-right"
                         >
                           {SectionIcon && (
-                            <SectionIcon size={16} className={`shrink-0 ${SECTION_COLORS[section.id] || 'text-slate-400'}`} />
+                            <SectionIcon
+                              size={16}
+                              className={`shrink-0 ${SECTION_COLORS[section.id] || 'text-slate-400'}`}
+                            />
                           )}
                           <span className="flex-1">{section.titleAr}</span>
-                          {section.items.length > 1 && <ChevronDown size={12} className="text-slate-300 -rotate-90" />}
+                          {section.items.length > 1 && (
+                            <ChevronDown size={12} className="text-slate-300 -rotate-90" />
+                          )}
                         </button>
                       );
                     })}
@@ -232,7 +262,10 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
           </div>
 
           {/* Notifications */}
-          <Link href="/dashboard/notifications" className="relative p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
+          <Link
+            href="/dashboard/notifications"
+            className="relative p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+          >
             <Bell size={18} />
             {unreadCount > 0 && (
               <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">
@@ -260,7 +293,10 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
                 <span className="text-white font-black text-sm">{userInitial}</span>
               </div>
               <span className="hidden xl:block text-xs font-black text-white/90">{userName}</span>
-              <ChevronDown size={14} className={`hidden xl:block text-white/50 transition-transform duration-300 ${dropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                size={14}
+                className={`hidden xl:block text-white/50 transition-transform duration-300 ${dropdownOpen ? 'rotate-180' : ''}`}
+              />
             </button>
 
             <AnimatePresence>
@@ -274,10 +310,15 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
                 >
                   <div className="px-4 py-2 border-b border-slate-50">
                     <div className="text-xs font-black text-slate-900">{userName}</div>
-                    <div className="text-[10px] font-bold text-slate-400 mt-0.5">{user?.email || ''}</div>
+                    <div className="text-[10px] font-bold text-slate-400 mt-0.5">
+                      {user?.email || ''}
+                    </div>
                   </div>
                   <button
-                    onClick={() => { setDropdownOpen(false); router.push('/dashboard/settings'); }}
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      router.push('/dashboard/settings');
+                    }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
                   >
                     <User size={16} className="text-slate-400" />
@@ -297,26 +338,32 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
         </div>
       </header>
 
-      {/* ===== Hover preview — all branch pages of the hovered section ===== */}
+      {/* ===== Hover dropdown — vertical page list anchored under the hovered section ===== */}
       <AnimatePresence>
-        {previewSection && previewSection.items.length > 0 && (
+        {previewSection && previewSection.items.length > 0 && hoverPos && (
           <motion.div
             key={`preview-${previewSection.id}`}
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-            className="absolute top-16 right-0 left-0 hidden md:block"
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+            className="fixed z-50 hidden md:block w-64"
+            style={{ top: hoverPos.top, right: hoverPos.right }}
           >
-            <div className="mx-3 md:mx-5 mt-1 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-50">
                 {previewSection.icon && (
-                  <previewSection.icon size={16} className={SECTION_COLORS[previewSection.id] || 'text-slate-400'} />
+                  <previewSection.icon
+                    size={16}
+                    className={SECTION_COLORS[previewSection.id] || 'text-slate-400'}
+                  />
                 )}
                 <span className="text-xs font-black text-slate-900">{previewSection.titleAr}</span>
-                <span className="text-[10px] font-bold text-slate-300 mr-auto">{previewSection.items.length} صفحات</span>
+                <span className="text-[10px] font-bold text-slate-300 mr-auto">
+                  {previewSection.items.length} صفحات
+                </span>
               </div>
-              <div className="p-2 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0.5 max-h-[60vh] overflow-y-auto">
+              <div className="p-1.5 flex flex-col max-h-[60vh] overflow-y-auto">
                 {previewSection.items.map((item) => {
                   const ItemIcon = item.icon;
                   const active = isActive(item.href);
@@ -324,7 +371,10 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
                     <Link
                       key={item.id}
                       href={item.href}
-                      onClick={() => { setOpenSection(previewSection.id); setHoverSection(null); }}
+                      onClick={() => {
+                        setOpenSection(previewSection.id);
+                        setHoverSection(null);
+                      }}
                       className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                         active
                           ? 'bg-slate-900/5 text-slate-900'
@@ -332,13 +382,20 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
                       } ${item.published === false ? 'opacity-60' : ''}`}
                     >
                       {ItemIcon && (
-                        <span className={`w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 ${active ? 'ring-1 ring-[#00E5FF]/40' : ''}`}>
-                          <ItemIcon size={14} className={SECTION_COLORS[previewSection.id] || 'text-slate-400'} />
+                        <span
+                          className={`w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 ${active ? 'ring-1 ring-[#00E5FF]/40' : ''}`}
+                        >
+                          <ItemIcon
+                            size={14}
+                            className={SECTION_COLORS[previewSection.id] || 'text-slate-400'}
+                          />
                         </span>
                       )}
                       <span className="flex-1 text-right">{item.labelAr}</span>
                       {item.published === false && <SoonBadge />}
-                      {active && <span className="w-1.5 h-1.5 rounded-full bg-[#00E5FF] shrink-0" />}
+                      {active && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#00E5FF] shrink-0" />
+                      )}
                     </Link>
                   );
                 })}
@@ -363,9 +420,14 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
               {/* Section anchor on the right */}
               <div className="flex items-center gap-2 pl-3 ml-1 border-l border-slate-100 shrink-0">
                 {activeSection.icon && (
-                  <activeSection.icon size={16} className={SECTION_COLORS[activeSection.id] || 'text-slate-400'} />
+                  <activeSection.icon
+                    size={16}
+                    className={SECTION_COLORS[activeSection.id] || 'text-slate-400'}
+                  />
                 )}
-                <span className="text-xs font-black text-slate-900 whitespace-nowrap">{activeSection.titleAr}</span>
+                <span className="text-xs font-black text-slate-900 whitespace-nowrap">
+                  {activeSection.titleAr}
+                </span>
               </div>
               {activeSection.items.map((item) => {
                 const ItemIcon = item.icon;
@@ -382,7 +444,10 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
                     } ${item.published === false ? 'opacity-60' : ''}`}
                   >
                     {ItemIcon && (
-                      <ItemIcon size={14} className={`shrink-0 ${SECTION_COLORS[activeSection.id] || 'text-slate-400'}`} />
+                      <ItemIcon
+                        size={14}
+                        className={`shrink-0 ${SECTION_COLORS[activeSection.id] || 'text-slate-400'}`}
+                      />
                     )}
                     <span>{item.labelAr}</span>
                     {item.published === false && <SoonBadge />}
