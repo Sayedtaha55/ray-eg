@@ -23,6 +23,7 @@ type Product struct {
 	PackOptions   []any          `json:"packOptions,omitempty"`
 	Model3DURL    *string        `json:"model3dUrl,omitempty"`
 	SpinImages    []any          `json:"spinImages,omitempty"`
+	ExtraData     map[string]any `json:"extraData,omitempty"`
 	FurnitureMeta *FurnitureMeta `json:"furnitureMeta,omitempty"`
 	CreatedAt     time.Time      `json:"createdAt"`
 	UpdatedAt     time.Time      `json:"updatedAt"`
@@ -57,6 +58,7 @@ type CreateProductRequest struct {
 	Model3DURL    *string        `json:"model3dUrl,omitempty"`
 	SpinImages    []any          `json:"spinImages,omitempty"`
 	IsActive      *bool          `json:"isActive,omitempty"`
+	ExtraData     map[string]any `json:"extraData,omitempty"`
 	FurnitureMeta *FurnitureMeta `json:"furnitureMeta,omitempty"`
 }
 
@@ -79,6 +81,7 @@ type UpdateProductRequest struct {
 	Model3DURL    *string        `json:"model3dUrl,omitempty"`
 	SpinImages    []any          `json:"spinImages,omitempty"`
 	IsActive      *bool          `json:"isActive,omitempty"`
+	ExtraData     map[string]any `json:"extraData,omitempty"`
 	FurnitureMeta *FurnitureMeta `json:"furnitureMeta,omitempty"`
 }
 

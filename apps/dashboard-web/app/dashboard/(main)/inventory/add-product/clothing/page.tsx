@@ -15,6 +15,11 @@ import {
 } from 'lucide-react';
 import { useShop } from '@/hooks/useShop';
 import { useInstalledApps } from '@/hooks/useInstalledApps';
+import ExtendedProductSections, {
+  type ProductExtraData,
+  defaultExtraData,
+} from '@/components/products/ExtendedProductSections';
+import { RichDescriptionEditor } from '@/components/products/RichDescriptionEditor';
 import { apiRequest } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import ImageMapEditorModal from '@/components/apps/image-editor/ImageMapEditor';
@@ -111,6 +116,12 @@ export default function ClothingAddProductPage() {
   // Clothing specific fields
   const [material, setMaterial] = useState('');
   const [brand, setBrand] = useState('');
+  const [costPrice, setCostPrice] = useState('');
+  const [googleCategory, setGoogleCategory] = useState('');
+  const [localCategory, setLocalCategory] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [extraData, setExtraData] = useState<ProductExtraData>(defaultExtraData());
+  const [dragOver, setDragOver] = useState(false);
   const [gender, setGender] = useState('');
 
   // Colors
@@ -159,6 +170,12 @@ export default function ClothingAddProductPage() {
       setIsActive(p.isActive !== false);
       setMaterial(String(p.material || ''));
       setBrand(String(p.brand || ''));
+      const ex = (p.extraData || {}) as ProductExtraData;
+      setExtraData({ ...defaultExtraData(), ...ex });
+      setCostPrice(ex.costPrice != null ? String(ex.costPrice) : '');
+      setGoogleCategory(String(ex.googleCategory || ''));
+      setLocalCategory(String(ex.localCategory || ''));
+      setYoutubeUrl(String(ex.youtubeUrl || ''));
       setGender(String(p.gender || ''));
       if (Array.isArray(p.colors) && p.colors.length > 0) {
         setSelectedColors(
@@ -548,6 +565,13 @@ export default function ClothingAddProductPage() {
         ...(packOptions ? { packOptions } : {}),
         ...(colors.length > 0 ? { colors } : {}),
         ...(sizes.length > 0 ? { sizes } : {}),
+        extraData: {
+          ...extraData,
+          costPrice: costPrice ? Number(costPrice) : null,
+          googleCategory: googleCategory || undefined,
+          localCategory: localCategory || undefined,
+          youtubeUrl: youtubeUrl || undefined,
+        },
         ...(addonsPayload ? { addons: addonsPayload } : {}),
       };
 
@@ -636,16 +660,49 @@ export default function ClothingAddProductPage() {
               placeholder="0.00"
             />
           </div>
+          <div className="text-right">
+            <label className="text-xs font-bold text-slate-500 mb-1.5 block">
+              سعر التكلفة (ج.م)
+            </label>
+            <input
+              type="number"
+              value={costPrice}
+              onChange={(e) => setCostPrice(e.target.value)}
+              min="0"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
+              placeholder="أدخل سعر التكلفة"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="text-right">
+            <label className="text-xs font-bold text-slate-500 mb-1.5 block">تصنيفات جوجل</label>
+            <input
+              type="text"
+              value={googleCategory}
+              onChange={(e) => setGoogleCategory(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
+              placeholder="اختار تصنيف جوجل"
+            />
+          </div>
+          <div className="text-right">
+            <label className="text-xs font-bold text-slate-500 mb-1.5 block">تصنيف محلي</label>
+            <input
+              type="text"
+              value={localCategory}
+              onChange={(e) => setLocalCategory(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
+              placeholder="تصنيف محلي"
+            />
+          </div>
         </div>
 
         <div className="text-right">
-          <label className="text-xs font-bold text-slate-500 mb-1.5 block">الوصف</label>
-          <textarea
+          <label className="text-xs font-bold text-slate-500 mb-1.5 block">وصف المنتج</label>
+          <RichDescriptionEditor
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400 resize-none"
-            placeholder="وصف المنتج..."
+            onChange={setDescription}
+            placeholder="اكتب وصف المنتج هنا..."
           />
         </div>
 
@@ -695,20 +752,39 @@ export default function ClothingAddProductPage() {
         {/* Main Image */}
         <div className="text-right">
           <label className="text-xs font-bold text-slate-500 mb-1.5 block">صورة المنتج</label>
-          <div className="flex items-center gap-4">
-            {imageUrl ? (
-              <div className="w-24 h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
-                <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
-              </div>
-            ) : (
-              <div className="w-24 h-24 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
-                <ImageIcon size={32} className="text-slate-300" />
-              </div>
-            )}
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file && file.type.startsWith('image/'))
+                  handleImageUpload({ target: { files: [file] } } as any);
+              }}
+              className={`w-28 h-28 rounded-xl border-2 border-dashed flex items-center justify-center transition-all ${dragOver ? 'border-teal-400 bg-teal-50' : 'border-slate-200 bg-slate-50'}`}
+            >
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt="Preview"
+                  className="w-full h-full object-cover rounded-xl"
+                />
+              ) : (
+                <div className="text-center text-slate-300">
+                  <ImageIcon size={22} className="mx-auto" />
+                  <span className="text-[9px] font-bold block mt-1">اسحب وأفلت</span>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col items-start gap-2">
               <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-all cursor-pointer">
                 <Upload size={16} />
-                <span>رفع صورة</span>
+                <span>اختر من المعرض</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -716,6 +792,19 @@ export default function ClothingAddProductPage() {
                   className="hidden"
                 />
               </label>
+              <div className="w-full sm:w-72 text-right">
+                <label className="text-xs font-bold text-slate-500 mb-1.5 block">
+                  أو أضف رابط يوتيوب
+                </label>
+                <input
+                  type="url"
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
+                  dir="ltr"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
+                />
+              </div>
               {isInstalled('image-editor') && (
                 <button
                   type="button"
@@ -1120,6 +1209,9 @@ export default function ClothingAddProductPage() {
           </div>
         )}
       </div>
+
+      {/* Extended product sections (advanced, discounts, channels, purchase options, tags, shipping, inventory, SEO, custom fields, notifications) */}
+      <ExtendedProductSections value={extraData} onChange={setExtraData} />
 
       {/* Save Button */}
       <div className="flex justify-end gap-3">

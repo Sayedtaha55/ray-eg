@@ -147,6 +147,7 @@ func (s *Service) Create(ctx context.Context, req CreateProductRequest, shopID, 
 		Sizes:         req.Sizes,
 		Addons:        req.Addons,
 		MenuVariants:  req.MenuVariants,
+		ExtraData:     req.ExtraData,
 		PackOptions:   req.PackOptions,
 		Model3DURL:    req.Model3DURL,
 		SpinImages:    req.SpinImages,
@@ -197,6 +198,9 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateProductReques
 	}
 	if req.Unit != nil {
 		fields["unit"] = nullIfEmpty(*req.Unit)
+	}
+	if req.ExtraData != nil {
+		fields["extra_data"] = req.ExtraData
 	}
 	if req.ImageURL != nil {
 		if err := assertImageOnly(*req.ImageURL); err != nil {

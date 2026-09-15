@@ -1,6 +1,7 @@
 package products
 
 import (
+	"encoding/json"
 	"context"
 	"database/sql"
 	"fmt"
@@ -250,11 +251,20 @@ func (r *Repository) Update(ctx context.Context, id string, fields map[string]an
 	i++
 	args = append(args, id)
 
-	query := "UPDATE products SET " + strings.Join(set, ", ") + fmt.Sprintf(" WHERE id = $%d RETURNING ", i) + productColumns
+	// "AS p" is required: productColumns returns p-prefixed columns. RETURNING
+	// can't reference the fm join, so furniture columns come back NULL and are
+	// filled from product_furniture_meta right after.
+	query := "UPDATE products AS p SET " + strings.Join(set, ", ") + fmt.Sprintf(" WHERE p.id = $%d RETURNING ", i) + strings.Replace(productColumns, "fm.id AS fm_id, fm.unit AS fm_unit, fm.length_cm AS fm_length, fm.width_cm AS fm_width, fm.height_cm AS fm_height", "NULL::text AS fm_id, NULL::text AS fm_unit, NULL::float8 AS fm_length, NULL::float8 AS fm_width, NULL::float8 AS fm_height", 1)
 	row := r.pool.QueryRow(ctx, query, args...)
 	updated, err := scanProduct(row)
 	if err != nil {
 		return nil, err
+	}
+	// re-read with the full join so furniture meta is accurate
+	if updated != nil {
+		if fresh, ferr := r.FindByID(ctx, id); ferr == nil && fresh != nil {
+			updated = fresh
+		}
 	}
 	if furnitureMeta != nil {
 		fm, err := r.upsertFurnitureMeta(ctx, id, furnitureMeta)
@@ -312,7 +322,7 @@ func (r *Repository) upsertFurnitureMeta(ctx context.Context, productID string, 
 const productColumns = `
 	p.id, p.name, p.description, p.price, p.stock, p.category, p.image_url, p.is_active,
 	p.shop_id, p.track_stock, p.unit, p.images, p.colors, p.sizes, p.addons,
-	p.menu_variants, p.pack_options, p.model_3d_url, p.spin_images, p.created_at, p.updated_at,
+	p.menu_variants, p.pack_options, p.model_3d_url, p.spin_images, p.extra_data, p.created_at, p.updated_at,
 	fm.id AS fm_id, fm.unit AS fm_unit, fm.length_cm AS fm_length, fm.width_cm AS fm_width, fm.height_cm AS fm_height
 `
 
@@ -321,13 +331,14 @@ const selectProduct = `SELECT ` + productColumns + ` FROM products p LEFT JOIN p
 func scanProduct(row pgx.Row) (*Product, error) {
 	p := &Product{}
 	var desc, imageURL, unit, model3d sql.NullString
+	var extraData []byte
 	var fmID, fmUnit sql.NullString
 	var fmLength, fmWidth, fmHeight sql.NullFloat64
 
 	err := row.Scan(
 		&p.ID, &p.Name, &desc, &p.Price, &p.Stock, &p.Category, &imageURL, &p.IsActive,
 		&p.ShopID, &p.TrackStock, &unit, &p.Images, &p.Colors, &p.Sizes, &p.Addons,
-		&p.MenuVariants, &p.PackOptions, &model3d, &p.SpinImages, &p.CreatedAt, &p.UpdatedAt,
+		&p.MenuVariants, &p.PackOptions, &model3d, &p.SpinImages, &extraData, &p.CreatedAt, &p.UpdatedAt,
 		&fmID, &fmUnit, &fmLength, &fmWidth, &fmHeight,
 	)
 	if err != nil {
@@ -335,6 +346,10 @@ func scanProduct(row pgx.Row) (*Product, error) {
 			return nil, nil
 		}
 		return nil, errors.Internal("scan_product_failed", err)
+	}
+
+	if len(extraData) > 0 {
+		_ = json.Unmarshal(extraData, &p.ExtraData)
 	}
 
 	p.Description = nullStringPtr(desc)
