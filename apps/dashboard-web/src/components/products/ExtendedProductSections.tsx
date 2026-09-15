@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { type OrderFormField } from './OrderFormFieldsBuilder';
 import type { ChangeEvent, JSX, KeyboardEvent } from 'react';
 import { ChevronDown, GripVertical, Trash2, X } from 'lucide-react';
 
@@ -11,8 +12,11 @@ import { ChevronDown, GripVertical, Trash2, X } from 'lucide-react';
 export type CustomField = { id: string; key: string; value: string };
 
 export type ProductExtraData = {
+  // نموذج الطلب (للخدمات)
+  orderFormFields?: OrderFormField[];
   // أساسيات موسّعة (تُحفظ في extra_data)
   costPrice?: number | null;
+  brand?: string;
   googleCategory?: string;
   localCategory?: string;
   youtubeUrl?: string;
