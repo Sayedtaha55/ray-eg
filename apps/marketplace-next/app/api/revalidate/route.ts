@@ -26,6 +26,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'slug_required' }, { status: 400 });
   }
 
-  revalidateTag(`site:${slug}`);
+  revalidateTag(`site:${slug}`, 'max');
   return NextResponse.json({ success: true, revalidated: `site:${slug}` });
 }
