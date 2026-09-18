@@ -22,7 +22,11 @@ import { sampleWebsites } from '../data/initialWebsites';
 import { mockTenants, mockAssets } from '../data/mockTenants';
 import { defaultDesignTokens, themePresets, getMergedThemeTokens } from '../data/defaultTheme';
 import { sectionTemplates } from '../data/sectionLibrary';
-import { allActivityWebsites, activityTemplatesMeta, ActivityTemplateMeta } from '../data/allActivityTemplates';
+import {
+  allActivityWebsites,
+  activityTemplatesMeta,
+  ActivityTemplateMeta,
+} from '../data/allActivityTemplates';
 import { apiRequest } from '@/lib/auth';
 import { AssetDto } from '../types/dto';
 
@@ -38,17 +42,29 @@ interface BuilderContextType {
   activePageId: string;
   activePage: Page;
   switchPage: (pageId: string) => void;
-  addPage: (nameOrOptions: string | AddPageOptions, slug?: string, options?: Partial<AddPageOptions>) => void;
+  addPage: (
+    nameOrOptions: string | AddPageOptions,
+    slug?: string,
+    options?: Partial<AddPageOptions>
+  ) => void;
   deletePage: (pageId: string) => void;
   updatePageMetadata: (pageId: string, meta: Partial<PageMetadata>) => void;
-  updatePagePlacement: (pageId: string, options: {
-    placement: PagePlacementMode;
-    headerTitle?: string;
-    parentNavId?: string;
-    dropdownDescription?: string;
-    dropdownBadge?: string;
-  }) => void;
-  getHeaderDropdownNavItems: () => { id: string; name: string; title: string; itemsCount: number }[];
+  updatePagePlacement: (
+    pageId: string,
+    options: {
+      placement: PagePlacementMode;
+      headerTitle?: string;
+      parentNavId?: string;
+      dropdownDescription?: string;
+      dropdownBadge?: string;
+    }
+  ) => void;
+  getHeaderDropdownNavItems: () => {
+    id: string;
+    name: string;
+    title: string;
+    itemsCount: number;
+  }[];
 
   // Component Tree & Selection
   selectedNodeId: string | null;
@@ -60,13 +76,21 @@ interface BuilderContextType {
 
   // Component Mutations (Undoable)
   updateNodeProps: (id: string, props: Record<string, any>) => void;
-  updateNodeStyle: (id: string, stylePatch: Partial<StyleProperties>, breakpoint?: ViewportBreakpoint) => void;
+  updateNodeStyle: (
+    id: string,
+    stylePatch: Partial<StyleProperties>,
+    breakpoint?: ViewportBreakpoint
+  ) => void;
   insertNode: (node: ComponentNode, parentId: string, index?: number) => void;
   insertSectionTemplate: (templateId: string, targetIndex?: number) => void;
   deleteNode: (id: string) => void;
   duplicateNode: (id: string) => void;
   moveNode: (id: string, direction: 'up' | 'down') => void;
-  moveNodePosition: (draggedId: string, targetId: string, position: 'before' | 'after' | 'inside') => boolean;
+  moveNodePosition: (
+    draggedId: string,
+    targetId: string,
+    position: 'before' | 'after' | 'inside'
+  ) => boolean;
   reorderChildren: (parentId: string, newChildrenIds: string[]) => void;
   toggleNodeVisibility: (id: string) => void;
   toggleNodeLock: (id: string) => void;
@@ -94,7 +118,9 @@ interface BuilderContextType {
   isCodeWorkspaceOpen: boolean;
   setIsCodeWorkspaceOpen: (open: boolean) => void;
   codeActiveFile: 'component.tsx' | 'styles.css' | 'interactions.ts' | 'schema.json';
-  setCodeActiveFile: (file: 'component.tsx' | 'styles.css' | 'interactions.ts' | 'schema.json') => void;
+  setCodeActiveFile: (
+    file: 'component.tsx' | 'styles.css' | 'interactions.ts' | 'schema.json'
+  ) => void;
   updateScopedComponentCode: (id: string, file: string, code: string) => void;
 
   isLivePreviewOpen: boolean;
@@ -171,6 +197,70 @@ interface BuilderContextType {
 
 const BuilderContext = createContext<BuilderContextType | null>(null);
 
+/**
+ * Section-library entries are authored as desktop-first compositions.  Store a
+ * sensible mobile override at insertion time so every ready-made section is
+ * usable on a real phone and remains editable from the responsive inspector.
+ * Explicit mobile values authored by a template always take precedence.
+ */
+const createTemplateMobileStyles = (node: ComponentNode): Partial<StyleProperties> => {
+  const desktop = node.styles.desktop || {};
+  const mobile: Partial<StyleProperties> = {};
+  const pixelValue = (value?: string) => {
+    const parsed = Number.parseFloat(value || '');
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+  const capHorizontalPadding = (value?: string) => {
+    const parsed = pixelValue(value);
+    return parsed && parsed > 16 ? '16px' : undefined;
+  };
+
+  if (desktop.display === 'grid' || desktop.gridColumns) {
+    mobile.gridColumns = 'minmax(0, 1fr)';
+    mobile.gap =
+      pixelValue(desktop.gap) && pixelValue(desktop.gap)! > 16 ? '16px' : desktop.gap || '12px';
+  }
+
+  // Keep navigation headers compact; other desktop rows stack safely on phones.
+  if (desktop.display === 'flex' && desktop.flexDirection !== 'column' && node.type !== 'header') {
+    mobile.flexDirection = 'column';
+    mobile.alignItems = 'stretch';
+    mobile.flexWrap = 'nowrap';
+    mobile.gap = mobile.gap || '12px';
+  }
+
+  if (
+    node.category === 'section' ||
+    node.type === 'container' ||
+    node.type === 'flex' ||
+    node.type === 'grid'
+  ) {
+    mobile.width = '100%';
+    mobile.minWidth = '0';
+    mobile.maxWidth = '100%';
+    mobile.paddingLeft = capHorizontalPadding(desktop.paddingLeft);
+    mobile.paddingRight = capHorizontalPadding(desktop.paddingRight);
+  }
+
+  if (node.type === 'heading') {
+    const size = pixelValue(desktop.fontSize);
+    if (size && size > 24) mobile.fontSize = `${Math.max(22, Math.round(size * 0.72))}px`;
+    mobile.lineHeight = desktop.lineHeight || '1.3';
+  }
+
+  if (node.type === 'image') {
+    mobile.width = '100%';
+    mobile.maxWidth = '100%';
+    mobile.height = 'auto';
+  }
+
+  if (node.type === 'card' || node.type === 'button') {
+    mobile.maxWidth = '100%';
+  }
+
+  return { ...mobile, ...(node.styles.mobile || {}) };
+};
+
 // Synchronously resolve initial website to eliminate any flash/flicker of default themes
 const BLANK_WEBSITE: Website = {
   id: 'site_blank_initial',
@@ -235,26 +325,38 @@ const getInitialBuilderState = (): {
   if (typeof window !== 'undefined') {
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const chosenTemplate = urlParams.get('template') || localStorage.getItem('ray_builder_selected_template');
+      const chosenTemplate =
+        urlParams.get('template') || localStorage.getItem('ray_builder_selected_template');
       // Saved preset key from themes gallery — applies colour/typography on top of template layout
-      const savedPreset = urlParams.get('preset') || localStorage.getItem('ray_builder_selected_preset');
+      const savedPreset =
+        urlParams.get('preset') || localStorage.getItem('ray_builder_selected_preset');
 
       const applyPreset = (site: Website): Website => {
         if (!savedPreset) return site;
         try {
           const mergedTokens = getMergedThemeTokens(savedPreset);
           return { ...site, theme: mergedTokens as any };
-        } catch { return site; }
+        } catch {
+          return site;
+        }
       };
 
       if (chosenTemplate) {
         if (allActivityWebsites[chosenTemplate]) {
           const site = applyPreset(allActivityWebsites[chosenTemplate]);
-          return { website: site, templateId: chosenTemplate, pageId: site.pages[0]?.id || 'page_home' };
+          return {
+            website: site,
+            templateId: chosenTemplate,
+            pageId: site.pages[0]?.id || 'page_home',
+          };
         }
         if (sampleWebsites[chosenTemplate]) {
           const site = applyPreset(sampleWebsites[chosenTemplate]);
-          return { website: site, templateId: chosenTemplate, pageId: site.pages[0]?.id || 'page_home' };
+          return {
+            website: site,
+            templateId: chosenTemplate,
+            pageId: site.pages[0]?.id || 'page_home',
+          };
         }
       }
 
@@ -280,8 +382,10 @@ const getInitialBuilderState = (): {
   };
 };
 
-
-export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () => void }> = ({ children, onExit }) => {
+export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () => void }> = ({
+  children,
+  onExit,
+}) => {
   // Mobile / Tablet Responsive Drawer States
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState<boolean>(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
@@ -305,7 +409,6 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>('comp_hero');
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
-
   // Cart & Commerce State
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
@@ -315,45 +418,51 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   // Dynamic Catalog Filter State
   const [selectedProductCategory, setSelectedProductCategory] = useState<string>('all');
   const [productSearchQuery, setProductSearchQuery] = useState<string>('');
-  const [productSortBy, setProductSortBy] = useState<'featured' | 'price_low' | 'price_high' | 'newest'>('featured');
+  const [productSortBy, setProductSortBy] = useState<
+    'featured' | 'price_low' | 'price_high' | 'newest'
+  >('featured');
 
   // Cart Helpers
-  const addToCart = useCallback((item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
-    setCartItems((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
-      if (existing) {
-        return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i
-        );
-      }
-      return [
-        ...prev,
-        {
-          ...item,
-          quantity: item.quantity || 1,
-          tenantId: item.tenantId || currentTenant.id,
-          tenantName: item.tenantName || currentTenant.name,
-        },
-      ];
-    });
-    setIsCartOpen(true);
-  }, [currentTenant]);
+  const addToCart = useCallback(
+    (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
+      setCartItems((prev) => {
+        const existing = prev.find((i) => i.id === item.id);
+        if (existing) {
+          return prev.map((i) =>
+            i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i
+          );
+        }
+        return [
+          ...prev,
+          {
+            ...item,
+            quantity: item.quantity || 1,
+            tenantId: item.tenantId || currentTenant.id,
+            tenantName: item.tenantName || currentTenant.name,
+          },
+        ];
+      });
+      setIsCartOpen(true);
+    },
+    [currentTenant]
+  );
 
   const removeFromCart = useCallback((itemId: string) => {
     setCartItems((prev) => prev.filter((i) => i.id !== itemId));
   }, []);
 
   const updateCartQuantity = useCallback((itemId: string, delta: number) => {
-    setCartItems((prev) =>
-      prev
-        .map((i) => {
-          if (i.id === itemId) {
-            const newQty = i.quantity + delta;
-            return newQty > 0 ? { ...i, quantity: newQty } : null;
-          }
-          return i;
-        })
-        .filter(Boolean) as CartItem[]
+    setCartItems(
+      (prev) =>
+        prev
+          .map((i) => {
+            if (i.id === itemId) {
+              const newQty = i.quantity + delta;
+              return newQty > 0 ? { ...i, quantity: newQty } : null;
+            }
+            return i;
+          })
+          .filter(Boolean) as CartItem[]
     );
   }, []);
 
@@ -372,13 +481,19 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   // Viewport & Layout
   const [viewport, setViewport] = useState<ViewportBreakpoint>('desktop');
   const [zoom, setZoom] = useState<number>(100);
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'pages' | 'layers' | 'sections' | 'design' | 'assets'>('layers');
-  const [activeInspectorTab, setActiveInspectorTab] = useState<'style' | 'props' | 'responsive' | 'animation' | 'code'>('style');
+  const [activeSidebarTab, setActiveSidebarTab] = useState<
+    'pages' | 'layers' | 'sections' | 'design' | 'assets'
+  >('layers');
+  const [activeInspectorTab, setActiveInspectorTab] = useState<
+    'style' | 'props' | 'responsive' | 'animation' | 'code'
+  >('style');
   const [isRtl, setIsRtl] = useState<boolean>(true);
 
   // Modals & Panels
   const [isCodeWorkspaceOpen, setIsCodeWorkspaceOpen] = useState<boolean>(false);
-  const [codeActiveFile, setCodeActiveFile] = useState<'component.tsx' | 'styles.css' | 'interactions.ts' | 'schema.json'>('component.tsx');
+  const [codeActiveFile, setCodeActiveFile] = useState<
+    'component.tsx' | 'styles.css' | 'interactions.ts' | 'schema.json'
+  >('component.tsx');
   const [isLivePreviewOpen, setIsLivePreviewOpen] = useState<boolean>(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState<boolean>(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState<boolean>(false);
@@ -391,7 +506,9 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   const [pastStates, setPastStates] = useState<Website[]>([]);
   const [futureStates, setFutureStates] = useState<Website[]>([]);
   const [historyLog, setHistoryLog] = useState<string[]>(['بدء جلسة العمل']);
-  const [autosaveStatus, setAutosaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
+  const [autosaveStatus, setAutosaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>(
+    'saved'
+  );
 
   // Auto-detect mobile screen width on mount to render mobile-optimized styles immediately
   useEffect(() => {
@@ -425,9 +542,12 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
         // Check if a specific template or blank canvas was requested from Themes Gallery
         if (typeof window !== 'undefined') {
           const urlParams = new URLSearchParams(window.location.search);
-          const chosenTemplate = urlParams.get('template') || localStorage.getItem('ray_builder_selected_template');
+          const chosenTemplate =
+            urlParams.get('template') || localStorage.getItem('ray_builder_selected_template');
           if (chosenTemplate) {
-            try { localStorage.removeItem('ray_builder_selected_template'); } catch {}
+            try {
+              localStorage.removeItem('ray_builder_selected_template');
+            } catch {}
             if (chosenTemplate === 'blank') {
               setWebsite({
                 id: `site_blank_${shopId || 'custom'}`,
@@ -536,7 +656,9 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
         }
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Auto-detect screen size and switch viewport on mobile/tablet devices
@@ -562,10 +684,12 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
     if (!slug) return '';
     // Dev: the marketplace app runs on :5174 — NOT on :3000 (which is this
     // dashboard itself, so /site/:slug would 404).
-    const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    const isDev =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const base = isDev
-      ? (process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'http://localhost:5174')
-      : (process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'https://mnmknk.com');
+      ? process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'http://localhost:5174'
+      : process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'https://mnmknk.com';
     // Published builder website renderer (uses the published builder config)
     return `${base}/site/${slug}`;
   }, [builderShopSlug, website.subdomain]);
@@ -605,13 +729,16 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   }, [website.components, selectedNodeId]);
 
   // Push state to history stack before mutation
-  const recordHistory = useCallback((actionDesc: string, newWebsite: Website) => {
-    setPastStates((prev) => [...prev.slice(-30), website]);
-    setFutureStates([]);
-    setHistoryLog((prev) => [actionDesc, ...prev.slice(0, 40)]);
-    setWebsite(newWebsite);
-    setAutosaveStatus('unsaved');
-  }, [website]);
+  const recordHistory = useCallback(
+    (actionDesc: string, newWebsite: Website) => {
+      setPastStates((prev) => [...prev.slice(-30), website]);
+      setFutureStates([]);
+      setHistoryLog((prev) => [actionDesc, ...prev.slice(0, 40)]);
+      setWebsite(newWebsite);
+      setAutosaveStatus('unsaved');
+    },
+    [website]
+  );
 
   // Keep local storage active site snapshot in sync so reloads never flicker
   useEffect(() => {
@@ -676,314 +803,341 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   }, []);
 
   // Update Props
-  const updateNodeProps = useCallback((id: string, newProps: Record<string, any>) => {
-    const target = website.components[id];
-    if (!target) return;
+  const updateNodeProps = useCallback(
+    (id: string, newProps: Record<string, any>) => {
+      const target = website.components[id];
+      if (!target) return;
 
-    const updatedNode: ComponentNode = {
-      ...target,
-      props: {
-        ...target.props,
-        ...newProps,
-      },
-    };
+      const updatedNode: ComponentNode = {
+        ...target,
+        props: {
+          ...target.props,
+          ...newProps,
+        },
+      };
 
-    const newWebsite: Website = {
-      ...website,
-      components: {
-        ...website.components,
-        [id]: updatedNode,
-      },
-    };
+      const newWebsite: Website = {
+        ...website,
+        components: {
+          ...website.components,
+          [id]: updatedNode,
+        },
+      };
 
-    recordHistory(`تعديل خصائص (${target.name})`, newWebsite);
-  }, [website, recordHistory]);
+      recordHistory(`تعديل خصائص (${target.name})`, newWebsite);
+    },
+    [website, recordHistory]
+  );
 
   // Update Style (with responsive breakpoint support)
-  const updateNodeStyle = useCallback((
-    id: string,
-    stylePatch: Partial<StyleProperties>,
-    bp: ViewportBreakpoint = viewport
-  ) => {
-    const target = website.components[id];
-    if (!target) return;
+  const updateNodeStyle = useCallback(
+    (id: string, stylePatch: Partial<StyleProperties>, bp: ViewportBreakpoint = viewport) => {
+      const target = website.components[id];
+      if (!target) return;
 
-    let updatedStyles = { ...target.styles };
+      const updatedStyles = { ...target.styles };
 
-    if (bp === 'desktop') {
-      updatedStyles.desktop = {
-        ...updatedStyles.desktop,
-        ...stylePatch,
+      if (bp === 'desktop') {
+        updatedStyles.desktop = {
+          ...updatedStyles.desktop,
+          ...stylePatch,
+        };
+      } else if (bp === 'tablet') {
+        updatedStyles.tablet = {
+          ...(updatedStyles.tablet || {}),
+          ...stylePatch,
+        };
+      } else if (bp === 'mobile') {
+        updatedStyles.mobile = {
+          ...(updatedStyles.mobile || {}),
+          ...stylePatch,
+        };
+      }
+
+      const updatedNode: ComponentNode = {
+        ...target,
+        styles: updatedStyles,
       };
-    } else if (bp === 'tablet') {
-      updatedStyles.tablet = {
-        ...(updatedStyles.tablet || {}),
-        ...stylePatch,
+
+      const newWebsite: Website = {
+        ...website,
+        components: {
+          ...website.components,
+          [id]: updatedNode,
+        },
       };
-    } else if (bp === 'mobile') {
-      updatedStyles.mobile = {
-        ...(updatedStyles.mobile || {}),
-        ...stylePatch,
-      };
-    }
 
-    const updatedNode: ComponentNode = {
-      ...target,
-      styles: updatedStyles,
-    };
-
-    const newWebsite: Website = {
-      ...website,
-      components: {
-        ...website.components,
-        [id]: updatedNode,
-      },
-    };
-
-    recordHistory(`تعديل مظهر (${target.name}) - [${bp}]`, newWebsite);
-  }, [website, viewport, recordHistory]);
+      recordHistory(`تعديل مظهر (${target.name}) - [${bp}]`, newWebsite);
+    },
+    [website, viewport, recordHistory]
+  );
 
   // Insert Child Node
-  const insertNode = useCallback((node: ComponentNode, parentId: string, index?: number) => {
-    const parent = website.components[parentId];
-    if (!parent) return;
+  const insertNode = useCallback(
+    (node: ComponentNode, parentId: string, index?: number) => {
+      const parent = website.components[parentId];
+      if (!parent) return;
 
-    const newChildren = [...parent.childrenIds];
-    if (typeof index === 'number' && index >= 0 && index <= newChildren.length) {
-      newChildren.splice(index, 0, node.id);
-    } else {
-      newChildren.push(node.id);
-    }
+      const newChildren = [...parent.childrenIds];
+      if (typeof index === 'number' && index >= 0 && index <= newChildren.length) {
+        newChildren.splice(index, 0, node.id);
+      } else {
+        newChildren.push(node.id);
+      }
 
-    const updatedParent: ComponentNode = {
-      ...parent,
-      childrenIds: newChildren,
-    };
+      const updatedParent: ComponentNode = {
+        ...parent,
+        childrenIds: newChildren,
+      };
 
-    const nodeWithParent: ComponentNode = {
-      ...node,
-      parentId,
-    };
+      const nodeWithParent: ComponentNode = {
+        ...node,
+        parentId,
+      };
 
-    const newWebsite: Website = {
-      ...website,
-      components: {
-        ...website.components,
-        [parentId]: updatedParent,
-        [node.id]: nodeWithParent,
-      },
-    };
+      const newWebsite: Website = {
+        ...website,
+        components: {
+          ...website.components,
+          [parentId]: updatedParent,
+          [node.id]: nodeWithParent,
+        },
+      };
 
-    recordHistory(`إضافة عنصر (${node.name})`, newWebsite);
-    setSelectedNodeId(node.id);
-  }, [website, recordHistory]);
+      recordHistory(`إضافة عنصر (${node.name})`, newWebsite);
+      setSelectedNodeId(node.id);
+    },
+    [website, recordHistory]
+  );
 
   // Insert Section Template
-  const insertSectionTemplate = useCallback((templateId: string, targetIndex?: number) => {
-    const tmpl = sectionTemplates.find((t) => t.id === templateId);
-    if (!tmpl) return;
+  const insertSectionTemplate = useCallback(
+    (templateId: string, targetIndex?: number) => {
+      const tmpl = sectionTemplates.find((t) => t.id === templateId);
+      if (!tmpl) return;
 
-    const rootPageNode = website.components[activePage.rootNodeId];
-    if (!rootPageNode) return;
+      const rootPageNode = website.components[activePage.rootNodeId];
+      if (!rootPageNode) return;
 
-    // Generate unique cloned IDs to prevent collision
-    const idMap: Record<string, string> = {};
-    const timestamp = Date.now().toString(36);
+      // Generate unique cloned IDs to prevent collision
+      const idMap: Record<string, string> = {};
+      const timestamp = Date.now().toString(36);
 
-    Object.keys(tmpl.nodes).forEach((origId) => {
-      idMap[origId] = `comp_${tmpl.category}_${timestamp}_${Math.random().toString(36).substring(2, 6)}`;
-    });
+      Object.keys(tmpl.nodes).forEach((origId) => {
+        idMap[origId] =
+          `comp_${tmpl.category}_${timestamp}_${Math.random().toString(36).substring(2, 6)}`;
+      });
 
-    const clonedNodes: Record<string, ComponentNode> = {};
-    Object.values(tmpl.nodes).forEach((node) => {
-      const newId = idMap[node.id];
-      const newParentId = node.parentId ? idMap[node.parentId] : activePage.rootNodeId;
-      const newChildrenIds = node.childrenIds.map((cId) => idMap[cId]);
+      const clonedNodes: Record<string, ComponentNode> = {};
+      Object.values(tmpl.nodes).forEach((node) => {
+        const newId = idMap[node.id];
+        const newParentId = node.parentId ? idMap[node.parentId] : activePage.rootNodeId;
+        const newChildrenIds = node.childrenIds.map((cId) => idMap[cId]);
 
-      clonedNodes[newId] = {
-        ...node,
-        id: newId,
-        parentId: newParentId,
-        childrenIds: newChildrenIds,
-      };
-    });
+        clonedNodes[newId] = {
+          ...node,
+          id: newId,
+          parentId: newParentId,
+          childrenIds: newChildrenIds,
+          styles: {
+            ...node.styles,
+            mobile: createTemplateMobileStyles(node),
+          },
+        };
+      });
 
-    const newRootSectionId = idMap[tmpl.rootNodeId];
-    const newChildren = [...rootPageNode.childrenIds];
+      const newRootSectionId = idMap[tmpl.rootNodeId];
+      const newChildren = [...rootPageNode.childrenIds];
 
-    if (typeof targetIndex === 'number' && targetIndex >= 0) {
-      newChildren.splice(targetIndex, 0, newRootSectionId);
-    } else {
-      // Put before footer if present, else at the end
-      const footerIndex = newChildren.findIndex((id) => website.components[id]?.type === 'footer');
-      if (footerIndex !== -1) {
-        newChildren.splice(footerIndex, 0, newRootSectionId);
+      if (typeof targetIndex === 'number' && targetIndex >= 0) {
+        newChildren.splice(targetIndex, 0, newRootSectionId);
       } else {
-        newChildren.push(newRootSectionId);
+        // Put before footer if present, else at the end
+        const footerIndex = newChildren.findIndex(
+          (id) => website.components[id]?.type === 'footer'
+        );
+        if (footerIndex !== -1) {
+          newChildren.splice(footerIndex, 0, newRootSectionId);
+        } else {
+          newChildren.push(newRootSectionId);
+        }
       }
-    }
 
-    const updatedRootPageNode: ComponentNode = {
-      ...rootPageNode,
-      childrenIds: newChildren,
-    };
+      const updatedRootPageNode: ComponentNode = {
+        ...rootPageNode,
+        childrenIds: newChildren,
+      };
 
-    const newWebsite: Website = {
-      ...website,
-      components: {
-        ...website.components,
-        ...clonedNodes,
-        [activePage.rootNodeId]: updatedRootPageNode,
-      },
-    };
+      const newWebsite: Website = {
+        ...website,
+        components: {
+          ...website.components,
+          ...clonedNodes,
+          [activePage.rootNodeId]: updatedRootPageNode,
+        },
+      };
 
-    recordHistory(`إدراج نموذج قسم (${tmpl.nameAr})`, newWebsite);
-    setSelectedNodeId(newRootSectionId);
+      recordHistory(`إدراج نموذج قسم (${tmpl.nameAr})`, newWebsite);
+      setSelectedNodeId(newRootSectionId);
 
-    // Live smooth scroll to the newly inserted section
-    setTimeout(() => {
-      const el = document.getElementById(newRootSectionId);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }, 120);
-  }, [website, activePage.rootNodeId, recordHistory]);
+      // Live smooth scroll to the newly inserted section
+      setTimeout(() => {
+        const el = document.getElementById(newRootSectionId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 120);
+    },
+    [website, activePage.rootNodeId, recordHistory]
+  );
 
   // Delete Node (recursively removes child keys)
-  const deleteNode = useCallback((id: string) => {
-    const target = website.components[id];
-    if (!target || !target.parentId) return; // Prevent deleting root
+  const deleteNode = useCallback(
+    (id: string) => {
+      const target = website.components[id];
+      if (!target || !target.parentId) return; // Prevent deleting root
 
-    const parent = website.components[target.parentId];
-    if (!parent) return;
+      const parent = website.components[target.parentId];
+      if (!parent) return;
 
-    // Collect all descendant ids
-    const idsToDelete = new Set<string>();
-    const collectDescendants = (nodeId: string) => {
-      idsToDelete.add(nodeId);
-      const node = website.components[nodeId];
-      if (node) {
-        node.childrenIds.forEach(collectDescendants);
-      }
-    };
-    collectDescendants(id);
+      // Collect all descendant ids
+      const idsToDelete = new Set<string>();
+      const collectDescendants = (nodeId: string) => {
+        idsToDelete.add(nodeId);
+        const node = website.components[nodeId];
+        if (node) {
+          node.childrenIds.forEach(collectDescendants);
+        }
+      };
+      collectDescendants(id);
 
-    const updatedParent: ComponentNode = {
-      ...parent,
-      childrenIds: parent.childrenIds.filter((childId) => childId !== id),
-    };
+      const updatedParent: ComponentNode = {
+        ...parent,
+        childrenIds: parent.childrenIds.filter((childId) => childId !== id),
+      };
 
-    const newComponents = { ...website.components };
-    idsToDelete.forEach((delId) => {
-      delete newComponents[delId];
-    });
-    newComponents[parent.id] = updatedParent;
+      const newComponents = { ...website.components };
+      idsToDelete.forEach((delId) => {
+        delete newComponents[delId];
+      });
+      newComponents[parent.id] = updatedParent;
 
-    const newWebsite: Website = {
-      ...website,
-      components: newComponents,
-    };
+      const newWebsite: Website = {
+        ...website,
+        components: newComponents,
+      };
 
-    recordHistory(`حذف (${target.name})`, newWebsite);
-    setSelectedNodeId(parent.id);
-  }, [website, recordHistory]);
+      recordHistory(`حذف (${target.name})`, newWebsite);
+      setSelectedNodeId(parent.id);
+    },
+    [website, recordHistory]
+  );
 
   // Duplicate Node
-  const duplicateNode = useCallback((id: string) => {
-    const target = website.components[id];
-    if (!target || !target.parentId) return;
+  const duplicateNode = useCallback(
+    (id: string) => {
+      const target = website.components[id];
+      if (!target || !target.parentId) return;
 
-    const parent = website.components[target.parentId];
-    if (!parent) return;
+      const parent = website.components[target.parentId];
+      if (!parent) return;
 
-    const idMap: Record<string, string> = {};
-    const timestamp = Date.now().toString(36);
+      const idMap: Record<string, string> = {};
+      const timestamp = Date.now().toString(36);
 
-    const collectSubtree = (nodeId: string) => {
-      idMap[nodeId] = `dup_${timestamp}_${Math.random().toString(36).substring(2, 6)}`;
-      const n = website.components[nodeId];
-      if (n) {
-        n.childrenIds.forEach(collectSubtree);
-      }
-    };
-    collectSubtree(id);
-
-    const clonedSubtree: Record<string, ComponentNode> = {};
-    Object.keys(idMap).forEach((origId) => {
-      const origNode = website.components[origId];
-      const newId = idMap[origId];
-      const newParentId = origId === id ? target.parentId : idMap[origNode.parentId!];
-
-      clonedSubtree[newId] = {
-        ...origNode,
-        id: newId,
-        name: origId === id ? `${origNode.name} (نسخة)` : origNode.name,
-        parentId: newParentId,
-        childrenIds: origNode.childrenIds.map((cId) => idMap[cId]),
+      const collectSubtree = (nodeId: string) => {
+        idMap[nodeId] = `dup_${timestamp}_${Math.random().toString(36).substring(2, 6)}`;
+        const n = website.components[nodeId];
+        if (n) {
+          n.childrenIds.forEach(collectSubtree);
+        }
       };
-    });
+      collectSubtree(id);
 
-    const targetIdx = parent.childrenIds.indexOf(id);
-    const newChildren = [...parent.childrenIds];
-    newChildren.splice(targetIdx + 1, 0, idMap[id]);
+      const clonedSubtree: Record<string, ComponentNode> = {};
+      Object.keys(idMap).forEach((origId) => {
+        const origNode = website.components[origId];
+        const newId = idMap[origId];
+        const newParentId = origId === id ? target.parentId : idMap[origNode.parentId!];
 
-    const updatedParent: ComponentNode = {
-      ...parent,
-      childrenIds: newChildren,
-    };
+        clonedSubtree[newId] = {
+          ...origNode,
+          id: newId,
+          name: origId === id ? `${origNode.name} (نسخة)` : origNode.name,
+          parentId: newParentId,
+          childrenIds: origNode.childrenIds.map((cId) => idMap[cId]),
+        };
+      });
 
-    const newWebsite: Website = {
-      ...website,
-      components: {
-        ...website.components,
-        ...clonedSubtree,
-        [parent.id]: updatedParent,
-      },
-    };
+      const targetIdx = parent.childrenIds.indexOf(id);
+      const newChildren = [...parent.childrenIds];
+      newChildren.splice(targetIdx + 1, 0, idMap[id]);
 
-    recordHistory(`تكرار (${target.name})`, newWebsite);
-    setSelectedNodeId(idMap[id]);
-  }, [website, recordHistory]);
+      const updatedParent: ComponentNode = {
+        ...parent,
+        childrenIds: newChildren,
+      };
+
+      const newWebsite: Website = {
+        ...website,
+        components: {
+          ...website.components,
+          ...clonedSubtree,
+          [parent.id]: updatedParent,
+        },
+      };
+
+      recordHistory(`تكرار (${target.name})`, newWebsite);
+      setSelectedNodeId(idMap[id]);
+    },
+    [website, recordHistory]
+  );
 
   // Move Node Up or Down in parent
-  const moveNode = useCallback((id: string, direction: 'up' | 'down') => {
-    const target = website.components[id];
-    if (!target || !target.parentId) return;
+  const moveNode = useCallback(
+    (id: string, direction: 'up' | 'down') => {
+      const target = website.components[id];
+      if (!target || !target.parentId) return;
 
-    const parent = website.components[target.parentId];
-    if (!parent) return;
+      const parent = website.components[target.parentId];
+      if (!parent) return;
 
-    const idx = parent.childrenIds.indexOf(id);
-    if (idx === -1) return;
+      const idx = parent.childrenIds.indexOf(id);
+      if (idx === -1) return;
 
-    const newChildren = [...parent.childrenIds];
-    if (direction === 'up' && idx > 0) {
-      const temp = newChildren[idx];
-      newChildren[idx] = newChildren[idx - 1];
-      newChildren[idx - 1] = temp;
-    } else if (direction === 'down' && idx < newChildren.length - 1) {
-      const temp = newChildren[idx];
-      newChildren[idx] = newChildren[idx + 1];
-      newChildren[idx + 1] = temp;
-    } else {
-      return;
-    }
+      const newChildren = [...parent.childrenIds];
+      if (direction === 'up' && idx > 0) {
+        const temp = newChildren[idx];
+        newChildren[idx] = newChildren[idx - 1];
+        newChildren[idx - 1] = temp;
+      } else if (direction === 'down' && idx < newChildren.length - 1) {
+        const temp = newChildren[idx];
+        newChildren[idx] = newChildren[idx + 1];
+        newChildren[idx + 1] = temp;
+      } else {
+        return;
+      }
 
-    const updatedParent: ComponentNode = {
-      ...parent,
-      childrenIds: newChildren,
-    };
+      const updatedParent: ComponentNode = {
+        ...parent,
+        childrenIds: newChildren,
+      };
 
-    const newWebsite: Website = {
-      ...website,
-      components: {
-        ...website.components,
-        [parent.id]: updatedParent,
-      },
-    };
+      const newWebsite: Website = {
+        ...website,
+        components: {
+          ...website.components,
+          [parent.id]: updatedParent,
+        },
+      };
 
-    recordHistory(`تحريك (${target.name}) ${direction === 'up' ? 'للأعلى' : 'للأسفل'}`, newWebsite);
-  }, [website, recordHistory]);
+      recordHistory(
+        `تحريك (${target.name}) ${direction === 'up' ? 'للأعلى' : 'للأسفل'}`,
+        newWebsite
+      );
+    },
+    [website, recordHistory]
+  );
 
   // Move node to a specific position relative to target (before, after, inside)
   const moveNodePosition = useCallback(
@@ -1077,7 +1231,10 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
       };
 
       const posAr = position === 'inside' ? 'داخل' : position === 'before' ? 'قبل' : 'بعد';
-      recordHistory(`سحب وإفلات (${draggedNode.name}) إلى ${posAr} (${targetNode.name})`, newWebsite);
+      recordHistory(
+        `سحب وإفلات (${draggedNode.name}) إلى ${posAr} (${targetNode.name})`,
+        newWebsite
+      );
       setSelectedNodeId(draggedId);
       return true;
     },
@@ -1085,177 +1242,313 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   );
 
   // Reorder Children
-  const reorderChildren = useCallback((parentId: string, newChildrenIds: string[]) => {
-    const parent = website.components[parentId];
-    if (!parent) return;
+  const reorderChildren = useCallback(
+    (parentId: string, newChildrenIds: string[]) => {
+      const parent = website.components[parentId];
+      if (!parent) return;
 
-    const updatedParent: ComponentNode = {
-      ...parent,
-      childrenIds: newChildrenIds,
-    };
+      const updatedParent: ComponentNode = {
+        ...parent,
+        childrenIds: newChildrenIds,
+      };
 
-    const newWebsite: Website = {
-      ...website,
-      components: {
-        ...website.components,
-        [parentId]: updatedParent,
-      },
-    };
+      const newWebsite: Website = {
+        ...website,
+        components: {
+          ...website.components,
+          [parentId]: updatedParent,
+        },
+      };
 
-    recordHistory(`إعادة ترتيب عناصر (${parent.name})`, newWebsite);
-  }, [website, recordHistory]);
+      recordHistory(`إعادة ترتيب عناصر (${parent.name})`, newWebsite);
+    },
+    [website, recordHistory]
+  );
 
   // Visibility & Lock
-  const toggleNodeVisibility = useCallback((id: string) => {
-    const target = website.components[id];
-    if (!target) return;
+  const toggleNodeVisibility = useCallback(
+    (id: string) => {
+      const target = website.components[id];
+      if (!target) return;
 
-    const updatedNode: ComponentNode = {
-      ...target,
-      isHidden: !target.isHidden,
-    };
+      const updatedNode: ComponentNode = {
+        ...target,
+        isHidden: !target.isHidden,
+      };
 
-    const newWebsite: Website = {
-      ...website,
-      components: {
-        ...website.components,
-        [id]: updatedNode,
-      },
-    };
+      const newWebsite: Website = {
+        ...website,
+        components: {
+          ...website.components,
+          [id]: updatedNode,
+        },
+      };
 
-    recordHistory(`تغيير ظهور (${target.name})`, newWebsite);
-  }, [website, recordHistory]);
+      recordHistory(`تغيير ظهور (${target.name})`, newWebsite);
+    },
+    [website, recordHistory]
+  );
 
-  const toggleNodeLock = useCallback((id: string) => {
-    const target = website.components[id];
-    if (!target) return;
+  const toggleNodeLock = useCallback(
+    (id: string) => {
+      const target = website.components[id];
+      if (!target) return;
 
-    const updatedNode: ComponentNode = {
-      ...target,
-      isLocked: !target.isLocked,
-    };
+      const updatedNode: ComponentNode = {
+        ...target,
+        isLocked: !target.isLocked,
+      };
 
-    const newWebsite: Website = {
-      ...website,
-      components: {
-        ...website.components,
-        [id]: updatedNode,
-      },
-    };
+      const newWebsite: Website = {
+        ...website,
+        components: {
+          ...website.components,
+          [id]: updatedNode,
+        },
+      };
 
-    recordHistory(`تغيير قفل (${target.name})`, newWebsite);
-  }, [website, recordHistory]);
+      recordHistory(`تغيير قفل (${target.name})`, newWebsite);
+    },
+    [website, recordHistory]
+  );
 
-  const renameNode = useCallback((id: string, newName: string) => {
-    const target = website.components[id];
-    if (!target || !newName.trim()) return;
+  const renameNode = useCallback(
+    (id: string, newName: string) => {
+      const target = website.components[id];
+      if (!target || !newName.trim()) return;
 
-    const updatedNode: ComponentNode = {
-      ...target,
-      name: newName.trim(),
-    };
+      const updatedNode: ComponentNode = {
+        ...target,
+        name: newName.trim(),
+      };
 
-    const newWebsite: Website = {
-      ...website,
-      components: {
-        ...website.components,
-        [id]: updatedNode,
-      },
-    };
+      const newWebsite: Website = {
+        ...website,
+        components: {
+          ...website.components,
+          [id]: updatedNode,
+        },
+      };
 
-    recordHistory(`إعادة تسمية (${target.name}) إلى ${newName}`, newWebsite);
-  }, [website, recordHistory]);
+      recordHistory(`إعادة تسمية (${target.name}) إلى ${newName}`, newWebsite);
+    },
+    [website, recordHistory]
+  );
 
   // Design Tokens & Realtime Theme Synchronization
-  const updateThemeToken = useCallback((category: keyof DesignTokens, key: string, value: any) => {
-    const updatedTheme: DesignTokens = {
-      ...website.theme,
-      [category]: {
-        ...(website.theme[category] as any),
-        [key]: value,
-      },
-    };
+  const updateThemeToken = useCallback(
+    (category: keyof DesignTokens, key: string, value: any) => {
+      const updatedTheme: DesignTokens = {
+        ...website.theme,
+        [category]: {
+          ...(website.theme[category] as any),
+          [key]: value,
+        },
+      };
 
-    // Propagate color/font/radius changes to components
-    const updatedComponents = { ...website.components };
-    let hasModifiedComponents = false;
+      // Propagate color/font/radius changes to components
+      const updatedComponents = { ...website.components };
+      let hasModifiedComponents = false;
 
-    if (category === 'colors') {
-      const primaryColor = key === 'primary' ? value : updatedTheme.colors.primary;
-      const secondaryColor = key === 'secondary' ? value : updatedTheme.colors.secondary;
-      const accentColor = key === 'accent' ? value : updatedTheme.colors.accent;
+      if (category === 'colors') {
+        const primaryColor = key === 'primary' ? value : updatedTheme.colors.primary;
+        const secondaryColor = key === 'secondary' ? value : updatedTheme.colors.secondary;
+        const accentColor = key === 'accent' ? value : updatedTheme.colors.accent;
+
+        Object.keys(updatedComponents).forEach((id) => {
+          const comp = { ...updatedComponents[id] };
+          let modified = false;
+
+          // Primary Buttons & Action CTAs
+          if (
+            comp.type === 'button' &&
+            (comp.props?.variant === 'primary' || id.includes('primary') || id.includes('cta'))
+          ) {
+            comp.styles = {
+              ...comp.styles,
+              desktop: {
+                ...comp.styles.desktop,
+                backgroundColor: primaryColor,
+                boxShadow: `0 10px 15px -3px ${primaryColor}40`,
+              },
+            };
+            modified = true;
+          }
+
+          // Badges & Accents
+          if (comp.type === 'badge' || id.includes('badge')) {
+            comp.styles = {
+              ...comp.styles,
+              desktop: {
+                ...comp.styles.desktop,
+                backgroundColor: `${primaryColor}18`,
+                textColor: primaryColor,
+              },
+            };
+            modified = true;
+          }
+
+          // Active Navigation link
+          if (id === 'nav_link_1') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: {
+                ...comp.styles.desktop,
+                textColor: primaryColor,
+              },
+            };
+            modified = true;
+          }
+
+          if (modified) {
+            updatedComponents[id] = comp;
+            hasModifiedComponents = true;
+          }
+        });
+      } else if (category === 'typography') {
+        const headingFont =
+          key === 'fontHeading'
+            ? value
+            : updatedTheme.typography?.fontHeading || 'Tajawal, sans-serif';
+        const bodyFont =
+          key === 'fontBody' ? value : updatedTheme.typography?.fontBody || 'Cairo, sans-serif';
+
+        Object.keys(updatedComponents).forEach((id) => {
+          const comp = { ...updatedComponents[id] };
+          if (
+            comp.category === 'typography' ||
+            comp.type === 'heading' ||
+            comp.type === 'paragraph'
+          ) {
+            const isHeading =
+              comp.type === 'heading' || id.includes('title') || id.includes('logo');
+            comp.styles = {
+              ...comp.styles,
+              desktop: {
+                ...comp.styles.desktop,
+                fontFamily: isHeading ? headingFont : bodyFont,
+              },
+            };
+            updatedComponents[id] = comp;
+            hasModifiedComponents = true;
+          }
+        });
+      } else if (category === 'radius') {
+        const newRadius = value;
+        Object.keys(updatedComponents).forEach((id) => {
+          const comp = { ...updatedComponents[id] };
+          if (comp.type === 'button') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: {
+                ...comp.styles.desktop,
+                borderRadius: newRadius,
+              },
+            };
+            updatedComponents[id] = comp;
+            hasModifiedComponents = true;
+          }
+        });
+      }
+
+      const newWebsite: Website = {
+        ...website,
+        theme: updatedTheme,
+        components: hasModifiedComponents ? updatedComponents : website.components,
+      };
+
+      recordHistory(`تحديث متغير التصميم (${String(category)}.${key})`, newWebsite);
+    },
+    [website, recordHistory]
+  );
+
+  const applyThemePreset = useCallback(
+    (presetKey: string) => {
+      const preset = themePresets[presetKey];
+      if (!preset) return;
+
+      const updatedTheme: DesignTokens = {
+        ...defaultDesignTokens,
+        ...website.theme,
+        ...preset.tokens,
+        colors: {
+          ...defaultDesignTokens.colors,
+          ...(website.theme?.colors || {}),
+          ...(preset.tokens.colors || {}),
+        },
+        typography: {
+          ...defaultDesignTokens.typography,
+          ...(website.theme?.typography || {}),
+          ...(preset.tokens.typography || {}),
+        },
+        radius: {
+          ...defaultDesignTokens.radius,
+          ...(website.theme?.radius || {}),
+          ...(preset.tokens.radius || {}),
+        },
+        shadows: {
+          ...defaultDesignTokens.shadows,
+          ...(website.theme?.shadows || {}),
+          ...(preset.tokens.shadows || {}),
+        },
+      };
+
+      const newColors = updatedTheme.colors;
+      const newRadius = updatedTheme.radius?.lg || '10px';
+      const newHeadingFont = updatedTheme.typography?.fontHeading || 'Tajawal, sans-serif';
+      const newBodyFont = updatedTheme.typography?.fontBody || 'Cairo, sans-serif';
+
+      // Synchronize all website components
+      const updatedComponents = { ...website.components };
 
       Object.keys(updatedComponents).forEach((id) => {
         const comp = { ...updatedComponents[id] };
         let modified = false;
 
-        // Primary Buttons & Action CTAs
-        if (comp.type === 'button' && (comp.props?.variant === 'primary' || id.includes('primary') || id.includes('cta'))) {
-          comp.styles = {
-            ...comp.styles,
-            desktop: {
-              ...comp.styles.desktop,
-              backgroundColor: primaryColor,
-              boxShadow: `0 10px 15px -3px ${primaryColor}40`,
-            },
-          };
-          modified = true;
-        }
-
-        // Badges & Accents
-        if (comp.type === 'badge' || id.includes('badge')) {
-          comp.styles = {
-            ...comp.styles,
-            desktop: {
-              ...comp.styles.desktop,
-              backgroundColor: `${primaryColor}18`,
-              textColor: primaryColor,
-            },
-          };
-          modified = true;
-        }
-
-        // Active Navigation link
-        if (id === 'nav_link_1') {
-          comp.styles = {
-            ...comp.styles,
-            desktop: {
-              ...comp.styles.desktop,
-              textColor: primaryColor,
-            },
-          };
-          modified = true;
-        }
-
-        if (modified) {
-          updatedComponents[id] = comp;
-          hasModifiedComponents = true;
-        }
-      });
-    } else if (category === 'typography') {
-      const headingFont = key === 'fontHeading' ? value : (updatedTheme.typography?.fontHeading || 'Tajawal, sans-serif');
-      const bodyFont = key === 'fontBody' ? value : (updatedTheme.typography?.fontBody || 'Cairo, sans-serif');
-
-      Object.keys(updatedComponents).forEach((id) => {
-        const comp = { ...updatedComponents[id] };
-        if (comp.category === 'typography' || comp.type === 'heading' || comp.type === 'paragraph') {
+        // Update typography
+        if (
+          comp.category === 'typography' ||
+          comp.type === 'heading' ||
+          comp.type === 'paragraph'
+        ) {
           const isHeading = comp.type === 'heading' || id.includes('title') || id.includes('logo');
           comp.styles = {
             ...comp.styles,
             desktop: {
               ...comp.styles.desktop,
-              fontFamily: isHeading ? headingFont : bodyFont,
+              fontFamily: isHeading ? newHeadingFont : newBodyFont,
             },
           };
-          updatedComponents[id] = comp;
-          hasModifiedComponents = true;
+          modified = true;
         }
-      });
-    } else if (category === 'radius') {
-      const newRadius = value;
-      Object.keys(updatedComponents).forEach((id) => {
-        const comp = { ...updatedComponents[id] };
-        if (comp.type === 'button') {
+
+        // Update primary buttons & CTAs
+        if (
+          comp.type === 'button' &&
+          (comp.props?.variant === 'primary' ||
+            id.includes('primary') ||
+            id.includes('cta') ||
+            id.includes('book'))
+        ) {
+          comp.styles = {
+            ...comp.styles,
+            desktop: {
+              ...comp.styles.desktop,
+              backgroundColor: newColors.primary,
+              borderRadius: newRadius,
+              boxShadow: `0 10px 15px -3px ${newColors.primary}40`,
+            },
+          };
+          modified = true;
+        }
+
+        // Update secondary/outline buttons
+        if (
+          comp.type === 'button' &&
+          (comp.props?.variant === 'outline' ||
+            comp.props?.variant === 'secondary' ||
+            id.includes('secondary'))
+        ) {
           comp.styles = {
             ...comp.styles,
             desktop: {
@@ -1263,218 +1556,175 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
               borderRadius: newRadius,
             },
           };
+          modified = true;
+        }
+
+        // Update badges
+        if (comp.type === 'badge' || id.includes('badge')) {
+          comp.styles = {
+            ...comp.styles,
+            desktop: {
+              ...comp.styles.desktop,
+              backgroundColor: `${newColors.primary}18`,
+              textColor: newColors.primary,
+              borderRadius: updatedTheme.radius.full || '9999px',
+            },
+          };
+          modified = true;
+        }
+
+        // Update active nav link
+        if (id === 'nav_link_1') {
+          comp.styles = {
+            ...comp.styles,
+            desktop: {
+              ...comp.styles.desktop,
+              textColor: newColors.primary,
+            },
+          };
+          modified = true;
+        }
+
+        // Theme-specific section color themes
+        if (presetKey === 'luxuryGold') {
+          if (comp.id === 'comp_hero') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, backgroundColor: '#090d16' },
+            };
+            modified = true;
+          }
+          if (comp.id === 'hero_title') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, textColor: '#f8fafc' },
+            };
+            modified = true;
+          }
+          if (comp.id === 'hero_subtitle') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, textColor: '#94a3b8' },
+            };
+            modified = true;
+          }
+        } else if (presetKey === 'automotiveSpeed') {
+          if (comp.id === 'comp_hero') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, backgroundColor: '#09090b' },
+            };
+            modified = true;
+          }
+          if (comp.id === 'hero_title') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, textColor: '#ffffff' },
+            };
+            modified = true;
+          }
+          if (comp.id === 'hero_subtitle') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, textColor: '#a1a1aa' },
+            };
+            modified = true;
+          }
+        } else if (presetKey === 'realEstateEmerald') {
+          if (comp.id === 'comp_hero') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, backgroundColor: '#f0fdf4' },
+            };
+            modified = true;
+          }
+          if (comp.id === 'hero_title') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, textColor: '#064e3b' },
+            };
+            modified = true;
+          }
+          if (comp.id === 'hero_subtitle') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, textColor: '#047857' },
+            };
+            modified = true;
+          }
+        } else if (presetKey === 'clinicalClean') {
+          if (comp.id === 'comp_hero') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, backgroundColor: '#f0fdfa' },
+            };
+            modified = true;
+          }
+          if (comp.id === 'hero_title') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, textColor: '#164e63' },
+            };
+            modified = true;
+          }
+          if (comp.id === 'hero_subtitle') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, textColor: '#0e7490' },
+            };
+            modified = true;
+          }
+        } else if (presetKey === 'modernBlue') {
+          if (comp.id === 'comp_hero') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, backgroundColor: '#f8fafc' },
+            };
+            modified = true;
+          }
+          if (comp.id === 'hero_title') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, textColor: '#0f172a' },
+            };
+            modified = true;
+          }
+          if (comp.id === 'hero_subtitle') {
+            comp.styles = {
+              ...comp.styles,
+              desktop: { ...comp.styles.desktop, textColor: '#475569' },
+            };
+            modified = true;
+          }
+        }
+
+        if (modified) {
           updatedComponents[id] = comp;
-          hasModifiedComponents = true;
         }
       });
-    }
 
-    const newWebsite: Website = {
-      ...website,
-      theme: updatedTheme,
-      components: hasModifiedComponents ? updatedComponents : website.components,
-    };
+      const newWebsite: Website = {
+        ...website,
+        theme: updatedTheme,
+        components: updatedComponents,
+      };
 
-    recordHistory(`تحديث متغير التصميم (${String(category)}.${key})`, newWebsite);
-  }, [website, recordHistory]);
-
-  const applyThemePreset = useCallback((presetKey: string) => {
-    const preset = themePresets[presetKey];
-    if (!preset) return;
-
-    const updatedTheme: DesignTokens = {
-      ...defaultDesignTokens,
-      ...website.theme,
-      ...preset.tokens,
-      colors: {
-        ...defaultDesignTokens.colors,
-        ...(website.theme?.colors || {}),
-        ...(preset.tokens.colors || {}),
-      },
-      typography: {
-        ...defaultDesignTokens.typography,
-        ...(website.theme?.typography || {}),
-        ...(preset.tokens.typography || {}),
-      },
-      radius: {
-        ...defaultDesignTokens.radius,
-        ...(website.theme?.radius || {}),
-        ...(preset.tokens.radius || {}),
-      },
-      shadows: {
-        ...defaultDesignTokens.shadows,
-        ...(website.theme?.shadows || {}),
-        ...(preset.tokens.shadows || {}),
-      },
-    };
-
-    const newColors = updatedTheme.colors;
-    const newRadius = updatedTheme.radius?.lg || '10px';
-    const newHeadingFont = updatedTheme.typography?.fontHeading || 'Tajawal, sans-serif';
-    const newBodyFont = updatedTheme.typography?.fontBody || 'Cairo, sans-serif';
-
-    // Synchronize all website components
-    const updatedComponents = { ...website.components };
-
-    Object.keys(updatedComponents).forEach((id) => {
-      const comp = { ...updatedComponents[id] };
-      let modified = false;
-
-      // Update typography
-      if (comp.category === 'typography' || comp.type === 'heading' || comp.type === 'paragraph') {
-        const isHeading = comp.type === 'heading' || id.includes('title') || id.includes('logo');
-        comp.styles = {
-          ...comp.styles,
-          desktop: {
-            ...comp.styles.desktop,
-            fontFamily: isHeading ? newHeadingFont : newBodyFont,
-          },
-        };
-        modified = true;
-      }
-
-      // Update primary buttons & CTAs
-      if (comp.type === 'button' && (comp.props?.variant === 'primary' || id.includes('primary') || id.includes('cta') || id.includes('book'))) {
-        comp.styles = {
-          ...comp.styles,
-          desktop: {
-            ...comp.styles.desktop,
-            backgroundColor: newColors.primary,
-            borderRadius: newRadius,
-            boxShadow: `0 10px 15px -3px ${newColors.primary}40`,
-          },
-        };
-        modified = true;
-      }
-
-      // Update secondary/outline buttons
-      if (comp.type === 'button' && (comp.props?.variant === 'outline' || comp.props?.variant === 'secondary' || id.includes('secondary'))) {
-        comp.styles = {
-          ...comp.styles,
-          desktop: {
-            ...comp.styles.desktop,
-            borderRadius: newRadius,
-          },
-        };
-        modified = true;
-      }
-
-      // Update badges
-      if (comp.type === 'badge' || id.includes('badge')) {
-        comp.styles = {
-          ...comp.styles,
-          desktop: {
-            ...comp.styles.desktop,
-            backgroundColor: `${newColors.primary}18`,
-            textColor: newColors.primary,
-            borderRadius: updatedTheme.radius.full || '9999px',
-          },
-        };
-        modified = true;
-      }
-
-      // Update active nav link
-      if (id === 'nav_link_1') {
-        comp.styles = {
-          ...comp.styles,
-          desktop: {
-            ...comp.styles.desktop,
-            textColor: newColors.primary,
-          },
-        };
-        modified = true;
-      }
-
-      // Theme-specific section color themes
-      if (presetKey === 'luxuryGold') {
-        if (comp.id === 'comp_hero') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, backgroundColor: '#090d16' } };
-          modified = true;
-        }
-        if (comp.id === 'hero_title') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, textColor: '#f8fafc' } };
-          modified = true;
-        }
-        if (comp.id === 'hero_subtitle') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, textColor: '#94a3b8' } };
-          modified = true;
-        }
-      } else if (presetKey === 'automotiveSpeed') {
-        if (comp.id === 'comp_hero') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, backgroundColor: '#09090b' } };
-          modified = true;
-        }
-        if (comp.id === 'hero_title') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, textColor: '#ffffff' } };
-          modified = true;
-        }
-        if (comp.id === 'hero_subtitle') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, textColor: '#a1a1aa' } };
-          modified = true;
-        }
-      } else if (presetKey === 'realEstateEmerald') {
-        if (comp.id === 'comp_hero') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, backgroundColor: '#f0fdf4' } };
-          modified = true;
-        }
-        if (comp.id === 'hero_title') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, textColor: '#064e3b' } };
-          modified = true;
-        }
-        if (comp.id === 'hero_subtitle') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, textColor: '#047857' } };
-          modified = true;
-        }
-      } else if (presetKey === 'clinicalClean') {
-        if (comp.id === 'comp_hero') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, backgroundColor: '#f0fdfa' } };
-          modified = true;
-        }
-        if (comp.id === 'hero_title') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, textColor: '#164e63' } };
-          modified = true;
-        }
-        if (comp.id === 'hero_subtitle') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, textColor: '#0e7490' } };
-          modified = true;
-        }
-      } else if (presetKey === 'modernBlue') {
-        if (comp.id === 'comp_hero') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, backgroundColor: '#f8fafc' } };
-          modified = true;
-        }
-        if (comp.id === 'hero_title') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, textColor: '#0f172a' } };
-          modified = true;
-        }
-        if (comp.id === 'hero_subtitle') {
-          comp.styles = { ...comp.styles, desktop: { ...comp.styles.desktop, textColor: '#475569' } };
-          modified = true;
-        }
-      }
-
-      if (modified) {
-        updatedComponents[id] = comp;
-      }
-    });
-
-    const newWebsite: Website = {
-      ...website,
-      theme: updatedTheme,
-      components: updatedComponents,
-    };
-
-    recordHistory(`تطبيق سمة التصميم (${preset.nameAr})`, newWebsite);
-  }, [website, recordHistory]);
+      recordHistory(`تطبيق سمة التصميم (${preset.nameAr})`, newWebsite);
+    },
+    [website, recordHistory]
+  );
 
   // Page Management
-  const switchPage = useCallback((pageId: string) => {
-    const target = website.pages.find((p) => p.id === pageId);
-    if (target) {
-      setActivePageId(pageId);
-      setSelectedNodeId(target.rootNodeId);
-    }
-  }, [website.pages]);
+  const switchPage = useCallback(
+    (pageId: string) => {
+      const target = website.pages.find((p) => p.id === pageId);
+      if (target) {
+        setActivePageId(pageId);
+        setSelectedNodeId(target.rootNodeId);
+      }
+    },
+    [website.pages]
+  );
 
   // Header Nav Inspection Helper
   const getHeaderDropdownNavItems = useCallback(() => {
@@ -1499,7 +1749,11 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   }, [website.components]);
 
   const addPage = useCallback(
-    (nameOrOptions: string | AddPageOptions, maybeSlug?: string, extraOptions?: Partial<AddPageOptions>) => {
+    (
+      nameOrOptions: string | AddPageOptions,
+      maybeSlug?: string,
+      extraOptions?: Partial<AddPageOptions>
+    ) => {
       let options: AddPageOptions;
       if (typeof nameOrOptions === 'string') {
         options = {
@@ -1555,7 +1809,9 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
         props: {
           badge: dropdownBadge || 'قسم جديد',
           title: name,
-          subtitle: dropdownDescription || `مرحباً بك في صفحة ${name}. تم إعداد الصفحة وجاهزة للتخصيص الكامل وإضافة المكونات.`,
+          subtitle:
+            dropdownDescription ||
+            `مرحباً بك في صفحة ${name}. تم إعداد الصفحة وجاهزة للتخصيص الكامل وإضافة المكونات.`,
         },
         styles: {
           desktop: {
@@ -1614,7 +1870,8 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
             description: 'تصفح باقة مختارة وعروض حصرية للتسليم الفوري.',
             price: '520,000 ج.م',
             badge: 'جديد',
-            image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80',
+            image:
+              'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80',
             ctaText: 'طلب فحص وتجربة',
           },
           styles: {
@@ -1747,10 +2004,10 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
         placement === 'header_direct'
           ? 'في الهيدر مباشرة'
           : placement === 'header_dropdown'
-          ? 'داخل قائمة منسدلة بالهيدر'
-          : placement === 'header_and_footer'
-          ? 'في الهيدر والفوتر'
-          : 'صفحة مستقلة';
+            ? 'داخل قائمة منسدلة بالهيدر'
+            : placement === 'header_and_footer'
+              ? 'في الهيدر والفوتر'
+              : 'صفحة مستقلة';
 
       recordHistory(`إضافة صفحة جديدة (${name}) - [${placementLabel}]`, newWebsite);
       setActivePageId(newPageId);
@@ -1894,235 +2151,261 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
     [website, recordHistory]
   );
 
-  const deletePage = useCallback((pageId: string) => {
-    if (website.pages.length <= 1) return; // Prevent deleting only page
-    const newPages = website.pages.filter((p) => p.id !== pageId);
-    const newWebsite: Website = {
-      ...website,
-      pages: newPages,
-    };
+  const deletePage = useCallback(
+    (pageId: string) => {
+      if (website.pages.length <= 1) return; // Prevent deleting only page
+      const newPages = website.pages.filter((p) => p.id !== pageId);
+      const newWebsite: Website = {
+        ...website,
+        pages: newPages,
+      };
 
-    recordHistory(`حذف صفحة (${pageId})`, newWebsite);
-    if (activePageId === pageId) {
-      setActivePageId(newPages[0].id);
-    }
-  }, [website, activePageId, recordHistory]);
-
-  const updatePageMetadata = useCallback((pageId: string, metaPatch: Partial<PageMetadata>) => {
-    const newPages = website.pages.map((p) => {
-      if (p.id === pageId) {
-        return {
-          ...p,
-          metadata: {
-            ...p.metadata,
-            ...metaPatch,
-          },
-          updatedAt: new Date().toISOString(),
-        };
+      recordHistory(`حذف صفحة (${pageId})`, newWebsite);
+      if (activePageId === pageId) {
+        setActivePageId(newPages[0].id);
       }
-      return p;
-    });
+    },
+    [website, activePageId, recordHistory]
+  );
 
-    const newWebsite: Website = {
-      ...website,
-      pages: newPages,
-    };
+  const updatePageMetadata = useCallback(
+    (pageId: string, metaPatch: Partial<PageMetadata>) => {
+      const newPages = website.pages.map((p) => {
+        if (p.id === pageId) {
+          return {
+            ...p,
+            metadata: {
+              ...p.metadata,
+              ...metaPatch,
+            },
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return p;
+      });
 
-    recordHistory(`تحديث بيانات SEO للصفحة`, newWebsite);
-  }, [website, recordHistory]);
+      const newWebsite: Website = {
+        ...website,
+        pages: newPages,
+      };
+
+      recordHistory(`تحديث بيانات SEO للصفحة`, newWebsite);
+    },
+    [website, recordHistory]
+  );
 
   // Website Template Switcher (Full Structure Replacement for all Activities)
-  const switchWebsite = useCallback(
-    (websiteId: string) => {
-      const targetWebsite = allActivityWebsites[websiteId] || sampleWebsites[websiteId];
-      if (!targetWebsite) return;
+  const switchWebsite = useCallback((websiteId: string) => {
+    const targetWebsite = allActivityWebsites[websiteId] || sampleWebsites[websiteId];
+    if (!targetWebsite) return;
 
-      // 1. Set the complete Website structure (pages, components, theme, domain)
-      setWebsite(targetWebsite);
-      setActiveTemplateId(websiteId);
+    // 1. Set the complete Website structure (pages, components, theme, domain)
+    setWebsite(targetWebsite);
+    setActiveTemplateId(websiteId);
 
-      // 2. Set the initial active page and root node
-      const firstPage = targetWebsite.pages[0];
-      const initialPageId = firstPage ? firstPage.id : 'page_home';
-      setActivePageId(initialPageId);
-      setSelectedNodeId(firstPage ? firstPage.rootNodeId : 'comp_hero');
-      setHoveredNodeId(null);
+    // 2. Set the initial active page and root node
+    const firstPage = targetWebsite.pages[0];
+    const initialPageId = firstPage ? firstPage.id : 'page_home';
+    setActivePageId(initialPageId);
+    setSelectedNodeId(firstPage ? firstPage.rootNodeId : 'comp_hero');
+    setHoveredNodeId(null);
 
-      // 3. Find and activate matching tenant
-      const foundTenant = mockTenants.find(
-        (t) => t.id === targetWebsite.tenantId || t.businessActivity === targetWebsite.activity
+    // 3. Find and activate matching tenant
+    const foundTenant = mockTenants.find(
+      (t) => t.id === targetWebsite.tenantId || t.businessActivity === targetWebsite.activity
+    );
+    if (foundTenant) {
+      setCurrentTenant(foundTenant);
+    }
+
+    // 4. Reset history stack with new website as baseline
+    setPastStates([]);
+    setFutureStates([]);
+    setHistoryLog((prev) => [`تم تبديل القالب بالكامل إلى نشاط (${targetWebsite.name})`, ...prev]);
+  }, []);
+
+  // Tenant Switcher (also synchronizes the full website template if available)
+  const switchTenant = useCallback((tenantId: string) => {
+    const foundTenant = mockTenants.find((t) => t.id === tenantId);
+    if (foundTenant) {
+      setCurrentTenant(foundTenant);
+
+      // Find matching activity website in registry
+      const matchingWebsiteEntry = Object.entries(allActivityWebsites).find(
+        ([, site]) => site.tenantId === tenantId || site.activity === foundTenant.businessActivity
       );
-      if (foundTenant) {
-        setCurrentTenant(foundTenant);
-      }
 
-      // 4. Reset history stack with new website as baseline
-      setPastStates([]);
-      setFutureStates([]);
+      if (matchingWebsiteEntry) {
+        const [matchingWebsiteId, matchingSite] = matchingWebsiteEntry;
+        setWebsite(matchingSite);
+        setActiveTemplateId(matchingWebsiteId);
+        const firstPage = matchingSite.pages[0];
+        setActivePageId(firstPage ? firstPage.id : 'page_home');
+        setSelectedNodeId(firstPage ? firstPage.rootNodeId : 'comp_hero');
+        setPastStates([]);
+        setFutureStates([]);
+        setHistoryLog((prev) => [`تم تبديل القالب والمستأجر إلى (${matchingSite.name})`, ...prev]);
+      }
+    }
+  }, []);
+
+  // Custom Scoped Code
+  const updateNodeCustomCode = useCallback(
+    (nodeId: string, codePatch: Partial<CustomCodeScope>) => {
+      const target = website.components[nodeId];
+      if (!target) return;
+
+      const updatedNode: ComponentNode = {
+        ...target,
+        customCode: {
+          ...target.customCode,
+          ...codePatch,
+        },
+      };
+
+      const newWebsite: Website = {
+        ...website,
+        components: {
+          ...website.components,
+          [nodeId]: updatedNode,
+        },
+      };
+
+      recordHistory(`تعديل كود (${target.name})`, newWebsite);
+    },
+    [website, recordHistory]
+  );
+
+  const updateScopedComponentCode = useCallback(
+    (nodeId: string, file: string, code: string) => {
+      const target = website.components[nodeId];
+      if (!target) return;
+
+      const currentCustomCode = target.customCode || {};
+      const updatedCustomCode = { ...currentCustomCode };
+
+      if (file === 'component.tsx') updatedCustomCode.tsxSnippet = code;
+      else if (file === 'styles.css') updatedCustomCode.cssSnippet = code;
+      else if (file === 'interactions.ts') updatedCustomCode.jsSnippet = code;
+      else if (file === 'schema.json') updatedCustomCode.propsSchema = code;
+
+      const updatedNode: ComponentNode = {
+        ...target,
+        customCode: updatedCustomCode,
+      };
+
+      const newWebsite: Website = {
+        ...website,
+        components: {
+          ...website.components,
+          [nodeId]: updatedNode,
+        },
+      };
+
+      recordHistory(`تعديل كود مخصص (${file}) لـ (${target.name})`, newWebsite);
+    },
+    [website, recordHistory]
+  );
+
+  // Assets Upload
+  const uploadMockAsset = useCallback(
+    (file: File) => {
+      const newAsset: AssetDto = {
+        id: `asset_${Date.now()}`,
+        tenantId: currentTenant.id,
+        fileName: file.name,
+        fileType: file.type.startsWith('image/') ? 'image' : 'document',
+        url: URL.createObjectURL(file),
+        thumbnailUrl: URL.createObjectURL(file),
+        sizeBytes: file.size,
+        altText: file.name,
+        category: 'Uploads',
+        tags: ['user-upload'],
+        usageCount: 0,
+        createdAt: new Date().toISOString(),
+      };
+      setAssets((prev) => [newAsset, ...prev]);
+    },
+    [currentTenant.id]
+  );
+
+  // Version Snapshots
+  const createVersionSnapshot = useCallback(
+    (label: string, description: string) => {
+      const newVersion: VersionHistoryItem = {
+        id: `ver_${Date.now()}`,
+        versionNumber: versions.length + 1,
+        label,
+        description,
+        timestamp: new Date().toISOString(),
+        author: 'المدير التنفيذي',
+        websiteSnapshot: JSON.parse(JSON.stringify(website)),
+      };
+      setVersions((prev) => [newVersion, ...prev]);
       setHistoryLog((prev) => [
-        `تم تبديل القالب بالكامل إلى نشاط (${targetWebsite.name})`,
+        `إنشاء نقطة استعادة (نسخة v${newVersion.versionNumber}): ${label}`,
         ...prev,
       ]);
     },
-    []
+    [versions.length, website]
   );
 
-  // Tenant Switcher (also synchronizes the full website template if available)
-  const switchTenant = useCallback(
-    (tenantId: string) => {
-      const foundTenant = mockTenants.find((t) => t.id === tenantId);
-      if (foundTenant) {
-        setCurrentTenant(foundTenant);
+  const restoreVersion = useCallback(
+    (versionId: string) => {
+      const targetVer = versions.find((v) => v.id === versionId);
+      if (!targetVer) return;
 
-        // Find matching activity website in registry
-        const matchingWebsiteEntry = Object.entries(allActivityWebsites).find(
-          ([, site]) => site.tenantId === tenantId || site.activity === foundTenant.businessActivity
-        );
+      recordHistory(`استعادة النسخة (v${targetVer.versionNumber})`, targetVer.websiteSnapshot);
+    },
+    [versions, recordHistory]
+  );
 
-        if (matchingWebsiteEntry) {
-          const [matchingWebsiteId, matchingSite] = matchingWebsiteEntry;
-          setWebsite(matchingSite);
-          setActiveTemplateId(matchingWebsiteId);
-          const firstPage = matchingSite.pages[0];
-          setActivePageId(firstPage ? firstPage.id : 'page_home');
-          setSelectedNodeId(firstPage ? firstPage.rootNodeId : 'comp_hero');
-          setPastStates([]);
-          setFutureStates([]);
+  // Manual / Auto Save
+  const saveDraft = useCallback(
+    async (manual = true) => {
+      setAutosaveStatus('saving');
+      try {
+        if (builderShopId) {
+          await apiRequest(`/builder/${builderShopId}/config`, {
+            method: 'PUT',
+            body: JSON.stringify({ config: { activityType: website.activity, website } }),
+          });
+        }
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(
+            `ray_builder_site_${builderShopId || 'local'}`,
+            JSON.stringify(website)
+          );
+        }
+        setAutosaveStatus('saved');
+        if (manual) {
           setHistoryLog((prev) => [
-            `تم تبديل القالب والمستأجر إلى (${matchingSite.name})`,
+            builderShopId
+              ? 'تم حفظ مسودة الموقع بنجاح'
+              : 'تم حفظ نسخة محلية فقط (لا يوجد متجر مرتبط بعد)',
+            ...prev,
+          ]);
+        }
+      } catch (err) {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(
+              `ray_builder_site_${builderShopId || 'local'}`,
+              JSON.stringify(website)
+            );
+          } catch {}
+        }
+        setAutosaveStatus('error');
+        if (manual) {
+          setHistoryLog((prev) => [
+            'تعذّر الحفظ على السيرفر — حُفظت نسخة محلية فقط، أعد المحاولة',
             ...prev,
           ]);
         }
       }
     },
-    []
+    [builderShopId, website]
   );
-
-  // Custom Scoped Code
-  const updateNodeCustomCode = useCallback((nodeId: string, codePatch: Partial<CustomCodeScope>) => {
-    const target = website.components[nodeId];
-    if (!target) return;
-
-    const updatedNode: ComponentNode = {
-      ...target,
-      customCode: {
-        ...target.customCode,
-        ...codePatch,
-      },
-    };
-
-    const newWebsite: Website = {
-      ...website,
-      components: {
-        ...website.components,
-        [nodeId]: updatedNode,
-      },
-    };
-
-    recordHistory(`تعديل كود (${target.name})`, newWebsite);
-  }, [website, recordHistory]);
-
-  const updateScopedComponentCode = useCallback((nodeId: string, file: string, code: string) => {
-    const target = website.components[nodeId];
-    if (!target) return;
-
-    const currentCustomCode = target.customCode || {};
-    let updatedCustomCode = { ...currentCustomCode };
-
-    if (file === 'component.tsx') updatedCustomCode.tsxSnippet = code;
-    else if (file === 'styles.css') updatedCustomCode.cssSnippet = code;
-    else if (file === 'interactions.ts') updatedCustomCode.jsSnippet = code;
-    else if (file === 'schema.json') updatedCustomCode.propsSchema = code;
-
-    const updatedNode: ComponentNode = {
-      ...target,
-      customCode: updatedCustomCode,
-    };
-
-    const newWebsite: Website = {
-      ...website,
-      components: {
-        ...website.components,
-        [nodeId]: updatedNode,
-      },
-    };
-
-    recordHistory(`تعديل كود مخصص (${file}) لـ (${target.name})`, newWebsite);
-  }, [website, recordHistory]);
-
-  // Assets Upload
-  const uploadMockAsset = useCallback((file: File) => {
-    const newAsset: AssetDto = {
-      id: `asset_${Date.now()}`,
-      tenantId: currentTenant.id,
-      fileName: file.name,
-      fileType: file.type.startsWith('image/') ? 'image' : 'document',
-      url: URL.createObjectURL(file),
-      thumbnailUrl: URL.createObjectURL(file),
-      sizeBytes: file.size,
-      altText: file.name,
-      category: 'Uploads',
-      tags: ['user-upload'],
-      usageCount: 0,
-      createdAt: new Date().toISOString(),
-    };
-    setAssets((prev) => [newAsset, ...prev]);
-  }, [currentTenant.id]);
-
-  // Version Snapshots
-  const createVersionSnapshot = useCallback((label: string, description: string) => {
-    const newVersion: VersionHistoryItem = {
-      id: `ver_${Date.now()}`,
-      versionNumber: versions.length + 1,
-      label,
-      description,
-      timestamp: new Date().toISOString(),
-      author: 'المدير التنفيذي',
-      websiteSnapshot: JSON.parse(JSON.stringify(website)),
-    };
-    setVersions((prev) => [newVersion, ...prev]);
-    setHistoryLog((prev) => [`إنشاء نقطة استعادة (نسخة v${newVersion.versionNumber}): ${label}`, ...prev]);
-  }, [versions.length, website]);
-
-  const restoreVersion = useCallback((versionId: string) => {
-    const targetVer = versions.find((v) => v.id === versionId);
-    if (!targetVer) return;
-
-    recordHistory(`استعادة النسخة (v${targetVer.versionNumber})`, targetVer.websiteSnapshot);
-  }, [versions, recordHistory]);
-
-  // Manual / Auto Save
-  const saveDraft = useCallback(async (manual = true) => {
-    setAutosaveStatus('saving');
-    try {
-      if (builderShopId) {
-        await apiRequest(`/builder/${builderShopId}/config`, {
-          method: 'PUT',
-          body: JSON.stringify({ config: { activityType: website.activity, website } }),
-        });
-      }
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(`ray_builder_site_${builderShopId || 'local'}`, JSON.stringify(website));
-      }
-      setAutosaveStatus('saved');
-      if (manual) {
-        setHistoryLog((prev) => [
-          builderShopId ? 'تم حفظ مسودة الموقع بنجاح' : 'تم حفظ نسخة محلية فقط (لا يوجد متجر مرتبط بعد)',
-          ...prev,
-        ]);
-      }
-    } catch (err) {
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem(`ray_builder_site_${builderShopId || 'local'}`, JSON.stringify(website));
-        } catch {}
-      }
-      setAutosaveStatus('error');
-      if (manual) {
-        setHistoryLog((prev) => ['تعذّر الحفظ على السيرفر — حُفظت نسخة محلية فقط، أعد المحاولة', ...prev]);
-      }
-    }
-  }, [builderShopId, website]);
 
   // Publishing Pipeline Workflow
   const runPublishPipeline = useCallback(async () => {
@@ -2145,7 +2428,12 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
         return;
       }
       await saveDraft(false);
-      setPublishingStatus({ status: 'building_nextjs', currentStep: 2, totalSteps: 5, stepMessage: '2/5 تم حفظ مسودة الموقع وتجهيز حزم النشر السريع...' });
+      setPublishingStatus({
+        status: 'building_nextjs',
+        currentStep: 2,
+        totalSteps: 5,
+        stepMessage: '2/5 تم حفظ مسودة الموقع وتجهيز حزم النشر السريع...',
+      });
       await apiRequest(`/builder/${builderShopId}/publish`, { method: 'POST' });
       // Ask the marketplace to drop its cached /site/:slug page so visitors
       // see the changes immediately (fire-and-forget — publishing already
@@ -2153,16 +2441,20 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
       const publishSlug = builderShopSlug || website.subdomain;
       if (publishSlug) {
         try {
-          const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+          const isDev =
+            typeof window !== 'undefined' &&
+            (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
           const marketplaceBase = isDev
-            ? (process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'http://localhost:5174')
-            : (process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'https://mnmknk.com');
+            ? process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'http://localhost:5174'
+            : process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'https://mnmknk.com';
           void fetch(`${marketplaceBase}/api/revalidate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ slug: publishSlug, secret: 'dev-revalidate-secret' }),
           }).catch(() => undefined);
-        } catch { /* non-fatal */ }
+        } catch {
+          /* non-fatal */
+        }
       }
       setPublishingStatus({
         status: 'published',
@@ -2186,150 +2478,166 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   }, [builderShopId, liveWebsiteUrl, saveDraft, website]);
 
   // AI Patch Application
-  const applyAiPatch = useCallback((patch: StructuredAiPatch) => {
-    let updatedComponents = { ...website.components };
-    let updatedTheme = { ...website.theme };
-    let targetSelectId = patch.targetNodeIds?.[0] || selectedNodeId;
+  const applyAiPatch = useCallback(
+    (patch: StructuredAiPatch) => {
+      const updatedComponents = { ...website.components };
+      let updatedTheme = { ...website.theme };
+      let targetSelectId = patch.targetNodeIds?.[0] || selectedNodeId;
 
-    patch.operations.forEach((op) => {
-      const opType = op.op.toLowerCase();
+      patch.operations.forEach((op) => {
+        const opType = op.op.toLowerCase();
 
-      if ((opType === 'update_style' || op.op === 'UPDATE_STYLE') && op.targetId && updatedComponents[op.targetId]) {
-        const target = updatedComponents[op.targetId];
-        if (typeof op.value === 'object' && op.value !== null && !op.path.includes('.')) {
-          updatedComponents[op.targetId] = {
-            ...target,
-            styles: {
-              ...target.styles,
-              desktop: {
-                ...target.styles.desktop,
+        if (
+          (opType === 'update_style' || op.op === 'UPDATE_STYLE') &&
+          op.targetId &&
+          updatedComponents[op.targetId]
+        ) {
+          const target = updatedComponents[op.targetId];
+          if (typeof op.value === 'object' && op.value !== null && !op.path.includes('.')) {
+            updatedComponents[op.targetId] = {
+              ...target,
+              styles: {
+                ...target.styles,
+                desktop: {
+                  ...target.styles.desktop,
+                  ...op.value,
+                },
+              },
+            };
+          } else {
+            const pathParts = op.path.split('.');
+            const propName = pathParts[pathParts.length - 1];
+            updatedComponents[op.targetId] = {
+              ...target,
+              styles: {
+                ...target.styles,
+                desktop: {
+                  ...target.styles.desktop,
+                  [propName]: op.value,
+                },
+              },
+            };
+          }
+        } else if (
+          (opType === 'update_prop' || op.op === 'UPDATE_PROPS') &&
+          op.targetId &&
+          updatedComponents[op.targetId]
+        ) {
+          const target = updatedComponents[op.targetId];
+          if (
+            typeof op.value === 'object' &&
+            op.value !== null &&
+            (!op.path || op.path === 'props')
+          ) {
+            updatedComponents[op.targetId] = {
+              ...target,
+              props: {
+                ...target.props,
                 ...op.value,
               },
-            },
-          };
-        } else {
-          const pathParts = op.path.split('.');
-          const propName = pathParts[pathParts.length - 1];
-          updatedComponents[op.targetId] = {
-            ...target,
-            styles: {
-              ...target.styles,
-              desktop: {
-                ...target.styles.desktop,
+            };
+          } else {
+            const propName = op.path.replace(/^props\./, '');
+            updatedComponents[op.targetId] = {
+              ...target,
+              props: {
+                ...target.props,
                 [propName]: op.value,
               },
-            },
-          };
-        }
-      } else if ((opType === 'update_prop' || op.op === 'UPDATE_PROPS') && op.targetId && updatedComponents[op.targetId]) {
-        const target = updatedComponents[op.targetId];
-        if (typeof op.value === 'object' && op.value !== null && (!op.path || op.path === 'props')) {
-          updatedComponents[op.targetId] = {
-            ...target,
-            props: {
-              ...target.props,
-              ...op.value,
-            },
-          };
-        } else {
-          const propName = op.path.replace(/^props\./, '');
-          updatedComponents[op.targetId] = {
-            ...target,
-            props: {
-              ...target.props,
-              [propName]: op.value,
-            },
-          };
-        }
-      } else if (opType === 'insert_node' || opType === 'add_node') {
-        const newNode: ComponentNode = op.value?.node || op.value;
-        if (newNode && newNode.id) {
-          const targetParentId = op.value?.targetParentId || newNode.parentId || activePage.rootNodeId;
-          const insertAfterId = op.value?.insertAfterId || op.targetId;
-          const parentNode = updatedComponents[targetParentId];
-
-          if (parentNode) {
-            const currentChildren = [...(parentNode.childrenIds || [])];
-            const insertIdx = insertAfterId ? currentChildren.indexOf(insertAfterId) : -1;
-
-            if (insertIdx !== -1) {
-              currentChildren.splice(insertIdx + 1, 0, newNode.id);
-            } else {
-              currentChildren.push(newNode.id);
-            }
-
-            updatedComponents[newNode.id] = {
-              ...newNode,
-              parentId: targetParentId,
             };
-
-            updatedComponents[targetParentId] = {
-              ...parentNode,
-              childrenIds: currentChildren,
-            };
-
-            targetSelectId = newNode.id;
           }
-        }
-      } else if (opType === 'update_theme_token' && op.path) {
-        if (op.path === 'theme.colors.primary' || op.path.includes('primary')) {
-          updatedTheme = {
-            ...updatedTheme,
-            colors: {
-              ...updatedTheme.colors,
-              primary: op.value,
-              primaryHover: op.value,
-            },
+        } else if (opType === 'insert_node' || opType === 'add_node') {
+          const newNode: ComponentNode = op.value?.node || op.value;
+          if (newNode && newNode.id) {
+            const targetParentId =
+              op.value?.targetParentId || newNode.parentId || activePage.rootNodeId;
+            const insertAfterId = op.value?.insertAfterId || op.targetId;
+            const parentNode = updatedComponents[targetParentId];
+
+            if (parentNode) {
+              const currentChildren = [...(parentNode.childrenIds || [])];
+              const insertIdx = insertAfterId ? currentChildren.indexOf(insertAfterId) : -1;
+
+              if (insertIdx !== -1) {
+                currentChildren.splice(insertIdx + 1, 0, newNode.id);
+              } else {
+                currentChildren.push(newNode.id);
+              }
+
+              updatedComponents[newNode.id] = {
+                ...newNode,
+                parentId: targetParentId,
+              };
+
+              updatedComponents[targetParentId] = {
+                ...parentNode,
+                childrenIds: currentChildren,
+              };
+
+              targetSelectId = newNode.id;
+            }
+          }
+        } else if (opType === 'update_theme_token' && op.path) {
+          if (op.path === 'theme.colors.primary' || op.path.includes('primary')) {
+            updatedTheme = {
+              ...updatedTheme,
+              colors: {
+                ...updatedTheme.colors,
+                primary: op.value,
+                primaryHover: op.value,
+              },
+            };
+          }
+        } else if (opType === 'replace_node' && op.targetId && updatedComponents[op.targetId]) {
+          updatedComponents[op.targetId] = {
+            ...updatedComponents[op.targetId],
+            ...op.value,
           };
         }
-      } else if (opType === 'replace_node' && op.targetId && updatedComponents[op.targetId]) {
-        updatedComponents[op.targetId] = {
-          ...updatedComponents[op.targetId],
-          ...op.value,
-        };
+      });
+
+      const newWebsite: Website = {
+        ...website,
+        components: updatedComponents,
+        theme: updatedTheme,
+      };
+
+      recordHistory(
+        `تطبيق تعديل الذكاء الاصطناعي: ${patch.summary || patch.description}`,
+        newWebsite
+      );
+      if (targetSelectId && updatedComponents[targetSelectId]) {
+        setSelectedNodeId(targetSelectId);
+        setTimeout(() => {
+          const el = document.getElementById(targetSelectId as string);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
       }
-    });
-
-    const newWebsite: Website = {
-      ...website,
-      components: updatedComponents,
-      theme: updatedTheme,
-    };
-
-    recordHistory(`تطبيق تعديل الذكاء الاصطناعي: ${patch.summary || patch.description}`, newWebsite);
-    if (targetSelectId && updatedComponents[targetSelectId]) {
-      setSelectedNodeId(targetSelectId);
-      setTimeout(() => {
-        const el = document.getElementById(targetSelectId as string);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 100);
-    }
-  }, [website, selectedNodeId, activePage.rootNodeId, recordHistory]);
+    },
+    [website, selectedNodeId, activePage.rootNodeId, recordHistory]
+  );
 
   // Load Complete AI Generated Website
-  const loadCustomWebsite = useCallback(
-    (newWebsite: Website) => {
-      setWebsite(newWebsite);
-      setActiveTemplateId(newWebsite.id);
+  const loadCustomWebsite = useCallback((newWebsite: Website) => {
+    setWebsite(newWebsite);
+    setActiveTemplateId(newWebsite.id);
 
-      const firstPage = newWebsite.pages[0];
-      const initialPageId = firstPage ? firstPage.id : 'page_home';
-      setActivePageId(initialPageId);
-      setSelectedNodeId(firstPage ? firstPage.rootNodeId : null);
-      setHoveredNodeId(null);
+    const firstPage = newWebsite.pages[0];
+    const initialPageId = firstPage ? firstPage.id : 'page_home';
+    setActivePageId(initialPageId);
+    setSelectedNodeId(firstPage ? firstPage.rootNodeId : null);
+    setHoveredNodeId(null);
 
-      setPastStates([]);
-      setFutureStates([]);
-      setHistoryLog((prev) => [
-        `تم توليد وبناء موقع جديد بالكامل بالذكاء الاصطناعي: (${newWebsite.name})`,
-        ...prev,
-      ]);
-      setIsAiModalOpen(false);
-    },
-    []
-  );
+    setPastStates([]);
+    setFutureStates([]);
+    setHistoryLog((prev) => [
+      `تم توليد وبناء موقع جديد بالكامل بالذكاء الاصطناعي: (${newWebsite.name})`,
+      ...prev,
+    ]);
+    setIsAiModalOpen(false);
+  }, []);
 
   return (
     <BuilderContext.Provider

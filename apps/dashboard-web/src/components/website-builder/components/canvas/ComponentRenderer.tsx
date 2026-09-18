@@ -67,6 +67,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
   const [openDropdown, setOpenDropdown] = useState<boolean>(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  const [openFaqItems, setOpenFaqItems] = useState<Record<string, boolean>>({});
   const [isMobileMenuDrawerOpen, setIsMobileMenuDrawerOpen] = useState<boolean>(false);
   const [hoveredProductCardId, setHoveredProductCardId] = useState<string | null>(null);
 
@@ -77,6 +78,13 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
   const isHovered = hoveredNodeId === node.id && !isSelected && !isInteractivePreview;
 
   const currentViewport = overrideViewport || viewport;
+  const themeColors = website.theme?.colors;
+  const themeCardStyle: React.CSSProperties = {
+    backgroundColor: themeColors?.background || '#ffffff',
+    borderColor: themeColors?.border || '#e2e8f0',
+    borderRadius: website.theme?.radius?.lg || '16px',
+  };
+  const themeMutedStyle: React.CSSProperties = { color: themeColors?.textSecondary || '#475569' };
 
   // Compute responsive styles merged by current breakpoint
   const getComputedStyles = (): React.CSSProperties => {
@@ -185,7 +193,11 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
           css.fontSize = `${Math.max(15, Math.round(parseInt(d.fontSize) * 0.72))}px`;
         }
         // In headers, keep brand heading single line
-        if (node.parentId?.includes('header') || node.id?.includes('brand') || node.id?.includes('logo')) {
+        if (
+          node.parentId?.includes('header') ||
+          node.id?.includes('brand') ||
+          node.id?.includes('logo')
+        ) {
           css.whiteSpace = 'nowrap';
           css.fontSize = m.fontSize || '14px';
           css.flexShrink = 0;
@@ -194,8 +206,14 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
       // 3. Header navigation links on mobile: hide cramped bullet text on small phone screens
       if (
-        (typeof node.props.text === 'string' && (node.props.text.includes('•') || node.props.text.includes('|') || node.props.text.includes('▾'))) ||
-        ((node.parentId?.includes('header') || node.parentId?.includes('sec_') || node.id?.includes('nav')) && (node.type === 'paragraph' || node.id?.includes('nav') || node.category === 'navigation'))
+        (typeof node.props.text === 'string' &&
+          (node.props.text.includes('•') ||
+            node.props.text.includes('|') ||
+            node.props.text.includes('▾'))) ||
+        ((node.parentId?.includes('header') ||
+          node.parentId?.includes('sec_') ||
+          node.id?.includes('nav')) &&
+          (node.type === 'paragraph' || node.id?.includes('nav') || node.category === 'navigation'))
       ) {
         css.display = 'none';
       }
@@ -212,7 +230,12 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       }
 
       // 5. Flex rows: allow wrapping if content overflows
-      if (merged.display === 'flex' && merged.flexDirection === 'row' && !m.flexWrap && !merged.flexWrap) {
+      if (
+        merged.display === 'flex' &&
+        merged.flexDirection === 'row' &&
+        !m.flexWrap &&
+        !merged.flexWrap
+      ) {
         if (!node.parentId?.includes('header')) {
           css.flexWrap = 'wrap';
         }
@@ -252,7 +275,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       // Check for anchor to an in-page section
       if (url.startsWith('#')) {
         const anchorName = url.replace(/^#+/, '').trim().toLowerCase();
-        
+
         // Check if anchor corresponds to a dedicated page (e.g. #fleet, #contact, #home)
         const matchedPage = website.pages.find(
           (p) =>
@@ -284,7 +307,10 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       }
 
       // Check for internal path (e.g. "/fleet", "/contact", "/home", "fleet", "contact")
-      const cleanSlug = url.replace(/^[#/]+/, '').toLowerCase().trim();
+      const cleanSlug = url
+        .replace(/^[#/]+/, '')
+        .toLowerCase()
+        .trim();
       const pageBySlug = website.pages.find(
         (p) =>
           p.slug.toLowerCase() === cleanSlug ||
@@ -307,6 +333,8 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         url.startsWith('tel:') ||
         url.startsWith('mailto:')
       ) {
+        e.preventDefault();
+        e.stopPropagation();
         window.open(url, '_blank', 'noopener,noreferrer');
         return;
       }
@@ -336,7 +364,12 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         }
       }
 
-      if (lowerText.includes('أسطول') || lowerText.includes('سيارات') || lowerText.includes('معرض') || lowerText.includes('موديل')) {
+      if (
+        lowerText.includes('أسطول') ||
+        lowerText.includes('سيارات') ||
+        lowerText.includes('معرض') ||
+        lowerText.includes('موديل')
+      ) {
         const fleetPage = website.pages.find(
           (p) => p.slug === 'fleet' || p.id.includes('fleet') || p.name.includes('أسطول')
         );
@@ -411,7 +444,10 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         lowerText.includes('جودة')
       ) {
         const certsPage = website.pages.find(
-          (p) => p.slug === 'certifications' || p.id === 'page_certifications' || p.name.includes('اعتمادات')
+          (p) =>
+            p.slug === 'certifications' ||
+            p.id === 'page_certifications' ||
+            p.name.includes('اعتمادات')
         );
         if (certsPage && activePage.id !== certsPage.id) {
           e.preventDefault();
@@ -465,10 +501,10 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
   const outlineClass = isInteractivePreview
     ? ''
     : isSelected
-    ? 'ring-2 ring-blue-600 ring-offset-2 relative z-20'
-    : isHovered
-    ? 'ring-1 ring-blue-300 ring-offset-1 relative'
-    : '';
+      ? 'ring-2 ring-blue-600 ring-offset-2 relative z-20'
+      : isHovered
+        ? 'ring-1 ring-blue-300 ring-offset-1 relative'
+        : '';
 
   // Render children recursively
   const renderChildren = () => {
@@ -492,16 +528,16 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
   const isActiveLink = Boolean(
     isNavNode &&
-      ((node.props.pageId && node.props.pageId === activePage.id) ||
-        (node.props.url &&
-          (node.props.url === `/${activePage.slug}` ||
-            node.props.url === `#${activePage.slug}` ||
-            node.props.url === activePage.slug ||
-            (activePage.slug === 'home' &&
-              (node.props.url === '/' ||
-                node.props.url === '#home' ||
-                node.props.url === '/home')))) ||
-        (node.props.text && node.props.text.trim() === activePage.name.trim()))
+    ((node.props.pageId && node.props.pageId === activePage.id) ||
+      (node.props.url &&
+        (node.props.url === `/${activePage.slug}` ||
+          node.props.url === `#${activePage.slug}` ||
+          node.props.url === activePage.slug ||
+          (activePage.slug === 'home' &&
+            (node.props.url === '/' ||
+              node.props.url === '#home' ||
+              node.props.url === '/home')))) ||
+      (node.props.text && node.props.text.trim() === activePage.name.trim()))
   );
 
   // Custom Rendering for specific Component Types
@@ -528,7 +564,12 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                   node.childrenIds.map((cId) => {
                     const child = website.components[cId];
                     if (!child) return null;
-                    if (child.id.includes('nav') || child.type === 'paragraph' || child.category === 'navigation') return null;
+                    if (
+                      child.id.includes('nav') ||
+                      child.type === 'paragraph' ||
+                      child.category === 'navigation'
+                    )
+                      return null;
                     if (child.type === 'button' || child.id.includes('cta')) return null;
                     return (
                       <ComponentRenderer
@@ -646,7 +687,9 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                               }`}
                             >
                               <span>{p.name}</span>
-                              <ArrowRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'} rtl:rotate-180`} />
+                              <ArrowRight
+                                className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'} rtl:rotate-180`}
+                              />
                             </button>
                           );
                         })}
@@ -680,7 +723,8 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                     {/* Drawer Footer Branding */}
                     <div className="pt-6 border-t border-slate-100 text-center">
                       <span className="text-[10px] font-semibold text-slate-400">
-                        صنع بكل فخر عبر <strong className="text-blue-600 font-bold">نمّي أعمالك</strong> ⚡
+                        صنع بكل فخر عبر{' '}
+                        <strong className="text-blue-600 font-bold">نمّي أعمالك</strong> ⚡
                       </span>
                     </div>
                   </div>
@@ -802,12 +846,41 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       }
 
       // Check if this node has a dropdown sub-menu (e.g. أسطول السيارات)
-      const hasDropdown = node.props.hasDropdown || node.id === 'nav_link_2' || !!node.props.dropdownItems;
+      const hasDropdown =
+        node.props.hasDropdown || node.id === 'nav_link_2' || !!node.props.dropdownItems;
       const dropdownItems = node.props.dropdownItems || [
-        { id: 'sub_all', title: 'كافة أسطول 2025', description: 'جميع الموديلات الفاخرة المتاحة للتسليم الفوري', url: '/fleet', pageId: 'page_fleet', badge: 'شامل' },
-        { id: 'sub_amg', title: 'مرسيدس AMG & مايباخ', description: 'سيدان وكوبيه VIP الرياضية', url: '/fleet', pageId: 'page_fleet', badge: '14 سيارة' },
-        { id: 'sub_gt3', title: 'بورش 911 & GT3 RS', description: 'أداء حلبات خارق وفخامة فائقة', url: '/fleet', pageId: 'page_fleet', badge: '12 سيارة' },
-        { id: 'sub_suv', title: 'رينج روفر SV & كولينان', description: 'دفع رباعي فاخر بقمة الهيبة', url: '/fleet', pageId: 'page_fleet', badge: '9 سيارات' },
+        {
+          id: 'sub_all',
+          title: 'كافة أسطول 2025',
+          description: 'جميع الموديلات الفاخرة المتاحة للتسليم الفوري',
+          url: '/fleet',
+          pageId: 'page_fleet',
+          badge: 'شامل',
+        },
+        {
+          id: 'sub_amg',
+          title: 'مرسيدس AMG & مايباخ',
+          description: 'سيدان وكوبيه VIP الرياضية',
+          url: '/fleet',
+          pageId: 'page_fleet',
+          badge: '14 سيارة',
+        },
+        {
+          id: 'sub_gt3',
+          title: 'بورش 911 & GT3 RS',
+          description: 'أداء حلبات خارق وفخامة فائقة',
+          url: '/fleet',
+          pageId: 'page_fleet',
+          badge: '12 سيارة',
+        },
+        {
+          id: 'sub_suv',
+          title: 'رينج روفر SV & كولينان',
+          description: 'دفع رباعي فاخر بقمة الهيبة',
+          url: '/fleet',
+          pageId: 'page_fleet',
+          badge: '9 سيارات',
+        },
       ];
 
       if (hasDropdown) {
@@ -942,7 +1015,11 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       }
 
       // If text contains multi-link separators like ' • ' or ' | ' in preview mode, render individual interactive items
-      if (isInteractivePreview && typeof text === 'string' && (text.includes(' • ') || text.includes(' | '))) {
+      if (
+        isInteractivePreview &&
+        typeof text === 'string' &&
+        (text.includes(' • ') || text.includes(' | '))
+      ) {
         const delimiter = text.includes(' • ') ? ' • ' : ' | ';
         const items: string[] = text.split(delimiter);
 
@@ -998,7 +1075,8 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     }
 
     case 'button': {
-      const isSubmitBtn = node.id === 'contact_btn_submit' || node.props.text?.includes('إرسال طلب');
+      const isSubmitBtn =
+        node.id === 'contact_btn_submit' || node.props.text?.includes('إرسال طلب');
       const isHeaderCta = node.id === 'header_cta_btn';
 
       const handleBtnClick = (e: React.MouseEvent) => {
@@ -1018,38 +1096,45 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       return (
         <div className="inline-flex items-center gap-2">
           {/* Header Cart Button if this is the header CTA */}
-          {isHeaderCta && !website.components['comp_header']?.props?.hideCart && !(website.theme as any)?.hideCart && !node.props.hideCart && (() => {
-            const headerCartIcon = website.components['comp_header']?.props?.cartIcon || node.props.cartIcon || 'ShoppingBag';
-            return (
-              <button
-                onClick={(e) => {
-                  if (isInteractivePreview) {
-                    e.stopPropagation();
-                    setIsCartOpen(true);
-                  }
-                }}
-                title="سلة المشتريات والحجوزات"
-                className="relative p-2.5 rounded-xl border border-slate-200/80 bg-white/80 hover:bg-white text-slate-700 hover:text-blue-600 shadow-xs transition-all flex items-center justify-center cursor-pointer active:scale-95"
-              >
-                {headerCartIcon === 'ShoppingCart' ? (
-                  <ShoppingCart className="w-4 h-4" />
-                ) : headerCartIcon === 'Package' ? (
-                  <Package className="w-4 h-4" />
-                ) : headerCartIcon === 'Store' ? (
-                  <Store className="w-4 h-4" />
-                ) : headerCartIcon === 'CreditCard' ? (
-                  <CreditCard className="w-4 h-4" />
-                ) : (
-                  <ShoppingBag className="w-4 h-4" />
-                )}
-                {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-blue-600 text-white rounded-full text-[10px] font-black flex items-center justify-center shadow-xs">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-            );
-          })()}
+          {isHeaderCta &&
+            !website.components['comp_header']?.props?.hideCart &&
+            !(website.theme as any)?.hideCart &&
+            !node.props.hideCart &&
+            (() => {
+              const headerCartIcon =
+                website.components['comp_header']?.props?.cartIcon ||
+                node.props.cartIcon ||
+                'ShoppingBag';
+              return (
+                <button
+                  onClick={(e) => {
+                    if (isInteractivePreview) {
+                      e.stopPropagation();
+                      setIsCartOpen(true);
+                    }
+                  }}
+                  title="سلة المشتريات والحجوزات"
+                  className="relative p-2.5 rounded-xl border border-slate-200/80 bg-white/80 hover:bg-white text-slate-700 hover:text-blue-600 shadow-xs transition-all flex items-center justify-center cursor-pointer active:scale-95"
+                >
+                  {headerCartIcon === 'ShoppingCart' ? (
+                    <ShoppingCart className="w-4 h-4" />
+                  ) : headerCartIcon === 'Package' ? (
+                    <Package className="w-4 h-4" />
+                  ) : headerCartIcon === 'Store' ? (
+                    <Store className="w-4 h-4" />
+                  ) : headerCartIcon === 'CreditCard' ? (
+                    <CreditCard className="w-4 h-4" />
+                  ) : (
+                    <ShoppingBag className="w-4 h-4" />
+                  )}
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-blue-600 text-white rounded-full text-[10px] font-black flex items-center justify-center shadow-xs">
+                      {cartCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })()}
 
           <button
             id={node.id}
@@ -1126,122 +1211,135 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             className={`cursor-pointer transition-all flex flex-col justify-between ${outlineClass}`}
           >
             {/* CAR PRODUCT CARD */}
-            {node.props.image && node.props.price && (() => {
-              const hoverImg = node.props.hoverImage || (Array.isArray(node.props.images) && node.props.images[1]) || (node.props.image.includes('1614162692292') ? 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=1000&auto=format&fit=crop&q=80' : undefined);
-              const buyBtnIcon = node.props.buyButtonIcon || 'ShoppingBag';
-              const buyBtnText = node.props.buyButtonText || 'إضافة للسلة';
-              const hideBuyBtn = Boolean(node.props.hideBuyButton);
+            {node.props.image &&
+              node.props.price &&
+              (() => {
+                const hoverImg =
+                  node.props.hoverImage ||
+                  (Array.isArray(node.props.images) && node.props.images[1]) ||
+                  (node.props.image.includes('1614162692292')
+                    ? 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=1000&auto=format&fit=crop&q=80'
+                    : undefined);
+                const buyBtnIcon = node.props.buyButtonIcon || 'ShoppingBag';
+                const buyBtnText = node.props.buyButtonText || 'إضافة للسلة';
+                const hideBuyBtn = Boolean(node.props.hideBuyButton);
 
-              return (
-                <div className="flex flex-col h-full group/pcard">
-                  <div className="h-48 w-full overflow-hidden bg-slate-100 rounded-t-xl relative group/cardimg">
-                    <img
-                      src={node.props.image}
-                      alt={node.props.title}
-                      className={`w-full h-full object-cover transition-all duration-500 ${
-                        hoverImg ? 'group-hover/cardimg:opacity-0 group-hover/cardimg:scale-105' : 'hover:scale-105'
-                      }`}
-                    />
-                    {hoverImg && (
+                return (
+                  <div className="flex flex-col h-full group/pcard">
+                    <div className="h-48 w-full overflow-hidden bg-slate-100 rounded-t-xl relative group/cardimg">
                       <img
-                        src={hoverImg}
-                        alt={`${node.props.title} - صورة ثانوية`}
-                        className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover/cardimg:opacity-100 group-hover/cardimg:scale-105 transition-all duration-500 pointer-events-none"
+                        src={node.props.image}
+                        alt={node.props.title}
+                        className={`w-full h-full object-cover transition-all duration-500 ${
+                          hoverImg
+                            ? 'group-hover/cardimg:opacity-0 group-hover/cardimg:scale-105'
+                            : 'hover:scale-105'
+                        }`}
                       />
-                    )}
-                  </div>
-                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span
-                          style={{
-                            backgroundColor: `${website.theme.colors.primary}18`,
-                            color: website.theme.colors.primary,
-                          }}
-                          className="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
-                        >
-                          {node.props.badge || 'حصري'}
-                        </span>
-                        <span
-                          style={{ color: website.theme.colors.primary }}
-                          className="text-base font-extrabold font-mono"
-                        >
-                          {node.props.price}
-                        </span>
-                      </div>
-                      <h3 className="text-base font-bold text-slate-900 leading-snug">
-                        {node.props.title}
-                      </h3>
+                      {hoverImg && (
+                        <img
+                          src={hoverImg}
+                          alt={`${node.props.title} - صورة ثانوية`}
+                          className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover/cardimg:opacity-100 group-hover/cardimg:scale-105 transition-all duration-500 pointer-events-none"
+                        />
+                      )}
                     </div>
-
-                    {node.props.specs && (
-                      <div className="space-y-1 py-2 border-t border-slate-100 text-xs text-slate-600">
-                        {node.props.specs.map((s: string, idx: number) => (
-                          <div key={idx} className="flex items-center gap-1.5">
-                            <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                            <span>{s}</span>
-                          </div>
-                        ))}
+                    <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span
+                            style={{
+                              backgroundColor: `${website.theme.colors.primary}18`,
+                              color: website.theme.colors.primary,
+                            }}
+                            className="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
+                          >
+                            {node.props.badge || 'حصري'}
+                          </span>
+                          <span
+                            style={{ color: website.theme.colors.primary }}
+                            className="text-base font-extrabold font-mono"
+                          >
+                            {node.props.price}
+                          </span>
+                        </div>
+                        <h3 className="text-base font-bold text-slate-900 leading-snug">
+                          {node.props.title}
+                        </h3>
                       </div>
-                    )}
 
-                    <div className="grid grid-cols-2 gap-2 pt-2">
-                      {!hideBuyBtn && (
+                      {node.props.specs && (
+                        <div className="space-y-1 py-2 border-t border-slate-100 text-xs text-slate-600">
+                          {node.props.specs.map((s: string, idx: number) => (
+                            <div key={idx} className="flex items-center gap-1.5">
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              <span>{s}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-2 pt-2">
+                        {!hideBuyBtn && (
+                          <button
+                            onClick={(e) => {
+                              if (isInteractivePreview) {
+                                e.stopPropagation();
+                                const rawPrice =
+                                  typeof node.props.price === 'string'
+                                    ? parseInt(node.props.price.replace(/[^0-9]/g, '')) || 750000
+                                    : node.props.price || 750000;
+
+                                addToCart({
+                                  id: `cart_${node.id}`,
+                                  title: node.props.title || 'منتج',
+                                  price: rawPrice,
+                                  priceFormatted:
+                                    node.props.price || `${rawPrice.toLocaleString()} ج.م`,
+                                  image:
+                                    node.props.image ||
+                                    'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80',
+                                  badge: node.props.badge || 'فئة أولى',
+                                });
+                              }
+                            }}
+                            className="py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                          >
+                            {buyBtnIcon === 'ShoppingCart' ? (
+                              <ShoppingCart className="w-3.5 h-3.5" />
+                            ) : buyBtnIcon === 'Zap' ? (
+                              <Zap className="w-3.5 h-3.5" />
+                            ) : buyBtnIcon === 'Sparkles' ? (
+                              <Sparkles className="w-3.5 h-3.5" />
+                            ) : buyBtnIcon === 'Tag' ? (
+                              <Tag className="w-3.5 h-3.5" />
+                            ) : (
+                              <ShoppingBag className="w-3.5 h-3.5" />
+                            )}
+                            <span>{buyBtnText}</span>
+                          </button>
+                        )}
+
                         <button
                           onClick={(e) => {
                             if (isInteractivePreview) {
                               e.stopPropagation();
-                              const rawPrice = typeof node.props.price === 'string'
-                                ? parseInt(node.props.price.replace(/[^0-9]/g, '')) || 750000
-                                : (node.props.price || 750000);
-
-                              addToCart({
-                                id: `cart_${node.id}`,
-                                title: node.props.title || 'منتج',
-                                price: rawPrice,
-                                priceFormatted: node.props.price || `${rawPrice.toLocaleString()} ج.م`,
-                                image: node.props.image || 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80',
-                                badge: node.props.badge || 'فئة أولى',
-                              });
+                              handleInteraction(e, '/contact', 'page_contact', 'تواصل معنا');
                             }
                           }}
-                          className="py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                          style={{
+                            backgroundColor: website.theme.colors.secondary || '#0f172a',
+                            borderRadius: website.theme.radius.lg || '10px',
+                          }}
+                          className={`py-2.5 px-3 text-white font-bold text-xs shadow-xs transition-all hover:opacity-90 cursor-pointer active:scale-98 text-center ${hideBuyBtn ? 'col-span-2' : ''}`}
                         >
-                          {buyBtnIcon === 'ShoppingCart' ? (
-                            <ShoppingCart className="w-3.5 h-3.5" />
-                          ) : buyBtnIcon === 'Zap' ? (
-                            <Zap className="w-3.5 h-3.5" />
-                          ) : buyBtnIcon === 'Sparkles' ? (
-                            <Sparkles className="w-3.5 h-3.5" />
-                          ) : buyBtnIcon === 'Tag' ? (
-                            <Tag className="w-3.5 h-3.5" />
-                          ) : (
-                            <ShoppingBag className="w-3.5 h-3.5" />
-                          )}
-                          <span>{buyBtnText}</span>
+                          {node.props.ctaText || 'طلب فحص'}
                         </button>
-                      )}
-
-                      <button
-                        onClick={(e) => {
-                          if (isInteractivePreview) {
-                            e.stopPropagation();
-                            handleInteraction(e, '/contact', 'page_contact', 'تواصل معنا');
-                          }
-                        }}
-                        style={{
-                          backgroundColor: website.theme.colors.secondary || '#0f172a',
-                          borderRadius: website.theme.radius.lg || '10px',
-                        }}
-                        className={`py-2.5 px-3 text-white font-bold text-xs shadow-xs transition-all hover:opacity-90 cursor-pointer active:scale-98 text-center ${hideBuyBtn ? 'col-span-2' : ''}`}
-                      >
-                        {node.props.ctaText || 'طلب فحص'}
-                      </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
 
             {/* BENTO FEATURE CARD */}
             {node.props.icon && (
@@ -1304,7 +1402,11 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                   <h4 className="text-sm font-bold text-slate-900">{node.props.question}</h4>
                   {isInteractivePreview && (
                     <span className="text-slate-400 p-1">
-                      {isFaqOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      {isFaqOpen ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
                     </span>
                   )}
                 </div>
@@ -1379,7 +1481,8 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             </div>
             <h3 className="text-xl font-bold text-emerald-900">تم استلام طلب حجزك بنجاح!</h3>
             <p className="text-sm text-emerald-700 max-w-md leading-relaxed">
-              شكراً لاختيارك شركة المجد للسيارات. سيتواصل معك مستشار مبيعات VIP على الرقم المسجل خلال 15 دقيقة لتأكيد الموعد وتجهيز السيارة المطلوبة.
+              شكراً لاختيارك شركة المجد للسيارات. سيتواصل معك مستشار مبيعات VIP على الرقم المسجل
+              خلال 15 دقيقة لتأكيد الموعد وتجهيز السيارة المطلوبة.
             </p>
             <button
               onClick={() => setFormSubmitted(false)}
@@ -1462,35 +1565,43 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                       className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
                     >
                       {/* Image & Badge */}
-                      {prod.image && (() => {
-                        const prodHoverImg = prod.hoverImage || (Array.isArray(prod.images) && prod.images[1]) || (prod.image.includes('1614162692292') ? 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=1000&auto=format&fit=crop&q=80' : undefined);
+                      {prod.image &&
+                        (() => {
+                          const prodHoverImg =
+                            prod.hoverImage ||
+                            (Array.isArray(prod.images) && prod.images[1]) ||
+                            (prod.image.includes('1614162692292')
+                              ? 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=1000&auto=format&fit=crop&q=80'
+                              : undefined);
 
-                        return (
-                          <div className="relative aspect-16/10 overflow-hidden bg-slate-100 group/prodimg">
-                            <img
-                              src={prod.image}
-                              alt={prod.title}
-                              className={`w-full h-full object-cover transition-all duration-500 ${
-                                prodHoverImg ? 'group-hover/prodimg:opacity-0 group-hover/prodimg:scale-105' : 'group-hover:scale-105'
-                              }`}
-                              referrerPolicy="no-referrer"
-                            />
-                            {prodHoverImg && (
+                          return (
+                            <div className="relative aspect-16/10 overflow-hidden bg-slate-100 group/prodimg">
                               <img
-                                src={prodHoverImg}
-                                alt={`${prod.title} - صورة بديلة`}
-                                className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover/prodimg:opacity-100 group-hover/prodimg:scale-105 transition-all duration-500 pointer-events-none"
+                                src={prod.image}
+                                alt={prod.title}
+                                className={`w-full h-full object-cover transition-all duration-500 ${
+                                  prodHoverImg
+                                    ? 'group-hover/prodimg:opacity-0 group-hover/prodimg:scale-105'
+                                    : 'group-hover:scale-105'
+                                }`}
                                 referrerPolicy="no-referrer"
                               />
-                            )}
-                            {prod.badge && (
-                              <span className="absolute top-3 right-3 bg-slate-900/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-xs z-10">
-                                {prod.badge}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })()}
+                              {prodHoverImg && (
+                                <img
+                                  src={prodHoverImg}
+                                  alt={`${prod.title} - صورة بديلة`}
+                                  className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover/prodimg:opacity-100 group-hover/prodimg:scale-105 transition-all duration-500 pointer-events-none"
+                                  referrerPolicy="no-referrer"
+                                />
+                              )}
+                              {prod.badge && (
+                                <span className="absolute top-3 right-3 bg-slate-900/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-xs z-10">
+                                  {prod.badge}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                       {/* Content */}
                       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
@@ -1650,7 +1761,9 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                             {tier.price}
                           </span>
                           {tier.period && (
-                            <span className="text-xs text-slate-500 font-medium">/{tier.period}</span>
+                            <span className="text-xs text-slate-500 font-medium">
+                              /{tier.period}
+                            </span>
                           )}
                         </div>
 
@@ -1670,7 +1783,12 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                         onClick={(e) => {
                           if (isInteractivePreview) {
                             e.stopPropagation();
-                            handleInteraction(e, '/contact', 'page_contact', tier.ctaText || 'اشتراك');
+                            handleInteraction(
+                              e,
+                              '/contact',
+                              'page_contact',
+                              tier.ctaText || 'اشتراك'
+                            );
                           }
                         }}
                         style={{
@@ -1744,11 +1862,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                       }}
                       className="w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0"
                     >
-                      {feat.icon ? (
-                        <ShieldCheck className="w-6 h-6" />
-                      ) : (
-                        <span>⭐</span>
-                      )}
+                      {feat.icon ? <ShieldCheck className="w-6 h-6" /> : <span>⭐</span>}
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-slate-900">{feat.title}</h3>
@@ -1820,7 +1934,12 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                       onClick={(e) => {
                         if (isInteractivePreview) {
                           e.stopPropagation();
-                          handleInteraction(e, node.props.primaryCtaLink || '#items', undefined, node.props.primaryCtaText);
+                          handleInteraction(
+                            e,
+                            node.props.primaryCtaLink || '#items',
+                            undefined,
+                            node.props.primaryCtaText
+                          );
                         }
                       }}
                       style={{
@@ -1839,7 +1958,12 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                       onClick={(e) => {
                         if (isInteractivePreview) {
                           e.stopPropagation();
-                          handleInteraction(e, node.props.secondaryCtaLink || '#contact', 'page_contact', node.props.secondaryCtaText);
+                          handleInteraction(
+                            e,
+                            node.props.secondaryCtaLink || '#contact',
+                            'page_contact',
+                            node.props.secondaryCtaText
+                          );
                         }
                       }}
                       className="px-4 sm:px-6 py-3 bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
@@ -1854,7 +1978,10 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                   <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-6 border-t border-slate-200/80">
                     {heroStats.map((stat: any, sIdx: number) => (
                       <div key={sIdx} className="space-y-0.5">
-                        <div style={{ color: primaryColor }} className="text-base sm:text-2xl font-black font-mono">
+                        <div
+                          style={{ color: primaryColor }}
+                          className="text-base sm:text-2xl font-black font-mono"
+                        >
                           {stat.value}
                         </div>
                         <div className="text-[11px] sm:text-xs text-slate-500 font-medium">
@@ -1922,7 +2049,9 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                   </h2>
                 )}
                 {node.props.subtitle && (
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    {node.props.subtitle}
+                  </p>
                 )}
               </div>
             )}
@@ -1950,13 +2079,17 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                             src={item.image}
                             alt={item.title}
                             className={`w-full h-full object-cover transition-all duration-500 ${
-                              item.hoverImage || item.secondaryImage || (item.images && item.images.length > 1)
+                              item.hoverImage ||
+                              item.secondaryImage ||
+                              (item.images && item.images.length > 1)
                                 ? 'group-hover/img:scale-105 group-hover/img:opacity-0'
                                 : 'group-hover/img:scale-105'
                             }`}
                             loading="lazy"
                           />
-                          {(item.hoverImage || item.secondaryImage || (item.images && item.images.length > 1)) && (
+                          {(item.hoverImage ||
+                            item.secondaryImage ||
+                            (item.images && item.images.length > 1)) && (
                             <img
                               src={item.hoverImage || item.secondaryImage || item.images?.[1]}
                               alt={`${item.title} - صورة إضافية`}
@@ -1978,7 +2111,10 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                             <h3 className="text-sm sm:text-base font-bold text-slate-900 line-clamp-1">
                               {item.title}
                             </h3>
-                            <span style={{ color: primaryColor }} className="text-sm sm:text-base font-extrabold font-mono shrink-0">
+                            <span
+                              style={{ color: primaryColor }}
+                              className="text-sm sm:text-base font-extrabold font-mono shrink-0"
+                            >
                               {formattedPrice}
                             </span>
                           </div>
@@ -2050,7 +2186,12 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       const fieldsList = node.props.fields || [
         { name: 'name', label: 'الاسم الكريم', type: 'text', placeholder: 'الاسم بالكامل' },
         { name: 'phone', label: 'رقم الهاتف / واتساب', type: 'tel', placeholder: '05xxxxxxxx' },
-        { name: 'notes', label: 'ملاحظات أو تفاصيل الطلب', type: 'text', placeholder: 'اكتب رسالتك...' },
+        {
+          name: 'notes',
+          label: 'ملاحظات أو تفاصيل الطلب',
+          type: 'text',
+          placeholder: 'اكتب رسالتك...',
+        },
       ];
       const primaryColor = website.theme?.colors?.primary || '#2563eb';
 
@@ -2103,7 +2244,14 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                 <form onSubmit={handleFormSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {fieldsList.map((f: any, fIdx: number) => (
-                      <div key={f.name || fIdx} className={fIdx === fieldsList.length - 1 && fieldsList.length % 2 !== 0 ? 'sm:col-span-2' : ''}>
+                      <div
+                        key={f.name || fIdx}
+                        className={
+                          fIdx === fieldsList.length - 1 && fieldsList.length % 2 !== 0
+                            ? 'sm:col-span-2'
+                            : ''
+                        }
+                      >
                         <label className="block text-xs font-bold text-slate-700 mb-1.5 text-right">
                           {f.label} {f.required && <span className="text-red-500">*</span>}
                         </label>
@@ -2112,7 +2260,9 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                           placeholder={f.placeholder || ''}
                           required={f.required}
                           value={inputValues[f.name] || ''}
-                          onChange={(e) => setInputValues({ ...inputValues, [f.name]: e.target.value })}
+                          onChange={(e) =>
+                            setInputValues({ ...inputValues, [f.name]: e.target.value })
+                          }
                           className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:outline-none transition-colors text-right"
                         />
                       </div>
@@ -2143,7 +2293,8 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     // Footer Section
     case 'footer': {
       const brandName = node.props.brandName || website.name || 'المتجر الإلكتروني';
-      const description = node.props.description || 'منصة متكاملة للتجارة والخدمات بأعلى معايير الجودة.';
+      const description =
+        node.props.description || 'منصة متكاملة للتجارة والخدمات بأعلى معايير الجودة.';
 
       return (
         <footer
@@ -2164,7 +2315,9 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
               {/* Contact Info Col */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">معلومات التواصل</h4>
+                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  معلومات التواصل
+                </h4>
                 <div className="space-y-1.5 text-xs text-slate-400">
                   {node.props.phone && (
                     <div className="flex items-center gap-2">
@@ -2189,7 +2342,9 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
               {/* Quick Trust Col */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">ضمان واعتماد</h4>
+                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  ضمان واعتماد
+                </h4>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   جميع المعاملات والخدمات مشمولة بضمان معتمد وفريق دعم فني متواجد على مدار الساعة.
                 </p>
@@ -2198,7 +2353,10 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
             {/* Copyright & Powered by Badge */}
             <div className="pt-6 pb-2 text-center flex flex-col sm:flex-row items-center justify-center gap-2 text-xs text-slate-400 select-none border-t border-slate-800/60 mt-6">
-              <span>{node.props.copyright || `جميع الحقوق محفوظة © ${new Date().getFullYear()} ${brandName}`}</span>
+              <span>
+                {node.props.copyright ||
+                  `جميع الحقوق محفوظة © ${new Date().getFullYear()} ${brandName}`}
+              </span>
               <span className="hidden sm:inline opacity-30">•</span>
               <a
                 href="https://mnmknk.com"
@@ -2223,22 +2381,46 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     // ── Testimonials ──────────────────────────────────────────────────────────
     case 'testimonials': {
       const items: any[] = node.props.items || [
-        { name: 'أحمد محمد', role: 'عميل مميز', text: 'خدمة ممتازة وتوصيل سريع، أنصح الجميع بالتعامل معهم!', rating: 5 },
-        { name: 'فاطمة علي', role: 'عميلة دائمة', text: 'منتجات أصلية وجودة عالية، سعيدة جداً بتجربتي.', rating: 5 },
-        { name: 'محمود حسن', role: 'عميل جديد', text: 'سهولة الطلب والدفع عند الاستلام خلاني ما أتردد.', rating: 4 },
+        {
+          name: 'أحمد محمد',
+          role: 'عميل مميز',
+          text: 'خدمة ممتازة وتوصيل سريع، أنصح الجميع بالتعامل معهم!',
+          rating: 5,
+        },
+        {
+          name: 'فاطمة علي',
+          role: 'عميلة دائمة',
+          text: 'منتجات أصلية وجودة عالية، سعيدة جداً بتجربتي.',
+          rating: 5,
+        },
+        {
+          name: 'محمود حسن',
+          role: 'عميل جديد',
+          text: 'سهولة الطلب والدفع عند الاستلام خلاني ما أتردد.',
+          rating: 4,
+        },
       ];
       return (
-        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
-          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}>
+        <section
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}
+        >
           <div className="max-w-6xl mx-auto text-right">
-            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">{node.props.title || 'آراء عملائنا'}</h2>
-            <p className="text-sm text-slate-500 mb-8">{node.props.subtitle || 'ماذا قالوا عنّا'}</p>
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">
+              {node.props.title || 'آراء عملائنا'}
+            </h2>
+            <p className="text-sm text-slate-500 mb-8">
+              {node.props.subtitle || 'ماذا قالوا عنّا'}
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {items.map((t: any, i: number) => (
                 <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
                   <div className="flex gap-0.5 mb-3">
-                    {Array.from({ length: t.rating || 5 }).map((_,s) => (
+                    {Array.from({ length: t.rating || 5 }).map((_, s) => (
                       <Star key={s} className="w-4 h-4 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
@@ -2270,16 +2452,26 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         { src: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400', caption: '' },
       ];
       return (
-        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
-          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-          className={`cursor-pointer transition-all py-10 px-4 ${outlineClass}`}>
+        <section
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-10 px-4 ${outlineClass}`}
+        >
           <div className="max-w-6xl mx-auto text-right">
-            {node.props.title && <h2 className="text-2xl font-extrabold text-slate-900 mb-6">{node.props.title}</h2>}
+            {node.props.title && (
+              <h2 className="text-2xl font-extrabold text-slate-900 mb-6">{node.props.title}</h2>
+            )}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {images.map((img: any, i: number) => (
                 <div key={i} className="aspect-square rounded-xl overflow-hidden bg-slate-100">
-                  <img src={img.src || img} alt={img.caption || `صورة ${i+1}`}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                  <img
+                    src={img.src || img}
+                    alt={img.caption || `صورة ${i + 1}`}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                  />
                 </div>
               ))}
             </div>
@@ -2297,19 +2489,38 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         { name: 'خالد حسن', role: 'مدير العمليات', image: '' },
       ];
       return (
-        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
-          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}>
+        <section
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}
+        >
           <div className="max-w-5xl mx-auto text-right">
-            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">{node.props.title || 'فريقنا'}</h2>
-            <p className="text-sm text-slate-500 mb-8">{node.props.subtitle || 'نخبة من الخبراء في خدمتك'}</p>
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">
+              {node.props.title || 'فريقنا'}
+            </h2>
+            <p className="text-sm text-slate-500 mb-8">
+              {node.props.subtitle || 'نخبة من الخبراء في خدمتك'}
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               {members.map((m: any, i: number) => (
-                <div key={i} className="text-center bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                  {m.image
-                    ? <img src={m.image} alt={m.name} className="w-20 h-20 rounded-full mx-auto mb-3 object-cover" />
-                    : <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 mx-auto mb-3 flex items-center justify-center text-white text-2xl font-black">{(m.name||'?')[0]}</div>
-                  }
+                <div
+                  key={i}
+                  className="text-center bg-white rounded-2xl p-6 shadow-sm border border-slate-100"
+                >
+                  {m.image ? (
+                    <img
+                      src={m.image}
+                      alt={m.name}
+                      className="w-20 h-20 rounded-full mx-auto mb-3 object-cover"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 mx-auto mb-3 flex items-center justify-center text-white text-2xl font-black">
+                      {(m.name || '?')[0]}
+                    </div>
+                  )}
                   <p className="font-bold text-slate-800">{m.name}</p>
                   <p className="text-xs text-slate-500 mt-1">{m.role}</p>
                 </div>
@@ -2330,15 +2541,27 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         { value: '+٢٠', label: 'سنة خبرة' },
       ];
       return (
-        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
-          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-          className={`cursor-pointer transition-all py-10 px-4 bg-slate-50 ${outlineClass}`}>
+        <section
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-8 sm:py-10 px-4 ${outlineClass}`}
+        >
           <div className="max-w-5xl mx-auto">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
               {items.map((s: any, i: number) => (
-                <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                  <div className="text-3xl font-black text-blue-600 mb-1">{s.value}</div>
-                  <div className="text-sm text-slate-500">{s.label}</div>
+                <div key={i} style={themeCardStyle} className="p-4 sm:p-5 shadow-sm border">
+                  <div
+                    style={{ color: themeColors?.primary }}
+                    className="text-2xl sm:text-3xl font-black mb-1"
+                  >
+                    {s.value}
+                  </div>
+                  <div style={themeMutedStyle} className="text-xs sm:text-sm">
+                    {s.label}
+                  </div>
                 </div>
               ))}
             </div>
@@ -2351,28 +2574,66 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     // ── FAQ ────────────────────────────────────────────────────────────────────
     case 'faq': {
       const items: any[] = node.props.items || [
-        { q: 'كيف أطلب؟', a: 'اختر منتجاتك وأضفها للسلة ثم أتم الطلب، سنتواصل معك لتأكيد التوصيل.' },
+        {
+          q: 'كيف أطلب؟',
+          a: 'اختر منتجاتك وأضفها للسلة ثم أتم الطلب، سنتواصل معك لتأكيد التوصيل.',
+        },
         { q: 'هل الدفع آمن؟', a: 'نعم، ندعم الدفع عند الاستلام بدون أي رسوم إضافية.' },
         { q: 'ما مدة التوصيل؟', a: 'من 2-5 أيام عمل حسب موقعك.' },
       ];
       return (
-        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
-          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}>
+        <section
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-8 sm:py-12 px-4 ${outlineClass}`}
+        >
           <div className="max-w-3xl mx-auto text-right">
-            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">{node.props.title || 'الأسئلة الشائعة'}</h2>
-            <p className="text-sm text-slate-500 mb-8">{node.props.subtitle || 'إجابات على أكثر الأسئلة شيوعاً'}</p>
+            <h2
+              style={{ color: themeColors?.textPrimary }}
+              className="text-2xl font-extrabold mb-2"
+            >
+              {node.props.title || 'الأسئلة الشائعة'}
+            </h2>
+            <p style={themeMutedStyle} className="text-sm mb-6 sm:mb-8">
+              {node.props.subtitle || 'إجابات على أكثر الأسئلة شيوعاً'}
+            </p>
             <div className="space-y-3">
-              {items.map((f: any, i: number) => (
-                <div key={i} className="border border-slate-200 rounded-xl bg-white overflow-hidden">
-                  <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50"
-                    onClick={(e) => { e.stopPropagation(); }}>
-                    <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span className="font-semibold text-slate-800 text-sm flex-1 text-right pr-2">{f.q}</span>
+              {items.map((f: any, i: number) => {
+                const itemKey = `${node.id}-${i}`;
+                const isOpen = Boolean(openFaqItems[itemKey]);
+                return (
+                  <div key={i} style={themeCardStyle} className="border overflow-hidden">
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      className="w-full flex items-center justify-between p-4 cursor-pointer text-right transition-colors hover:opacity-80"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenFaqItems((previous) => ({ ...previous, [itemKey]: !isOpen }));
+                      }}
+                    >
+                      <ChevronDown
+                        style={{ color: themeColors?.textMuted }}
+                        className={`w-4 h-4 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                      />
+                      <span
+                        style={{ color: themeColors?.textPrimary }}
+                        className="font-semibold text-sm flex-1 text-right pr-2"
+                      >
+                        {f.q}
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div style={themeMutedStyle} className="px-4 pb-4 text-sm leading-relaxed">
+                        {f.a}
+                      </div>
+                    )}
                   </div>
-                  <div className="px-4 pb-4 text-sm text-slate-600 leading-relaxed">{f.a}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
           {renderChildren()}
@@ -2383,40 +2644,161 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     // ── Contact Section ────────────────────────────────────────────────────────
     case 'contact-section':
     case 'contact': {
+      const contactFields = [
+        { name: 'name', type: 'text', placeholder: 'الاسم', required: true },
+        { name: 'phone', type: 'tel', placeholder: 'رقم الهاتف', required: true },
+        { name: 'message', type: 'text', placeholder: 'رسالتك...' },
+      ];
       return (
-        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
-          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-          className={`cursor-pointer transition-all py-12 px-4 bg-slate-50 ${outlineClass}`}>
+        <section
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-8 sm:py-12 px-4 ${outlineClass}`}
+        >
           <div className="max-w-5xl mx-auto text-right">
-            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">{node.props.title || 'تواصل معنا'}</h2>
-            <p className="text-sm text-slate-500 mb-8">{node.props.subtitle || 'نحن هنا للمساعدة'}</p>
+            <h2
+              style={{ color: themeColors?.textPrimary }}
+              className="text-2xl font-extrabold mb-2"
+            >
+              {node.props.title || 'تواصل معنا'}
+            </h2>
+            <p style={themeMutedStyle} className="text-sm mb-6 sm:mb-8">
+              {node.props.subtitle || 'نحن هنا للمساعدة'}
+            </p>
             <div className="grid md:grid-cols-2 gap-8">
               <div className="space-y-4">
                 {(node.props.phone || node.props.whatsapp) && (
-                  <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
-                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center"><Phone className="w-5 h-5 text-green-600" /></div>
-                    <div><p className="text-xs text-slate-400">هاتف / واتساب</p><p className="font-bold text-slate-800" dir="ltr">{node.props.phone || node.props.whatsapp}</p></div>
-                  </div>
+                  <a
+                    href={`tel:${String(node.props.phone || node.props.whatsapp).replace(/\s/g, '')}`}
+                    style={themeCardStyle}
+                    className="flex items-center gap-3 p-4 border shadow-sm transition-transform hover:scale-[1.01]"
+                  >
+                    <div
+                      style={{
+                        backgroundColor: `${themeColors?.primary || '#2563eb'}18`,
+                        color: themeColors?.primary,
+                      }}
+                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                    >
+                      <Phone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p style={{ color: themeColors?.textMuted }} className="text-xs">
+                        هاتف / واتساب
+                      </p>
+                      <p
+                        style={{ color: themeColors?.textPrimary }}
+                        className="font-bold"
+                        dir="ltr"
+                      >
+                        {node.props.phone || node.props.whatsapp}
+                      </p>
+                    </div>
+                  </a>
                 )}
                 {node.props.email && (
                   <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center"><Mail className="w-5 h-5 text-blue-600" /></div>
-                    <div><p className="text-xs text-slate-400">البريد الإلكتروني</p><p className="font-bold text-slate-800">{node.props.email}</p></div>
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                      <Mail className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">البريد الإلكتروني</p>
+                      <p className="font-bold text-slate-800">{node.props.email}</p>
+                    </div>
                   </div>
                 )}
                 {node.props.address && (
                   <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
-                    <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center"><MapPin className="w-5 h-5 text-rose-600" /></div>
-                    <div><p className="text-xs text-slate-400">العنوان</p><p className="font-bold text-slate-800">{node.props.address}</p></div>
+                    <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
+                      <MapPin className="w-5 h-5 text-rose-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">العنوان</p>
+                      <p className="font-bold text-slate-800">{node.props.address}</p>
+                    </div>
                   </div>
                 )}
               </div>
-              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-3">
-                <input type="text" placeholder="الاسم" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-right" readOnly />
-                <input type="tel" placeholder="رقم الهاتف" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-right" dir="ltr" readOnly />
-                <textarea placeholder="رسالتك..." rows={3} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-right resize-none" readOnly />
-                <button className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-bold">إرسال</button>
-              </div>
+              <form
+                style={themeCardStyle}
+                className="p-4 sm:p-6 border shadow-sm space-y-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  setFormSubmitted(true);
+                }}
+              >
+                {formSubmitted ? (
+                  <div className="text-center py-6">
+                    <CheckCircle
+                      style={{ color: themeColors?.success }}
+                      className="w-8 h-8 mx-auto mb-2"
+                    />
+                    <p style={{ color: themeColors?.textPrimary }} className="font-bold">
+                      تم إرسال رسالتك بنجاح.
+                    </p>
+                    <button
+                      type="button"
+                      style={{ color: themeColors?.primary }}
+                      className="text-sm mt-2 underline"
+                      onClick={() => setFormSubmitted(false)}
+                    >
+                      إرسال رسالة أخرى
+                    </button>
+                  </div>
+                ) : (
+                  contactFields.map((field) =>
+                    field.name === 'message' ? (
+                      <textarea
+                        key={field.name}
+                        required={field.required}
+                        value={inputValues[field.name] || ''}
+                        onChange={(event) =>
+                          setInputValues((previous) => ({
+                            ...previous,
+                            [field.name]: event.target.value,
+                          }))
+                        }
+                        placeholder={field.placeholder}
+                        rows={3}
+                        className="w-full border rounded-lg px-3 py-2 text-sm text-right resize-none"
+                        style={{ borderColor: themeColors?.border }}
+                      />
+                    ) : (
+                      <input
+                        key={field.name}
+                        type={field.type}
+                        required={field.required}
+                        value={inputValues[field.name] || ''}
+                        onChange={(event) =>
+                          setInputValues((previous) => ({
+                            ...previous,
+                            [field.name]: event.target.value,
+                          }))
+                        }
+                        placeholder={field.placeholder}
+                        className="w-full border rounded-lg px-3 py-2 text-sm text-right"
+                        style={{ borderColor: themeColors?.border }}
+                        dir={field.type === 'tel' ? 'ltr' : undefined}
+                      />
+                    )
+                  )
+                )}
+                {!formSubmitted && (
+                  <button
+                    type="submit"
+                    style={{
+                      backgroundColor: themeColors?.primary,
+                      borderRadius: website.theme?.radius?.md || '8px',
+                    }}
+                    className="w-full text-white py-2.5 text-sm font-bold"
+                  >
+                    إرسال
+                  </button>
+                )}
+              </form>
             </div>
           </div>
           {renderChildren()}
@@ -2433,15 +2815,27 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         { title: 'خدمة ٣', description: 'وصف مختصر للخدمة الثالثة وما تقدمه من قيمة.', icon: '💎' },
       ];
       return (
-        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
-          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}>
+        <section
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}
+        >
           <div className="max-w-5xl mx-auto text-right">
-            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">{node.props.title || 'خدماتنا'}</h2>
-            <p className="text-sm text-slate-500 mb-8">{node.props.subtitle || 'نقدم لك أفضل الخدمات'}</p>
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">
+              {node.props.title || 'خدماتنا'}
+            </h2>
+            <p className="text-sm text-slate-500 mb-8">
+              {node.props.subtitle || 'نقدم لك أفضل الخدمات'}
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               {items.map((s: any, i: number) => (
-                <div key={i} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow"
+                >
                   <div className="text-3xl mb-3">{s.icon || '⚡'}</div>
                   <h3 className="font-bold text-slate-800 mb-2">{s.title}</h3>
                   <p className="text-sm text-slate-500 leading-relaxed">{s.description}</p>
@@ -2458,12 +2852,19 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     case 'spacer': {
       const h = node.props.height || 60;
       return (
-        <div id={node.id} style={{ height: h, ...getComputedStyles() }} onClick={handleClick}
-          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-          className={`cursor-pointer transition-all w-full relative ${outlineClass}`}>
+        <div
+          id={node.id}
+          style={{ height: h, ...getComputedStyles() }}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all w-full relative ${outlineClass}`}
+        >
           {!isInteractivePreview && (
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100">
-              <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded">مسافة {h}px</span>
+              <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                مسافة {h}px
+              </span>
             </div>
           )}
         </div>
@@ -2475,10 +2876,22 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       const style = node.props.style || 'solid';
       const color = node.props.color || '#e2e8f0';
       return (
-        <div id={node.id} style={getComputedStyles()} onClick={handleClick}
-          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-          className={`cursor-pointer transition-all px-4 py-3 ${outlineClass}`}>
-          <hr style={{ borderStyle: style, borderColor: color, borderTopWidth: node.props.thickness || 1 }} className="w-full" />
+        <div
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all px-4 py-3 ${outlineClass}`}
+        >
+          <hr
+            style={{
+              borderStyle: style,
+              borderColor: color,
+              borderTopWidth: node.props.thickness || 1,
+            }}
+            className="w-full"
+          />
         </div>
       );
     }
@@ -2494,9 +2907,14 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         { icon: '⭐', label: 'جودة مضمونة' },
       ];
       return (
-        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
-          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-          className={`cursor-pointer transition-all py-6 px-4 bg-slate-50 border-y border-slate-100 ${outlineClass}`}>
+        <section
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-6 px-4 bg-slate-50 border-y border-slate-100 ${outlineClass}`}
+        >
           <div className="max-w-5xl mx-auto">
             <div className="flex flex-wrap justify-center gap-4 md:gap-8">
               {badges.map((b: any, i: number) => (
@@ -2516,26 +2934,49 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     case 'before-after':
     case 'before_after': {
       return (
-        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
-          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}>
+        <section
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}
+        >
           <div className="max-w-4xl mx-auto text-right">
-            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">{node.props.title || 'قبل وبعد'}</h2>
-            <p className="text-sm text-slate-500 mb-8">{node.props.subtitle || 'شاهد الفرق بنفسك'}</p>
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">
+              {node.props.title || 'قبل وبعد'}
+            </h2>
+            <p className="text-sm text-slate-500 mb-8">
+              {node.props.subtitle || 'شاهد الفرق بنفسك'}
+            </p>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="relative overflow-hidden rounded-2xl border-2 border-red-200 bg-red-50">
-                {node.props.beforeImage
-                  ? <img src={node.props.beforeImage} alt="قبل" className="w-full h-48 object-cover" />
-                  : <div className="h-48 bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center text-red-400 text-4xl">📷</div>
-                }
-                <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">قبل</div>
+                {node.props.beforeImage ? (
+                  <img
+                    src={node.props.beforeImage}
+                    alt="قبل"
+                    className="w-full h-48 object-cover"
+                  />
+                ) : (
+                  <div className="h-48 bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center text-red-400 text-4xl">
+                    📷
+                  </div>
+                )}
+                <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                  قبل
+                </div>
               </div>
               <div className="relative overflow-hidden rounded-2xl border-2 border-green-200 bg-green-50">
-                {node.props.afterImage
-                  ? <img src={node.props.afterImage} alt="بعد" className="w-full h-48 object-cover" />
-                  : <div className="h-48 bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center text-green-400 text-4xl">✨</div>
-                }
-                <div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">بعد</div>
+                {node.props.afterImage ? (
+                  <img src={node.props.afterImage} alt="بعد" className="w-full h-48 object-cover" />
+                ) : (
+                  <div className="h-48 bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center text-green-400 text-4xl">
+                    ✨
+                  </div>
+                )}
+                <div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                  بعد
+                </div>
               </div>
             </div>
           </div>
@@ -2549,13 +2990,29 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     case 'promo_banner':
     case 'announcement-bar':
     case 'announcement_bar': {
-      const bgColor = node.props.bgColor || '#1d4ed8';
+      const bgColor = node.props.bgColor || themeColors?.primary || '#1d4ed8';
       const textColor = node.props.textColor || '#ffffff';
       return (
-        <div id={node.id} style={{ backgroundColor: bgColor, color: textColor, ...getComputedStyles() }}
-          onClick={handleClick} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-          className={`cursor-pointer transition-all py-2.5 px-4 text-center ${outlineClass}`}>
-          <p className="text-sm font-semibold">{node.props.text || '🎉 عرض خاص — خصم ١٠٪ على أول طلب! استخدم الكود: WELCOME10'}</p>
+        <div
+          id={node.id}
+          style={{ backgroundColor: bgColor, color: textColor, ...getComputedStyles() }}
+          onClick={(event) =>
+            isInteractivePreview
+              ? handleInteraction(
+                  event,
+                  node.props.link || node.props.url,
+                  node.props.pageId,
+                  node.props.text
+                )
+              : handleClick(event)
+          }
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-2.5 px-4 text-center ${outlineClass}`}
+        >
+          <p className="text-sm font-semibold">
+            {node.props.text || '🎉 عرض خاص — خصم ١٠٪ على أول طلب! استخدم الكود: WELCOME10'}
+          </p>
           {renderChildren()}
         </div>
       );
@@ -2564,16 +3021,35 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     // ── WhatsApp Float ─────────────────────────────────────────────────────────
     case 'whatsapp-float':
     case 'whatsapp_button': {
+      const whatsappNumber = String(
+        node.props.phone || node.props.whatsapp || '201000000000'
+      ).replace(/[^0-9]/g, '');
+      const whatsappMessage = encodeURIComponent(
+        node.props.message || `مرحباً، أود الاستفسار عن ${website.name || 'الخدمات'}`
+      );
       return (
-        <div id={node.id} style={getComputedStyles()} onClick={handleClick}
-          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-          className={`cursor-pointer transition-all ${outlineClass}`}>
+        <div
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all ${outlineClass}`}
+        >
           {/* Canvas preview — fixed position only on published site */}
-          <div className="flex items-center gap-2 bg-[#25D366] text-white rounded-full px-4 py-2 shadow-lg w-fit">
+          <a
+            href={`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(event) => event.stopPropagation()}
+            className="flex items-center gap-2 bg-[#25D366] text-white rounded-full px-4 py-2 shadow-lg w-fit hover:brightness-95 active:scale-95 transition-all"
+          >
             <MessageCircle className="w-5 h-5" />
             <span className="text-sm font-bold">{node.props.label || 'تواصل عبر واتساب'}</span>
-          </div>
-          <p className="text-[10px] text-slate-400 mt-1 text-right">(سيظهر عائماً في الزاوية على الموقع المنشور)</p>
+          </a>
+          <p className="text-[10px] text-slate-400 mt-1 text-right">
+            (سيظهر عائماً في الزاوية على الموقع المنشور)
+          </p>
           {renderChildren()}
         </div>
       );
@@ -2594,14 +3070,25 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
           {/* Bento header text render */}
           {node.props.badge && node.props.title && (
             <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
-              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">
+              <span
+                style={{
+                  color: themeColors?.primary,
+                  backgroundColor: `${themeColors?.primary || '#2563eb'}15`,
+                }}
+                className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"
+              >
                 {node.props.badge}
               </span>
-              <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">
+              <h2
+                style={{ color: themeColors?.textPrimary }}
+                className="text-2xl sm:text-3xl font-extrabold leading-tight"
+              >
                 {node.props.title}
               </h2>
               {node.props.subtitle && (
-                <p className="text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>
+                <p style={themeMutedStyle} className="text-sm leading-relaxed">
+                  {node.props.subtitle}
+                </p>
               )}
             </div>
           )}
@@ -2609,9 +3096,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
           {/* Stats item render */}
           {node.props.value && node.props.label && (
             <div className="text-right">
-              <div className="text-2xl font-black text-slate-900 font-mono">
-                {node.props.value}
-              </div>
+              <div className="text-2xl font-black text-slate-900 font-mono">{node.props.value}</div>
               <div className="text-xs text-slate-500 font-medium">{node.props.label}</div>
             </div>
           )}

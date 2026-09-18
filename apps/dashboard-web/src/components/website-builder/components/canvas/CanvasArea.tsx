@@ -22,7 +22,10 @@ export const CanvasArea: React.FC = () => {
 
   const handleCanvasClick = (e: React.MouseEvent) => {
     // If clicked directly on canvas background, deselect
-    if (e.target === e.currentTarget || (e.target as HTMLElement).id === 'canvas_viewport_wrapper') {
+    if (
+      e.target === e.currentTarget ||
+      (e.target as HTMLElement).id === 'canvas_viewport_wrapper'
+    ) {
       selectNode(null);
     }
   };
@@ -31,7 +34,7 @@ export const CanvasArea: React.FC = () => {
     <main
       ref={canvasContainerRef}
       id="canvas_main_container"
-      className="flex-1 h-[calc(100vh-3.5rem)] bg-slate-100/80 overflow-y-auto overflow-x-auto relative flex flex-col items-center min-h-0 transition-all"
+      className="flex-1 h-[calc(100vh-3.5rem)] bg-slate-100/80 overflow-y-auto overflow-x-hidden sm:overflow-x-auto relative flex flex-col items-center min-h-0 transition-all"
       onClick={handleCanvasClick}
       style={{
         backgroundImage: 'radial-gradient(#cbd5e1 1.2px, transparent 1.2px)',
@@ -49,7 +52,7 @@ export const CanvasArea: React.FC = () => {
         <div
           className="transition-all duration-300 origin-top flex flex-col shadow-xl rounded-none sm:rounded-2xl overflow-hidden border-x-0 sm:border border-slate-300/80 bg-white w-full sm:w-auto"
           style={{
-            width: viewport === 'mobile' ? '100%' : getViewportWidth(),
+            width: viewport === 'mobile' ? 'min(100%, 430px)' : getViewportWidth(),
             maxWidth: viewport === 'desktop' ? '1200px' : viewport === 'tablet' ? '768px' : '430px',
             transform: zoom !== 100 ? `scale(${zoom / 100})` : undefined,
             direction: isRtl ? 'rtl' : 'ltr',
@@ -68,7 +71,14 @@ export const CanvasArea: React.FC = () => {
           )}
 
           {/* Page Component Tree Render */}
-          <div className="w-full min-h-[900px] bg-white text-slate-900 flex flex-col">
+          <div
+            className="w-full min-h-[900px] flex flex-col"
+            style={{
+              backgroundColor: website.theme?.colors?.background || '#ffffff',
+              color: website.theme?.colors?.textPrimary || '#0f172a',
+              fontFamily: website.theme?.typography?.fontBody || 'Cairo, sans-serif',
+            }}
+          >
             {isThemeLoading || !website?.components[activePage.rootNodeId] ? (
               <div className="w-full p-6 sm:p-12 space-y-8 animate-pulse text-right">
                 {/* Header Skeleton */}
