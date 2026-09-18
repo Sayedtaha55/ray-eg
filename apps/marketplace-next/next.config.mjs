@@ -1,3 +1,15 @@
+function remoteImagePatterns() {
+  const sources = (process.env.NEXT_PUBLIC_IMAGE_HOSTS || 'mnmknk.com,api.mnmknk.com,localhost')
+    .split(',')
+    .map((host) => host.trim())
+    .filter(Boolean);
+
+  return sources.flatMap((hostname) => {
+    const protocols = hostname === 'localhost' ? ['http'] : ['https'];
+    return protocols.map((protocol) => ({ protocol, hostname }));
+  });
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -8,7 +20,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
     formats: ['image/avif', 'image/webp'],
-    remotePatterns: [{ protocol: 'https', hostname: '**' }],
+    remotePatterns: remoteImagePatterns(),
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },

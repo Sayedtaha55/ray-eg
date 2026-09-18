@@ -10,6 +10,7 @@ import { PwaInstallPrompt } from '@/components/PwaInstallPrompt';
 import { siteConfig } from '@/lib/config';
 import ConsentBanner from '@ray-eg/shared/components/common/ConsentBanner';
 import BreachNotice from '@ray-eg/shared/components/common/BreachNotice';
+import { backendOrigin } from '@/lib/api';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -67,6 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/fonts/fonts.css" as="style" />
         <link rel="stylesheet" href="/fonts/fonts.css" />
         <link rel="dns-prefetch" href="https://tile.openstreetmap.org" />
+        <link rel="dns-prefetch" href={backendOrigin()} />
         {/* PWA service worker — production only. In dev its caches keep serving
             stale pages/CSS and break hot reload. */}
         {process.env.NODE_ENV === 'production' && (

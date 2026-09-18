@@ -3,6 +3,57 @@ const RAW_BACKEND_URL =
   process.env.BACKEND_URL ||
   (process.env.NODE_ENV === 'production' ? 'https://api.mnmknk.com' : 'http://localhost:4000');
 
+const DEFAULT_API_TIMEOUT_MS = 15_000;
+const API_TIMEOUT_MS = parsePositiveInteger(
+  process.env.NEXT_PUBLIC_API_TIMEOUT_MS,
+  DEFAULT_API_TIMEOUT_MS
+);
+
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function mergeSignals(timeoutSignal: AbortSignal, requestSignal?: AbortSignal): AbortSignal {
+  if (!requestSignal) return timeoutSignal;
+
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+
+  if (timeoutSignal.aborted || requestSignal.aborted) {
+    controller.abort();
+    return controller.signal;
+  }
+
+  timeoutSignal.addEventListener('abort', abort, { once: true });
+  requestSignal.addEventListener('abort', abort, { once: true });
+
+  return controller.signal;
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {}
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: mergeSignals(controller.signal, init.signal ?? undefined),
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`API request timed out after ${API_TIMEOUT_MS}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 const BACKEND_URL = RAW_BACKEND_URL.replace(/\/+$/, '');
 
 export class ApiError extends Error {
@@ -24,11 +75,17 @@ export function apiPath(path: string): string {
   return normalized.startsWith('/api') ? normalized : `/api/v1${normalized}`;
 }
 
-function extractErrorMessage(body: unknown, fallback: string): { message: string; code?: string; details?: unknown } {
+function extractErrorMessage(
+  body: unknown,
+  fallback: string
+): { message: string; code?: string; details?: unknown } {
   if (!body || typeof body !== 'object') return { message: fallback };
 
   const record = body as Record<string, unknown>;
-  const data = record.data && typeof record.data === 'object' ? record.data as Record<string, unknown> : undefined;
+  const data =
+    record.data && typeof record.data === 'object'
+      ? (record.data as Record<string, unknown>)
+      : undefined;
   const message =
     (typeof record.message === 'string' && record.message) ||
     (typeof record.error === 'string' && record.error) ||
@@ -44,6 +101,10 @@ function extractErrorMessage(body: unknown, fallback: string): { message: string
 
 export function backendApiUrl(path: string): string {
   return `${BACKEND_URL}${apiPath(path)}`;
+}
+
+export function backendOrigin(): string {
+  return new URL(BACKEND_URL).origin;
 }
 
 export function getStoredAuthToken(): string | null {
@@ -74,7 +135,7 @@ export async function jsonRequest<T>(path: string, init: RequestInit = {}): Prom
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const res = await fetch(apiPath(path), {
+  const res = await fetchWithTimeout(apiPath(path), {
     ...init,
     headers,
     credentials: init.credentials ?? 'include',
@@ -93,17 +154,20 @@ export interface ApiOptions {
   revalidate?: number;
   tags?: string[];
   headers?: Record<string, string>;
+  signal?: AbortSignal;
 }
 
-async function apiFetch<T>(path: string, options?: ApiOptions & { method?: string; body?: unknown }): Promise<T> {
+async function apiFetch<T>(
+  path: string,
+  options?: ApiOptions & { method?: string; body?: unknown }
+): Promise<T> {
   const url = typeof window === 'undefined' ? backendApiUrl(path) : apiPath(path);
-  
-  // Get token from localStorage for client-side requests
+
   let token: string | null = null;
   if (typeof window !== 'undefined') {
     token = getStoredAuthToken();
   }
-  
+
   const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
   const headers = new Headers(options?.headers);
   if (!isFormData && !headers.has('Content-Type')) {
@@ -113,15 +177,20 @@ async function apiFetch<T>(path: string, options?: ApiOptions & { method?: strin
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: options?.method || 'GET',
     headers,
-    body: options?.body ? (isFormData ? options.body as BodyInit : JSON.stringify(options.body)) : undefined,
+    body: options?.body
+      ? isFormData
+        ? (options.body as BodyInit)
+        : JSON.stringify(options.body)
+      : undefined,
     next: {
       revalidate: options?.revalidate ?? 3600,
       tags: options?.tags,
     },
     cache: options?.revalidate === 0 ? 'no-store' : undefined,
+    signal: options?.signal,
   });
 
   if (!res.ok) {
@@ -131,7 +200,7 @@ async function apiFetch<T>(path: string, options?: ApiOptions & { method?: strin
       const error = extractErrorMessage(errorBody, 'Unauthorized');
       throw new ApiError(error.message, 401, error.code || 'unauthorized', error.details);
     }
-    let message = `API Error: ${res.status} ${res.statusText}`;
+    const message = `API Error: ${res.status} ${res.statusText}`;
     try {
       const body = await res.json();
       const error = extractErrorMessage(body, message);
@@ -157,4 +226,4 @@ export const api = {
     apiFetch<T>(path, { ...options, method: 'DELETE' }),
 };
 
-export { BACKEND_URL };
+export { BACKEND_URL, API_TIMEOUT_MS };
