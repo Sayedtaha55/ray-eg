@@ -156,6 +156,13 @@ export const sidebarSections: SidebarSection[] = [
         icon: Bell,
         href: '/dashboard/notifications',
       },
+      {
+        id: 'dashboardSettings',
+        label: 'Dashboard Settings',
+        labelAr: 'إعدادات الإشعارات',
+        icon: Settings,
+        href: '/dashboard/settings?tab=notifications&from=dashboard',
+      },
     ],
   },
   {
@@ -179,6 +186,13 @@ export const sidebarSections: SidebarSection[] = [
         labelAr: 'مُنشئ الموقع',
         icon: Globe,
         href: '/dashboard/website',
+      },
+      {
+        id: 'websiteSettings',
+        label: 'Website Settings',
+        labelAr: 'إعدادات الموقع',
+        icon: Settings,
+        href: '/dashboard/settings?tab=store&from=website',
       },
     ],
   },
@@ -260,6 +274,13 @@ export const sidebarSections: SidebarSection[] = [
         icon: CreditCard,
         href: '/dashboard/sales/epayment',
       },
+      {
+        id: 'salesSettings',
+        label: 'Order Settings',
+        labelAr: 'إعدادات الطلبات',
+        icon: Settings,
+        href: '/dashboard/settings?tab=orders_settings&from=sales',
+      },
     ],
   },
   {
@@ -289,7 +310,7 @@ export const sidebarSections: SidebarSection[] = [
         label: 'POS Settings',
         labelAr: 'إعدادات الكاشير',
         icon: Settings,
-        href: '/dashboard/pos/settings',
+        href: '/dashboard/settings?tab=pos_settings&from=pos',
       },
       {
         id: 'posReports',
@@ -352,6 +373,13 @@ export const sidebarSections: SidebarSection[] = [
       // ملاحظة: الفئات/المتغيرات/الباركود تبويبات داخل المنتجات، والنقل والحركات
       // تبويبات داخل المخازن، وتتبع الكميات وتنبيهات النفاد تبويبات داخل المخزون.
       // القاعدة: الوظيفة الكبيرة = صفحة، التابعة = تبويب، العملية = إجراء داخل الصفحة.
+      {
+        id: 'inventorySettings',
+        label: 'Inventory Settings',
+        labelAr: 'إعدادات المخزون',
+        icon: Settings,
+        href: '/dashboard/settings?tab=modules&from=inventory',
+      },
     ],
   },
   {
@@ -375,6 +403,13 @@ export const sidebarSections: SidebarSection[] = [
         labelAr: 'مقارنة الفروع',
         icon: GitBranch,
         href: '/dashboard/branches/compare',
+      },
+      {
+        id: 'branchesSettings',
+        label: 'Branches Settings',
+        labelAr: 'إعدادات الفروع',
+        icon: Settings,
+        href: '/dashboard/settings?tab=store&from=branches',
       },
     ],
   },
@@ -442,6 +477,13 @@ export const sidebarSections: SidebarSection[] = [
         icon: ScanLine,
         href: '/dashboard/finance/eta',
       },
+      {
+        id: 'financeSettings',
+        label: 'Finance Settings',
+        labelAr: 'إعدادات المالية',
+        icon: Settings,
+        href: '/dashboard/settings?tab=payments&from=finance',
+      },
     ],
   },
   {
@@ -493,6 +535,13 @@ export const sidebarSections: SidebarSection[] = [
         labelAr: 'الضرائب',
         icon: Percent,
         href: '/dashboard/finance/taxes',
+      },
+      {
+        id: 'accountingSettings',
+        label: 'Accounting Settings',
+        labelAr: 'إعدادات المحاسبة',
+        icon: Settings,
+        href: '/dashboard/settings?tab=payments&from=accounting',
       },
     ],
   },
@@ -562,6 +611,13 @@ export const sidebarSections: SidebarSection[] = [
         icon: Sparkles,
         href: '/dashboard/marketing/loyalty-programs',
       },
+      {
+        id: 'marketingSettings',
+        label: 'Marketing Settings',
+        labelAr: 'إعدادات التسويق',
+        icon: Settings,
+        href: '/dashboard/settings?tab=social_media&from=marketing',
+      },
     ],
   },
   {
@@ -576,7 +632,7 @@ export const sidebarSections: SidebarSection[] = [
         label: 'Customers',
         labelAr: 'العملاء',
         icon: Users,
-        href: '/dashboard/crm',
+        href: '/dashboard/customers',
       },
       {
         id: 'customerStatements',
@@ -621,6 +677,13 @@ export const sidebarSections: SidebarSection[] = [
         icon: Award,
         href: '/dashboard/customers/loyalty',
       },
+      {
+        id: 'customersSettings',
+        label: 'Customer Settings',
+        labelAr: 'إعدادات العملاء',
+        icon: Settings,
+        href: '/dashboard/settings?tab=notifications&from=customers',
+      },
     ],
   },
   {
@@ -660,6 +723,13 @@ export const sidebarSections: SidebarSection[] = [
         icon: Star,
         href: '/dashboard/crm/reviews',
       },
+      {
+        id: 'crmSettings',
+        label: 'Customer Service Settings',
+        labelAr: 'إعدادات خدمة العملاء',
+        icon: Settings,
+        href: '/dashboard/settings?tab=notifications&from=crm',
+      },
     ],
   },
   {
@@ -682,7 +752,7 @@ export const sidebarSections: SidebarSection[] = [
         label: 'Settings',
         labelAr: 'الإعدادات',
         icon: Settings,
-        href: '/dashboard/settings?tab=booking_settings',
+        href: '/dashboard/settings?tab=booking_settings&from=bookings',
       },
     ],
   },
@@ -743,6 +813,13 @@ export const sidebarSections: SidebarSection[] = [
         icon: ClipboardCheck,
         href: '/dashboard/hr/tasks',
       },
+      {
+        id: 'hrSettings',
+        label: 'Team Settings',
+        labelAr: 'إعدادات الفريق',
+        icon: Settings,
+        href: '/dashboard/settings?tab=security&from=hr',
+      },
     ],
   },
   {
@@ -759,6 +836,13 @@ export const sidebarSections: SidebarSection[] = [
         labelAr: 'التحليلات والتقارير',
         icon: FileBarChart,
         href: '/dashboard/analytics/reports',
+      },
+      {
+        id: 'analyticsSettings',
+        label: 'Analytics Settings',
+        labelAr: 'إعدادات التحليلات',
+        icon: Settings,
+        href: '/dashboard/settings?tab=overview&from=analytics',
       },
     ],
   },
@@ -797,6 +881,13 @@ export const sidebarSections: SidebarSection[] = [
         labelAr: 'هوية العلامة',
         icon: Gem,
         href: '/dashboard/ai/brand-identity',
+      },
+      {
+        id: 'aiSettings',
+        label: 'AI Settings',
+        labelAr: 'إعدادات الذكاء الاصطناعي',
+        icon: Settings,
+        href: '/dashboard/settings?tab=apps&from=ai',
       },
       {
         id: 'aiDesign',
