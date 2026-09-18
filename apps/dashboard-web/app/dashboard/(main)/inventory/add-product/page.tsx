@@ -34,7 +34,7 @@ export default function AddProductPage() {
             </p>
           </div>
           <button
-            onClick={() => router.push('/dashboard/inventory')}
+            onClick={() => router.push('/dashboard/inventory/products')}
             className="h-10 w-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors shrink-0"
             title="رجوع إلى المنتجات"
           >

@@ -242,40 +242,36 @@ export default function CheckoutPage() {
           {/* Payment Method */}
           <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 md:p-6">
             <h2 className="flex items-center gap-2 text-lg font-bold mb-5">
-              <CreditCard className="w-5 h-5 text-brand-cyan" />
+              <Banknote className="w-5 h-5 text-brand-cyan" />
               طريقة الدفع
             </h2>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('cod')}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                  paymentMethod === 'cod'
-                    ? 'border-brand-cyan bg-brand-cyan/5'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                }`}
-              >
-                <Banknote className={`w-6 h-6 ${paymentMethod === 'cod' ? 'text-brand-cyan' : 'text-slate-400'}`} />
-                <span className="font-bold text-sm">الدفع عند الاستلام</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('card')}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                  paymentMethod === 'card'
-                    ? 'border-brand-cyan bg-brand-cyan/5'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                }`}
-              >
-                <CreditCard className={`w-6 h-6 ${paymentMethod === 'card' ? 'text-brand-cyan' : 'text-slate-400'}`} />
-                <span className="font-bold text-sm">بطاقة ائتمان</span>
-              </button>
-            </div>
-            {paymentMethod === 'card' && (
-              <div className="mt-4 p-4 bg-amber-500/10 rounded-xl text-amber-600 dark:text-amber-400 text-xs font-bold">
-                سيتم تحويلك لصفحة الدفع الآمن بعد تأكيد الطلب
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-4 rounded-xl border-2 border-brand-cyan bg-brand-cyan/5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-brand-cyan/10 flex items-center justify-center">
+                    <Banknote className="w-6 h-6 text-brand-cyan" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-sm block">الدفع عند الاستلام (COD)</span>
+                    <span className="text-xs text-slate-500">ادفع نقداً للمندوب عند استلام طلبك ومطابقته</span>
+                  </div>
+                </div>
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-brand-cyan/20 text-brand-cyan">مفعل</span>
               </div>
-            )}
+
+              <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-800 opacity-60 bg-slate-50 dark:bg-slate-800/40 cursor-not-allowed">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-sm block text-slate-500">البطاقات البنكية والدفع الإلكتروني</span>
+                    <span className="text-xs text-slate-400">فيزا / ماستركارد / ميزة / محافظ إلكترونية</span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500">قريباً</span>
+              </div>
+            </div>
           </section>
         </div>
 

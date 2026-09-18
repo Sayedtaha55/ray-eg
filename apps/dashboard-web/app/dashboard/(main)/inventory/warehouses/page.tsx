@@ -1,13 +1,33 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+/**
+ * صفحة المخازن — كيان وإدارة رئيسية (صفحة مستقلة).
+ * التبويبات: المخازن | أرصدة كل مخزن | النقل بين المخازن | حركات المخازن
+ * النقل عملية داخل إدارة المخازن، مش صفحة مستقلة.
+ */
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import {
-  Warehouse, Search, Plus, Edit, Trash2, Download, Upload, Filter,
-  ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info,
-  RefreshCw, MapPin, Phone, User, Package, AlertTriangle, Building2,
+  Warehouse, Plus, Edit, Trash2, Download, X, Info,
+  RefreshCw, ArrowUpDown,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import {
+  INV_PAGE_FONT,
+  SectionTabs,
+  useInvSectionTab,
+  InvControlsCard,
+  InvTableCard,
+  InvRow,
+  InvRowAction,
+  InvStatusPill,
+  InvPagination,
+  InvLoading,
+  InvEmpty,
+} from '@/components/inventory/InventoryShell';
+import WarehouseBalancesView from '@/components/inventory/views/WarehouseBalancesView';
+import TransfersView from '@/components/inventory/views/TransfersView';
+import MovementsView from '@/components/inventory/views/MovementsView';
 
 type WarehouseItem = {
   id: string;
@@ -36,18 +56,68 @@ const emptyForm = {
   status: 'active' as 'active' | 'inactive' | 'full',
 };
 
+const WAREHOUSE_SECTION_TABS = [
+  { id: 'warehouses', label: 'المخازن' },
+  { id: 'balances', label: 'أرصدة كل مخزن' },
+  { id: 'transfers', label: 'النقل بين المخازن' },
+  { id: 'movements', label: 'حركات المخازن' },
+];
+
+const WAREHOUSE_SUBTITLES: Record<string, string> = {
+  warehouses: 'إدارة المخازن المتعددة — الرئيسي والفروع والمرتجعات والتالف',
+  balances: 'أرصدة الأصناف والكميات والقيمة في كل مخزن',
+  transfers: 'تحويل المنتجات بين المخازن ومتابعة الاستلام',
+  movements: 'سجل حركات المخازن: تحويلات ودخول وخروج',
+};
+
 export default function WarehousesPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-sm font-bold text-slate-500">جاري التحميل...</div>}>
+      <WarehousesPageContent />
+    </Suspense>
+  );
+}
+
+function WarehousesPageContent() {
+  const [activeTab, setTab] = useInvSectionTab(WAREHOUSE_SECTION_TABS.map(t => t.id), 'warehouses');
+
+  return (
+    <div className="min-h-full bg-[#F4F5F7] text-slate-900" style={INV_PAGE_FONT}>
+      {/* الهيدر */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="px-4 sm:px-6 py-5 max-w-[1400px] mx-auto flex items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-slate-900">المخازن</h1>
+              <Info size={15} className="text-slate-300" />
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">{WAREHOUSE_SUBTITLES[activeTab]}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* تبويبات القسم — النقل عملية داخل المخازن مش صفحة مستقلة */}
+      <SectionTabs tabs={WAREHOUSE_SECTION_TABS} active={activeTab} onChange={setTab} />
+
+      {activeTab === 'warehouses' && <WarehousesListView />}
+      {activeTab === 'balances' && <WarehouseBalancesView />}
+      {activeTab === 'transfers' && <TransfersView />}
+      {activeTab === 'movements' && <MovementsView initialType="transfer" />}
+    </div>
+  );
+}
+
+/** قائمة المخازن — إضافة/تعديل/حذف + السعة والحالة */
+function WarehousesListView() {
   const [warehouses, setWarehouses] = useState<WarehouseItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 200);
-  const [guideOpen, setGuideOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(10);
   const [addModal, setAddModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
   const [editItem, setEditItem] = useState<WarehouseItem | null>(null);
@@ -109,23 +179,6 @@ export default function WarehousesPage() {
   }, [filtered, currentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
-
-  const toggleSelectAll = useCallback(() => {
-    if (selectedIds.size === paginated.length && paginated.length > 0) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(paginated.map(w => w.id)));
-    }
-  }, [paginated, selectedIds.size]);
-
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
 
   const exportCSV = useCallback(() => {
     const headers = ['Name', 'Name (Arabic)', 'Location', 'City', 'Capacity', 'Used', 'Manager', 'Phone', 'Status', 'Products', 'Created At'];
@@ -194,25 +247,11 @@ export default function WarehousesPage() {
     setEditModal(true);
   }, []);
 
-  const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-    active: { label: 'نشط', color: 'bg-green-50 text-green-700' },
-    inactive: { label: 'غير نشط', color: 'bg-slate-50 text-slate-600' },
-    full: { label: 'ممتلئ', color: 'bg-red-50 text-red-700' },
+  const STATUS_TONE: Record<string, 'emerald' | 'slate' | 'red'> = {
+    active: 'emerald',
+    inactive: 'slate',
+    full: 'red',
   };
-
-  const stats = useMemo(() => {
-    const total = warehouses.length;
-    const active = warehouses.filter(w => w.status === 'active').length;
-    const full = warehouses.filter(w => w.status === 'full').length;
-    const totalCapacity = warehouses.reduce((sum, w) => sum + w.capacity, 0);
-    const totalUsed = warehouses.reduce((sum, w) => sum + w.used, 0);
-    return [
-      { label: 'إجمالي المخازن', value: total, icon: Warehouse, color: 'bg-blue-50 text-blue-600' },
-      { label: 'نشط', value: active, icon: Check, color: 'bg-green-50 text-green-600' },
-      { label: 'ممتلئ', value: full, icon: AlertTriangle, color: 'bg-red-50 text-red-700' },
-      { label: 'السعة المستخدمة', value: `${totalUsed.toLocaleString()} / ${totalCapacity.toLocaleString()}`, icon: Package, color: 'bg-purple-50 text-purple-600' },
-    ];
-  }, [warehouses]);
 
   const renderForm = (isEdit: boolean) => (
     <div className="grid grid-cols-2 gap-4">
@@ -253,7 +292,7 @@ export default function WarehousesPage() {
         </select>
       </div>
       <div className="col-span-2">
-        <button onClick={isEdit ? handleEdit : handleAdd} disabled={saving} className="w-full py-2.5 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all disabled:opacity-50">
+        <button onClick={isEdit ? handleEdit : handleAdd} disabled={saving} className="w-full py-2.5 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-700 transition-all disabled:opacity-50">
           {saving ? 'جاري الحفظ...' : isEdit ? 'حفظ التعديلات' : 'إضافة المخزن'}
         </button>
       </div>
@@ -261,208 +300,147 @@ export default function WarehousesPage() {
   );
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <Warehouse size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">المخازن</h1>
-            <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-              <Info size={18} />
-            </button>
-          </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">إدارة المخازن المتعددة وتتبع المخزون</p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {stats.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
-            <div className={`p-2 rounded-xl ${s.color}`}><s.icon size={20} /></div>
-            <div><p className="text-xs font-bold text-slate-400">{s.label}</p><p className="text-lg font-black text-slate-900">{s.value}</p></div>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex flex-wrap gap-3">
-          <button onClick={() => setAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all">
-            <Plus size={18} /> إضافة مخزن
-          </button>
-          <button onClick={() => loadWarehouses()} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">
-            <RefreshCw size={18} /> تحديث
-          </button>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
-            <Download size={18} /> تصدير CSV
-          </button>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute top-1/2 -translate-y-1/2 right-3 text-slate-300" size={18} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالاسم أو الموقع..." className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-white border border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الحالة:</span>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200">
-            <option value="all">الكل</option>
-            <option value="active">نشط</option>
-            <option value="inactive">غير نشط</option>
-            <option value="full">ممتلئ</option>
-          </select>
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4 pb-10">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[12px] font-bold text-slate-500">
+          {warehouses.length} مخزن • السعة المستخدمة {warehouses.reduce((s, w) => s + w.used, 0).toLocaleString('en-US')} / {warehouses.reduce((s, w) => s + w.capacity, 0).toLocaleString('en-US')}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الترتيب:</span>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200">
-            <option value="name">الاسم</option>
-            <option value="capacity">السعة</option>
-            <option value="used">المستخدم</option>
-            <option value="createdAt">تاريخ الإنشاء</option>
-          </select>
+          <button
+            onClick={() => loadWarehouses()}
+            className="h-9 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5"
+          >
+            <RefreshCw size={14} />
+            تحديث
+          </button>
+          <button
+            onClick={exportCSV}
+            className="h-9 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5"
+          >
+            <Download size={14} />
+            تصدير CSV
+          </button>
+          <button
+            onClick={() => setAddModal(true)}
+            className="h-9 px-5 rounded-full text-[12px] font-bold flex items-center gap-1.5 transition-colors bg-slate-900 text-white hover:bg-slate-700"
+          >
+            <Plus size={14} />
+            إضافة مخزن
+          </button>
         </div>
-        <button onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all">
-          {sortOrder === 'asc' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
       </div>
 
-      {/* List */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <Warehouse size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm">لا توجد مخازن حالياً</p>
-        </div>
-      ) : (
-        <>
-          {/* Mobile View */}
-          <div className="space-y-3 md:hidden">
-            {paginated.map((w) => {
-              const statusConfig = STATUS_CONFIG[w.status];
-              const usagePct = w.capacity > 0 ? (w.used / w.capacity) * 100 : 0;
-              return (
-                <div key={w.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-slate-900 text-sm">{w.name}</div>
-                      <div className="text-slate-500 text-xs">{w.nameAr}</div>
-                    </div>
-                    <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${statusConfig.color}`}>{statusConfig.label}</span>
-                  </div>
-                  <div className="mb-3">
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-slate-500">السعة</span>
-                      <span className="font-bold text-slate-900">{w.used.toLocaleString()} / {w.capacity.toLocaleString()}</span>
-                    </div>
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div className={`h-full ${usagePct > 90 ? 'bg-red-500' : usagePct > 70 ? 'bg-amber-500' : 'bg-green-500'}`} style={{ width: `${Math.min(usagePct, 100)}%` }} />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-                    <MapPin size={12} /><span>{w.location}, {w.city}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-                    <User size={12} /><span>{w.manager}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
-                    <Phone size={12} /><span>{w.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => openEditModal(w)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 text-slate-600 text-xs hover:bg-slate-100 transition-all">
-                      <Edit size={12} /> تعديل
-                    </button>
-                    <button onClick={() => handleDelete(w.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 text-red-600 text-xs hover:bg-red-100 transition-all">
-                      <Trash2 size={12} /> حذف
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      <div className="mt-3">
+        <InvControlsCard
+          tabs={[
+            { id: 'all', label: 'الكل', count: warehouses.length },
+            { id: 'active', label: 'نشط', count: warehouses.filter(w => w.status === 'active').length },
+            { id: 'inactive', label: 'غير نشط', count: warehouses.filter(w => w.status === 'inactive').length },
+            { id: 'full', label: 'ممتلئ', count: warehouses.filter(w => w.status === 'full').length },
+          ]}
+          activeTab={filterStatus}
+          onTabChange={(id) => {
+            setFilterStatus(id);
+            setCurrentPage(1);
+          }}
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="بحث بالاسم أو الموقع..."
+          filters={
+            <>
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value)}
+                className="h-10 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
+              >
+                <option value="name">الاسم</option>
+                <option value="capacity">السعة</option>
+                <option value="used">المستخدم</option>
+                <option value="createdAt">تاريخ الإنشاء</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="h-10 w-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+                title={sortOrder === 'asc' ? 'تصاعدي' : 'تنازلي'}
+              >
+                <ArrowUpDown size={15} className={sortOrder === 'desc' ? 'rotate-180' : ''} />
+              </button>
+            </>
+          }
+        />
+      </div>
 
-          {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto touch-auto">
-            <table className="w-full text-right border-collapse min-w-[1200px]">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="p-4 text-xs font-semibold text-slate-500">الاسم</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الموقع</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">المسؤول</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الهاتف</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">السعة</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">المنتجات</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الحالة</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginated.map((w) => {
-                  const statusConfig = STATUS_CONFIG[w.status];
-                  const usagePct = w.capacity > 0 ? (w.used / w.capacity) * 100 : 0;
-                  return (
-                    <tr key={w.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 text-sm">{w.name}</div>
-                        <div className="text-slate-500 text-xs">{w.nameAr}</div>
-                      </td>
-                      <td className="p-4"><div className="text-slate-600 text-sm">{w.location}, {w.city}</div></td>
-                      <td className="p-4"><div className="text-slate-600 text-sm">{w.manager}</div></td>
-                      <td className="p-4"><div className="text-slate-600 text-sm">{w.phone}</div></td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 text-sm">{w.used.toLocaleString()} / {w.capacity.toLocaleString()}</div>
-                        <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1">
-                          <div className={`h-full ${usagePct > 90 ? 'bg-red-500' : usagePct > 70 ? 'bg-amber-500' : 'bg-green-500'}`} style={{ width: `${Math.min(usagePct, 100)}%` }} />
-                        </div>
-                      </td>
-                      <td className="p-4"><div className="font-bold text-slate-900 text-sm">{w.productCount}</div></td>
-                      <td className="p-4"><span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${statusConfig.color}`}>{statusConfig.label}</span></td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => openEditModal(w)} className="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all" title="تعديل">
-                            <Edit size={14} />
-                          </button>
-                          <button onClick={() => handleDelete(w.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all" title="حذف">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+      <div className="mt-4">
+        {loading ? (
+          <InvLoading />
+        ) : filtered.length === 0 ? (
+          <InvEmpty icon={Warehouse} title="لا توجد مخازن حالياً" />
+        ) : (
+          <>
+            <InvTableCard
+              columns={[
+                { label: 'الاسم', className: 'col-span-2' },
+                { label: 'الموقع', className: 'col-span-2' },
+                { label: 'المسؤول', className: 'col-span-2' },
+                { label: 'السعة', className: 'col-span-2' },
+                { label: 'المنتجات', className: 'col-span-1' },
+                { label: 'الحالة', className: 'col-span-1' },
+                { label: 'الإجراءات', className: 'col-span-2' },
+              ]}
+            >
+              {paginated.map((w) => {
+                const usagePct = w.capacity > 0 ? (w.used / w.capacity) * 100 : 0;
+                return (
+                  <InvRow key={w.id} muted={w.status === 'inactive'}>
+                    <div className="col-span-2 min-w-0">
+                      <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{w.name}</div>
+                      <div className="text-xs font-medium text-slate-500 mt-0.5 truncate">{w.nameAr}</div>
+                    </div>
+                    <div className="col-span-2 pr-4 text-slate-600 text-xs sm:text-sm truncate">
+                      {w.location}, {w.city}
+                    </div>
+                    <div className="col-span-2 pr-4 min-w-0">
+                      <div className="text-slate-600 text-xs sm:text-sm truncate">{w.manager}</div>
+                      <div className="text-xs font-medium text-slate-500 mt-0.5 truncate">{w.phone}</div>
+                    </div>
+                    <div className="col-span-2 pr-4">
+                      <div className="font-bold text-slate-900 text-xs sm:text-sm">{w.used.toLocaleString('en-US')} / {w.capacity.toLocaleString('en-US')}</div>
+                      <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1">
+                        <div className={`h-full ${usagePct > 90 ? 'bg-red-500' : usagePct > 70 ? 'bg-amber-500' : 'bg-green-500'}`} style={{ width: `${Math.min(usagePct, 100)}%` }} />
+                      </div>
+                    </div>
+                    <div className="col-span-1 font-semibold text-slate-900 text-xs sm:text-sm">
+                      {w.productCount}
+                    </div>
+                    <div className="col-span-1">
+                      <InvStatusPill tone={STATUS_TONE[w.status]}>
+                        {w.status === 'active' ? 'نشط' : w.status === 'inactive' ? 'غير نشط' : 'ممتلئ'}
+                      </InvStatusPill>
+                    </div>
+                    <div className="col-span-2 flex items-center justify-end gap-1.5">
+                      <InvRowAction onClick={() => openEditModal(w)} title="تعديل">
+                        <Edit size={14} />
+                      </InvRowAction>
+                      <InvRowAction onClick={() => handleDelete(w.id)} title="حذف" danger>
+                        <Trash2 size={14} />
+                      </InvRowAction>
+                    </div>
+                  </InvRow>
+                );
+              })}
+            </InvTableCard>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
-              <div className="text-xs font-bold text-slate-500">
-                عرض {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} من {filtered.length}
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                  <ChevronRight size={18} />
-                </button>
-                <span className="text-xs font-bold text-slate-600 px-3">صفحة {currentPage} من {totalPages}</span>
-                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                  <ChevronLeft size={18} />
-                </button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+            <InvPagination
+              page={currentPage}
+              totalPages={totalPages}
+              total={filtered.length}
+              perPage={itemsPerPage}
+              onPage={setCurrentPage}
+              label="مخزن"
+            />
+          </>
+        )}
+      </div>
 
       {/* Add Modal */}
       {addModal && (
@@ -486,34 +464,6 @@ export default function WarehousesPage() {
               <button onClick={() => setEditModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
             </div>
             {renderForm(true)}
-          </div>
-        </div>
-      )}
-
-      {/* Guide Modal */}
-      {guideOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setGuideOpen(false)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">دليل المخازن</h2>
-              <button onClick={() => setGuideOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
-            </div>
-            <div className="space-y-6 text-right">
-              <div>
-                <div className="flex items-center gap-2 mb-2"><Info size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">وظيفة الصفحة</h3></div>
-                <p className="text-sm text-slate-600 leading-relaxed">إدارة المخازن المتعددة وتتبع المخزون في كل فرع.</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-2"><Building2 size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">الميزات</h3></div>
-                <ul className="text-sm text-slate-600 space-y-1.5 pr-4">
-                  <li>• إنشاء وإدارة مخازن متعددة</li>
-                  <li>• تتبع مخزون كل مخزن على حدة</li>
-                  <li>• توزيع المنتجات على المخازن</li>
-                  <li>• تقارير مخزون لكل مخزن</li>
-                  <li>• إعدادات عنوان ومسؤول كل مخزن</li>
-                </ul>
-              </div>
-            </div>
           </div>
         </div>
       )}

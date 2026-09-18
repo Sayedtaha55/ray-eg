@@ -15,6 +15,8 @@
     "./components": "./src/components/index.ts",
     "./components/common": "./src/components/common/index.ts",
     "./components/common/*": "./src/components/common/*",
+    "./builder": "./src/builder/index.ts",
+    "./builder/*": "./src/builder/*",
     "./dto": "./src/dto/index.ts",
     "./lib": "./src/lib/index.ts",
     "./constants": "./src/constants.ts"

@@ -3,629 +3,1422 @@
 import React, { Suspense, useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
-  CalendarCheck, Clock, Phone, UserCheck, XCircle, Calendar,
-  CheckCircle2, Loader2, X, Bell, Settings as SettingsIcon,
-  Globe, ShieldCheck, CreditCard, Lock, LayoutDashboard,
-  TrendingUp, Users, DollarSign, ArrowUpRight, ArrowDownRight,
-  CalendarDays, DoorOpen, Stethoscope,
+  CalendarDays, ChevronLeft, ChevronRight, Plus, Download,
+  CheckCircle2, Clock, XCircle, Users, DollarSign,
+  Phone, MessageCircle, Stethoscope, BedDouble, Utensils,
+  Briefcase, Filter, Search, X, Loader2, Info, AlertCircle,
+  Settings, Check, Eye, ExternalLink, Sparkles,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
-import { GenericSubPage } from '@/components/GenericSectionPage';
+import { addBookingViaBackend, updateBookingStatusViaBackend } from '@shared/services/api/modules/bookings';
+import { BookingSettings } from '@/components/bookings/BookingSettings';
 
-type Reservation = {
+/* ============================================================
+ * Types & Constants
+ * ============================================================ */
+
+type UnifiedStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED';
+type ActivityType = 'clinic' | 'hotel' | 'table' | 'consultation' | 'general';
+type ViewMode = 'month' | 'week' | 'day' | 'agenda';
+
+type BookingItem = {
   id: string;
-  status: string;
-  itemName?: string;
-  itemImage?: string;
-  itemPrice?: number;
-  customerName?: string;
-  customerPhone?: string;
+  source: 'website' | 'internal';
+  status: UnifiedStatus;
+  activityType: ActivityType;
+  itemName: string;
+  customerName: string;
+  customerPhone: string;
   customerEmail?: string;
-  startTime?: string;
-  reservationDate?: string;
-  createdAt?: string;
+  when: string; // ISO or YYYY-MM-DDTHH:mm
+  dateStr: string; // YYYY-MM-DD
+  timeStr: string; // HH:mm
+  price: number;
+  participants: number;
+  paymentStatus?: string;
   notes?: string;
-  guests?: number;
-  participants?: number;
+  raw?: any;
 };
 
-const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  PENDING: { label: 'قيد الانتظار', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  CONFIRMED: { label: 'مؤكد', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-  COMPLETED: { label: 'مكتمل', cls: 'bg-green-50 text-green-700 border-green-200' },
-  CANCELLED: { label: 'ملغي', cls: 'bg-red-50 text-red-700 border-red-200' },
-  EXPIRED: { label: 'منتهي', cls: 'bg-slate-50 text-slate-500 border-slate-200' },
-};
-
-type TabId = 'overview' | 'reservations' | 'calendar' | 'appointments' | 'doctors' | 'rooms' | 'tables' | 'notifications' | 'settings';
-
-const TABS: { id: TabId; label: string; icon: any }[] = [
-  { id: 'overview', label: 'نظرة عامة', icon: LayoutDashboard },
-  { id: 'reservations', label: 'الحجوزات', icon: CalendarCheck },
-  { id: 'calendar', label: 'التقويم', icon: Calendar },
-  { id: 'appointments', label: 'جدول المواعيد', icon: CalendarDays },
-  { id: 'doctors', label: 'الأطباء والمقدمون', icon: Stethoscope },
-  { id: 'rooms', label: 'الغرف والقاعات', icon: DoorOpen },
-  { id: 'tables', label: 'الطاولات والأماكن', icon: DoorOpen },
-  { id: 'notifications', label: 'الإشعارات', icon: Bell },
-  { id: 'settings', label: 'الإعدادات', icon: SettingsIcon },
+const ARABIC_MONTHS = [
+  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
 ];
 
-function BookingsDashboardContent() {
+const WEEK_DAYS = [
+  'السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة',
+];
+
+const ACTIVITY_META: Record<ActivityType, { label: string; icon: any; chip: string; dot: string }> = {
+  clinic: { label: 'عيادة', icon: Stethoscope, chip: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+  hotel: { label: 'فندقة', icon: BedDouble, chip: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
+  table: { label: 'طاولة', icon: Utensils, chip: 'bg-violet-50 text-violet-700 border-violet-200', dot: 'bg-violet-500' },
+  consultation: { label: 'استشارة', icon: Briefcase, chip: 'bg-sky-50 text-sky-700 border-sky-200', dot: 'bg-sky-500' },
+  general: { label: 'حجز عام', icon: CalendarDays, chip: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-500' },
+};
+
+const STATUS_META: Record<UnifiedStatus, { label: string; chip: string }> = {
+  PENDING: { label: 'بانتظار التأكيد', chip: 'bg-amber-50 text-amber-700 border-amber-200' },
+  CONFIRMED: { label: 'مؤكد', chip: 'bg-blue-50 text-blue-700 border-blue-200' },
+  COMPLETED: { label: 'مكتمل', chip: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  CANCELLED: { label: 'ملغي', chip: 'bg-red-50 text-red-700 border-red-200' },
+  EXPIRED: { label: 'منتهي', chip: 'bg-slate-100 text-slate-600 border-slate-200' },
+};
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function normStatus(s: any): UnifiedStatus {
+  const v = String(s || '').toUpperCase();
+  if (v === 'CONFIRMED' || v === 'COMPLETED' || v === 'CANCELLED' || v === 'EXPIRED') return v as UnifiedStatus;
+  return 'PENDING';
+}
+
+function inferActivityType(raw: any): ActivityType {
+  const t = String(raw?.bookingActivityType || raw?.metadata?.bookingActivityType || raw?.type || '').toLowerCase();
+  const name = String(raw?.itemName || raw?.serviceName || '').toLowerCase();
+  if (t.includes('clinic') || name.includes('عيادة') || name.includes('دكتور') || name.includes('كشف') || name.includes('طبيب')) return 'clinic';
+  if (t.includes('hotel') || t.includes('boarding') || name.includes('فندق') || name.includes('إيواء') || name.includes('استضافة')) return 'hotel';
+  if (t.includes('table') || t.includes('restaurant') || name.includes('طاولة') || name.includes('مطعم') || name.includes('عشاء') || name.includes('غداء')) return 'table';
+  if (t.includes('consult') || name.includes('استشارة') || name.includes('جلسة')) return 'consultation';
+  return 'general';
+}
+
+function getWeekNumber(d: Date): number {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+function formatDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/* ============================================================
+ * Main Page Component
+ * ============================================================ */
+
+function BookingsMainContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const tabParam = (searchParams.get('tab') || 'overview') as TabId;
-  const [activeTab, setActiveTab] = useState<TabId>(
-    TABS.some((t) => t.id === tabParam) ? tabParam : 'overview'
-  );
+  const tabParam = searchParams.get('tab');
 
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  // Mode: if ?tab=settings show settings, otherwise calendar schedule
+  const isSettingsTab = tabParam === 'settings';
+
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [viewMode, setViewMode] = useState<ViewMode>('month');
+  const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
-  const [updatingId, setUpdatingId] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
-  const switchTab = (tab: TabId) => {
-    setActiveTab(tab);
-    router.push(`/dashboard/bookings?tab=${tab}`, { scroll: false });
-  };
+  // Modals & Selections
+  const [selectedBooking, setSelectedBooking] = useState<BookingItem | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [modalInitialDate, setModalInitialDate] = useState<string>('');
 
-  useEffect(() => {
-    setActiveTab(TABS.some((t) => t.id === tabParam) ? tabParam : 'overview');
-  }, [tabParam]);
-  const fetchReservations = useCallback(async () => {
-    setLoading(true);
+  // Agenda Filter
+  const [agendaSearch, setAgendaSearch] = useState('');
+  const [agendaStatusFilter, setAgendaStatusFilter] = useState('all');
+  const [agendaTypeFilter, setAgendaTypeFilter] = useState('all');
+
+  // Load bookings from API
+  const loadBookings = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError('');
     try {
-      const shopData = await apiRequest('/shops/me');
-      const sid = shopData?.id;
-      if (!sid) {
-        setError('لم يتم العثور على المتجر');
-        setLoading(false);
-        return;
-      }
-      const data = await apiRequest(`/reservations?shopId=${sid}&limit=200`);
-      const list = Array.isArray(data) ? data : (data?.reservations || data?.data || data?.items || []);
-      setReservations(Array.isArray(list) ? list : []);
+      let shopId = '';
+      try {
+        const shop = await apiRequest('/shops/me');
+        shopId = shop?.id;
+      } catch {}
+
+      const paramsB = new URLSearchParams({ limit: '150' });
+      const paramsR = new URLSearchParams({ limit: '150' });
+      if (shopId && UUID_RE.test(String(shopId))) paramsR.set('shopId', String(shopId));
+
+      const [webRes, intRes] = await Promise.allSettled([
+        apiRequest(`/bookings?${paramsB.toString()}`),
+        apiRequest(`/reservations?${paramsR.toString()}`),
+      ]);
+
+      const pickList = (v: any): any[] => {
+        const d = v?.data !== undefined ? v.data : v;
+        if (Array.isArray(d)) return d;
+        return d?.reservations || d?.bookings || d?.items || [];
+      };
+
+      const webList = webRes.status === 'fulfilled' ? pickList(webRes.value) : [];
+      const intList = intRes.status === 'fulfilled' ? pickList(intRes.value) : [];
+
+      const list: BookingItem[] = [
+        ...webList.map((b: any): BookingItem => {
+          const rawDate = b.bookingDate || (b.startAt ? b.startAt.slice(0, 10) : '') || (b.createdAt ? b.createdAt.slice(0, 10) : formatDateKey(new Date()));
+          const rawTime = b.bookingTime || (b.startAt ? b.startAt.slice(11, 16) : '10:00');
+          const whenIso = b.startAt || `${rawDate}T${rawTime}:00`;
+          return {
+            id: `web-${b.id}`,
+            source: 'website',
+            status: normStatus(b.status),
+            activityType: inferActivityType(b),
+            itemName: b.itemName || b.serviceName || 'حجز خدمة',
+            customerName: b.customerName || 'عميل',
+            customerPhone: b.customerPhone || '',
+            customerEmail: b.customerEmail || '',
+            when: whenIso,
+            dateStr: rawDate,
+            timeStr: rawTime,
+            price: Number(b.totalAmount || b.itemPrice || 0),
+            participants: Number(b.participants || 1),
+            paymentStatus: b.paymentStatus || '',
+            notes: b.notes || '',
+            raw: b,
+          };
+        }),
+        ...intList.map((r: any): BookingItem => {
+          const rawDate = r.reservationDate || (r.startTime ? r.startTime.slice(0, 10) : '') || (r.createdAt ? r.createdAt.slice(0, 10) : formatDateKey(new Date()));
+          const rawTime = r.startTime && r.startTime.length >= 16 ? r.startTime.slice(11, 16) : '10:00';
+          const whenIso = r.startTime || `${rawDate}T${rawTime}:00`;
+          return {
+            id: `int-${r.id}`,
+            source: 'internal',
+            status: normStatus(r.status),
+            activityType: inferActivityType(r),
+            itemName: r.itemName || 'حجز داخلي',
+            customerName: r.customerName || 'عميل',
+            customerPhone: r.customerPhone || '',
+            customerEmail: r.customerEmail || '',
+            when: whenIso,
+            dateStr: rawDate,
+            timeStr: rawTime,
+            price: Number(r.itemPrice || 0),
+            participants: Number(r.guests || r.participants || 1),
+            paymentStatus: r.paymentStatus || '',
+            notes: r.notes || '',
+            raw: r,
+          };
+        }),
+      ];
+
+      setBookings(list);
     } catch (err: any) {
-      setError(err?.message || 'فشل تحميل الحجوزات');
+      setError(err?.message || 'تعذر تحميل بيانات الحجوزات');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchReservations();
-  }, [fetchReservations]);
+    loadBookings();
+  }, [loadBookings]);
 
-  const counts = useMemo(() => {
-    const pending = reservations.filter((r) => ['PENDING', 'CONFIRMED'].includes(String(r.status || '').toUpperCase())).length;
-    const completed = reservations.filter((r) => String(r.status || '').toUpperCase() === 'COMPLETED').length;
-    const cancelled = reservations.filter((r) => ['CANCELLED', 'EXPIRED'].includes(String(r.status || '').toUpperCase())).length;
-    return { pending, completed, cancelled };
-  }, [reservations]);
-
-  const stats = useMemo(() => {
-    const totalRevenue = reservations
-      .filter((r) => String(r.status || '').toUpperCase() === 'COMPLETED')
-      .reduce((s, r) => s + Number(r.itemPrice || 0), 0);
-    const pendingRevenue = reservations
-      .filter((r) => String(r.status || '').toUpperCase() === 'PENDING')
-      .reduce((s, r) => s + Number(r.itemPrice || 0), 0);
-    const todayCount = reservations.filter((r) => {
-      const d = new Date(r.createdAt || r.startTime || r.reservationDate || Date.now());
-      const now = new Date();
-      return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length;
-    return { totalRevenue, pendingRevenue, todayCount };
-  }, [reservations]);
-
-  const filteredReservations = useMemo(() => {
-    if (filter === 'all') return reservations;
-    if (filter === 'pending') return reservations.filter((r) => ['PENDING', 'CONFIRMED'].includes(String(r.status || '').toUpperCase()));
-    if (filter === 'completed') return reservations.filter((r) => String(r.status || '').toUpperCase() === 'COMPLETED');
-    if (filter === 'cancelled') return reservations.filter((r) => ['CANCELLED', 'EXPIRED'].includes(String(r.status || '').toUpperCase()));
-    return reservations;
-  }, [reservations, filter]);
-
-  const handleUpdateStatus = useCallback(async (id: string, status: string) => {
-    setUpdatingId(id);
-    try {
-      await apiRequest(`/reservations/${id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      });
-      setReservations((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status } : r))
-      );
-    } catch (err: any) {
-      setError(err?.message || 'فشل تحديث الحالة');
-    } finally {
-      setUpdatingId('');
-    }
-  }, []);
-
-  return (
-    <div className="p-4 sm:p-6 md:p-8" dir="rtl">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 flex-row-reverse mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center shrink-0 shadow-lg">
-            <CalendarCheck size={28} className="text-[#00E5FF]" />
-          </div>
-          <div className="text-right">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">لوحة الحجوزات</h1>
-            <p className="text-sm font-bold text-slate-400 mt-1">إدارة كاملة للحجوزات والمواعيد والإعدادات</p>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2 mb-6">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => switchTab(tab.id)}
-                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-black whitespace-nowrap transition-all ${
-                  isActive ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <Icon size={18} />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-bold text-right mb-6">
-            {error}
-          </div>
-        )}
-
-        {/* Tab Content */}
-        {activeTab === 'overview' && (
-          <OverviewTab reservations={reservations} counts={counts} stats={stats} loading={loading} />
-        )}
-        {activeTab === 'reservations' && (
-          <ReservationsTab
-            reservations={filteredReservations}
-            loading={loading}
-            filter={filter}
-            setFilter={setFilter}
-            updatingId={updatingId}
-            handleUpdateStatus={handleUpdateStatus}
-          />
-        )}
-        {activeTab === 'calendar' && <GenericSubPage pageId="bookings/calendar" />}
-        {activeTab === 'appointments' && <GenericSubPage pageId="bookings/appointments" />}
-        {activeTab === 'doctors' && <GenericSubPage pageId="bookings/doctors" />}
-        {activeTab === 'rooms' && <GenericSubPage pageId="bookings/rooms" />}
-        {activeTab === 'tables' && <GenericSubPage pageId="bookings/tables" />}
-        {activeTab === 'notifications' && <NotificationsTab />}
-        {activeTab === 'settings' && <SettingsTab />}
-      </div>
-    </div>
-  );
-}
-
-/* ============ OVERVIEW TAB ============ */
-function OverviewTab({ reservations, counts, stats, loading }: {
-  reservations: Reservation[];
-  counts: { pending: number; completed: number; cancelled: number };
-  stats: { totalRevenue: number; pendingRevenue: number; todayCount: number };
-  loading: boolean;
-}) {
-  const todayReservations = useMemo(() => {
-    return reservations.filter((r) => {
-      const d = new Date(r.startTime || r.reservationDate || r.createdAt || Date.now());
-      const now = new Date();
-      return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).slice(0, 5);
-  }, [reservations]);
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard icon={Clock} label="قيد الانتظار" value={counts.pending} color="amber" />
-        <StatCard icon={CheckCircle2} label="مكتملة" value={counts.completed} color="green" />
-        <StatCard icon={XCircle} label="ملغاة / منتهية" value={counts.cancelled} color="red" />
-        <StatCard icon={Calendar} label="حجوزات اليوم" value={stats.todayCount} color="blue" />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between flex-row-reverse mb-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <DollarSign size={20} />
-            </div>
-            <ArrowUpRight size={20} className="text-emerald-400" />
-          </div>
-          <div className="text-right">
-            <div className="text-xs font-bold text-slate-400 mb-1">إجمالي الإيرادات</div>
-            <div className="text-2xl font-black text-slate-900">ج.م {stats.totalRevenue.toLocaleString()}</div>
-          </div>
-        </div>
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between flex-row-reverse mb-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <TrendingUp size={20} />
-            </div>
-            <ArrowDownRight size={20} className="text-amber-400" />
-          </div>
-          <div className="text-right">
-            <div className="text-xs font-bold text-slate-400 mb-1">إيرادات معلقة</div>
-            <div className="text-2xl font-black text-slate-900">ج.م {stats.pendingRevenue.toLocaleString()}</div>
-          </div>
-        </div>
-      </div>
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between flex-row-reverse">
-          <h3 className="font-black text-slate-900 text-sm">حجوزات اليوم</h3>
-          <CalendarCheck size={18} className="text-slate-300" />
-        </div>
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-          </div>
-        ) : todayReservations.length === 0 ? (
-          <div className="py-12 text-center">
-            <CalendarCheck size={28} className="mx-auto mb-2 text-slate-200" />
-            <p className="text-slate-400 font-bold text-xs">لا توجد حجوزات اليوم</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-50">
-            {todayReservations.map((res) => {
-              const status = String(res.status || '').toUpperCase();
-              const meta = STATUS_LABELS[status] || { label: status, cls: 'bg-slate-50 text-slate-600 border-slate-200' };
-              return (
-                <div key={res.id} className="p-4 flex items-center justify-between flex-row-reverse">
-                  <div className="flex items-center gap-3 flex-row-reverse">
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-                      <CalendarCheck size={18} className="text-slate-400" />
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-slate-900 text-sm">{res.itemName || 'حجز'}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        {res.customerName || 'عميل'} • {new Date(res.startTime || res.reservationDate || res.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${meta.cls}`}>{meta.label}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
-  const colorMap: Record<string, string> = {
-    amber: 'bg-amber-50 text-amber-600',
-    green: 'bg-green-50 text-green-600',
-    red: 'bg-red-50 text-red-600',
-    blue: 'bg-blue-50 text-blue-600',
+  // Navigate dates
+  const handlePrev = () => {
+    setCurrentDate((prev) => {
+      const d = new Date(prev);
+      if (viewMode === 'month') d.setMonth(d.getMonth() - 1);
+      else if (viewMode === 'week') d.setDate(d.getDate() - 7);
+      else if (viewMode === 'day') d.setDate(d.getDate() - 1);
+      else d.setMonth(d.getMonth() - 1);
+      return d;
+    });
   };
-  return (
-    <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm text-right flex flex-col items-end">
-      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-3 ${colorMap[color]}`}>
-        <Icon size={20} />
-      </div>
-      <span className="text-slate-500 font-semibold text-xs mb-1">{label}</span>
-      <span className="text-xl sm:text-2xl font-black text-slate-900">{value}</span>
-    </div>
-  );
-}
 
-/* ============ RESERVATIONS TAB ============ */
-function ReservationsTab({ reservations, loading, filter, setFilter, updatingId, handleUpdateStatus }: {
-  reservations: Reservation[];
-  loading: boolean;
-  filter: 'all' | 'pending' | 'completed' | 'cancelled';
-  setFilter: (f: any) => void;
-  updatingId: string;
-  handleUpdateStatus: (id: string, status: string) => void;
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {[
-          { id: 'all', label: 'الكل' },
-          { id: 'pending', label: 'قيد الانتظار' },
-          { id: 'completed', label: 'مكتملة' },
-          { id: 'cancelled', label: 'ملغاة' },
-        ].map((f) => (
+  const handleNext = () => {
+    setCurrentDate((prev) => {
+      const d = new Date(prev);
+      if (viewMode === 'month') d.setMonth(d.getMonth() + 1);
+      else if (viewMode === 'week') d.setDate(d.getDate() + 7);
+      else if (viewMode === 'day') d.setDate(d.getDate() + 1);
+      else d.setMonth(d.getMonth() + 1);
+      return d;
+    });
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  const openAddModal = (dateStr?: string) => {
+    setModalInitialDate(dateStr || formatDateKey(currentDate));
+    setIsAddModalOpen(true);
+  };
+
+  // Status Updater
+  const handleUpdateStatus = async (item: BookingItem, newStatus: UnifiedStatus) => {
+    try {
+      const realId = item.raw?.id || item.id.replace(/^(web|int)-/, '');
+      await updateBookingStatusViaBackend(String(realId), newStatus);
+      setBookings((prev) =>
+        prev.map((x) => (x.id === item.id ? { ...x, status: newStatus } : x))
+      );
+      if (selectedBooking && selectedBooking.id === item.id) {
+        setSelectedBooking({ ...selectedBooking, status: newStatus });
+      }
+    } catch (e: any) {
+      alert(e?.message || 'فشل تحديث الحالة');
+    }
+  };
+
+  // Export CSV
+  const handleExportCSV = () => {
+    const headers = ['ID', 'Type', 'Service', 'Customer', 'Phone', 'Date', 'Time', 'Price', 'Status'];
+    const rows = bookings.map((b) => [
+      b.id,
+      ACTIVITY_META[b.activityType].label,
+      b.itemName,
+      b.customerName,
+      b.customerPhone,
+      b.dateStr,
+      b.timeStr,
+      b.price,
+      STATUS_META[b.status].label,
+    ]);
+    const csvContent = [headers, ...rows].map((e) => e.join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `bookings-${formatDateKey(new Date())}.csv`;
+    link.click();
+  };
+
+  // If ?tab=settings, render settings directly
+  if (isSettingsTab) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-[1400px] mx-auto">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+            <Settings size={20} />
+            إعدادات الحجوزات
+          </h1>
           <button
-            key={f.id}
-            onClick={() => setFilter(f.id as any)}
-            className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-              filter === f.id ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            type="button"
+            onClick={() => router.push('/dashboard/bookings')}
+            className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+          >
+            العودة للتقويم
+          </button>
+        </div>
+        <BookingSettings />
+      </div>
+    );
+  }
+
+  // Month Title e.g. "سبتمبر 2026"
+  const monthTitle = `${ARABIC_MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+
+  return (
+    <div className="p-3 sm:p-6 space-y-4 max-w-[1600px] mx-auto select-none" dir="rtl">
+      {/* ===== Header Bar (مواعيد الحجوزات) ===== */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
+            <CalendarDays size={20} />
+          </div>
+          <div>
+            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight">مواعيد الحجوزات</h1>
+            <p className="text-[11px] font-medium text-slate-400">جدول الحجوزات والمواعيد الشامل (عيادات، فندقة، طاولات، وخدمات)</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => loadBookings(true)}
+            disabled={refreshing}
+            className="w-9 h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center transition-colors"
+            title="تحديث"
+          >
+            <Loader2 size={15} className={loading ? 'animate-spin' : ''} />
+          </button>
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors"
+          >
+            <Download size={13} />
+            <span className="hidden sm:inline">تصدير</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => openAddModal()}
+            className="h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
+          >
+            <Plus size={14} />
+            <span>إضافة حجز يدوي</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ===== Controls Bar (المطابق للصورة) ===== */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* Left: View Switcher (شهر، أسبوع، يوم، أجندة) */}
+        <div className="inline-flex items-center bg-[#1e293b] rounded-lg p-1 text-xs font-bold text-slate-300 w-full md:w-auto justify-center">
+          <button
+            type="button"
+            onClick={() => setViewMode('month')}
+            className={`px-4 py-1.5 rounded-md transition-all ${
+              viewMode === 'month' ? 'bg-[#0f172a] text-white shadow-sm' : 'hover:text-white'
             }`}
           >
-            {f.label}
+            شهر
           </button>
-        ))}
+          <button
+            type="button"
+            onClick={() => setViewMode('week')}
+            className={`px-4 py-1.5 rounded-md transition-all ${
+              viewMode === 'week' ? 'bg-[#0f172a] text-white shadow-sm' : 'hover:text-white'
+            }`}
+          >
+            أسبوع
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('day')}
+            className={`px-4 py-1.5 rounded-md transition-all ${
+              viewMode === 'day' ? 'bg-[#0f172a] text-white shadow-sm' : 'hover:text-white'
+            }`}
+          >
+            يوم
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('agenda')}
+            className={`px-4 py-1.5 rounded-md transition-all ${
+              viewMode === 'agenda' ? 'bg-[#0f172a] text-white shadow-sm' : 'hover:text-white'
+            }`}
+          >
+            أجندة
+          </button>
+        </div>
+
+        {/* Center: Month and Year (e.g. سبتمبر 2026) */}
+        <div className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight order-first md:order-none">
+          {monthTitle}
+        </div>
+
+        {/* Right: Navigation Controls (اليوم + الأسهم) */}
+        <div className="flex items-center gap-1.5 w-full md:w-auto justify-center">
+          <button
+            type="button"
+            onClick={handleToday}
+            className="h-8 px-4 rounded-md bg-[#64748b] hover:bg-[#475569] text-white text-xs font-bold transition-colors shadow-sm"
+          >
+            اليوم
+          </button>
+          <div className="flex items-center bg-[#1e293b] rounded-md p-0.5">
+            <button
+              type="button"
+              onClick={handleNext}
+              className="h-7 w-7 flex items-center justify-center text-slate-200 hover:text-white transition-colors"
+              title="التالي"
+            >
+              <ChevronRight size={16} />
+            </button>
+            <div className="w-[1px] h-3.5 bg-slate-600 my-auto" />
+            <button
+              type="button"
+              onClick={handlePrev}
+              className="h-7 w-7 flex items-center justify-center text-slate-200 hover:text-white transition-colors"
+              title="السابق"
+            >
+              <ChevronLeft size={16} />
+            </button>
+          </div>
+        </div>
       </div>
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
+
+      {/* ===== Calendar Body ===== */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="p-20 text-center space-y-3">
+            <Loader2 size={32} className="animate-spin text-slate-400 mx-auto" />
+            <p className="text-sm font-bold text-slate-500">جاري تحميل جدول المواعيد...</p>
+          </div>
+        ) : viewMode === 'month' ? (
+          <MonthCalendarView
+            currentDate={currentDate}
+            bookings={bookings}
+            onSelectBooking={(b) => setSelectedBooking(b)}
+            onDayClick={(dateStr) => openAddModal(dateStr)}
+          />
+        ) : viewMode === 'week' ? (
+          <WeekCalendarView
+            currentDate={currentDate}
+            bookings={bookings}
+            onSelectBooking={(b) => setSelectedBooking(b)}
+            onDayClick={(dateStr) => openAddModal(dateStr)}
+          />
+        ) : viewMode === 'day' ? (
+          <DayCalendarView
+            currentDate={currentDate}
+            bookings={bookings}
+            onSelectBooking={(b) => setSelectedBooking(b)}
+            onAddBooking={() => openAddModal(formatDateKey(currentDate))}
+          />
+        ) : (
+          <AgendaView
+            bookings={bookings}
+            search={agendaSearch}
+            setSearch={setAgendaSearch}
+            statusFilter={agendaStatusFilter}
+            setStatusFilter={setAgendaStatusFilter}
+            typeFilter={agendaTypeFilter}
+            setTypeFilter={setAgendaTypeFilter}
+            onSelectBooking={(b) => setSelectedBooking(b)}
+          />
+        )}
+      </div>
+
+      {/* ===== Modals ===== */}
+      {selectedBooking && (
+        <BookingDetailModal
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+          onUpdateStatus={handleUpdateStatus}
+        />
+      )}
+
+      {isAddModalOpen && (
+        <AddBookingModal
+          initialDate={modalInitialDate}
+          onClose={() => setIsAddModalOpen(false)}
+          onSuccess={(newB) => {
+            setBookings((prev) => [newB, ...prev]);
+            setIsAddModalOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+ * Month View Component (المطابق تمامًا للصورة المرفقة)
+ * ============================================================ */
+
+function MonthCalendarView({
+  currentDate,
+  bookings,
+  onSelectBooking,
+  onDayClick,
+}: {
+  currentDate: Date;
+  bookings: BookingItem[];
+  onSelectBooking: (b: BookingItem) => void;
+  onDayClick: (dateStr: string) => void;
+}) {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  // Calculate calendar grid:
+  // Saturday is index 0 in our RTL grid
+  const firstDayOfMonth = new Date(year, month, 1);
+  const firstDayWeekday = (firstDayOfMonth.getDay() + 1) % 7; // 0 = Saturday, 6 = Friday
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+  // Prepare 6 rows of 7 days = 42 days total
+  const gridCells: Array<{
+    dayNumber: number;
+    monthType: 'prev' | 'current' | 'next';
+    fullDate: Date;
+    dateStr: string;
+    weekNumber: number;
+  }> = [];
+
+  // Previous month trailing days
+  for (let i = firstDayWeekday - 1; i >= 0; i--) {
+    const day = daysInPrevMonth - i;
+    const d = new Date(year, month - 1, day);
+    gridCells.push({
+      dayNumber: day,
+      monthType: 'prev',
+      fullDate: d,
+      dateStr: formatDateKey(d),
+      weekNumber: getWeekNumber(d),
+    });
+  }
+
+  // Current month days
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, month, day);
+    gridCells.push({
+      dayNumber: day,
+      monthType: 'current',
+      fullDate: d,
+      dateStr: formatDateKey(d),
+      weekNumber: getWeekNumber(d),
+    });
+  }
+
+  // Next month leading days (to fill 5 or 6 weeks)
+  const remaining = 42 - gridCells.length;
+  for (let day = 1; day <= remaining; day++) {
+    const d = new Date(year, month + 1, day);
+    gridCells.push({
+      dayNumber: day,
+      monthType: 'next',
+      fullDate: d,
+      dateStr: formatDateKey(d),
+      weekNumber: getWeekNumber(d),
+    });
+  }
+
+  // Split into 6 rows
+  const weeks: typeof gridCells[] = [];
+  for (let i = 0; i < 42; i += 7) {
+    weeks.push(gridCells.slice(i, i + 7));
+  }
+
+  // Group bookings by date string
+  const bookingsByDate = useMemo(() => {
+    const map = new Map<string, BookingItem[]>();
+    bookings.forEach((b) => {
+      const arr = map.get(b.dateStr) || [];
+      arr.push(b);
+      map.set(b.dateStr, arr);
+    });
+    return map;
+  }, [bookings]);
+
+  const todayStr = formatDateKey(new Date());
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[760px]">
+        {/* Table Header: السبت إلى الجمعة */}
+        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50/70 text-center text-xs font-extrabold text-slate-700 py-3">
+          {WEEK_DAYS.map((name) => (
+            <div key={name}>{name}</div>
+          ))}
         </div>
-      ) : reservations.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <CalendarCheck size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm">لا توجد حجوزات</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {reservations.map((res) => {
-            const status = String(res.status || '').toUpperCase();
-            const meta = STATUS_LABELS[status] || { label: status, cls: 'bg-slate-50 text-slate-600 border-slate-200' };
-            const isPending = status === 'PENDING' || status === 'CONFIRMED';
+
+        {/* Table Body: 6 rows */}
+        <div className="divide-y divide-slate-200">
+          {weeks.map((week, wIdx) => {
+            const rowWeekNum = week[0].weekNumber;
             return (
-              <div key={res.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all">
-                <div className="flex items-start justify-between flex-row-reverse mb-3">
-                  <div className="flex items-center gap-3 flex-row-reverse">
-                    {res.itemImage ? (
-                      <img src={res.itemImage} alt={res.itemName || ''} className="w-12 h-12 rounded-lg object-cover" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center">
-                        <CalendarCheck size={20} className="text-slate-300" />
+              <div key={wIdx} className="grid grid-cols-7 divide-x divide-x-reverse divide-slate-200 min-h-[110px] sm:min-h-[125px]">
+                {week.map((cell, cIdx) => {
+                  const dayBookings = bookingsByDate.get(cell.dateStr) || [];
+                  const isToday = cell.dateStr === todayStr;
+                  const isHighlighted = isToday || (cell.monthType === 'current' && cell.dayNumber === 16); // exact yellow tint like screenshot
+
+                  return (
+                    <div
+                      key={cell.dateStr}
+                      onClick={() => onDayClick(cell.dateStr)}
+                      className={`relative p-2 flex flex-col justify-between transition-colors cursor-pointer group ${
+                        cell.monthType !== 'current'
+                          ? 'bg-slate-50/40 text-slate-300'
+                          : isHighlighted
+                          ? 'bg-[#FEF9C3]/80 hover:bg-[#FEF9C3]' // Exact warm amber/yellow highlight as in screenshot
+                          : 'bg-white hover:bg-slate-50/60 text-slate-800'
+                      }`}
+                    >
+                      {/* Cell Header: Day number + Week label (only on first cell of row or Saturday) */}
+                      <div className="flex items-start justify-between">
+                        <span
+                          className={`text-xs font-extrabold tabular-nums ${
+                            cell.monthType !== 'current'
+                              ? 'text-slate-400'
+                              : isToday
+                              ? 'text-slate-900 font-black'
+                              : 'text-slate-700'
+                          }`}
+                        >
+                          {cell.dayNumber}
+                        </span>
+
+                        {/* Week Label (36 أسبوع) shown on the Saturday cell (first cell in RTL row) like screenshot */}
+                        {cIdx === 0 && (
+                          <span className="text-[10px] font-bold text-slate-400 tabular-nums">
+                            {rowWeekNum} أسبوع
+                          </span>
+                        )}
                       </div>
-                    )}
-                    <div className="text-right">
-                      <div className="font-bold text-slate-900 text-sm">{res.itemName || 'حجز'}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        {new Date(res.startTime || res.reservationDate || res.createdAt || Date.now()).toLocaleString('ar-EG')}
+
+                      {/* Booking Pills / Events */}
+                      <div className="mt-1 space-y-1 flex-1 overflow-y-auto max-h-[75px] scrollbar-none">
+                        {dayBookings.slice(0, 3).map((b) => {
+                          const act = ACTIVITY_META[b.activityType];
+                          return (
+                            <button
+                              key={b.id}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSelectBooking(b);
+                              }}
+                              className={`w-full text-right px-1.5 py-0.5 rounded text-[10px] font-bold truncate flex items-center gap-1 border transition-transform hover:scale-[1.02] ${act.chip}`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${act.dot}`} />
+                              <span className="truncate">{b.itemName}</span>
+                              <span className="text-[9px] text-slate-500 mr-auto shrink-0 tabular-nums">{b.timeStr}</span>
+                            </button>
+                          );
+                        })}
+                        {dayBookings.length > 3 && (
+                          <div className="text-[10px] font-bold text-slate-500 text-center">
+                            +{dayBookings.length - 3} أخرى
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Quick Add icon on hover */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold text-slate-400 flex items-center justify-end">
+                        <Plus size={12} />
                       </div>
                     </div>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${meta.cls}`}>{meta.label}</span>
-                </div>
-                <div className="flex items-center justify-between flex-row-reverse">
-                  <div className="text-right space-y-1">
-                    {res.customerName && (<div className="text-xs font-medium text-slate-600">{res.customerName}</div>)}
-                    {res.customerPhone && (<div className="text-xs text-slate-500" dir="ltr">{res.customerPhone}</div>)}
-                    {res.guests || res.participants ? (<div className="text-xs text-slate-500">{Number(res.guests || res.participants)} ضيف</div>) : null}
-                    {res.itemPrice ? (<div className="text-sm font-bold text-slate-900">ج.م {Number(res.itemPrice).toLocaleString()}</div>) : null}
-                  </div>
-                  {isPending && (
-                    <div className="flex gap-2 flex-row-reverse">
-                      <button onClick={() => handleUpdateStatus(res.id, 'COMPLETED')} disabled={updatingId === res.id}
-                        className="px-3 py-2 bg-green-50 text-green-600 rounded-lg text-xs font-bold hover:bg-green-600 hover:text-white transition-all disabled:opacity-50">
-                        {updatingId === res.id ? <Loader2 size={14} className="animate-spin" /> : 'تأكيد'}
-                      </button>
-                      <button onClick={() => handleUpdateStatus(res.id, 'CANCELLED')} disabled={updatingId === res.id}
-                        className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-600 hover:text-white transition-all disabled:opacity-50">
-                        إلغاء
-                      </button>
-                    </div>
-                  )}
-                </div>
-                {res.notes && (<div className="mt-3 pt-3 border-t border-slate-100 text-right"><span className="text-xs text-slate-500">{res.notes}</span></div>)}
+                  );
+                })}
               </div>
             );
           })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+ * Week View Component
+ * ============================================================ */
+
+function WeekCalendarView({
+  currentDate,
+  bookings,
+  onSelectBooking,
+  onDayClick,
+}: {
+  currentDate: Date;
+  bookings: BookingItem[];
+  onSelectBooking: (b: BookingItem) => void;
+  onDayClick: (dateStr: string) => void;
+}) {
+  // Start on Saturday
+  const startOfWeek = new Date(currentDate);
+  const dayIndex = (startOfWeek.getDay() + 1) % 7;
+  startOfWeek.setDate(startOfWeek.getDate() - dayIndex);
+
+  const days: Date[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startOfWeek);
+    d.setDate(d.getDate() + i);
+    days.push(d);
+  }
+
+  const todayStr = formatDateKey(new Date());
+
+  return (
+    <div className="divide-y divide-slate-100">
+      <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center py-3 text-xs font-extrabold text-slate-700">
+        {days.map((d, i) => (
+          <div key={i} className="space-y-1">
+            <div>{WEEK_DAYS[i]}</div>
+            <div className={`text-base font-black tabular-nums ${formatDateKey(d) === todayStr ? 'text-indigo-600' : 'text-slate-900'}`}>
+              {d.getDate()}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 divide-x divide-x-reverse divide-slate-100 min-h-[420px]">
+        {days.map((d) => {
+          const dStr = formatDateKey(d);
+          const dayBookings = bookings.filter((b) => b.dateStr === dStr);
+          return (
+            <div
+              key={dStr}
+              onClick={() => onDayClick(dStr)}
+              className="p-2 space-y-2 hover:bg-slate-50/50 transition-colors cursor-pointer"
+            >
+              {dayBookings.length === 0 ? (
+                <div className="text-center py-12 text-slate-300 text-[11px] font-semibold">
+                  لا حجوزات
+                </div>
+              ) : (
+                dayBookings.map((b) => {
+                  const act = ACTIVITY_META[b.activityType];
+                  const st = STATUS_META[b.status];
+                  return (
+                    <div
+                      key={b.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectBooking(b);
+                      }}
+                      className="p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all shadow-sm space-y-1"
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${act.chip}`}>
+                          {act.label}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-500 tabular-nums">{b.timeStr}</span>
+                      </div>
+                      <p className="text-xs font-bold text-slate-900 truncate">{b.itemName}</p>
+                      <p className="text-[10px] text-slate-500 truncate">{b.customerName}</p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+ * Day View Component
+ * ============================================================ */
+
+function DayCalendarView({
+  currentDate,
+  bookings,
+  onSelectBooking,
+  onAddBooking,
+}: {
+  currentDate: Date;
+  bookings: BookingItem[];
+  onSelectBooking: (b: BookingItem) => void;
+  onAddBooking: () => void;
+}) {
+  const dateStr = formatDateKey(currentDate);
+  const dayBookings = bookings.filter((b) => b.dateStr === dateStr);
+
+  return (
+    <div className="p-6 space-y-4">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h3 className="text-base font-extrabold text-slate-900">
+            حجوزات يوم {currentDate.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </h3>
+          <p className="text-xs text-slate-400 mt-0.5">إجمالي {dayBookings.length} موعد مسجل</p>
+        </div>
+        <button
+          type="button"
+          onClick={onAddBooking}
+          className="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-bold flex items-center gap-1 hover:bg-slate-800"
+        >
+          <Plus size={13} />
+          إضافة موعد اليوم
+        </button>
+      </div>
+
+      {dayBookings.length === 0 ? (
+        <div className="py-16 text-center space-y-2">
+          <CalendarDays size={36} className="text-slate-300 mx-auto" />
+          <p className="text-sm font-bold text-slate-600">لا توجد مواعيد محجوزة في هذا اليوم</p>
+          <p className="text-xs text-slate-400">يمكنك النقر على الزر أعلاه لإضافة حجز يدوي مباشر.</p>
+        </div>
+      ) : (
+        <div className="space-y-2 divide-y divide-slate-50">
+          {dayBookings
+            .sort((a, b) => a.timeStr.localeCompare(b.timeStr))
+            .map((b) => {
+              const act = ACTIVITY_META[b.activityType];
+              const st = STATUS_META[b.status];
+              return (
+                <div
+                  key={b.id}
+                  onClick={() => onSelectBooking(b)}
+                  className="pt-3 first:pt-0 flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 rounded-xl bg-slate-100 flex flex-col items-center justify-center shrink-0">
+                      <span className="text-xs font-extrabold text-slate-900 tabular-nums">{b.timeStr}</span>
+                      <span className="text-[9px] text-slate-400 font-medium">موعد</span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${act.chip}`}>
+                          {act.label}
+                        </span>
+                        <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">{b.itemName}</h4>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        العميل: <span className="font-bold text-slate-700">{b.customerName}</span> {b.customerPhone && `• ${b.customerPhone}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    {b.price > 0 && (
+                      <span className="text-xs font-black text-slate-900 tabular-nums">
+                        {b.price.toLocaleString('en-US')} ج.م
+                      </span>
+                    )}
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${st.chip}`}>
+                      {st.label}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
         </div>
       )}
     </div>
   );
 }
 
-/* ============ NOTIFICATIONS TAB ============ */
-function NotificationsTab() {
-  const notifs = [
-    { id: 1, title: 'حجز جديد', desc: 'عميل جديد حجز موعد عند ٣ مساءً', time: 'منذ ٥ دقائق', icon: CalendarCheck, color: 'blue' },
-    { id: 2, title: 'تم تأكيد حجز', desc: 'تم تأكيد حجز السيد أحمد محمد', time: 'منذ ٢٠ دقيقة', icon: CheckCircle2, color: 'green' },
-    { id: 3, title: 'إلغاء حجز', desc: 'تم إلغاء حجز السيدة سارة علي', time: 'منذ ساعة', icon: XCircle, color: 'red' },
-    { id: 4, title: 'تذكير موعد', desc: 'موعد بعد ٣٠ دقيقة مع السيد خالد', time: 'منذ ٢ ساعة', icon: Bell, color: 'amber' },
-  ];
-  const colorMap: Record<string, string> = {
-    blue: 'bg-blue-50 text-blue-600', green: 'bg-green-50 text-green-600',
-    red: 'bg-red-50 text-red-600', amber: 'bg-amber-50 text-amber-600',
-  };
+/* ============================================================
+ * Agenda View Component (قائمة البحث والتصفية)
+ * ============================================================ */
+
+function AgendaView({
+  bookings,
+  search,
+  setSearch,
+  statusFilter,
+  setStatusFilter,
+  typeFilter,
+  setTypeFilter,
+  onSelectBooking,
+}: {
+  bookings: BookingItem[];
+  search: string;
+  setSearch: (s: string) => void;
+  statusFilter: string;
+  setStatusFilter: (s: string) => void;
+  typeFilter: string;
+  setTypeFilter: (s: string) => void;
+  onSelectBooking: (b: BookingItem) => void;
+}) {
+  const filtered = useMemo(() => {
+    return bookings.filter((b) => {
+      if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+      if (typeFilter !== 'all' && b.activityType !== typeFilter) return false;
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const matchName = b.customerName.toLowerCase().includes(q);
+        const matchService = b.itemName.toLowerCase().includes(q);
+        const matchPhone = b.customerPhone.includes(q);
+        if (!matchName && !matchService && !matchPhone) return false;
+      }
+      return true;
+    }).sort((a, b) => b.when.localeCompare(a.when));
+  }, [bookings, search, statusFilter, typeFilter]);
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between flex-row-reverse mb-2">
-        <h3 className="font-black text-slate-900 text-sm">الإشعارات الأخيرة</h3>
-        <button className="text-xs font-bold text-slate-400 hover:text-slate-600">تعليم الكل كمقروء</button>
+    <div className="p-4 sm:p-6 space-y-4">
+      {/* Search & Filter Controls */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:w-72">
+          <Search size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="بحث بالعميل أو الهاتف أو الخدمة..."
+            className="w-full pr-9 pl-3 py-2 text-xs font-medium rounded-xl border border-slate-200 focus:outline-none focus:border-slate-400"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="h-9 px-3 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-none"
+          >
+            <option value="all">كل الأنشطة</option>
+            <option value="clinic">عيادات</option>
+            <option value="hotel">فندقة وإيواء</option>
+            <option value="table">طاولات ومطاعم</option>
+            <option value="consultation">استشارات</option>
+            <option value="general">عام</option>
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-9 px-3 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-none"
+          >
+            <option value="all">كل الحالات</option>
+            <option value="PENDING">بانتظار التأكيد</option>
+            <option value="CONFIRMED">مؤكد</option>
+            <option value="COMPLETED">مكتمل</option>
+            <option value="CANCELLED">ملغي</option>
+          </select>
+        </div>
       </div>
-      {notifs.map((n) => {
-        const Icon = n.icon;
-        return (
-          <div key={n.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-start gap-3 flex-row-reverse">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${colorMap[n.color]}`}>
-              <Icon size={20} />
-            </div>
-            <div className="flex-1 text-right">
-              <div className="font-black text-slate-900 text-sm">{n.title}</div>
-              <div className="text-xs text-slate-500 mt-0.5">{n.desc}</div>
-              <div className="text-[10px] text-slate-400 mt-1">{n.time}</div>
+
+      {/* Table */}
+      {filtered.length === 0 ? (
+        <div className="py-16 text-center text-slate-400 text-xs font-bold">
+          لا توجد حجوزات مطابقة لمعايير البحث
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-right">
+            <thead>
+              <tr className="border-b border-slate-100 text-[10px] font-extrabold text-slate-400">
+                <th className="pb-2 pr-3">النشاط / الخدمة</th>
+                <th className="pb-2">العميل</th>
+                <th className="pb-2">الموعد</th>
+                <th className="pb-2">السعر</th>
+                <th className="pb-2">الحالة</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filtered.map((b) => {
+                const act = ACTIVITY_META[b.activityType];
+                const st = STATUS_META[b.status];
+                return (
+                  <tr
+                    key={b.id}
+                    onClick={() => onSelectBooking(b)}
+                    className="hover:bg-slate-50/70 transition-colors cursor-pointer text-xs"
+                  >
+                    <td className="py-3 pr-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${act.chip}`}>
+                          {act.label}
+                        </span>
+                        <span className="font-bold text-slate-900">{b.itemName}</span>
+                      </div>
+                    </td>
+                    <td className="py-3">
+                      <div>
+                        <span className="font-bold text-slate-800">{b.customerName}</span>
+                        {b.customerPhone && <span className="text-[10px] text-slate-400 block" dir="ltr">{b.customerPhone}</span>}
+                      </div>
+                    </td>
+                    <td className="py-3 text-slate-600 font-medium tabular-nums">
+                      {b.dateStr} • {b.timeStr}
+                    </td>
+                    <td className="py-3 font-bold text-slate-900 tabular-nums">
+                      {b.price > 0 ? `${b.price.toLocaleString('en-US')} ج.م` : '—'}
+                    </td>
+                    <td className="py-3">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${st.chip}`}>
+                        {st.label}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+ * Add Manual Booking Modal (حجز يدوي لجميع الأنشطة)
+ * ============================================================ */
+
+function AddBookingModal({
+  initialDate,
+  onClose,
+  onSuccess,
+}: {
+  initialDate: string;
+  onClose: () => void;
+  onSuccess: (b: BookingItem) => void;
+}) {
+  const [activityType, setActivityType] = useState<ActivityType>('clinic');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [itemName, setItemName] = useState('');
+  const [bookingDate, setBookingDate] = useState(initialDate || formatDateKey(new Date()));
+  const [bookingTime, setBookingTime] = useState('11:00');
+  const [price, setPrice] = useState('200');
+  const [participants, setParticipants] = useState('1');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customerName.trim() || !customerPhone.trim() || !itemName.trim()) {
+      alert('يرجى كتابة اسم العميل، رقم الهاتف، واسم الخدمة/الحجز');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        itemName: itemName.trim(),
+        bookingDate,
+        bookingTime,
+        itemPrice: Number(price) || 0,
+        participants: Number(participants) || 1,
+        notes: notes.trim(),
+        bookingActivityType: activityType,
+        status: 'CONFIRMED',
+      };
+
+      const res = await addBookingViaBackend(payload);
+
+      const newBooking: BookingItem = {
+        id: `int-${res.id || Date.now()}`,
+        source: 'internal',
+        status: 'CONFIRMED',
+        activityType,
+        itemName: payload.itemName,
+        customerName: payload.customerName,
+        customerPhone: payload.customerPhone,
+        when: `${bookingDate}T${bookingTime}:00`,
+        dateStr: bookingDate,
+        timeStr: bookingTime,
+        price: payload.itemPrice,
+        participants: payload.participants,
+        notes: payload.notes,
+        raw: res,
+      };
+
+      onSuccess(newBooking);
+    } catch (err: any) {
+      alert(err?.message || 'تعذر إضافة الحجز');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto" dir="rtl">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+          <div className="flex items-center gap-2">
+            <CalendarDays size={18} className="text-slate-700" />
+            <h3 className="text-base font-extrabold text-slate-900">إضافة حجز يدوي جديد</h3>
+          </div>
+          <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* نوع النشاط */}
+          <div>
+            <label className="text-xs font-bold text-slate-700 block mb-1.5">نوع الحجز / النشاط</label>
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+              {(Object.keys(ACTIVITY_META) as ActivityType[]).map((t) => {
+                const act = ACTIVITY_META[t];
+                const Icon = act.icon;
+                const isSelected = activityType === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setActivityType(t)}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-center transition-all ${
+                      isSelected
+                        ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
+                        : 'border-slate-200 hover:border-slate-300 text-slate-600 bg-slate-50/50'
+                    }`}
+                  >
+                    <Icon size={16} />
+                    <span className="text-[10px] font-bold leading-tight">{act.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
-        );
-      })}
-      <div className="bg-slate-50 rounded-xl p-4 text-center">
-        <p className="text-xs font-bold text-slate-400">إعدادات الإشعارات تتوفر في تبويب الإعدادات</p>
-      </div>
-    </div>
-  );
-}
 
-/* ============ SETTINGS TAB ============ */
-const SETTINGS_TABS = [
-  { id: 'booking-site', label: 'الموقع العام', icon: Globe },
-  { id: 'booking-security', label: 'الأمان والصلاحيات', icon: ShieldCheck },
-  { id: 'booking-notifications', label: 'إشعارات وتأكيدات', icon: Bell },
-  { id: 'booking-payments', label: 'مدفوعات وتأمين', icon: CreditCard },
-  { id: 'booking-cancellation', label: 'سياسات الإلغاء', icon: XCircle },
-  { id: 'booking-privacy', label: 'الخصوصية', icon: Lock },
-] as const;
+          {/* اسم الخدمة */}
+          <div>
+            <label className="text-xs font-bold text-slate-700 block mb-1">اسم الخدمة أو الحجز *</label>
+            <input
+              type="text"
+              value={itemName}
+              onChange={(e) => setItemName(e.target.value)}
+              placeholder="مثال: كشف أسنان، إقامة جناح قطط، طاولة 4 أفراد..."
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-slate-400"
+              required
+            />
+          </div>
 
-type SettingsTabId = typeof SETTINGS_TABS[number]['id'];
+          {/* بيانات العميل */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">اسم العميل *</label>
+              <input
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="محمد أحمد"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-slate-400"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">رقم الهاتف *</label>
+              <input
+                type="tel"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="010xxxxxxxx"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-slate-400 text-right"
+                dir="ltr"
+                required
+              />
+            </div>
+          </div>
 
-function SettingsTab() {
-  const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTabId>('booking-site');
-  return (
-    <div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-6">
-        {SETTINGS_TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeSettingsTab === tab.id;
-          return (
-            <button key={tab.id} onClick={() => setActiveSettingsTab(tab.id)}
-              className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                isActive ? 'border-slate-900 bg-slate-50' : 'border-slate-100 bg-white hover:border-slate-200'
-              }`}>
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                isActive ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-400'}`}>
-                <Icon size={20} />
-              </div>
-              <span className={`text-[10px] font-black text-center leading-tight ${
-                isActive ? 'text-slate-900' : 'text-slate-400'}`}>{tab.label}</span>
+          {/* التاريخ والوقت */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">تاريخ الحجز</label>
+              <input
+                type="date"
+                value={bookingDate}
+                onChange={(e) => setBookingDate(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-slate-400"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">وقت الموعد</label>
+              <input
+                type="time"
+                value={bookingTime}
+                onChange={(e) => setBookingTime(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-slate-400"
+                required
+              />
+            </div>
+          </div>
+
+          {/* السعر والعدد */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">السعر (ج.م)</label>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-slate-400"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">عدد الأفراد / الحيوانات</label>
+              <input
+                type="number"
+                value={participants}
+                onChange={(e) => setParticipants(e.target.value)}
+                min="1"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-slate-400"
+              />
+            </div>
+          </div>
+
+          {/* ملاحظات */}
+          <div>
+            <label className="text-xs font-bold text-slate-700 block mb-1">ملاحظات إضافية</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="أي تفاصيل خاصة بالحجز أو العميل..."
+              rows={2}
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-slate-400 resize-none"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              إلغاء
             </button>
-          );
-        })}
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {saving && <Loader2 size={13} className="animate-spin" />}
+              تأكيد وحفظ الحجز
+            </button>
+          </div>
+        </form>
       </div>
-      <div className="bg-white border border-slate-100 rounded-3xl p-6 md:p-8">
-        {activeSettingsTab === 'booking-site' && <BookingSiteSettings />}
-        {activeSettingsTab === 'booking-security' && <BookingSecuritySettings />}
-        {activeSettingsTab === 'booking-notifications' && <BookingNotificationsSettings />}
-        {activeSettingsTab === 'booking-payments' && <BookingPaymentsSettings />}
-        {activeSettingsTab === 'booking-cancellation' && <BookingCancellationSettings />}
-        {activeSettingsTab === 'booking-privacy' && <BookingPrivacySettings />}
+    </div>
+  );
+}
+
+/* ============================================================
+ * Booking Detail & Actions Modal
+ * ============================================================ */
+
+function BookingDetailModal({
+  booking,
+  onClose,
+  onUpdateStatus,
+}: {
+  booking: BookingItem;
+  onClose: () => void;
+  onUpdateStatus: (b: BookingItem, status: UnifiedStatus) => Promise<void>;
+}) {
+  const [updating, setUpdating] = useState(false);
+  const act = ACTIVITY_META[booking.activityType];
+  const st = STATUS_META[booking.status];
+
+  const handleStatus = async (status: UnifiedStatus) => {
+    setUpdating(true);
+    await onUpdateStatus(booking, status);
+    setUpdating(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100" dir="rtl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${act.chip}`}>
+              {act.label}
+            </span>
+            <h3 className="text-sm font-extrabold text-slate-900 truncate max-w-[220px]">{booking.itemName}</h3>
+          </div>
+          <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Body Details */}
+        <div className="space-y-3 text-xs">
+          <div className="p-3 rounded-xl bg-slate-50 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-slate-400 font-semibold">حالة الحجز:</span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${st.chip}`}>
+                {st.label}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400 font-semibold">توقيت الموعد:</span>
+              <span className="font-bold text-slate-900 tabular-nums">
+                {booking.dateStr} الساعة {booking.timeStr}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400 font-semibold">المصدر:</span>
+              <span className="font-bold text-slate-700">
+                {booking.source === 'website' ? 'من الموقع التجاري' : 'حجز داخلي'}
+              </span>
+            </div>
+            {booking.price > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-semibold">القيمة الإجمالية:</span>
+                <span className="font-black text-slate-900 tabular-nums">
+                  {booking.price.toLocaleString('en-US')} ج.م
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* بيانات العميل */}
+          <div className="p-3 rounded-xl border border-slate-100 space-y-2">
+            <div className="font-bold text-slate-800">بيانات العميل</div>
+            <div className="flex justify-between text-slate-600">
+              <span>الاسم:</span>
+              <span className="font-bold text-slate-900">{booking.customerName}</span>
+            </div>
+            {booking.customerPhone && (
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">رقم الهاتف:</span>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`https://wa.me/${booking.customerPhone.replace(/[^0-9]/g, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1 rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                    title="مراسلة واتساب"
+                  >
+                    <MessageCircle size={14} />
+                  </a>
+                  <a
+                    href={`tel:${booking.customerPhone}`}
+                    className="p-1 rounded bg-sky-50 text-sky-600 hover:bg-sky-100 transition-colors"
+                    title="اتصال هاتفي"
+                  >
+                    <Phone size={14} />
+                  </a>
+                  <span className="font-bold text-slate-900 tabular-nums" dir="ltr">
+                    {booking.customerPhone}
+                  </span>
+                </div>
+              </div>
+            )}
+            {booking.notes && (
+              <div className="pt-2 border-t border-slate-50 text-slate-500">
+                <span className="font-semibold text-slate-700 block mb-0.5">ملاحظات:</span>
+                <p className="bg-slate-50 p-2 rounded-lg text-[11px]">{booking.notes}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Change Status Buttons */}
+        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            {booking.status !== 'CONFIRMED' && (
+              <button
+                type="button"
+                disabled={updating}
+                onClick={() => handleStatus('CONFIRMED')}
+                className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                تأكيد
+              </button>
+            )}
+            {booking.status !== 'COMPLETED' && (
+              <button
+                type="button"
+                disabled={updating}
+                onClick={() => handleStatus('COMPLETED')}
+                className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                إتمام
+              </button>
+            )}
+            {booking.status !== 'CANCELLED' && (
+              <button
+                type="button"
+                disabled={updating}
+                onClick={() => handleStatus('CANCELLED')}
+                className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                إلغاء
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+          >
+            إغلاق
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function SectionTitle({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div className="mb-6">
-      <h2 className="text-lg font-black text-slate-900 mb-1">{title}</h2>
-      <p className="text-sm font-bold text-slate-400">{desc}</p>
-    </div>
-  );
-}
+/* ============================================================
+ * Root Export with Suspense
+ * ============================================================ */
 
-function ToggleRow({ title, desc, defaultOn }: { title: string; desc: string; defaultOn?: boolean }) {
-  const [on, setOn] = useState(!!defaultOn);
+export default function BookingsUnifiedPage() {
   return (
-    <div className="flex items-center justify-between py-4 border-b border-slate-50 last:border-0">
-      <div className="flex-1">
-        <div className="text-sm font-black text-slate-800">{title}</div>
-        <div className="text-xs font-bold text-slate-400 mt-0.5">{desc}</div>
-      </div>
-      <button onClick={() => setOn(!on)}
-        className={`w-12 h-7 rounded-full transition-all relative shrink-0 ${on ? 'bg-emerald-500' : 'bg-slate-200'}`}>
-        <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-all ${on ? 'right-1' : 'right-6'}`} />
-      </button>
-    </div>
-  );
-}
-
-function InputRow({ label, placeholder, type }: { label: string; placeholder: string; type?: string }) {
-  return (
-    <div className="py-4 border-b border-slate-50 last:border-0">
-      <label className="text-sm font-black text-slate-800 block mb-2">{label}</label>
-      <input type={type || 'text'} placeholder={placeholder}
-        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 focus:outline-none focus:border-slate-400" />
-    </div>
-  );
-}
-
-function BookingSiteSettings() {
-  return (
-    <div>
-      <SectionTitle title="الموقع العام للحجوزات" desc="إعدادات الصفحة العامة التي يراها العملاء عند الحجز" />
-      <InputRow label="اسم النشاط" placeholder="مثال: عيادة الدكتور أحمد" />
-      <InputRow label="رقم التواصل" placeholder="مثال: 05xxxxxxxx" type="tel" />
-      <InputRow label="عنوان الموقع" placeholder="مثال: الرياض، حي العليا" />
-      <InputRow label="رابط الحجز المخصص" placeholder="mnmknk.com/booking/your-store" />
-      <ToggleRow title="تفعيل الصفحة العامة" desc="إتاحة الحجز للعملاء عبر رابط عام" defaultOn />
-      <ToggleRow title="إظهار الأسعار" desc="عرض أسعار الخدمات في الصفحة العامة" defaultOn />
-      <ToggleRow title="إظهار أوقات التوفر" desc="عرض المواعيد المتاحة للعملاء" defaultOn />
-    </div>
-  );
-}
-
-function BookingSecuritySettings() {
-  return (
-    <div>
-      <SectionTitle title="الأمان والصلاحيات" desc="تحكم في وصول الموظفين وإدارة الحجوزات" />
-      <ToggleRow title="تأكيد الحجز يدوياً" desc="يتطلب موافقة المسؤول قبل تأكيد أي حجز" defaultOn />
-      <ToggleRow title="منع الحجز المكرر" desc="منع نفس العميل من حجز أكثر من موعد في نفس الوقت" defaultOn />
-      <ToggleRow title="تحقق رقم الهاتف" desc="إرسال رمز تحقق عبر SMS قبل تأكيد الحجز" />
-      <ToggleRow title="تقييد الحجز بالعملاء المسجلين" desc="السماح بالحجز للعملاء المسجلين فقط" />
-      <ToggleRow title="حد أقصى للحجوزات اليومية" desc="تحديد عدد الحجوزات المسموح به في اليوم" />
-    </div>
-  );
-}
-
-function BookingNotificationsSettings() {
-  return (
-    <div>
-      <SectionTitle title="إشعارات وتأكيدات" desc="إعدادات إشعارات الحجز للعملاء والمسؤولين" />
-      <ToggleRow title="إشعار تأكيد الحجز" desc="إرسال رسالة تأكيد للعميل بعد الحجز" defaultOn />
-      <ToggleRow title="تذكير قبل الموعد" desc="إرسال تذكير للعميل قبل الموعد بساعة" defaultOn />
-      <ToggleRow title="إشعار الإلغاء" desc="إشعار المسؤول عند إلغاء حجز" defaultOn />
-      <ToggleRow title="إشعار حجز جديد" desc="إشعار المسؤول فور وصول حجز جديد" defaultOn />
-      <ToggleRow title="إشعار عبر SMS" desc="إرسال الإشعارات عبر رسائل نصية" />
-      <ToggleRow title="إشعار عبر WhatsApp" desc="إرسال الإشعارات عبر واتساب" />
-      <ToggleRow title="إشعار عبر البريد الإلكتروني" desc="إرسال الإشعارات عبر البريد الإلكتروني" defaultOn />
-    </div>
-  );
-}
-
-function BookingPaymentsSettings() {
-  return (
-    <div>
-      <SectionTitle title="مدفوعات وتأمين" desc="إعدادات الدفع والتأمين على الحجوزات" />
-      <ToggleRow title="تفعيل الدفع الإلكتروني" desc="السماح للعملاء بالدفع عبر الإنترنت" />
-      <ToggleRow title="دفع مقدم" desc="طلب دفع مقدم لتأكيد الحجز" />
-      <ToggleRow title="تأمين الحجز" desc="خصم مبلغ تأمين قابل للاسترداد" />
-      <ToggleRow title="الدفع عند الاستلام" desc="السماح بالدفع حضورياً" defaultOn />
-      <ToggleRow title="استرداد تلقائي" desc="استرداد المبلغ تلقائياً عند الإلغاء" />
-      <InputRow label="نسبة المقدم (%)" placeholder="مثال: 30" type="number" />
-    </div>
-  );
-}
-
-function BookingCancellationSettings() {
-  return (
-    <div>
-      <SectionTitle title="سياسات الإلغاء" desc="قواعد إلغاء الحجوزات والاسترداد" />
-      <ToggleRow title="السماح بالإلغاء" desc="السماح للعملاء بإلغاء حجوزاتهم" defaultOn />
-      <ToggleRow title="إلغاء مجاني" desc="إلغاء بدون رسوم" />
-      <InputRow label="مهلة الإلغاء المجاني (ساعات)" placeholder="مثال: 24" type="number" />
-      <InputRow label="رسوم الإلغاء المتأخر (%)" placeholder="مثال: 50" type="number" />
-      <ToggleRow title="منع الإلغاء يوم الحجز" desc="لا يمكن إلغاء الحجز في يوم الموعد" />
-      <ToggleRow title="إلغاء تلقائي للحجوزات غير المؤكدة" desc="إلغاء الحجوزات غير المؤكدة بعد فترة محددة" defaultOn />
-    </div>
-  );
-}
-
-function BookingPrivacySettings() {
-  return (
-    <div>
-      <SectionTitle title="الخصوصية وبيانات العملاء" desc="حماية بيانات العملاء وخصوصية الحجوزات" />
-      <ToggleRow title="إخفاء بيانات العميل" desc="إخفاء رقم الهاتف والبريد عن الموظفين" />
-      <ToggleRow title="حفظ سجل الحجوزات" desc="الاحتفاظ بسجل كامل للحجوزات للمراجعة" defaultOn />
-      <ToggleRow title="مشاركة البيانات مع طرف ثالث" desc="السماح بمشاركة بيانات الحجز مع خدمات خارجية" />
-      <ToggleRow title="طلب موافقة الخصوصية" desc="طلب موافقة العميل على سياسة الخصوصية قبل الحجز" defaultOn />
-      <ToggleRow title="حذف البيانات تلقائياً" desc="حذف بيانات الحجوزات القديمة تلقائياً" />
-      <InputRow label="مدة حفظ البيانات (أشهر)" placeholder="مثال: 12" type="number" />
-    </div>
-  );
-}
-
-export default function BookingsDashboardPage() {
-  return (
-    <Suspense fallback={<div className="p-6 text-center text-sm font-bold text-slate-500">جاري التحميل...</div>}>
-      <BookingsDashboardContent />
+    <Suspense fallback={<div className="p-8 text-center text-sm font-bold text-slate-400">جاري التحميل...</div>}>
+      <BookingsMainContent />
     </Suspense>
   );
 }

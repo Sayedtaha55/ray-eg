@@ -3,12 +3,11 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ExternalLink, X, LogOut } from 'lucide-react';
 import type { SidebarSection } from '@/config/sidebar';
 import { SECTION_COLORS } from '@/config/sidebar';
 import { useAuth } from '@/lib/auth';
-import { useRouter } from 'next/navigation';
 import useVisibleSections from '@/hooks/useVisibleSections';
 
 
@@ -22,6 +21,7 @@ const SoonBadge = () => (
 export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { logout } = useAuth();
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
@@ -43,9 +43,8 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
     // For settings page, check if the tab parameter matches
     if (href.startsWith('/dashboard/settings?tab=')) {
       const url = new URL(href, 'http://localhost');
-      const tabParam = url.searchParams.get('tab');
-      const currentUrl = new URL(window.location.href);
-      const currentTab = currentUrl.searchParams.get('tab');
+      const tabParam = url.searchParams.get('tab') || 'overview';
+      const currentTab = searchParams?.get('tab') || 'overview';
       return pathname === '/dashboard/settings' && tabParam === currentTab;
     }
     // Use exact matching for other pages

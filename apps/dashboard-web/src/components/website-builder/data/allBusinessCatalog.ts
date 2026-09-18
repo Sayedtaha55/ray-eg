@@ -106,7 +106,7 @@ export const all85ActivitiesMeta: ActivityTemplateMeta[] = [
   {
     id: 'site_landscaping_pools',
     tenantId: 'tenant_landscaping_pools',
-    name: 'شركة واحة الرياض لتنسيق الحدائق والمسابح والمظلات',
+    name: 'شركة واحة النيل لتنسيق الحدائق والمسابح والمظلات',
     category: 'تنسيق الحدائق والمسابح والمظلات',
     icon: '🌴',
     badge: 'شلالات، عشب جداري، ومسابح سكاي لاين',
@@ -956,7 +956,7 @@ export const all85ActivitiesMeta: ActivityTemplateMeta[] = [
   {
     id: 'site_solar_energy_systems',
     tenantId: 'tenant_solar_energy_systems',
-    name: 'شركة شمس الرياض لحلول الطاقة الشمسية والكهرباء البديلة',
+    name: 'شركة شمس الدلتا لحلول الطاقة الشمسية والكهرباء البديلة',
     category: 'المقاولات والإنشاءات',
     icon: '☀️',
     badge: 'ألواح طاقة شمسية وتوفير 80% من فاتورة الكهرباء',
@@ -1113,7 +1113,10 @@ export const generateActivityWebsite = (meta: ActivityTemplateMeta): Website => 
       parentId: 'gen_header',
       childrenIds: ['gen_brand_badge', 'gen_nav_items', 'gen_header_cta'],
       props: {},
-      styles: { desktop: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+      styles: {
+        desktop: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' },
+        mobile: { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingLeft: '12px', paddingRight: '12px', gap: '8px', overflow: 'hidden' },
+      },
     },
     'gen_brand_badge': {
       id: 'gen_brand_badge',
@@ -1123,7 +1126,10 @@ export const generateActivityWebsite = (meta: ActivityTemplateMeta): Website => 
       parentId: 'gen_header_inner',
       childrenIds: [],
       props: { text: `${meta.icon} ${meta.name}`, level: 'h3' },
-      styles: { desktop: { fontSize: '20px', fontWeight: '800', textColor: meta.primaryColor } },
+      styles: {
+        desktop: { fontSize: '20px', fontWeight: '800', textColor: meta.primaryColor },
+        mobile: { fontSize: '13px', fontWeight: '800', textColor: meta.primaryColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px', flexShrink: 1 },
+      },
     },
     'gen_nav_items': {
       id: 'gen_nav_items',
@@ -1133,7 +1139,10 @@ export const generateActivityWebsite = (meta: ActivityTemplateMeta): Website => 
       parentId: 'gen_header_inner',
       childrenIds: [],
       props: { text: 'الرئيسية • الخدمات والمنتجات • الباقات والأسعار • آراء العملاء • تواصل معنا' },
-      styles: { desktop: { fontSize: '14px', fontWeight: '600', textColor: '#475569' } },
+      styles: {
+        desktop: { fontSize: '14px', fontWeight: '600', textColor: '#475569' },
+        mobile: { display: 'none' },
+      },
     },
     'gen_header_cta': {
       id: 'gen_header_cta',
@@ -1142,8 +1151,11 @@ export const generateActivityWebsite = (meta: ActivityTemplateMeta): Website => 
       category: 'action',
       parentId: 'gen_header_inner',
       childrenIds: [],
-      props: { label: 'احجز موعدك الآن', variant: 'primary', linkUrl: '#contact' },
-      styles: { desktop: { backgroundColor: meta.primaryColor, textColor: '#ffffff', paddingLeft: '20px', paddingRight: '20px', paddingTop: '10px', paddingBottom: '10px', borderRadius: '10px', fontWeight: '700' } },
+      props: { label: 'احجز الآن', variant: 'primary', linkUrl: '#contact' },
+      styles: {
+        desktop: { backgroundColor: meta.primaryColor, textColor: '#ffffff', paddingLeft: '20px', paddingRight: '20px', paddingTop: '10px', paddingBottom: '10px', borderRadius: '10px', fontWeight: '700' },
+        mobile: { backgroundColor: meta.primaryColor, textColor: '#ffffff', paddingLeft: '10px', paddingRight: '10px', paddingTop: '6px', paddingBottom: '6px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 },
+      },
     },
     'gen_hero': {
       id: 'gen_hero',
@@ -1168,7 +1180,10 @@ export const generateActivityWebsite = (meta: ActivityTemplateMeta): Website => 
           { label: 'ضمان ودعم معتمد', value: '100% موثوق' },
         ],
       },
-      styles: { desktop: { width: '100%', backgroundColor: '#f8fafc', paddingTop: '64px', paddingBottom: '64px', borderBottomWidth: '1px', borderColor: '#e2e8f0' } },
+      styles: {
+        desktop: { width: '100%', backgroundColor: '#f8fafc', paddingTop: '64px', paddingBottom: '64px', borderBottomWidth: '1px', borderColor: '#e2e8f0' },
+        mobile: { width: '100%', backgroundColor: '#f8fafc', paddingTop: '28px', paddingBottom: '28px', paddingLeft: '14px', paddingRight: '14px', borderBottomWidth: '1px', borderColor: '#e2e8f0' },
+      },
     },
     'gen_features': {
       id: 'gen_features',
@@ -1178,15 +1193,18 @@ export const generateActivityWebsite = (meta: ActivityTemplateMeta): Website => 
       parentId: 'page_root',
       childrenIds: [],
       props: {
-        title: 'لماذا يختارنا آلاف العملاء في المملكة؟',
+        title: 'لماذا يختارنا آلاف العملاء في مصر؟',
         subtitle: 'نلتزم بأعلى معايير الحرفية، الدقة في المواعيد، وخدمات ما بعد البيع المعتمدة',
         features: [
           { title: 'جودة وضمان معتمد رسمي', description: 'شهادات فحص وضمانات موثقة تضمن حقك وراحة بالك التامة.', iconName: 'ShieldCheck' },
           { title: 'فريق مهني متخصص ومحترف', description: 'كوادر مؤهلة بخبرات عريقة وتقنيات متطورة تضمن تنفيذ أعمالك بدقة.', iconName: 'Users' },
-          { title: 'أسعار تنافسية وخطط دفع مرنة', description: 'أفضل قيمة مقابل السعر مع إمكانية التقسيط الميسر عبر تمارا وتابي.', iconName: 'CreditCard' },
+          { title: 'أسعار تنافسية وخطط دفع مرنة', description: 'أفضل قيمة مقابل السعر مع إمكانية التقسيط الميسر عبر الدفع عند الاستلام.', iconName: 'CreditCard' },
         ],
       },
-      styles: { desktop: { width: '100%', backgroundColor: '#ffffff', paddingTop: '64px', paddingBottom: '64px' } },
+      styles: {
+        desktop: { width: '100%', backgroundColor: '#ffffff', paddingTop: '64px', paddingBottom: '64px' },
+        mobile: { width: '100%', backgroundColor: '#ffffff', paddingTop: '28px', paddingBottom: '28px', paddingLeft: '14px', paddingRight: '14px' },
+      },
     },
     'gen_items_grid': {
       id: 'gen_items_grid',
@@ -1200,7 +1218,10 @@ export const generateActivityWebsite = (meta: ActivityTemplateMeta): Website => 
         subtitle: 'اختر الخدمة أو المنتج المناسب مع تفاصيل دقيقة للأسعار والمواصفات',
         items,
       },
-      styles: { desktop: { width: '100%', backgroundColor: '#f8fafc', paddingTop: '64px', paddingBottom: '64px', borderTopWidth: '1px', borderBottomWidth: '1px', borderColor: '#e2e8f0' } },
+      styles: {
+        desktop: { width: '100%', backgroundColor: '#f8fafc', paddingTop: '64px', paddingBottom: '64px', borderTopWidth: '1px', borderBottomWidth: '1px', borderColor: '#e2e8f0' },
+        mobile: { width: '100%', backgroundColor: '#f8fafc', paddingTop: '28px', paddingBottom: '28px', paddingLeft: '14px', paddingRight: '14px', borderTopWidth: '1px', borderBottomWidth: '1px', borderColor: '#e2e8f0' },
+      },
     },
     'gen_form': {
       id: 'gen_form',
@@ -1214,12 +1235,15 @@ export const generateActivityWebsite = (meta: ActivityTemplateMeta): Website => 
         subtitle: 'سيتواصل معك فريق خدمة العملاء خلال 15 دقيقة لتأكيد كافة التفاصيل وتجهيز طلبك',
         buttonText: 'تأكيد إرسال الطلب',
         fields: [
-          { name: 'name', label: 'الاسم الكريم', type: 'text', placeholder: 'مثال: محمد العمري', required: true },
-          { name: 'phone', label: 'رقم الجوال للتواصل والواتساب', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+          { name: 'name', label: 'الاسم الكريم', type: 'text', placeholder: 'مثال: محمود السيد', required: true },
+          { name: 'phone', label: 'رقم الجوال للتواصل والواتساب', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
           { name: 'service_needed', label: 'الخدمة أو الاستفسار المطلوب', type: 'text', placeholder: 'اكتب تفاصيل طلبك...', required: true },
         ],
       },
-      styles: { desktop: { width: '100%', backgroundColor: '#ffffff', paddingTop: '64px', paddingBottom: '64px' } },
+      styles: {
+        desktop: { width: '100%', backgroundColor: '#ffffff', paddingTop: '64px', paddingBottom: '64px' },
+        mobile: { width: '100%', backgroundColor: '#ffffff', paddingTop: '28px', paddingBottom: '28px', paddingLeft: '14px', paddingRight: '14px' },
+      },
     },
     'gen_footer': {
       id: 'gen_footer',
@@ -1230,12 +1254,15 @@ export const generateActivityWebsite = (meta: ActivityTemplateMeta): Website => 
       childrenIds: [],
       props: {
         brandName: meta.name,
-        description: `${meta.name} - ريادة وتميز في تقديم أرقى الحلول والخدمات بالمملكة العربية السعودية.`,
-        phone: '+966 50 123 4567',
+        description: `${meta.name} - ريادة وتميز في تقديم أرقى الحلول والخدمات بجمهورية مصر العربية.`,
+        phone: '+20 100 123 4567',
         email: `contact@${meta.id.replace('site_', '')}.com`,
-        address: 'المملكة العربية السعودية - الرياض، جدة، الدمام',
+        address: 'جمهورية مصر العربية - القاهرة، الجيزة، الإسكندرية',
       },
-      styles: { desktop: { width: '100%', backgroundColor: '#0f172a', textColor: '#f8fafc', paddingTop: '48px', paddingBottom: '32px' } },
+      styles: {
+        desktop: { width: '100%', backgroundColor: '#0f172a', textColor: '#f8fafc', paddingTop: '48px', paddingBottom: '32px' },
+        mobile: { width: '100%', backgroundColor: '#0f172a', textColor: '#f8fafc', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '14px', paddingRight: '14px', fontSize: '11px', textAlign: 'center' },
+      },
     },
   };
 

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Ticket, Search, Loader2, Plus, Edit, Trash2, Download, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info, Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, User, Eye, MessageSquare, Tag, Star } from 'lucide-react';
+import { Ticket, Plus, Edit, Trash2, Download, ChevronUp, ChevronDown, Check, X, Info, CheckCircle2, AlertTriangle, User, Star, Clock } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import { InventoryPage, InvToolButton, InvPagination, InvEmpty } from '@/components/inventory/InventoryShell';
 
 type Ticket = {
   id: string;
@@ -293,142 +294,98 @@ export default function TicketsPage() {
       { label: 'متوسط الرضا', value: `${avgSatisfaction.toFixed(1)}/5`, icon: Star, color: 'bg-purple-50 text-purple-600' },
     ];
   }, [tickets]);
+  const statusTabs = [
+    { id: 'all', label: 'الكل', count: tickets.length },
+    { id: 'open', label: 'مفتوح', count: tickets.filter(t => t.status === 'open').length },
+    { id: 'in_progress', label: 'قيد المعالجة', count: tickets.filter(t => t.status === 'in_progress').length },
+    { id: 'pending', label: 'معلق', count: tickets.filter(t => t.status === 'pending').length },
+    { id: 'resolved', label: 'تم الحل', count: tickets.filter(t => t.status === 'resolved').length },
+    { id: 'closed', label: 'مغلق', count: tickets.filter(t => t.status === 'closed').length },
+  ];
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <Ticket size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">التذاكر</h1>
-            <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-              <Info size={18} />
+    <>
+      <InventoryPage
+        title="التذاكر"
+        subtitle="إدارة تذاكر الدعم الفني وخدمة العملاء"
+        onInfo={() => setGuideOpen(true)}
+        actions={
+          <>
+            <InvToolButton primary onClick={() => setAddModal(true)}>
+              <Plus size={14} /> تذكرة جديدة
+            </InvToolButton>
+            <InvToolButton onClick={exportCSV}>
+              <Download size={14} /> تصدير CSV
+            </InvToolButton>
+          </>
+        }
+        tabs={statusTabs}
+        activeTab={filterStatus}
+        onTabChange={(id) => { setFilterStatus(id); setCurrentPage(1); }}
+        search={search}
+        onSearchChange={(v) => { setSearch(v); setCurrentPage(1); }}
+        searchPlaceholder="بحث بالموضوع أو العميل…"
+        filters={
+          <>
+            <select value={filterPriority} onChange={e => { setFilterPriority(e.target.value); setCurrentPage(1); }} className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none">
+              <option value="all">كل الأولويات</option>
+              <option value="low">منخفض</option>
+              <option value="medium">متوسط</option>
+              <option value="high">عالي</option>
+              <option value="critical">حرج</option>
+            </select>
+            <select value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setCurrentPage(1); }} className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none">
+              <option value="all">كل الفئات</option>
+              <option value="technical">فني</option>
+              <option value="billing">فواتير</option>
+              <option value="general">عام</option>
+              <option value="feature">ميزات</option>
+            </select>
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none">
+              <option value="subject">الموضوع</option>
+              <option value="priority">الأولوية</option>
+              <option value="responseTime">وقت الاستجابة</option>
+              <option value="createdAt">تاريخ الإنشاء</option>
+            </select>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all"
+              title={sortOrder === 'asc' ? 'تصاعدي' : 'تنازلي'}
+            >
+              {sortOrder === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
-          </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">إدارة تذاكر الدعم الفني</p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        {stats.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
-            <div className={`p-2 rounded-xl ${s.color}`}><s.icon size={20} /></div>
-            <div><p className="text-xs font-bold text-slate-400">{s.label}</p><p className="text-lg font-black text-slate-900">{s.value}</p></div>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex flex-wrap gap-3">
-          <button onClick={() => setAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all">
-            <Plus size={18} />
-            تذكرة جديدة
-          </button>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
-            <Download size={18} />
-            تصدير CSV
-          </button>
-        </div>
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900">{selectedIds.size} محدد</span>
-            <button onClick={bulkDelete} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-700 font-bold text-xs hover:bg-red-100 transition-all">
-              <Trash2 size={14} />
-              حذف
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute top-1/2 -translate-y-1/2 right-3 text-slate-300" size={18} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالموضوع أو العميل..." className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-white border border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الحالة:</span>
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="open">مفتوح</option>
-            <option value="in_progress">قيد المعالجة</option>
-            <option value="pending">معلق</option>
-            <option value="resolved">تم الحل</option>
-            <option value="closed">مغلق</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الأولوية:</span>
-          <select
-            value={filterPriority}
-            onChange={e => setFilterPriority(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="low">منخفض</option>
-            <option value="medium">متوسط</option>
-            <option value="high">عالي</option>
-            <option value="critical">حرج</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الفئة:</span>
-          <select
-            value={filterCategory}
-            onChange={e => setFilterCategory(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="technical">فني</option>
-            <option value="billing">فواتير</option>
-            <option value="general">عام</option>
-            <option value="feature">ميزات</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الترتيب:</span>
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="subject">الموضوع</option>
-            <option value="priority">الأولوية</option>
-            <option value="responseTime">وقت الاستجابة</option>
-            <option value="createdAt">تاريخ الإنشاء</option>
-          </select>
-        </div>
-        <button
-          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
-        >
-          {sortOrder === 'asc' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-      </div>
-
-      {/* Tickets List */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <Ticket size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm">لا توجد تذاكر حالياً</p>
-        </div>
-      ) : (
-        <div className="hidden md:block overflow-x-auto touch-auto">
+          </>
+        }
+        loading={loading}
+        empty={
+          <InvEmpty icon={Ticket} title="لا توجد تذاكر حالياً">
+            <InvToolButton primary onClick={() => setAddModal(true)}>
+              <Plus size={14} /> تذكرة جديدة
+            </InvToolButton>
+          </InvEmpty>
+        }
+        footer={
+          <>
+            {selectedIds.size > 0 && (
+              <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-[12px] font-bold">
+                <span>{selectedIds.size} تذكرة محددة</span>
+                <button onClick={bulkDelete} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-all">
+                  <Trash2 size={14} /> حذف
+                </button>
+              </div>
+            )}
+            <InvPagination
+              page={currentPage}
+              totalPages={totalPages}
+              total={filtered.length}
+              perPage={itemsPerPage}
+              onPage={(p) => setCurrentPage(p)}
+              label="تذكرة"
+            />
+          </>
+        }
+      >
+      <div className="hidden md:block overflow-x-auto touch-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-right border-collapse min-w-[1400px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -519,7 +476,7 @@ export default function TicketsPage() {
             </tbody>
           </table>
         </div>
-      )}
+      </InventoryPage>
 
       {/* Add Modal */}
       {addModal && (
@@ -840,6 +797,6 @@ export default function TicketsPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

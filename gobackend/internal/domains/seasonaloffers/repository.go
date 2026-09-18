@@ -3,6 +3,7 @@ package seasonaloffers
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -16,15 +17,21 @@ type Repository struct {
 	pool *db.Pool
 }
 
-// NewRepository creates a new seasonal offers repository.
 func NewRepository(pool *db.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
+// The seasonal_offers table uses title/discount_percent/starts_at/ends_at and
+// keeps categories + bannerColor inside the metadata jsonb. These projections
+// map the real columns onto the JSON shape the frontend expects (name,
+// discountType, startDate, endDate, ...) so scans stay in one stable order.
 const seasonalOfferColumns = `
-	so.id, so.shop_id, so.name, so.description, so.occasion,
-	so.discount_type, so.discount_value, so.categories, so.start_date, so.end_date,
-	so.banner_color, so.status, so.is_active, so.created_at, so.updated_at
+	so.id, so.shop_id, so.title AS name, so.description, so.occasion,
+	'percentage' AS discount_type, so.discount_percent AS discount_value,
+	COALESCE(so.metadata->'categories', '[]'::jsonb) AS categories,
+	so.starts_at AS start_date, so.ends_at AS end_date,
+	COALESCE(so.metadata->>'bannerColor', '') AS banner_color,
+	so.status, (so.status = 'active') AS is_active, so.created_at, so.updated_at
 `
 
 const seasonalOfferJoinColumns = `
@@ -44,7 +51,7 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*SeasonalOffer, e
 
 // ListByShop returns seasonal offers for a shop with optional filters.
 func (r *Repository) ListByShop(ctx context.Context, shopID, status, occasion string, limit, offset int) ([]SeasonalOffer, error) {
-	filters := "so.is_active = true"
+	filters := "TRUE"
 	args := []any{limit, offset}
 	idx := 3
 
@@ -84,10 +91,9 @@ func (r *Repository) ListPublic(ctx context.Context, limit, offset int) ([]Seaso
 	query := "SELECT " + seasonalOfferColumns + ", " + seasonalOfferJoinColumns + `
 		FROM seasonal_offers so
 		LEFT JOIN shops s ON s.id = so.shop_id
-		WHERE so.is_active = true
-		  AND so.status = 'active'
-		  AND so.start_date <= NOW()
-		  AND so.end_date >= NOW()
+		WHERE so.status = 'active'
+		  AND so.starts_at <= NOW()
+		  AND so.ends_at >= NOW()
 		ORDER BY so.created_at DESC
 		LIMIT $1 OFFSET $2
 	`
@@ -101,19 +107,25 @@ func (r *Repository) ListPublic(ctx context.Context, limit, offset int) ([]Seaso
 
 // Create inserts a new seasonal offer.
 func (r *Repository) Create(ctx context.Context, o *SeasonalOffer) (*SeasonalOffer, error) {
+	metaJSON, err := json.Marshal(map[string]any{
+		"categories":  o.Categories,
+		"bannerColor": o.BannerColor,
+	})
+	if err != nil {
+		metaJSON = []byte(`{}`)
+	}
 	row := r.pool.QueryRow(ctx, `
-		INSERT INTO seasonal_offers (
-			id, shop_id, name, description, occasion,
-			discount_type, discount_value, categories, start_date, end_date,
-			banner_color, status, is_active, created_at, updated_at
+		INSERT INTO seasonal_offers AS so (
+			shop_id, title, description, occasion,
+			discount_percent, starts_at, ends_at, status, metadata,
+			created_at, updated_at
 		) VALUES (
-			gen_random_uuid(), $1, $2, $3, $4,
-			$5, $6, $7, $8, $9,
-			$10, $11, true, NOW(), NOW()
+			$1, $2, $3, $4,
+			$5, $6, $7, $8, $9::jsonb,
+			NOW(), NOW()
 		) RETURNING `+seasonalOfferColumns,
 		o.ShopID, o.Name, o.Description, o.Occasion,
-		o.DiscountType, o.DiscountValue, o.Categories, o.StartDate, o.EndDate,
-		o.BannerColor, o.Status,
+		o.DiscountValue, o.StartDate, o.EndDate, normalizeStatus(o.Status), string(metaJSON),
 	)
 	return scanSeasonalOffer(row)
 }
@@ -125,7 +137,7 @@ func (r *Repository) Update(ctx context.Context, id string, req UpdateSeasonalOf
 	idx := 1
 
 	if req.Name != nil {
-		setParts = append(setParts, fmt.Sprintf("name = $%d", idx))
+		setParts = append(setParts, fmt.Sprintf("title = $%d", idx))
 		args = append(args, *req.Name)
 		idx++
 	}
@@ -139,34 +151,19 @@ func (r *Repository) Update(ctx context.Context, id string, req UpdateSeasonalOf
 		args = append(args, *req.Occasion)
 		idx++
 	}
-	if req.DiscountType != nil {
-		setParts = append(setParts, fmt.Sprintf("discount_type = $%d", idx))
-		args = append(args, *req.DiscountType)
-		idx++
-	}
 	if req.DiscountValue != nil {
-		setParts = append(setParts, fmt.Sprintf("discount_value = $%d", idx))
+		setParts = append(setParts, fmt.Sprintf("discount_percent = $%d", idx))
 		args = append(args, *req.DiscountValue)
 		idx++
 	}
-	if req.Categories != nil {
-		setParts = append(setParts, fmt.Sprintf("categories = $%d", idx))
-		args = append(args, req.Categories)
-		idx++
-	}
 	if req.StartDate != nil {
-		setParts = append(setParts, fmt.Sprintf("start_date = $%d", idx))
+		setParts = append(setParts, fmt.Sprintf("starts_at = $%d", idx))
 		args = append(args, *req.StartDate)
 		idx++
 	}
 	if req.EndDate != nil {
-		setParts = append(setParts, fmt.Sprintf("end_date = $%d", idx))
+		setParts = append(setParts, fmt.Sprintf("ends_at = $%d", idx))
 		args = append(args, *req.EndDate)
-		idx++
-	}
-	if req.BannerColor != nil {
-		setParts = append(setParts, fmt.Sprintf("banner_color = $%d", idx))
-		args = append(args, *req.BannerColor)
 		idx++
 	}
 	if req.Status != nil {
@@ -175,18 +172,38 @@ func (r *Repository) Update(ctx context.Context, id string, req UpdateSeasonalOf
 		idx++
 	}
 
+	// categories / bannerColor live inside metadata jsonb
+	metaKeys := []string{}
+	metaArgs := []any{}
+	if req.Categories != nil {
+		metaKeys = append(metaKeys, "categories")
+		raw, _ := json.Marshal(req.Categories)
+		metaArgs = append(metaArgs, string(raw))
+	}
+	if req.BannerColor != nil {
+		metaKeys = append(metaKeys, "bannerColor")
+		metaArgs = append(metaArgs, *req.BannerColor)
+	}
+	for i, key := range metaKeys {
+		path := fmt.Sprintf("{%s}", key)
+		setParts = append(setParts, fmt.Sprintf(
+			"metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '%s', to_jsonb($%d::text))", path, idx))
+		args = append(args, metaArgs[i])
+		idx++
+	}
+
 	args = append(args, id)
 	query := fmt.Sprintf(
-		"UPDATE seasonal_offers SET %s WHERE id = $%d RETURNING "+seasonalOfferColumns,
+		"UPDATE seasonal_offers AS so SET %s WHERE so.id = $%d RETURNING "+seasonalOfferColumns,
 		strings.Join(setParts, ", "), idx,
 	)
 	row := r.pool.QueryRow(ctx, query, args...)
 	return scanSeasonalOffer(row)
 }
 
-// Delete sets is_active = false for a seasonal offer.
+// Delete soft-deletes a seasonal offer by moving it back to draft.
 func (r *Repository) Delete(ctx context.Context, id string) error {
-	_, err := r.pool.Exec(ctx, "UPDATE seasonal_offers SET is_active = false, updated_at = NOW() WHERE id = $1", id)
+	_, err := r.pool.Exec(ctx, "UPDATE seasonal_offers SET status = 'draft', updated_at = NOW() WHERE id = $1", id)
 	if err != nil {
 		return errors.Internal("delete_seasonal_offer_failed", err)
 	}
@@ -197,11 +214,11 @@ func scanSeasonalOffer(row pgx.Row) (*SeasonalOffer, error) {
 	var o SeasonalOffer
 	var desc sql.NullString
 	var shopName, shopSlug sql.NullString
-	var categories []string
+	var categoriesJSON []byte
 
 	err := row.Scan(
 		&o.ID, &o.ShopID, &o.Name, &desc, &o.Occasion,
-		&o.DiscountType, &o.DiscountValue, &categories, &o.StartDate, &o.EndDate,
+		&o.DiscountType, &o.DiscountValue, &categoriesJSON, &o.StartDate, &o.EndDate,
 		&o.BannerColor, &o.Status, &o.IsActive, &o.CreatedAt, &o.UpdatedAt,
 		&shopName, &shopSlug,
 	)
@@ -215,12 +232,12 @@ func scanSeasonalOffer(row pgx.Row) (*SeasonalOffer, error) {
 	o.Description = nullStringPtr(desc)
 	o.ShopName = nullStringPtr(shopName)
 	o.ShopSlug = nullStringPtr(shopSlug)
-	if categories != nil {
-		o.Categories = categories
-	} else {
-		o.Categories = []string{}
+	o.Categories = []string{}
+	if len(categoriesJSON) > 0 && string(categoriesJSON) != "null" {
+		_ = json.Unmarshal(categoriesJSON, &o.Categories)
 	}
 	return &o, nil
+
 }
 
 func scanSeasonalOffers(rows pgx.Rows) ([]SeasonalOffer, error) {
@@ -245,9 +262,11 @@ func nullStringPtr(s sql.NullString) *string {
 }
 
 func normalizeStatus(status string) string {
-	status = strings.ToLower(strings.TrimSpace(status))
-	if status == "expired" {
-		return "ended"
+	s := strings.ToLower(strings.TrimSpace(status))
+	switch s {
+	case "active", "paused", "ended", "expired", "draft":
+		return s
+	default:
+		return "draft"
 	}
-	return status
 }

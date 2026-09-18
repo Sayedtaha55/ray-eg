@@ -1,8 +1,22 @@
 'use client';
+
+/**
+ * صفحة المصروفات — كل مصروف = قيد محاسبي (مدين على المصروف، دائن على النقدية).
+ * تبويبات زمنية (تصفية عميل): جميع المصروفات | هذا الشهر | الشهر الماضي | هذه السنة
+ * مع إجراء "التأثير المحاسبي" لعرض أسطر قيد اليومية لكل مصروف.
+ */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { CreditCard, Search, Loader2, Plus, Edit, Trash2, X, Receipt, CheckCircle2, AlertTriangle, BookOpen } from 'lucide-react';
+import { Plus, X, Receipt, CheckCircle2, AlertTriangle, BookOpen, Info, Loader2 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import {
+  InventoryPage,
+  InvTableCard,
+  InvRow,
+  InvRowAction,
+  InvToolButton,
+  InvPagination,
+} from '@/components/inventory/InventoryShell';
 
 type Account = {
   id: string; code: string; name: string; type: string;
@@ -18,20 +32,39 @@ type Entry = {
 };
 
 type ExpenseRow = {
-  id: string; number: string; date: string; description: string;
+  id: string; entryId: string; number: string; date: string; description: string;
   category: string; accountName: string; amount: number; payFrom: string; status: string;
 };
 
+const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/* حدود الفترات الزمنية للتصفية — تُحسب مرة عند تحميل الصفحة */
+const NOW = new Date();
+const CUR_YM = `${NOW.getFullYear()}-${String(NOW.getMonth() + 1).padStart(2, '0')}`;
+const PREV_DATE = new Date(NOW.getFullYear(), NOW.getMonth() - 1, 1);
+const PREV_YM = `${PREV_DATE.getFullYear()}-${String(PREV_DATE.getMonth() + 1).padStart(2, '0')}`;
+const CUR_YEAR = String(NOW.getFullYear());
+
+const EXPENSE_DATE_TABS = [
+  { id: 'all', label: 'جميع المصروفات' },
+  { id: 'month', label: 'هذا الشهر' },
+  { id: 'last', label: 'الشهر الماضي' },
+  { id: 'year', label: 'هذه السنة' },
+];
+
 export default function ExpensesPage() {
   const [rows, setRows] = useState<ExpenseRow[]>([]);
+  const [rawEntries, setRawEntries] = useState<Entry[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateTab, setDateTab] = useState('all');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 200);
   const [filterCategory, setFilterCategory] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
   const [modal, setModal] = useState(false);
+  const [impactEntry, setImpactEntry] = useState<Entry | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [shopId, setShopId] = useState('');
@@ -55,6 +88,7 @@ export default function ExpensesPage() {
       const accData: Account[] = Array.isArray(accRes) ? accRes : (accRes?.data || []);
       const entries: Entry[] = Array.isArray(jeRes) ? jeRes : (jeRes?.data || []);
       setAccounts(accData);
+      setRawEntries(entries);
       const expenseIds = new Set(accData.filter(a => a.type === 'expense').map(a => a.id));
       const out: ExpenseRow[] = [];
       for (const e of entries) {
@@ -62,7 +96,7 @@ export default function ExpensesPage() {
           if (expenseIds.has(l.account_id) && Number(l.debit) > 0) {
             const counter = (e.lines || []).find(x => x.account_id !== l.account_id);
             out.push({
-              id: `${e.id}-${l.account_id}`, number: e.number, date: e.entry_date,
+              id: `${e.id}-${l.account_id}`, entryId: e.id, number: e.number, date: e.entry_date,
               description: l.description || e.description, category: l.account_name, accountName: l.account_name,
               amount: Number(l.debit), payFrom: counter ? `${counter.account_code} ${counter.account_name}` : '—', status: e.status,
             });
@@ -75,16 +109,38 @@ export default function ExpensesPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = useMemo(() => rows
+  /* تصفية زمنية عميلة ثم بحث وبند المصروف */
+  const dateFiltered = useMemo(() => rows.filter(r => {
+    if (dateTab === 'month') return r.date.slice(0, 7) === CUR_YM;
+    if (dateTab === 'last') return r.date.slice(0, 7) === PREV_YM;
+    if (dateTab === 'year') return r.date.slice(0, 4) === CUR_YEAR;
+    return true;
+  }), [rows, dateTab]);
+
+  const filtered = useMemo(() => dateFiltered
     .filter(r => `${r.description} ${r.category} ${r.number}`.toLowerCase().includes(debouncedSearch.toLowerCase()))
-    .filter(r => filterCategory === 'all' || r.category === filterCategory), [rows, debouncedSearch, filterCategory]);
+    .filter(r => filterCategory === 'all' || r.category === filterCategory), [dateFiltered, debouncedSearch, filterCategory]);
+
+  const dateTabs = useMemo(() => EXPENSE_DATE_TABS.map(t => ({
+    ...t,
+    count: t.id === 'all' ? rows.length : rows.filter(r => (
+      t.id === 'month' ? r.date.slice(0, 7) === CUR_YM
+        : t.id === 'last' ? r.date.slice(0, 7) === PREV_YM
+          : r.date.slice(0, 4) === CUR_YEAR
+    )).length,
+  })), [rows]);
 
   const paginated = useMemo(() => filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage), [filtered, currentPage]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
-  useEffect(() => setCurrentPage(1), [debouncedSearch, filterCategory]);
+  useEffect(() => setCurrentPage(1), [debouncedSearch, filterCategory, dateTab]);
 
   const totalExpenses = filtered.reduce((s, r) => s + r.amount, 0);
-  const thisMonth = filtered.filter(r => r.date.startsWith(new Date().toISOString().slice(0, 7))).reduce((s, r) => s + r.amount, 0);
+  const thisMonth = filtered.filter(r => r.date.startsWith(CUR_YM)).reduce((s, r) => s + r.amount, 0);
+
+  const openImpact = (row: ExpenseRow) => {
+    const entry = rawEntries.find(e => e.id === row.entryId) || null;
+    setImpactEntry(entry);
+  };
 
   const save = async () => {
     if (!form.expenseAccountId || !form.payFromAccountId || form.amount <= 0 || !form.description) {
@@ -111,21 +167,55 @@ export default function ExpensesPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6" dir="rtl">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center"><CreditCard size={24} className="text-[#00E5FF]" /></div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">المصروفات</h1>
-            <p className="text-sm font-bold text-slate-400 mt-1">كل مصروف = قيد محاسبي (مدين على المصروف، دائن على النقدية)</p>
-          </div>
+    <InventoryPage
+      title="المصروفات"
+      subtitle="كل مصروف = قيد محاسبي (مدين على المصروف، دائن على النقدية)"
+      actions={
+        <>
+          <InvToolButton onClick={() => { window.location.href = '/dashboard/finance/journal'; }}>
+            <BookOpen size={14} />
+            دفتر اليومية
+          </InvToolButton>
+          <InvToolButton primary onClick={() => { setError(''); setModal(true); }}>
+            <Plus size={14} />
+            مصروف جديد
+          </InvToolButton>
+        </>
+      }
+      tabs={dateTabs}
+      activeTab={dateTab}
+      onTabChange={setDateTab}
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="ابحث بالبيان أو البند..."
+      filters={
+        <select
+          value={filterCategory}
+          onChange={e => setFilterCategory(e.target.value)}
+          className="h-10 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
+        >
+          <option value="all">كل البنود</option>
+          {expenseAccounts.map(a => <option key={a.id} value={a.name}>{a.code} — {a.name}</option>)}
+        </select>
+      }
+      loading={loading}
+      empty={filtered.length === 0 ? (
+        <div>
+          <Receipt size={32} className="mx-auto mb-3 text-slate-300" />
+          <p className="text-slate-400 font-bold text-sm">لا توجد مصروفات مسجلة — أضف أول مصروف</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => { window.location.href = '/dashboard/finance/journal'; }} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200"><BookOpen size={16} /> دفتر اليومية</button>
-          <button onClick={() => { setError(''); setModal(true); }} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-black"><Plus size={16} /> مصروف جديد</button>
-        </div>
-      </div>
-
+      ) : undefined}
+      footer={
+        <InvPagination
+          page={currentPage}
+          totalPages={totalPages}
+          total={filtered.length}
+          perPage={itemsPerPage}
+          onPage={setCurrentPage}
+          label="مصروف"
+        />
+      }
+    >
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
@@ -141,69 +231,53 @@ export default function ExpensesPage() {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث بالبيان أو البند..." className="w-full pr-9 pl-3 py-2.5 rounded-xl border border-slate-200 text-sm font-medium" />
-        </div>
-        <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold bg-white">
-          <option value="all">كل البنود</option>
-          {expenseAccounts.map(a => <option key={a.id} value={a.name}>{a.code} — {a.name}</option>)}
-        </select>
-      </div>
-
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
-        {loading ? (
-          <div className="flex items-center justify-center py-16"><Loader2 size={26} className="animate-spin text-slate-400" /></div>
-        ) : paginated.length === 0 ? (
-          <div className="p-12 text-center">
-            <Receipt size={32} className="mx-auto mb-3 text-slate-300" />
-            <p className="text-slate-400 font-bold text-sm">لا توجد مصروفات مسجلة — أضف أول مصروف</p>
+      <div className="mt-4">
+        {paginated.length === 0 ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400 font-bold text-sm">
+            لا توجد نتائج مطابقة في هذه الفترة
           </div>
         ) : (
-          <table className="w-full min-w-[760px]">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-xs font-black text-slate-500">
-                <th className="p-4 text-right">التاريخ</th>
-                <th className="p-4 text-right">رقم القيد</th>
-                <th className="p-4 text-right">البيان</th>
-                <th className="p-4 text-right">بند المصروف</th>
-                <th className="p-4 text-right">دُفع من</th>
-                <th className="p-4 text-left">المبلغ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.map(r => (
-                <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="p-4 text-slate-600 text-sm">{new Date(r.date).toLocaleDateString('ar-EG')}</td>
-                  <td className="p-4 font-mono text-xs font-bold text-slate-500">{r.number}</td>
-                  <td className="p-4 font-bold text-slate-800 text-sm max-w-xs truncate">{r.description}</td>
-                  <td className="p-4"><span className="px-2 py-1 rounded-lg text-[10px] font-black bg-rose-50 text-rose-700">{r.category}</span></td>
-                  <td className="p-4 text-slate-600 text-sm">{r.payFrom}</td>
-                  <td className="p-4 text-left font-black text-rose-600">ج.م {fmt(r.amount)}</td>
-                </tr>
-              ))}
-
-            </tbody>
-          </table>
+          <InvTableCard
+            columns={[
+              { label: 'التاريخ', className: 'col-span-2' },
+              { label: 'رقم القيد', className: 'col-span-1' },
+              { label: 'البيان', className: 'col-span-3' },
+              { label: 'بند المصروف', className: 'col-span-2' },
+              { label: 'دُفع من', className: 'col-span-2' },
+              { label: 'المبلغ', className: 'col-span-1' },
+              { label: 'إجراءات', className: 'col-span-1' },
+            ]}
+          >
+            {paginated.map(r => (
+              <InvRow key={r.id}>
+                <div className="col-span-2 text-slate-600 text-xs sm:text-sm whitespace-nowrap">
+                  {new Date(r.date).toLocaleDateString('ar-EG')}
+                </div>
+                <div className="col-span-1 font-mono text-xs font-bold text-slate-500 truncate">{r.number}</div>
+                <div className="col-span-3 min-w-0">
+                  <div className="font-bold text-slate-800 text-xs sm:text-sm truncate">{r.description}</div>
+                </div>
+                <div className="col-span-2 min-w-0">
+                  <span className="px-2 py-1 rounded-lg text-[10px] font-black bg-rose-50 text-rose-700">{r.category}</span>
+                </div>
+                <div className="col-span-2 text-slate-600 text-xs sm:text-sm truncate">{r.payFrom}</div>
+                <div className="col-span-1 font-black text-rose-600 text-xs sm:text-sm whitespace-nowrap">ج.م {fmt(r.amount)}</div>
+                <div className="col-span-1 flex items-center justify-end">
+                  <InvRowAction onClick={() => openImpact(r)} title="التأثير المحاسبي">
+                    <Info size={14} />
+                  </InvRowAction>
+                </div>
+              </InvRow>
+            ))}
+          </InvTableCard>
         )}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)} className="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold disabled:opacity-40">السابق</button>
-          <span className="text-sm font-bold text-slate-500">{currentPage} / {totalPages}</span>
-          <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold disabled:opacity-40">التالي</button>
-        </div>
-      )}
-
-      {/* Add Modal */}
+      {/* Add Modal — نفس شكل الحفظ: قيد مسودة ثم ترحيل */}
       {modal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()} dir="rtl">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="font-black text-lg text-slate-900">مصروف جديد</h3>
               <button onClick={() => setModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
@@ -253,8 +327,56 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
-    </div>
+
+      {/* Impact Modal — أسطر القيد المحاسبي */}
+      {impactEntry && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setImpactEntry(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-black text-lg text-slate-900">التأثير المحاسبي</h3>
+              <button onClick={() => setImpactEntry(null)} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap mb-4 text-xs font-bold">
+              <span className="font-mono text-slate-500">{impactEntry.number}</span>
+              <span className="text-slate-700">{impactEntry.description}</span>
+              <span className="text-slate-400">{new Date(impactEntry.entry_date).toLocaleDateString('ar-EG')}</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                {impactEntry.status === 'posted' ? 'مرحَّل' : impactEntry.status === 'reversed' ? 'معكوس' : 'مسودة'}
+              </span>
+            </div>
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 text-xs text-slate-500 font-black border-b border-slate-200">
+                    <th className="px-3 py-2 text-right">الحساب</th>
+                    <th className="px-3 py-2 text-right">البيان</th>
+                    <th className="px-3 py-2 text-left">مدين</th>
+                    <th className="px-3 py-2 text-left">دائن</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(impactEntry.lines || []).map((l, i) => (
+                    <tr key={`${l.account_id}-${i}`} className="border-b border-slate-50 last:border-0">
+                      <td className="px-3 py-2">
+                        <span className="font-mono text-xs text-slate-400">{l.account_code}</span>{' '}
+                        <span className="font-bold text-slate-700">{l.account_name}</span>
+                      </td>
+                      <td className="px-3 py-2 text-slate-500 text-xs">{l.description || '—'}</td>
+                      <td className="px-3 py-2 text-left font-mono tabular-nums font-bold text-slate-800">{l.debit ? fmt(l.debit) : '—'}</td>
+                      <td className="px-3 py-2 text-left font-mono tabular-nums font-bold text-slate-800">{l.credit ? fmt(l.credit) : '—'}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-50 font-black text-xs">
+                    <td className="px-3 py-2" colSpan={2}>الإجمالي</td>
+                    <td className="px-3 py-2 text-left font-mono tabular-nums">{fmt((impactEntry.lines || []).reduce((s, l) => s + Number(l.debit || 0), 0))}</td>
+                    <td className="px-3 py-2 text-left font-mono tabular-nums">{fmt((impactEntry.lines || []).reduce((s, l) => s + Number(l.credit || 0), 0))}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </InventoryPage>
   );
 }
-
-  const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

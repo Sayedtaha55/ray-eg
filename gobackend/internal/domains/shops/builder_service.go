@@ -78,6 +78,11 @@ func (s *BuilderService) UpdateBuilderConfig(ctx context.Context, shopID string,
 		return nil, errors.Internal("invalid_config", err)
 	}
 
+	// Structural sanity check on the website tree (if the builder sent one).
+	if err := validateWebsiteTree(config.Website); err != nil {
+		return nil, err
+	}
+
 	// Update in database
 	var updatedAt time.Time
 	err = s.repo.pool.QueryRow(ctx, `
@@ -97,7 +102,10 @@ func (s *BuilderService) UpdateBuilderConfig(ctx context.Context, shopID string,
 	return config, nil
 }
 
-// PublishBuilderConfig publishes the builder configuration (marks it as published).
+// PublishBuilderConfig publishes the builder configuration by snapshotting the
+// current draft (builder_config) into builder_published_config. Visitors are
+// always served the published snapshot, so later draft edits stay private
+// until the next publish.
 func (s *BuilderService) PublishBuilderConfig(ctx context.Context, shopID string) error {
 	// Validate shop exists and has config
 	var exists bool
@@ -111,16 +119,64 @@ func (s *BuilderService) PublishBuilderConfig(ctx context.Context, shopID string
 		return errors.NotFound("config_not_found", "التكوين غير موجود")
 	}
 
-	// Mark as published: record the publish timestamp so the public
-	// website endpoint can serve this config to visitors.
-	if _, err := s.repo.pool.Exec(ctx,
-		"UPDATE shops SET builder_published_at = NOW(), updated_at = NOW() WHERE id = $1",
-		shopID); err != nil {
-		s.logger.Error("Failed to mark builder config published", zap.Error(err), zap.String("shopId", shopID))
+	tag, err := s.repo.pool.Exec(ctx, `
+		UPDATE shops
+		SET builder_published_config = builder_config,
+		    builder_published_at = NOW(),
+		    updated_at = NOW()
+		WHERE id = $1 AND builder_config IS NOT NULL
+	`, shopID)
+	if err != nil {
+		s.logger.Error("Failed to publish builder config", zap.Error(err), zap.String("shopId", shopID))
 		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return errors.NotFound("config_not_found", "التكوين غير موجود")
 	}
 
 	s.logger.Info("Builder config published", zap.String("shopId", shopID))
+	return nil
+}
+
+// validateWebsiteTree performs a lenient structural check on the website tree
+// sent by the builder: when present, it must contain pages and components and
+// every page must point at an existing root component.
+func validateWebsiteTree(website map[string]any) error {
+	if website == nil {
+		return nil
+	}
+	rawPages, hasPages := website["pages"]
+	rawComponents, hasComponents := website["components"]
+	if !hasPages && !hasComponents {
+		return nil // legacy/empty payloads are allowed through
+	}
+	if hasComponents {
+		if _, ok := rawComponents.(map[string]any); !ok {
+			return errors.Validation("invalid_website_tree", "components يجب أن يكون كائناً")
+		}
+	}
+	if hasPages {
+		pages, ok := rawPages.([]any)
+		if !ok {
+			return errors.Validation("invalid_website_tree", "pages يجب أن تكون مصفوفة")
+		}
+		components, _ := rawComponents.(map[string]any)
+		for _, rp := range pages {
+			page, ok := rp.(map[string]any)
+			if !ok {
+				return errors.Validation("invalid_website_tree", "كل صفحة يجب أن تكون كائناً")
+			}
+			rootID, _ := page["rootNodeId"].(string)
+			if rootID == "" {
+				return errors.Validation("invalid_website_tree", "كل صفحة تحتاج rootNodeId")
+			}
+			if len(components) > 0 {
+				if _, exists := components[rootID]; !exists {
+					return errors.Validation("invalid_website_tree", "rootNodeId غير موجود في components: "+rootID)
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -183,7 +239,8 @@ func (s *BuilderService) GetPublicWebsiteBySlug(ctx context.Context, slug string
 
 	err := s.repo.pool.QueryRow(ctx, `
 		SELECT id, name, logo_url, phone, address,
-		       builder_config, builder_published_at
+		       COALESCE(builder_published_config, builder_config) AS public_config,
+		       builder_published_at
 		FROM shops
 		WHERE slug = $1 AND status = 'APPROVED'
 	`, slug).Scan(&shopID, &shopName, &logoURL, &phone, &address, &configJSON, &publishedAt)

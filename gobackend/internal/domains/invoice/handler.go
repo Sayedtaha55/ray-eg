@@ -37,6 +37,21 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 	invoice.Patch("/:id/status", middleware.RequireAuth(h.config), h.UpdateInvoiceStatus)
 	invoice.Post("/:id/pay", middleware.RequireAuth(h.config), h.MarkAsPaid)
 	invoice.Post("/:id/cancel", middleware.RequireAuth(h.config), h.CancelInvoice)
+	invoice.Post("/:id/send", middleware.RequireAuth(h.config), h.SendInvoice)
+}
+
+// SendInvoice handles POST /invoices/:id/send — marks the invoice as sent.
+func (h *Handler) SendInvoice(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	if err := h.service.SendInvoice(c.Context(), id); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(InvoiceResponse{
+			Success: false,
+			Error:   "Failed to send invoice",
+		})
+	}
+
+	return c.JSON(InvoiceResponse{Success: true})
 }
 
 // CreateInvoice handles creating a new invoice

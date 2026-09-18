@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, Bell, Search, LogOut, User, ChevronDown, PanelLeft, LayoutGrid } from 'lucide-react';
 import type { SidebarSection } from '@/config/sidebar';
@@ -29,6 +29,7 @@ const SoonBadge = ({ className = '' }: { className?: string }) => (
 export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, logout } = useAuth();
   const { unreadCount } = useOrderBell();
   const sections: SidebarSection[] = useVisibleSections();
@@ -81,9 +82,8 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
   const isActive = (href: string) => {
     if (href.startsWith('/dashboard/settings?tab=')) {
       const url = new URL(href, 'http://localhost');
-      const tabParam = url.searchParams.get('tab');
-      const currentUrl = new URL(window.location.href);
-      const currentTab = currentUrl.searchParams.get('tab');
+      const tabParam = url.searchParams.get('tab') || 'overview';
+      const currentTab = searchParams?.get('tab') || 'overview';
       return pathname === '/dashboard/settings' && tabParam === currentTab;
     }
     return pathname === href;
@@ -91,23 +91,31 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
 
   // Which section matches the current page (kept in sync on navigation)
   const currentSectionId = useMemo(() => {
+    // If the path is in settings, it is strictly the settings section
+    if (pathname === '/dashboard/settings' || pathname.startsWith('/dashboard/settings/')) {
+      return 'settings';
+    }
+
     for (const section of sections) {
+      if (section.id === 'settings') continue;
       if (section.mainHref && pathname === section.mainHref.split('?')[0]) return section.id;
       if (
         section.items.some((item) => {
           const itemPath = item.href.split('?')[0];
-          if (itemPath !== pathname) return false;
-          if (item.href.startsWith('/dashboard/settings?tab=')) {
-            const tabParam = new URL(item.href, 'http://localhost').searchParams.get('tab');
-            return tabParam != null; // settings tab pages belong to settings section
-          }
-          return true;
+          // Do not match cross-section links like settings tab links pointing to settings
+          if (item.href.startsWith('/dashboard/settings')) return false;
+          return itemPath === pathname;
         })
       )
         return section.id;
     }
     return null;
   }, [pathname, sections]);
+
+  // Reset manually opened section when route/tab changes so header stays accurate
+  useEffect(() => {
+    setOpenSection(null);
+  }, [pathname, searchParams]);
 
   const activeSectionId = openSection ?? currentSectionId;
   const activeSection = sections.find((s) => s.id === activeSectionId) || null;

@@ -2,9 +2,17 @@
 
 import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { FileText, Search, Loader2, Plus, Edit, Trash2, Eye, Download, Upload, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info, MoreVertical, DollarSign, Calendar, Clock, User, CheckCircle2, XCircle, AlertTriangle, Printer, Mail, Send, Save, ArrowRight, FileDown } from 'lucide-react';
+import { FileText, Search, Loader2, Plus, Edit, Trash2, Eye, Download, Upload, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info, MoreVertical, DollarSign, Calendar, Clock, User, CheckCircle2, XCircle, AlertTriangle, Printer, Mail, Send, Save, ArrowRight, FileDown, ArrowUpDown } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import {
+  InventoryPage,
+  InvTableCard,
+  InvRow,
+  InvRowAction,
+  InvPagination,
+  InvBulkBar,
+} from '@/components/inventory/InventoryShell';
 
 type InvoiceLine = {
   id: string;
@@ -25,11 +33,15 @@ type ReceiptTheme = {
 
 type Invoice = {
   id: string;
+  source: 'legacy' | 'acc';
+  kind: 'sale' | 'purchase';
+  /** الحالة الموحدة للتصفية — مشتقة من حالة النظام + المدفوع + الاستحقاق */
+  state: 'draft' | 'unpaid' | 'partial' | 'paid' | 'overdue' | 'cancelled';
   invoiceNumber: string;
   customerId: string;
   customerName: string;
   customerEmail: string;
-  status: 'draft' | 'sent' | 'viewed' | 'paid' | 'overdue' | 'cancelled';
+  status: string;
   issueDate: string;
   dueDate: string;
   paidDate: string | null;
@@ -57,15 +69,6 @@ function FinanceContent() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [addModal, setAddModal] = useState(false);
-  const [editModal, setEditModal] = useState(false);
-  const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
-  const [formData, setFormData] = useState({
-    customerId: '',
-    issueDate: new Date().toISOString().split('T')[0],
-    dueDate: '',
-    notes: '',
-  });
 
   // Invoice Editor States
   const [view, setView] = useState<'manage' | 'edit'>('manage');
@@ -155,28 +158,97 @@ function FinanceContent() {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
       if (!sid) { setLoading(false); return; }
-      const res = await apiRequest(`/invoices/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
-      setInvoices(data.map((i: any) => ({
-        id: String(i.id),
-        invoiceNumber: i.invoiceNumber || i.invoice_number || '---',
-        customerId: i.customerId || i.customer_id || '---',
-        customerName: i.customerName || i.customer_name || '---',
-        customerEmail: i.customerEmail || i.customer_email || '---',
-        status: i.status || 'draft',
-        issueDate: i.issueDate || i.issue_date || new Date().toISOString(),
-        dueDate: i.dueDate || i.due_date || '',
-        paidDate: i.paidDate || i.paid_date || null,
-        subtotal: Number(i.subtotal || 0),
-        taxAmount: Number(i.taxAmount || i.tax_amount || 0),
-        discountAmount: Number(i.discountAmount || i.discount_amount || 0),
-        totalAmount: Number(i.totalAmount || i.total_amount || 0),
-        paidAmount: Number(i.paidAmount || i.paid_amount || 0),
-        notes: i.notes || '',
-        createdBy: i.createdBy || i.created_by || '---',
-        createdAt: i.createdAt || new Date().toISOString(),
-        updatedAt: i.updatedAt || new Date().toISOString(),
-      })));
+      const [legacyRes, accRes] = await Promise.all([
+        apiRequest(`/invoices/shop/${sid}`).catch(() => []),
+        apiRequest(`/accounting/invoices/shop/${sid}`).catch(() => ({ data: [] })),
+      ]);
+      const legacy = Array.isArray(legacyRes) ? legacyRes : (legacyRes?.data || []);
+      const acc = Array.isArray(accRes) ? accRes : (accRes?.data || []);
+
+      const today = new Date().toISOString().split('T')[0];
+      const deriveState = (
+        rawStatus: string, kind: 'sale' | 'purchase', due: string, total: number, paid: number
+      ): Invoice['state'] => {
+        const s = String(rawStatus || '').toLowerCase();
+        if (s === 'cancelled' || s === 'canceled') return 'cancelled';
+        if (s === 'draft') return 'draft';
+        if (s === 'paid') return 'paid';
+        if (s === 'overdue') return 'overdue';
+        // posted / sent / viewed / pending → اشتقاق من المدفوع والاستحقاق
+        if (total > 0 && paid >= total - 0.005) return 'paid';
+        if (total > 0 && paid > 0) return 'partial';
+        if (due && due < today) return 'overdue';
+        return 'unpaid';
+      };
+
+      const legacyMapped: Invoice[] = legacy.map((i: any) => {
+        const rawStatus = String(i.status || 'draft').toLowerCase();
+        const totalAmount = Number(i.totalAmount || i.total_amount || i.amount || 0);
+        const paidAmount = Number(i.paidAmount || i.paid_amount || 0);
+        const dueDate = i.dueDate || i.due_date || '';
+        return {
+          id: String(i.id),
+          source: 'legacy' as const,
+          kind: 'sale' as const,
+          state: deriveState(rawStatus, 'sale', dueDate, totalAmount, paidAmount),
+          invoiceNumber: i.invoiceNumber || i.invoice_number || '---',
+          customerId: i.customerId || i.customer_id || '---',
+          customerName: i.customerName || i.customer_name || '---',
+          customerEmail: i.customerEmail || i.customer_email || '---',
+          status: rawStatus,
+          issueDate: i.issueDate || i.issue_date || i.createdAt || new Date().toISOString(),
+          dueDate,
+          paidDate: i.paidDate || i.paid_date || null,
+          subtotal: Number(i.subtotal || 0),
+          taxAmount: Number(i.taxAmount || i.tax_amount || 0),
+          discountAmount: Number(i.discountAmount || i.discount_amount || 0),
+          totalAmount,
+          paidAmount,
+          notes: i.notes || '',
+          createdBy: i.createdBy || i.created_by || '---',
+          createdAt: i.createdAt || new Date().toISOString(),
+          updatedAt: i.updatedAt || new Date().toISOString(),
+        };
+      });
+
+      // فواتير المحاسبة — تدعم البيع والشراء وتتغذى من المشتريات
+      const accMapped: Invoice[] = acc
+        .filter((i: any) => {
+          const t = String(i.invoice_type || i.invoiceType || 'sale').toLowerCase();
+          return t === 'sale' || t === 'purchase';
+        })
+        .map((i: any) => {
+          const kind = String(i.invoice_type || i.invoiceType || 'sale').toLowerCase() === 'purchase' ? 'purchase' as const : 'sale' as const;
+          const rawStatus = String(i.status || 'draft').toLowerCase();
+          const totalAmount = Number(i.total_amount || i.totalAmount || i.total || 0);
+          const paidAmount = Number(i.paid_amount || i.paidAmount || i.paid || 0);
+          const dueDate = i.due_date || i.dueDate || '';
+          return {
+            id: `acc-${String(i.id)}`,
+            source: 'acc' as const,
+            kind,
+            state: deriveState(rawStatus, kind, dueDate, totalAmount, paidAmount),
+            invoiceNumber: i.number || i.invoice_number || '---',
+            customerId: i.entity_id || i.entityId || '---',
+            customerName: i.entity_name || i.entityName || (kind === 'purchase' ? 'مورد' : 'عميل'),
+            customerEmail: i.entity_email || '',
+            status: rawStatus,
+            issueDate: i.invoice_date || i.invoiceDate || i.created_at || new Date().toISOString(),
+            dueDate,
+            paidDate: null,
+            subtotal: totalAmount,
+            taxAmount: 0,
+            discountAmount: 0,
+            totalAmount,
+            paidAmount,
+            notes: '',
+            createdBy: '---',
+            createdAt: i.created_at || new Date().toISOString(),
+            updatedAt: i.updated_at || i.created_at || new Date().toISOString(),
+          };
+        });
+
+      setInvoices([...legacyMapped, ...accMapped]);
     } catch { setInvoices([]); } finally { setLoading(false); }
   }, []);
 
@@ -198,8 +270,10 @@ function FinanceContent() {
       i.customerEmail.includes(debouncedSearch)
     );
 
-    if (filterStatus !== 'all') {
-      result = result.filter(i => i.status === filterStatus);
+    if (filterStatus === 'sale' || filterStatus === 'purchase') {
+      result = result.filter(i => i.kind === filterStatus);
+    } else if (filterStatus !== 'all') {
+      result = result.filter(i => i.state === filterStatus);
     }
 
     result = [...result].sort((a, b) => {
@@ -240,27 +314,44 @@ function FinanceContent() {
 
   const bulkDelete = useCallback(async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`هل أنت متأكد من حذف ${selectedIds.size} فاتورة؟`)) return;
-    try {
-      // TODO: Implement bulk delete API call
-      alert(`تم حذف ${selectedIds.size} فاتورة`);
-      setSelectedIds(new Set());
-      loadInvoices();
-    } catch (error) {
-      alert('حدث خطأ أثناء الحذف');
+    // الفواتير المحاسبية المرحّلة تُدار من القيود — الحذف الجماعي لفواتير البيع فقط
+    const deletable = invoices.filter(i => selectedIds.has(i.id) && i.source === 'legacy');
+    const skipped = selectedIds.size - deletable.length;
+    if (deletable.length === 0) {
+      alert('المستندات المحددة قيود محاسبية — تُدار من صفحة القيود المحاسبية');
+      return;
     }
-  }, [selectedIds, loadInvoices]);
+    if (!confirm(`هل أنت متأكد من حذف ${deletable.length} فاتورة؟`)) return;
+    let ok = 0;
+    for (const inv of deletable) {
+      try {
+        await apiRequest(`/invoices/${inv.id}`, { method: 'DELETE' });
+        ok += 1;
+      } catch { /* نكمل الباقي ونعيد التحميل */ }
+    }
+    if (skipped > 0) alert(`تم حذف ${ok} فاتورة — تم تخطي ${skipped} مستند محاسبي`);
+    setSelectedIds(new Set());
+    loadInvoices();
+  }, [selectedIds, invoices, loadInvoices]);
 
   const bulkSend = useCallback(async () => {
     if (selectedIds.size === 0) return;
-    try {
-      // TODO: Implement bulk send API call
-      alert(`تم إرسال ${selectedIds.size} فاتورة`);
-      setSelectedIds(new Set());
-    } catch (error) {
-      alert('حدث خطأ أثناء الإرسال');
+    const sendable = invoices.filter(i => selectedIds.has(i.id) && i.source === 'legacy');
+    if (sendable.length === 0) {
+      alert('الإرسال متاح لفواتير البيع فقط');
+      return;
     }
-  }, [selectedIds]);
+    let ok = 0;
+    for (const inv of sendable) {
+      try {
+        await apiRequest(`/invoices/${inv.id}/send`, { method: 'POST' });
+        ok += 1;
+      } catch { /* نكمل الباقي */ }
+    }
+    alert(`تم إرسال ${ok} من ${sendable.length} فاتورة`);
+    setSelectedIds(new Set());
+    loadInvoices();
+  }, [selectedIds, invoices, loadInvoices]);
 
   const exportCSV = useCallback(() => {
     const headers = ['Invoice Number', 'Customer', 'Email', 'Status', 'Issue Date', 'Due Date', 'Paid Date', 'Subtotal', 'Tax', 'Discount', 'Total', 'Paid Amount', 'Created At'];
@@ -286,43 +377,6 @@ function FinanceContent() {
     link.download = 'invoices.csv';
     link.click();
   }, [filtered]);
-
-  const handleAdd = useCallback(async () => {
-    try {
-      const shopData = await apiRequest('/shops/me');
-      const sid = shopData?.id;
-      if (!sid) return;
-      await apiRequest('/invoices', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...formData,
-          shopId: sid,
-          status: 'draft',
-        }),
-      });
-      setAddModal(false);
-      setFormData({ customerId: '', issueDate: new Date().toISOString().split('T')[0], dueDate: '', notes: '' });
-      loadInvoices();
-    } catch (error) {
-      alert('حدث خطأ أثناء إضافة الفاتورة');
-    }
-  }, [formData, loadInvoices]);
-
-  const handleEdit = useCallback(async () => {
-    if (!editInvoice) return;
-    try {
-      await apiRequest(`/invoices/${editInvoice.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(formData),
-      });
-      setEditModal(false);
-      setEditInvoice(null);
-      setFormData({ customerId: '', issueDate: new Date().toISOString().split('T')[0], dueDate: '', notes: '' });
-      loadInvoices();
-    } catch (error) {
-      alert('حدث خطأ أثناء تعديل الفاتورة');
-    }
-  }, [editInvoice, formData, loadInvoices]);
 
   // Invoice Line Management
   const removeLine = (id: string) => {
@@ -466,7 +520,7 @@ function FinanceContent() {
         loadInvoices();
       }, 2000);
     } catch (e: any) {
-      setSaveError(String(e?.message || isArabic ? 'خطأ في حفظ الفاتورة' : 'Error saving invoice'));
+      setSaveError(String(e?.message || (isArabic ? 'خطأ في حفظ الفاتورة' : 'Error saving invoice')));
     } finally {
       setSaving(false);
     }
@@ -920,19 +974,10 @@ function FinanceContent() {
     }
   }, [loadInvoices]);
 
-  const openEditModal = useCallback((invoice: Invoice) => {
-    setEditInvoice(invoice);
-    setFormData({
-      customerId: invoice.customerId,
-      issueDate: invoice.issueDate.split('T')[0],
-      dueDate: invoice.dueDate,
-      notes: invoice.notes,
-    });
-    setEditModal(true);
-  }, []);
-
-  const STATUS_CONFIG = {
+  const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
     draft: { label: 'مسودة', color: 'bg-slate-50 text-slate-600', icon: <FileText size={12} /> },
+    unpaid: { label: 'غير مدفوعة', color: 'bg-blue-50 text-blue-600', icon: <Clock size={12} /> },
+    partial: { label: 'مدفوعة جزئيًا', color: 'bg-amber-50 text-amber-600', icon: <AlertTriangle size={12} /> },
     sent: { label: 'مرسلة', color: 'bg-blue-50 text-blue-600', icon: <Send size={12} /> },
     viewed: { label: 'تمت المشاهدة', color: 'bg-cyan-50 text-cyan-600', icon: <Eye size={12} /> },
     paid: { label: 'مدفوعة', color: 'bg-green-50 text-green-600', icon: <CheckCircle2 size={12} /> },
@@ -942,89 +987,46 @@ function FinanceContent() {
 
   const stats = useMemo(() => {
     const total = invoices.length;
-    const draft = invoices.filter(i => i.status === 'draft').length;
-    const sent = invoices.filter(i => i.status === 'sent').length;
-    const paid = invoices.filter(i => i.status === 'paid').length;
-    const overdue = invoices.filter(i => i.status === 'overdue').length;
+    const draft = invoices.filter(i => i.state === 'draft').length;
+    const unpaid = invoices.filter(i => i.state === 'unpaid').length;
+    const partial = invoices.filter(i => i.state === 'partial').length;
+    const paid = invoices.filter(i => i.state === 'paid').length;
+    const overdue = invoices.filter(i => i.state === 'overdue').length;
+    const purchases = invoices.filter(i => i.kind === 'purchase').length;
     const totalAmount = invoices.reduce((sum, i) => sum + i.totalAmount, 0);
     const paidAmount = invoices.reduce((sum, i) => sum + i.paidAmount, 0);
     return [
       { label: 'إجمالي الفواتير', value: total, icon: FileText, color: 'bg-blue-50 text-blue-600' },
       { label: 'مسودة', value: draft, icon: FileText, color: 'bg-slate-50 text-slate-600' },
-      { label: 'مرسلة', value: sent, icon: Send, color: 'bg-blue-50 text-blue-600' },
+      { label: 'غير محصلة', value: unpaid + partial, icon: Clock, color: 'bg-amber-50 text-amber-600' },
       { label: 'مدفوعة', value: paid, icon: CheckCircle2, color: 'bg-green-50 text-green-600' },
       { label: 'متأخرة', value: overdue, icon: AlertTriangle, color: 'bg-red-50 text-red-700' },
+      { label: 'فواتير شراء', value: purchases, icon: FileText, color: 'bg-orange-50 text-orange-600' },
       { label: 'إجمالي القيمة', value: `ج.م ${totalAmount.toLocaleString()}`, icon: DollarSign, color: 'bg-purple-50 text-purple-600' },
       { label: 'المدفوع', value: `ج.م ${paidAmount.toLocaleString()}`, icon: DollarSign, color: 'bg-green-50 text-green-600' },
     ];
   }, [invoices]);
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <FileText size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">الفواتير</h1>
-            <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-              <Info size={18} />
-            </button>
+    <div className={view === 'edit' ? 'p-4 sm:p-6 md:p-8 space-y-6' : 'space-y-6'}>
+      {/* Header — عرض محرر الفاتورة فقط (صفحة الإدارة بتستخدم الهيكل الموحد) */}
+      {view === 'edit' && (
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
+            <FileText size={24} className="text-[#00E5FF]" />
           </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">إدارة فواتير العملاء</p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-7 gap-3">
-        {stats.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
-            <div className={`p-2 rounded-xl ${s.color}`}><s.icon size={20} /></div>
-            <div><p className="text-xs font-bold text-slate-400">{s.label}</p><p className="text-lg font-black text-slate-900">{s.value}</p></div>
+          <div className="text-right flex-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900">الفواتير</h1>
+              <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
+                <Info size={18} />
+              </button>
+            </div>
+            <p className="text-sm font-bold text-slate-400 mt-1">إدارة فواتير العملاء</p>
           </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex flex-wrap gap-3">
-          <button onClick={openNewInvoice} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all">
-            <Plus size={18} />
-            {isArabic ? 'فاتورة جديدة' : 'New Invoice'}
-          </button>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
-            <Download size={18} />
-            {isArabic ? 'تصدير CSV' : 'Export CSV'}
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">
-            <Upload size={18} />
-            {isArabic ? 'استيراد' : 'Import'}
-          </button>
-        </div>
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900">{selectedIds.size} محدد</span>
-            <button onClick={bulkSend} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs hover:bg-blue-100 transition-all">
-              <Send size={14} />
-              إرسال
-            </button>
-            <button onClick={bulkDelete} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-700 font-bold text-xs hover:bg-red-100 transition-all">
-              <Trash2 size={14} />
-              حذف
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Search */}
-      {view === 'manage' && (
-        <div className="relative">
-          <Search className="absolute top-1/2 -translate-y-1/2 right-3 text-slate-300" size={18} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={isArabic ? 'بحث برقم الفاتورة أو العميل...' : 'Search by invoice # or customer...'} className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200" />
         </div>
       )}
+
 
       {/* Invoice Editor View */}
       {view === 'edit' && (
@@ -1212,231 +1214,224 @@ function FinanceContent() {
         </div>
       )}
 
-      {/* Manage View */}
+      {/* Manage View — الهيكل الموحد (نفس تصميم المنتجات/الطلبات/الفئات) */}
       {view === 'manage' && (
-        <>
-          {/* Advanced Filters */}
-          <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-white border border-slate-200">
-              <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-slate-400">الحالة:</span>
-              <select
-                value={filterStatus}
-                onChange={e => setFilterStatus(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
+        <InventoryPage
+          title={isArabic ? 'الفواتير' : 'Invoices'}
+          subtitle={
+            <>
+              {isArabic ? 'إدارة فواتير العملاء' : 'Manage customer invoices'} — {invoices.length}{' '}
+              {isArabic ? 'فاتورة' : 'invoices'} • {isArabic ? 'إجمالي' : 'Total'} ج.م{' '}
+              {formatMoney(invoices.reduce((sum, i) => sum + Number(i.totalAmount || 0), 0))}
+            </>
+          }
+          onInfo={() => setGuideOpen(true)}
+          actions={
+            <>
+              <button
+                onClick={exportCSV}
+                className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 hidden sm:flex items-center gap-1.5"
               >
-                <option value="all">الكل</option>
-                <option value="draft">مسودة</option>
-                <option value="sent">مرسلة</option>
-                <option value="viewed">تمت المشاهدة</option>
-                <option value="paid">مدفوعة</option>
-                <option value="overdue">متأخرة</option>
-                <option value="cancelled">ملغاة</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-slate-400">الترتيب:</span>
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
+                <Download size={14} />
+                {isArabic ? 'تصدير CSV' : 'Export CSV'}
+              </button>
+              <button
+                onClick={openNewInvoice}
+                className="h-10 px-5 rounded-full text-[12px] font-bold flex items-center gap-1.5 transition-colors bg-slate-900 text-white hover:bg-slate-700"
               >
-                <option value="invoiceNumber">رقم الفاتورة</option>
-                <option value="issueDate">تاريخ الإصدار</option>
-                <option value="totalAmount">القيمة</option>
-                <option value="createdAt">تاريخ الإنشاء</option>
-              </select>
-            </div>
-            <button
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
-            >
-              {sortOrder === 'asc' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-            </button>
-          </div>
-
-          {/* New Invoice Button in List */}
-          <div className="flex justify-end">
-            <button onClick={openNewInvoice} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all">
-              <Plus size={18} />
-              {isArabic ? 'فاتورة جديدة' : 'New Invoice'}
-            </button>
-          </div>
-
-          {/* Invoices List */}
-          {loading ? (
-            <div className="flex items-center justify-center min-h-[40vh]">
-              <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-              <FileText size={32} className="mx-auto mb-3 text-slate-300" />
-              <p className="text-slate-400 font-bold text-sm">{isArabic ? 'لا توجد فواتير حالياً' : 'No invoices yet'}</p>
-              <button onClick={openNewInvoice} className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all">
-                <Plus size={18} />
+                <Plus size={14} />
                 {isArabic ? 'فاتورة جديدة' : 'New Invoice'}
               </button>
-            </div>
-          ) : (
+            </>
+          }
+          tabs={[
+            { id: 'all', label: isArabic ? 'الكل' : 'All', count: invoices.length },
+            { id: 'sale', label: isArabic ? 'فواتير البيع' : 'Sales', count: invoices.filter((i) => i.kind === 'sale').length },
+            { id: 'purchase', label: isArabic ? 'فواتير الشراء' : 'Purchases', count: invoices.filter((i) => i.kind === 'purchase').length },
+            { id: 'draft', label: isArabic ? 'مسودة' : 'Draft', count: invoices.filter((i) => i.state === 'draft').length },
+            { id: 'unpaid', label: isArabic ? 'غير مدفوعة' : 'Unpaid', count: invoices.filter((i) => i.state === 'unpaid').length },
+            { id: 'partial', label: isArabic ? 'مدفوعة جزئيًا' : 'Partial', count: invoices.filter((i) => i.state === 'partial').length },
+            { id: 'paid', label: isArabic ? 'مدفوعة' : 'Paid', count: invoices.filter((i) => i.state === 'paid').length },
+            { id: 'overdue', label: isArabic ? 'متأخرة' : 'Overdue', count: invoices.filter((i) => i.state === 'overdue').length },
+            { id: 'cancelled', label: isArabic ? 'ملغاة' : 'Cancelled', count: invoices.filter((i) => i.state === 'cancelled').length },
+          ]}
+          activeTab={filterStatus}
+          onTabChange={(id) => {
+            setFilterStatus(id);
+            setCurrentPage(1);
+          }}
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder={isArabic ? 'بحث برقم الفاتورة أو العميل…' : 'Search by invoice # or customer…'}
+          filters={
             <>
-              {/* Mobile View */}
-              <div className="space-y-3 md:hidden">
-            {paginatedInvoices.map((invoice) => {
-              const statusConfig = STATUS_CONFIG[invoice.status];
-              return (
-                <div key={invoice.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <button onClick={() => toggleSelect(invoice.id)} className="shrink-0 p-1">
-                      {selectedIds.has(invoice.id) ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-slate-900 text-sm">{invoice.invoiceNumber}</div>
-                      <div className="text-slate-500 text-xs">{invoice.customerName}</div>
-                    </div>
-                    <div className="shrink-0">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 ${statusConfig.color}`}>
-                        {statusConfig.icon}
-                        {statusConfig.label}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                    <Calendar size={12} />
-                    <span>{new Date(invoice.issueDate).toLocaleDateString('ar-EG')}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                    <DollarSign size={12} />
-                    <span>ج.م {invoice.totalAmount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => openInvoiceForEdit(invoice.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 text-slate-600 text-xs hover:bg-slate-100 transition-all">
-                      <Edit size={12} />
-                      {isArabic ? 'تعديل' : 'Edit'}
-                    </button>
-                    <button onClick={() => handleSend(invoice.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs hover:bg-blue-100 transition-all">
-                      <Send size={12} />
-                      {isArabic ? 'إرسال' : 'Send'}
-                    </button>
-                    <button onClick={() => handleDelete(invoice.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 text-red-600 text-xs hover:bg-red-100 transition-all">
-                      <Trash2 size={12} />
-                      {isArabic ? 'حذف' : 'Delete'}
-                    </button>
-                  </div>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="h-10 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
+              >
+                <option value="invoiceNumber">{isArabic ? 'رقم الفاتورة' : 'Invoice #'}</option>
+                <option value="issueDate">{isArabic ? 'تاريخ الإصدار' : 'Issue date'}</option>
+                <option value="totalAmount">{isArabic ? 'القيمة' : 'Amount'}</option>
+                <option value="createdAt">{isArabic ? 'تاريخ الإنشاء' : 'Created'}</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="h-10 w-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+                title={sortOrder === 'asc' ? 'تصاعدي' : 'تنازلي'}
+              >
+                <ArrowUpDown size={15} className={sortOrder === 'desc' ? 'rotate-180' : ''} />
+              </button>
+            </>
+          }
+          loading={loading}
+          empty={
+            <>
+              <FileText size={32} className="mx-auto mb-3 text-slate-300" />
+              <p className="text-slate-400 font-bold text-sm">{isArabic ? 'لا توجد فواتير حالياً' : 'No invoices yet'}</p>
+            </>
+          }
+          footer={
+            <InvPagination
+              page={currentPage}
+              totalPages={totalPages}
+              total={filtered.length}
+              perPage={itemsPerPage}
+              onPage={setCurrentPage}
+              label="فاتورة"
+            />
+          }
+        >
+          {selectedIds.size > 0 && (
+            <div className="mb-3">
+              <InvBulkBar>
+                <span>{selectedIds.size} {isArabic ? 'فاتورة محددة' : 'invoices selected'}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={bulkSend}
+                    className="h-8 px-3 rounded-full bg-white/10 hover:bg-white/20 text-[11px] font-bold flex items-center gap-1.5"
+                  >
+                    <Send size={13} />
+                    {isArabic ? 'إرسال' : 'Send'}
+                  </button>
+                  <button
+                    onClick={bulkDelete}
+                    className="h-8 px-3 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-200 text-[11px] font-bold flex items-center gap-1.5"
+                  >
+                    <Trash2 size={13} />
+                    {isArabic ? 'حذف' : 'Delete'}
+                  </button>
                 </div>
+              </InvBulkBar>
+            </div>
+          )}
+
+          <InvTableCard
+            headerExtra={
+              <div className="col-span-1 flex items-center">
+                <button onClick={toggleSelectAll} className="p-1" title="تحديد الكل">
+                  {selectedIds.size === paginatedInvoices.length && paginatedInvoices.length > 0 ? (
+                    <Check size={16} className="text-[#00E5FF]" />
+                  ) : (
+                    <div className="w-4 h-4 border-2 border-slate-300 rounded" />
+                  )}
+                </button>
+              </div>
+            }
+            columns={[
+              { label: isArabic ? 'رقم الفاتورة' : 'Invoice #', className: 'col-span-2' },
+              { label: isArabic ? 'العميل / المورد' : 'Party', className: 'col-span-2' },
+              { label: isArabic ? 'النوع' : 'Type', className: 'col-span-1' },
+              { label: isArabic ? 'التاريخ' : 'Date', className: 'col-span-1' },
+              { label: isArabic ? 'الإجمالي' : 'Total', className: 'col-span-2' },
+              { label: isArabic ? 'المدفوع' : 'Paid', className: 'col-span-1' },
+              { label: isArabic ? 'الحالة' : 'Status', className: 'col-span-1' },
+              { label: isArabic ? 'إجراءات' : 'Actions', className: 'col-span-1' },
+            ]}
+          >
+            {paginatedInvoices.map((invoice) => {
+              const statusConfig = STATUS_CONFIG[invoice.state] || STATUS_CONFIG[invoice.status] || STATUS_CONFIG.draft;
+              const remaining = Math.max(invoice.totalAmount - invoice.paidAmount, 0);
+              const canPay = invoice.state === 'unpaid' || invoice.state === 'partial' || invoice.state === 'overdue';
+              return (
+                <InvRow key={invoice.id} muted={invoice.state === 'draft' || invoice.state === 'cancelled'}>
+                  <div className="col-span-1 flex items-center">
+                    <button onClick={() => toggleSelect(invoice.id)} className="p-1">
+                      {selectedIds.has(invoice.id) ? <Check size={16} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
+                    </button>
+                  </div>
+                  <div className="col-span-2 min-w-0">
+                    <div className="font-bold text-slate-900 text-sm truncate">{invoice.invoiceNumber}</div>
+                    {invoice.source === 'acc' && (
+                      <div className="text-[10px] text-slate-400 font-bold">مستند محاسبي</div>
+                    )}
+                  </div>
+                  <div className="col-span-2 min-w-0">
+                    <div className="text-slate-600 text-sm truncate">{invoice.customerName || '—'}</div>
+                    <div className="text-[11px] text-slate-400 truncate">{invoice.customerEmail}</div>
+                  </div>
+                  <div className="col-span-1">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                      invoice.kind === 'purchase'
+                        ? 'text-amber-600 bg-amber-50 border-amber-200'
+                        : 'text-emerald-600 bg-emerald-50 border-emerald-200'
+                    }`}>
+                      {invoice.kind === 'purchase' ? 'شراء' : 'بيع'}
+                    </span>
+                  </div>
+                  <div className="col-span-1 text-slate-600 text-sm">
+                    {invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString('ar-EG') : '—'}
+                  </div>
+                  <div className="col-span-2">
+                    <div className="font-bold text-slate-900 text-sm">ج.م {formatMoney(invoice.totalAmount)}</div>
+                    {remaining > 0 && invoice.state !== 'draft' && (
+                      <div className="text-[11px] text-rose-500 font-bold">متبقي ج.م {formatMoney(remaining)}</div>
+                    )}
+                  </div>
+                  <div className="col-span-1 text-slate-600 text-sm">ج.م {formatMoney(invoice.paidAmount)}</div>
+                  <div className="col-span-1">
+                    <span className={`px-2 py-1 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 ${statusConfig.color}`}>
+                      {statusConfig.icon}
+                      {statusConfig.label}
+                    </span>
+                  </div>
+                  <div className="col-span-1 flex items-center gap-1.5">
+                    {invoice.source === 'legacy' ? (
+                      <>
+                        <InvRowAction onClick={() => openInvoiceForEdit(invoice.id)} title={isArabic ? 'تعديل' : 'Edit'}>
+                          <Edit size={14} />
+                        </InvRowAction>
+                        <InvRowAction onClick={() => handleSend(invoice.id)} title={isArabic ? 'إرسال' : 'Send'}>
+                          <Send size={14} />
+                        </InvRowAction>
+                        <InvRowAction onClick={() => handleDelete(invoice.id)} title={isArabic ? 'حذف' : 'Delete'} danger>
+                          <Trash2 size={14} />
+                        </InvRowAction>
+                      </>
+                    ) : (
+                      <a
+                        href="/dashboard/finance/collections"
+                        title={isArabic ? 'المدفوعات وكشف الحساب' : 'Payments & statement'}
+                        className="h-8 w-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+                      >
+                        <DollarSign size={14} />
+                      </a>
+                    )}
+                    {canPay && invoice.source === 'legacy' && (
+                      <a
+                        href="/dashboard/finance/collections"
+                        title={isArabic ? 'تسجيل دفعة' : 'Record payment'}
+                        className="h-8 px-2.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px] font-bold flex items-center hover:bg-emerald-100 transition-colors"
+                      >
+                        دفعة
+                      </a>
+                    )}
+                  </div>
+                </InvRow>
               );
             })}
-            </div>
-
-            {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto touch-auto">
-              <table className="w-full text-right border-collapse min-w-[1600px]">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="p-4 w-10">
-                    <button onClick={toggleSelectAll} className="p-1">
-                      {selectedIds.size === paginatedInvoices.length && paginatedInvoices.length > 0 ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                    </button>
-                  </th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">رقم الفاتورة</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">العميل</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">البريد</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الحالة</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">تاريخ الإصدار</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">تاريخ الاستحقاق</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">القيمة</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">المدفوع</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedInvoices.map((invoice) => {
-                  const statusConfig = STATUS_CONFIG[invoice.status];
-                  return (
-                    <tr key={invoice.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <td className="p-4">
-                        <button onClick={() => toggleSelect(invoice.id)} className="p-1">
-                          {selectedIds.has(invoice.id) ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                        </button>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 text-sm">{invoice.invoiceNumber}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-slate-600 text-sm">{invoice.customerName}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-slate-600 text-sm">{invoice.customerEmail}</div>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 w-fit ${statusConfig.color}`}>
-                          {statusConfig.icon}
-                          {statusConfig.label}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-slate-600 text-sm flex items-center gap-1">
-                          <Calendar size={12} />
-                          {new Date(invoice.issueDate).toLocaleDateString('ar-EG')}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-slate-600 text-sm">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('ar-EG') : '-'}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 text-sm">ج.م {invoice.totalAmount.toLocaleString()}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 text-sm">ج.م {invoice.paidAmount.toLocaleString()}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => openInvoiceForEdit(invoice.id)} className="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all" title={isArabic ? 'تعديل' : 'Edit'}>
-                            <Edit size={14} />
-                          </button>
-                          <button onClick={() => handleSend(invoice.id)} className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all" title={isArabic ? 'إرسال' : 'Send'}>
-                            <Send size={14} />
-                          </button>
-                          <button onClick={() => handleDelete(invoice.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all" title={isArabic ? 'حذف' : 'Delete'}>
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
-              <div className="text-xs font-bold text-slate-500">
-                {isArabic ? `عرض ${(currentPage - 1) * itemsPerPage + 1} - ${Math.min(currentPage * itemsPerPage, filtered.length)} من ${filtered.length}` : `Showing ${(currentPage - 1) * itemsPerPage + 1} - ${Math.min(currentPage * itemsPerPage, filtered.length)} of ${filtered.length}`}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight size={18} className={isArabic ? 'rotate-180' : ''} />
-                </button>
-                <span className="text-xs font-bold text-slate-600 px-3">
-                  {isArabic ? `صفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft size={18} className={isArabic ? 'rotate-180' : ''} />
-                </button>
-              </div>
-            </div>
-          )}
-            </>
-          )}
-        </>
+          </InvTableCard>
+        </InventoryPage>
       )}
 
       {/* Guide Modal */}

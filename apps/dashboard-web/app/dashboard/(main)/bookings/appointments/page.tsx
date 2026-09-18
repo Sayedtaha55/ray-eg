@@ -1,7 +1,6 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import { GenericSubPage } from '@/components/GenericSectionPage';
-
-export default function AppointmentsPage() {
-  return <GenericSubPage pageId="bookings/appointments" />;
+/** جدول المواعيد تبويب داخل الصفحة الرئيسية للحجوزات */
+export default function AppointmentsRedirect() {
+  redirect('/dashboard/bookings');
 }

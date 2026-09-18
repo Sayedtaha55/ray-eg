@@ -225,7 +225,7 @@ export const academyComponents: Record<string, ComponentNode> = {
     props: {
       badge: 'خيارات استثمارية مرنة',
       title: 'باقات مصممة للأفراد والفرق والشركات',
-      subtitle: 'إمكانية التقسيط الميسر عبر تابي وتمارا بدون أي فوائد إضافية.',
+      subtitle: 'إمكانية التقسيط الميسر عند الاستلام بدون أي فوائد إضافية.',
       tiers: [
         {
           id: 'tier_single',
@@ -273,7 +273,7 @@ export const academyComponents: Record<string, ComponentNode> = {
       submitLabel: 'تأكيد التسجيل وحجز المقعد 🎓',
       fields: [
         { name: 'student_name', label: 'الاسم الثلاثي للمتدرب', type: 'text', placeholder: 'مثال: عبدالله محمد الشهري', required: true },
-        { name: 'phone', label: 'رقم الجوال (واتساب)', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال (واتساب)', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'email', label: 'البريد الإلكتروني', type: 'email', placeholder: 'name@example.com', required: true },
         { name: 'course_choice', label: 'المسار أو الدورة المرغوبة', type: 'select', options: ['دبلوم الذكاء الاصطناعي GenAI', 'معسكر Full-Stack React & Node', 'شهادة PMP الدولية', 'الأمن السيبراني واختبار الاختراق', 'تصميم واجهات UI/UX', 'القيادة الرقمية التنفيذية'], required: true },
         { name: 'notes', label: 'ملاحظات أو أسئلة للمستشار', type: 'textarea', placeholder: 'هل لديك خبرة سابقة في المجال؟', required: false },
@@ -395,7 +395,7 @@ export const electronicsComponents: Record<string, ComponentNode> = {
         { value: '100%', label: 'أجهزة أصلية معتمدة' },
         { value: '24 ساعة', label: 'توصيل لباب بيتك' },
         { value: 'سنتين', label: 'ضمان الوكيل الشامل' },
-        { value: '0%', label: 'تقسيط عبر تابي وتمارا' },
+        { value: '0%', label: 'دفع عند الاستلام' },
       ],
     },
     styles: { desktop: { backgroundColor: '#f0f9ff', paddingTop: '64px', paddingBottom: '64px' } },
@@ -408,7 +408,7 @@ export const electronicsComponents: Record<string, ComponentNode> = {
     parentId: 'page_root',
     childrenIds: [],
     props: {
-      badge: 'الأكثر مبيعاً في المملكة',
+      badge: 'الأكثر مبيعاً في مصر',
       title: 'أحدث الهواتف واللابتوبات والإكسسوارات',
       subtitle: 'شاملة الضمان والتوصيل السريع مع خيارات دفع إلكتروني آمنة وتقسيط ميسر.',
       products: [
@@ -482,9 +482,9 @@ export const electronicsComponents: Record<string, ComponentNode> = {
       title: 'تجربة تسوق موثوقة ومريحة 100%',
       subtitle: 'نضمن لك أفضل سعر وأعلى جودة مع دعم فني متواصل وحماية لأجهزتك.',
       features: [
-        { title: 'ضمان سنتين شامل', description: 'جميع الأجهزة مشمولة بضمان الوكلاء المعتمدين في المملكة مع صيانة سريعة وقطع أصلية.' },
-        { title: 'شحن فوري ومبرد للأجهزة', description: 'توصيل آمن وسريع خلال 24 ساعة في الرياض و48 ساعة لبقية مناطق المملكة.' },
-        { title: 'تقسيط مريح 0% فوائد', description: 'قسّم مشترياتك على 4 دفعات ميسرة عبر تابي أو تمارا بدون رسوم خفية أو فوائد.' },
+        { title: 'ضمان سنتين شامل', description: 'جميع الأجهزة مشمولة بضمان الوكلاء المعتمدين في مصر مع صيانة سريعة وقطع أصلية.' },
+        { title: 'شحن فوري ومبرد للأجهزة', description: 'توصيل آمن وسريع خلال 24 ساعة في الرياض و48 ساعة لبقية مناطق مصر.' },
+        { title: 'تقسيط مريح 0% فوائد', description: 'قسّم مشترياتك على 4 دفعات ميسرة عبر الدفع عند الاستلام أو الدفع عند الاستلام بدون رسوم خفية أو فوائد.' },
         { title: 'استبدال فوري واسترجاع 14 يوم', description: 'سياسة استرجاع واستبدال مرنة لضمان رضاك التام عن الجهاز والمواصفات.' },
       ],
     },
@@ -503,7 +503,7 @@ export const electronicsComponents: Record<string, ComponentNode> = {
       submitLabel: 'إرسال طلب التقييم والاستبدال ⚡',
       fields: [
         { name: 'client_name', label: 'اسم العميل', type: 'text', placeholder: 'مثال: فهد القحطاني', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'device_type', label: 'الجهاز المراد شراؤه أو استبداله', type: 'text', placeholder: 'مثال: iPhone 16 Pro Max', required: true },
         { name: 'city', label: 'المدينة', type: 'select', options: ['الرياض', 'جدة', 'الدمام / الخبر', 'مكة المكرمة', 'المدينة المنورة', 'أبها / خميس مشيط', 'مدينة أخرى'], required: true },
       ],
@@ -520,7 +520,7 @@ export const electronicsComponents: Record<string, ComponentNode> = {
     isGlobal: true,
     props: {
       copyright: '© 2025 تيك زون للإلكترونيات | الرقم الضريبي 300998877665543 | موثق في معروف',
-      description: 'وجهتك الأولى لأحدث الأجهزة الذكية والإلكترونيات الفاخرة بأفضل الأسعار المعتمدة في المملكة.',
+      description: 'وجهتك الأولى لأحدث الأجهزة الذكية والإلكترونيات الفاخرة بأفضل الأسعار المعتمدة في مصر.',
       links: [
         { label: 'الرئيسية', href: '#home' },
         { label: 'الأجهزة والهواتف', href: '#products' },
@@ -731,8 +731,8 @@ export const furnitureComponents: Record<string, ComponentNode> = {
       subtitle: 'سيقوم مهندس الديكور بزيارة موقعك مع عينات الأقمشة والكتالوجات لاختيار الأنسب.',
       submitLabel: 'تأكيد حجز الزيارة المنزلية 📐',
       fields: [
-        { name: 'client_name', label: 'الاسم الكريم', type: 'text', placeholder: 'مثال: مشعل العتيبي', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'client_name', label: 'الاسم الكريم', type: 'text', placeholder: 'مثال: كريم عطية', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'project_type', label: 'نوع المشروع أو التأثيث', type: 'select', options: ['تأثيث فيلا كاملة', 'مجلس وصالة استقبال رئيسية', 'غرفة نوم رئيسية وماستر', 'تأثيث شقة أو دور', 'طاولة طعام وصالة طعام', 'استشارة تصميم داخلي 3D'], required: true },
         { name: 'neighborhood', label: 'الحي والمدينة', type: 'text', placeholder: 'مثال: حي النرجس، الرياض', required: true },
         { name: 'preferred_time', label: 'الوقت المفضل للزيارة', type: 'select', options: ['صباحاً (10 ص - 1 م)', 'مساءً (4 م - 8 م)', 'نهاية الأسبوع'], required: false },
@@ -844,7 +844,7 @@ export const carRentalComponents: Record<string, ComponentNode> = {
     parentId: 'page_root',
     childrenIds: [],
     props: {
-      badge: '✨ أحدث موديلات 2025 | استلام وتسليم في كافة مطارات المملكة',
+      badge: '✨ أحدث موديلات 2025 | استلام وتسليم في كافة مطارات مصر',
       title: 'استأجر سيارتك الفاخرة أو اليومية بأسرع إجراءات وتأمين شامل 100%',
       subtitle: 'أسطول يضم أكثر من 500 سيارة حديثة مع كيلومتر مفتوح وتوصيل مجاني للمطار أو باب الفندق.',
       ctaText: 'استعراض أسطول السيارات المتاح',
@@ -943,7 +943,7 @@ export const carRentalComponents: Record<string, ComponentNode> = {
       features: [
         { title: 'استلام فوري بالمطار صالة 5', description: 'مندوبنا بانتظارك عند بوابة الوصول بمجرد هبوط طائرتك لتسليمك مفتاح السيارة فوراً.' },
         { title: 'تأمين شامل صفر تحمل', description: 'جميع سياراتنا مشمولة بتأمين شامل معفى من نسبة التحمل لقيادة آمنة وراحة بال مطلقة.' },
-        { title: 'كيلومتر مفتوح بدون حدود', description: 'استمتع برحلتك وسفرك بين مدن المملكة دون القلق من عداد الكيلومترات أو الرسوم الإضافية.' },
+        { title: 'كيلومتر مفتوح بدون حدود', description: 'استمتع برحلتك وسفرك بين مدن مصر دون القلق من عداد الكيلومترات أو الرسوم الإضافية.' },
         { title: 'عقود إلكترونية موثقة (تم)', description: 'عقد إلكتروني نظامي معتمد من هيئة النقل يصلك فوراً على جوالك مع خيارات دفع رقمية.' },
       ],
     },
@@ -962,7 +962,7 @@ export const carRentalComponents: Record<string, ComponentNode> = {
       submitLabel: 'تأكيد حجز السيارة واستلام العرض 🚗',
       fields: [
         { name: 'renter_name', label: 'اسم المستأجر', type: 'text', placeholder: 'مثال: سامي بن عبدالعزيز', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'car_model', label: 'السيارة المطلوبة', type: 'select', options: ['مرسيدس S-Class 2025 VIP', 'رينج روفر سبورت 2025', 'BMW الفئة السابعة 2025', 'تويوتا لاندكروزر GR 2025', 'لكزس ES 350 هايبرد', 'هيونداي إلنترا / أكسنت اقتصادية'], required: true },
         { name: 'pickup_location', label: 'مكان الاستلام', type: 'select', options: ['مطار الملك خالد الدولي صالة 5 (الرياض)', 'مطار الملك عبدالعزيز الدولي (جدة)', 'فرع التحلية الرئيسي (الرياض)', 'فرع الخبر الكورنيش', 'توصيل لباب الفندق / المنزل'], required: true },
         { name: 'rental_duration', label: 'مدة التأجير', type: 'select', options: ['يوم واحد', '3 أيام (عطلة نهاية الأسبوع)', 'أسبوع كامل (خصم 15%)', 'شهر كامل (خصم 30%)'], required: true },
@@ -980,7 +980,7 @@ export const carRentalComponents: Record<string, ComponentNode> = {
     isGlobal: true,
     props: {
       copyright: '© 2025 رينتال برو لتأجير السيارات | مرخص من الهيئة العامة للنقل | الرقم الموحد 920088776',
-      description: 'الريادة في تأجير السيارات الفاخرة والعائلية بأحدث الموديلات وأفضل الأسعار في المملكة.',
+      description: 'الريادة في تأجير السيارات الفاخرة والعائلية بأحدث الموديلات وأفضل الأسعار في مصر.',
       links: [
         { label: 'الرئيسية', href: '#home' },
         { label: 'أسطول السيارات', href: '#fleet' },
@@ -1192,8 +1192,8 @@ export const flowersComponents: Record<string, ComponentNode> = {
       submitLabel: 'تأكيد طلب التوصيل والإهداء 💐',
       fields: [
         { name: 'sender_name', label: 'اسم المرسل', type: 'text', placeholder: 'اسمك الكريم', required: true },
-        { name: 'sender_phone', label: 'جوال المرسل', type: 'tel', placeholder: '05xxxxxxxx', required: true },
-        { name: 'recipient_phone', label: 'جوال مستلم الهدية', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'sender_phone', label: 'جوال المرسل', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
+        { name: 'recipient_phone', label: 'جوال مستلم الهدية', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'gift_choice', label: 'الباقة أو الهدية المختارة', type: 'select', options: ['بوكيه الجوري الملكي 100 وردة', 'فازة التوليب الوردي وشوكولاتة', 'صندوق الهدايا الملكي مع العطر', 'استاند استقبال المواليد', 'نبات الأوركيد الأبيض الحي', 'بوكيه التخرج والاحتفال'], required: true },
         { name: 'card_message', label: 'نص كرت الإهداء (الذي سيكتب على الهدية)', type: 'textarea', placeholder: 'ألف مبروك التخرج ومنها للأعلى يارب...', required: true },
       ],
@@ -1468,7 +1468,7 @@ export const accountingComponents: Record<string, ComponentNode> = {
       fields: [
         { name: 'company_name', label: 'اسم الشركة أو المنشأة', type: 'text', placeholder: 'مثال: شركة الرواد للمقاولات', required: true },
         { name: 'contact_person', label: 'اسم المسؤول', type: 'text', placeholder: 'مثال: م. فهد السبيعي', required: true },
-        { name: 'phone', label: 'رقم الجوال (واتساب)', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال (واتساب)', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'service_needed', label: 'الخدمة المطلوبة', type: 'select', options: ['مسك الدفاتر المحاسبية الشهرية', 'تقديم الإقرارات الضريبية والزكوية', 'ربط الفوترة الإلكترونية ZATCA المرحلة 2', 'مراجعة وتدقيق حسابات معتمد', 'دراسة جدوى وتخطيط مالي'], required: true },
       ],
     },
@@ -1547,7 +1547,7 @@ export const extraActivityWebsites: Record<string, Website> = {
         updatedAt: '2025-05-15T12:00:00Z',
         metadata: {
           title: 'تيك زون للإلكترونيات | آيفون، ماك بوك، أجهزة ذكية، شاشات ألعاب',
-          description: 'أجهزة أصلية معتمدة بضمان سنتين وتوصيل فوري وتقسيط تابي وتمارا 0%.',
+          description: 'أجهزة أصلية معتمدة بضمان سنتين وتوصيل فوري ودفع عند الاستلام 0%.',
           slug: 'home',
           isHomePage: true,
         },
@@ -1686,8 +1686,8 @@ export const extraTemplatesMeta = [
     badge: 'هواتف ولابتوبات وتقسيط 0%',
     themeKey: 'techCyan',
     primaryColor: '#0284c7',
-    description: 'قالب متجر إلكترونيات يعرض أجهزة آبل وسامسونج، سلة مشتريات فورية، تقسيط تابي، وضمان سنتين.',
-    tags: ['آيفون 16', 'لابتوبات وماك', 'شاشات ألعاب', 'تقسيط تابي'],
+    description: 'قالب متجر إلكترونيات يعرض أجهزة آبل وسامسونج، سلة مشتريات فورية، تقسيط الدفع عند الاستلام، وضمان سنتين.',
+    tags: ['آيفون 16', 'لابتوبات وماك', 'شاشات ألعاب', 'تقسيط الدفع عند الاستلام'],
   },
   {
     id: 'site_furniture_decor',

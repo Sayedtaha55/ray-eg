@@ -23,10 +23,7 @@ func (h *Handler) RegisterSegmentsTagsRoutes(app fiber.Router) {
 	tag.Delete("/:id", middleware.RequireAuth(h.config), h.DeleteTagHandler)
 }
 
-func (h *Handler) shopAllowed(user *middleware.AuthUser, shopID string) bool {
-	if user == nil {
-		return false
-	}
+func (h *Handler) shopAllowed(user middleware.AuthUser, shopID string) bool {
 	if strings.EqualFold(user.Role, "ADMIN") {
 		return true
 	}

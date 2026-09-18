@@ -39,6 +39,7 @@ const nextConfig = {
         key: 'Content-Security-Policy',
         value: [
           "default-src 'self'",
+          // 'unsafe-inline' and 'unsafe-eval' are required for Next.js/React Fast Refresh in development
           "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: blob: https:",

@@ -36,6 +36,7 @@ import (
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/pos"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/productcategories"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/products"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/publicinbox"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/reservation"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/reviews"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/search"
@@ -96,6 +97,7 @@ type App struct {
 	customersHandler      *customers.Handler
 	galleryHandler        *gallery.Handler
 	feedbackHandler       *feedback.Handler
+	publicInboxHandler    *publicinbox.Handler
 	financeHandler        *finance.Handler
 	reviewsHandler        *reviews.Handler
 	seasonalOffersHandler *seasonaloffers.Handler
@@ -205,6 +207,7 @@ func New(cfg *config.Config) (*App, error) {
 		customersHandler      *customers.Handler
 		galleryHandler        *gallery.Handler
 		feedbackHandler       *feedback.Handler
+		publicInboxHandler    *publicinbox.Handler
 		financeHandler        *finance.Handler
 		reviewsHandler        *reviews.Handler
 		seasonalOffersHandler *seasonaloffers.Handler
@@ -367,6 +370,10 @@ reportsHandler          *reports.Handler
 		feedbackSvc := feedback.NewService(feedbackRepo)
 		feedbackHandler = feedback.NewHandler(feedbackSvc, cfg)
 
+		publicInboxRepo := publicinbox.NewRepository(pool)
+		publicInboxSvc := publicinbox.NewService(publicInboxRepo, log)
+		publicInboxHandler = publicinbox.NewHandler(publicInboxSvc, cfg)
+
 		// Initialize reviews service
 		reviewsRepo := reviews.NewRepository(pool)
 		reviewsSvc := reviews.NewService(reviewsRepo)
@@ -482,6 +489,7 @@ reportsHandler          *reports.Handler
 		customersHandler:      customersHandler,
 		galleryHandler:        galleryHandler,
 		feedbackHandler:       feedbackHandler,
+		publicInboxHandler:    publicInboxHandler,
 		reviewsHandler:        reviewsHandler,
 		seasonalOffersHandler: seasonalOffersHandler,
 		mapHandler:            mapHandler,
@@ -578,6 +586,14 @@ func (a *App) registerRoutes() {
 		a.usersHandler.RegisterRoutes(api)
 	}
 
+	// Builder public storefront routes MUST be registered before the shops
+	// domain: Fiber matches routes in registration order, and /shops/:slug
+	// would otherwise swallow /shops/published-slugs (and /shops/:slug/website
+	// could be shadowed by other shops sub-routes).
+	if a.builderHandler != nil {
+		a.builderHandler.RegisterPublicRoutes(api)
+	}
+
 	// Shops domain routes.
 	if a.shopsHandler != nil {
 		a.shopsHandler.RegisterRoutes(api)
@@ -590,8 +606,6 @@ func (a *App) registerRoutes() {
 		// Builder domain routes (auth required — owner/admin gated inside handlers).
 		if a.builderHandler != nil {
 			a.builderHandler.RegisterBuilderRoutes(api, middleware.RequireAuth(a.Config))
-			// Public storefront endpoint (no auth): GET /shops/:slug/website
-			a.builderHandler.RegisterPublicRoutes(api)
 		}
 	}
 
@@ -685,6 +699,11 @@ func (a *App) registerRoutes() {
 	// Feedback domain routes.
 	if a.feedbackHandler != nil {
 		a.feedbackHandler.RegisterRoutes(api)
+	}
+
+	// Public inbox: contact + suggestions (public submit, admin inbox).
+	if a.publicInboxHandler != nil {
+		a.publicInboxHandler.RegisterRoutes(api)
 	}
 
 	// Reviews domain routes (product + shop reviews).

@@ -450,7 +450,7 @@ export const activitiesRegistry: ActivityCategory[] = [
         icon: 'Laptop',
         badge: 'ضمان وصيانة سريعة',
         tags: ['موبايل', 'لابتوب', 'كمبيوتر', 'آيفون', 'سامسونج', 'إكسسوارات', 'صيانة', 'شاشات'],
-        featuresAr: ['مواصفات ومقارنة أجهزة', 'حجز صيانة واستلام منزلي', 'ضمان سنتين معتمد', 'تقسيط تابي وتمارا'],
+        featuresAr: ['مواصفات ومقارنة أجهزة', 'حجز صيانة واستلام منزلي', 'ضمان سنتين معتمد', 'دفع عند الاستلام'],
         themeKey: 'techCyan',
         defaultTenantId: 'tenant_tech_future',
         defaultWebsiteId: 'site_electronics_mobiles',

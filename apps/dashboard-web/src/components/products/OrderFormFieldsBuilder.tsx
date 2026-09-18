@@ -8,7 +8,7 @@ import { ClipboardList, Trash2, X } from 'lucide-react';
 /* Types                                                               */
 /* ------------------------------------------------------------------ */
 
-export type OrderFormFieldType = 'text' | 'textarea' | 'number' | 'date' | 'select';
+export type OrderFormFieldType = 'text' | 'textarea' | 'number' | 'date' | 'select' | 'file';
 
 export type OrderFormField = {
   id: string;
@@ -31,7 +31,7 @@ const INPUT_CLS =
   'w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold focus:outline-none focus:border-teal-400';
 
 const SELECT_CLS =
-  'h-10 w-32 shrink-0 rounded-xl border border-slate-200 bg-white px-2 text-[13px] font-semibold focus:outline-none focus:border-teal-400';
+  'h-10 w-36 shrink-0 rounded-xl border border-slate-200 bg-white px-2 text-[13px] font-semibold focus:outline-none focus:border-teal-400';
 
 const TYPE_OPTIONS: Array<{ value: OrderFormFieldType; label: string }> = [
   { value: 'text', label: 'نص قصير' },
@@ -39,6 +39,7 @@ const TYPE_OPTIONS: Array<{ value: OrderFormFieldType; label: string }> = [
   { value: 'number', label: 'رقم' },
   { value: 'date', label: 'تاريخ' },
   { value: 'select', label: 'قائمة اختيار' },
+  { value: 'file', label: 'إرفاق ملف / تصميم' },
 ];
 
 function makeId(): string {

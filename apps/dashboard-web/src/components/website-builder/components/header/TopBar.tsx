@@ -94,18 +94,7 @@ export const TopBar: React.FC = () => {
           </button>
         )}
 
-        {/* Brand Badge */}
-        <div className="flex items-center gap-1.5 pr-0.5 sm:pr-1">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-xs font-bold text-xs tracking-tight shrink-0">
-            VB
-          </div>
-          <div className="hidden md:flex flex-col">
-            <span className="text-xs font-bold text-slate-900 leading-tight">مُنشئ المواقع</span>
-            <span className="text-[9px] text-blue-600 font-bold tracking-wider">Next.js Studio</span>
-          </div>
-        </div>
-
-        <div className="h-5 w-px bg-slate-200" />
+        <div className="h-5 w-px bg-slate-200 hidden sm:block" />
 
         {/* Page Switcher Dropdown */}
         <div className="relative">
@@ -149,8 +138,8 @@ export const TopBar: React.FC = () => {
 
       {/* CENTER SECTION: Viewport, Zoom, Undo/Redo, Focus Mode */}
       <div className="flex items-center gap-1 sm:gap-2">
-        {/* Undo / Redo */}
-        <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+        {/* Undo / Redo (Hidden on mobile to keep header clean and spacious) */}
+        <div className="hidden sm:flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
           <button
             id="undo_btn"
             onClick={undo}
@@ -296,17 +285,15 @@ export const TopBar: React.FC = () => {
           <span>حفظ</span>
         </button>
 
-        {/* View Live Next.js Website Button */}
-        <a
-          href={liveWebsiteUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="فتح الموقع الحقيقي على منصة Next.js لمعاينة الريندر والـ SEO"
-          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-800 shadow-xs transition-all shrink-0 cursor-pointer"
+        {/* Preview Button (opens live interactive preview modal) */}
+        <button
+          onClick={() => setIsLivePreviewOpen(true)}
+          title="معاينة حية للمتجر في كافة الشاشات"
+          className="hidden md:flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-800 shadow-xs transition-all shrink-0 cursor-pointer"
         >
-          <ExternalLink className="w-3.5 h-3.5 text-emerald-600" />
-          <span className="hidden min-[480px]:inline">الموقع الحقيقي</span>
-        </a>
+          <Play className="w-3.5 h-3.5 text-blue-600 fill-blue-600" />
+          <span>معاينة</span>
+        </button>
 
         {/* Publish Button */}
         <button
@@ -419,15 +406,16 @@ export const TopBar: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <a
-              href={liveWebsiteUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800"
+            <button
+              onClick={() => {
+                setIsLivePreviewOpen(true);
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-2 p-2 rounded-lg bg-blue-50 border border-blue-200 text-xs font-bold text-blue-800"
             >
-              <ExternalLink className="w-4 h-4 text-emerald-600" />
-              <span>الموقع الحقيقي</span>
-            </a>
+              <Play className="w-4 h-4 text-blue-600 fill-blue-600" />
+              <span>معاينة</span>
+            </button>
 
             <button
               onClick={() => {

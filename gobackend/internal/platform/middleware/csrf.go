@@ -27,6 +27,7 @@ var csrfExemptPrefixes = []string{
 	"/api/v1/auth/dev-merchant-login",
 	"/api/v1/auth/dev-courier-login",
 	"/api/v1/auth/dev-portal-login",
+	"/api/v1/analytics/visits",
 }
 
 // CSRF protects state-changing endpoints against cross-site request forgery.

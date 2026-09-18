@@ -22,11 +22,15 @@ type Handler struct {
 
 // AuthCookieConfig holds cookie settings for the auth handlers.
 type AuthCookieConfig struct {
-	Name     string
-	Domain   string
-	MaxAge   time.Duration
-	Secure   bool
-	SameSite string
+	Name             string
+	// AccessCookieName is the name of the short-lived access token cookie.
+	// When set, login/refresh responses also set this httpOnly cookie so the
+	// frontend can authenticate without storing the token in localStorage.
+	AccessCookieName string
+	Domain           string
+	MaxAge           time.Duration
+	Secure           bool
+	SameSite         string
 }
 
 // NewHandler creates a handler for auth routes.
@@ -65,6 +69,8 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	g.Post("/2fa/disable", middleware.RequireAuth(h.appCfg), h.Disable2FA)
 	g.Post("/2fa/verify", middleware.RequireAuth(h.appCfg), h.Verify2FA)
 	g.Get("/me", middleware.RequireAuth(h.appCfg), h.Me)
+	g.Post("/change-password", middleware.RequireAuth(h.appCfg), h.ChangePassword)
+	g.Post("/deactivate", middleware.RequireAuth(h.appCfg), h.Deactivate)
 }
 
 func (h *Handler) Logout(c *fiber.Ctx) error {
@@ -103,6 +109,7 @@ func (h *Handler) Signup(c *fiber.Ctx) error {
 		return err
 	}
 	h.setAuthCookie(c, resp.Token.RefreshToken)
+	h.setAccessCookie(c, resp.Token.AccessToken, h.appCfg.Auth.AccessTokenExpiry)
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"success": true, "data": resp})
 }
 
@@ -120,6 +127,7 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 		return err
 	}
 	h.setAuthCookie(c, resp.Token.RefreshToken)
+	h.setAccessCookie(c, resp.Token.AccessToken, h.appCfg.Auth.AccessTokenExpiry)
 
 	// Record login audit event
 	if h.auditService != nil && resp.User.ID != "" {
@@ -400,25 +408,46 @@ func (h *Handler) setAuthCookie(c *fiber.Ctx, refreshToken string) {
 	c.Cookie(&cookie)
 }
 
-func (h *Handler) clearAuthCookie(c *fiber.Ctx) {
-	if h.cfg.Name == "" {
+func (h *Handler) setAccessCookie(c *fiber.Ctx, accessToken string, expiry time.Duration) {
+	if h.cfg.AccessCookieName == "" || accessToken == "" {
 		return
 	}
+	expiresAt := time.Now().Add(expiry)
 	cookie := fiber.Cookie{
-		Name:     h.cfg.Name,
-		Value:    "",
+		Name:     h.cfg.AccessCookieName,
+		Value:    accessToken,
 		Path:     "/",
 		HTTPOnly: true,
 		Secure:   h.cfg.Secure,
 		SameSite: h.cfg.SameSite,
 		Domain:   h.cfg.Domain,
-		Expires:  time.Unix(0, 0),
-		MaxAge:   -1,
+		Expires:  expiresAt,
+		MaxAge:   int(expiry.Seconds()),
 	}
 	if cookie.SameSite == "" {
 		cookie.SameSite = "Lax"
 	}
 	c.Cookie(&cookie)
+}
+
+func (h *Handler) clearAuthCookie(c *fiber.Ctx) {
+	expired := time.Unix(0, 0)
+	for _, name := range []string{h.cfg.Name, h.cfg.AccessCookieName} {
+		if name == "" {
+			continue
+		}
+		c.Cookie(&fiber.Cookie{
+			Name:     name,
+			Value:    "",
+			Path:     "/",
+			HTTPOnly: true,
+			Secure:   h.cfg.Secure,
+			SameSite: h.cfg.SameSite,
+			Domain:   h.cfg.Domain,
+			Expires:  expired,
+			MaxAge:   -1,
+		})
+	}
 }
 
 func extractMeta(c *fiber.Ctx) RequestMeta {

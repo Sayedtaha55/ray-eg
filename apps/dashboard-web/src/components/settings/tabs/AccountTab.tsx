@@ -149,7 +149,7 @@ export default function AccountTab({ shop, onSaved }: AccountTabProps) {
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="name">اسم المتجر</Label>
+                <Label htmlFor="name">اسم المتجر / النشاط التجاري</Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
                     <User className="w-4 h-4" />

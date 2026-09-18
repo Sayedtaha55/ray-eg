@@ -20,7 +20,7 @@ import {
 import { StructuredAiPatch } from '../types/ai';
 import { sampleWebsites } from '../data/initialWebsites';
 import { mockTenants, mockAssets } from '../data/mockTenants';
-import { defaultDesignTokens, themePresets } from '../data/defaultTheme';
+import { defaultDesignTokens, themePresets, getMergedThemeTokens } from '../data/defaultTheme';
 import { sectionTemplates } from '../data/sectionLibrary';
 import { allActivityWebsites, activityTemplatesMeta, ActivityTemplateMeta } from '../data/allActivityTemplates';
 import { apiRequest } from '@/lib/auth';
@@ -165,9 +165,121 @@ interface BuilderContextType {
   setIsMobileInspectorOpen: (open: boolean) => void;
   isMobileSidebarOpen: boolean;
   setIsMobileSidebarOpen: (open: boolean) => void;
+  isThemeLoading: boolean;
+  setIsThemeLoading: (loading: boolean) => void;
 }
 
 const BuilderContext = createContext<BuilderContextType | null>(null);
+
+// Synchronously resolve initial website to eliminate any flash/flicker of default themes
+const BLANK_WEBSITE: Website = {
+  id: 'site_blank_initial',
+  tenantId: 'guest',
+  name: 'موقعي الجديد',
+  domain: 'mysite.ray.eg',
+  subdomain: 'mysite',
+  activity: 'RETAIL' as any,
+  language: 'ar',
+  defaultDirection: 'rtl',
+  theme: defaultDesignTokens as any,
+  currentDraftVersion: 1,
+  pages: [
+    {
+      id: 'page_home',
+      name: 'الرئيسية',
+      slug: '',
+      rootNodeId: 'comp_blank_root',
+      metadata: {
+        title: 'الرئيسية',
+        description: '',
+        slug: '',
+        isHomePage: true,
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ],
+  components: {
+    comp_blank_root: {
+      id: 'comp_blank_root',
+      name: 'بداية الموقع',
+      type: 'hero',
+      category: 'section',
+      parentId: null,
+      props: {
+        title: 'مرحباً بكم',
+        subtitle: 'ابدأ بإضافة الأقسام والمنتجات من القائمة الجانبية',
+        badge: '',
+        align: 'center',
+      },
+      styles: {
+        desktop: {
+          paddingTop: '80px',
+          paddingBottom: '80px',
+          paddingLeft: '24px',
+          paddingRight: '24px',
+          backgroundColor: '#FFFFFF',
+          textColor: '#0F172A',
+        },
+      },
+      childrenIds: [],
+    },
+  },
+};
+
+const getInitialBuilderState = (): {
+  website: Website;
+  templateId: string;
+  pageId: string;
+} => {
+  if (typeof window !== 'undefined') {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const chosenTemplate = urlParams.get('template') || localStorage.getItem('ray_builder_selected_template');
+      // Saved preset key from themes gallery — applies colour/typography on top of template layout
+      const savedPreset = urlParams.get('preset') || localStorage.getItem('ray_builder_selected_preset');
+
+      const applyPreset = (site: Website): Website => {
+        if (!savedPreset) return site;
+        try {
+          const mergedTokens = getMergedThemeTokens(savedPreset);
+          return { ...site, theme: mergedTokens as any };
+        } catch { return site; }
+      };
+
+      if (chosenTemplate) {
+        if (allActivityWebsites[chosenTemplate]) {
+          const site = applyPreset(allActivityWebsites[chosenTemplate]);
+          return { website: site, templateId: chosenTemplate, pageId: site.pages[0]?.id || 'page_home' };
+        }
+        if (sampleWebsites[chosenTemplate]) {
+          const site = applyPreset(sampleWebsites[chosenTemplate]);
+          return { website: site, templateId: chosenTemplate, pageId: site.pages[0]?.id || 'page_home' };
+        }
+      }
+
+      const lastActiveSiteStr = localStorage.getItem('ray_builder_last_active_site');
+      if (lastActiveSiteStr) {
+        const parsed = JSON.parse(lastActiveSiteStr);
+        if (parsed?.components && parsed?.pages?.length) {
+          return {
+            website: parsed,
+            templateId: parsed.id || 'custom',
+            pageId: parsed.pages[0]?.id || 'page_home',
+          };
+        }
+      }
+    } catch {}
+  }
+
+  // Neutral blank canvas — never show a hardcoded template for unknown shops
+  return {
+    website: BLANK_WEBSITE,
+    templateId: 'blank',
+    pageId: 'page_home',
+  };
+};
+
 
 export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () => void }> = ({ children, onExit }) => {
   // Mobile / Tablet Responsive Drawer States
@@ -178,32 +290,25 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
   const toggleFocusMode = useCallback(() => setIsFocusMode((prev) => !prev), []);
 
+  // Synchronous initial state resolution
+  const [initialBuilderData] = useState(() => getInitialBuilderState());
+
   // Real Tenant, Shop & Website State
   const [currentTenant, setCurrentTenant] = useState<Tenant>(mockTenants[0]);
-  const [website, setWebsite] = useState<Website>(allActivityWebsites['site_al_majd_auto'] || sampleWebsites['site_al_majd_auto']);
+  const [website, setWebsite] = useState<Website>(initialBuilderData.website);
   const [builderShopId, setBuilderShopId] = useState<string>('');
   const [builderShopSlug, setBuilderShopSlug] = useState<string>('');
   const [builderShopName, setBuilderShopName] = useState<string>('');
-  const [activeTemplateId, setActiveTemplateId] = useState<string>('site_al_majd_auto');
-  const [activePageId, setActivePageId] = useState<string>('page_home');
+  const [activeTemplateId, setActiveTemplateId] = useState<string>(initialBuilderData.templateId);
+  const [activePageId, setActivePageId] = useState<string>(initialBuilderData.pageId);
+  const [isThemeLoading, setIsThemeLoading] = useState<boolean>(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>('comp_hero');
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
+
   // Cart & Commerce State
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: 'cart_item_amg_gt',
-      title: 'مرسيدس AMG GT 63 S E-Performance',
-      price: 890000,
-      priceFormatted: '890,000 ج.م',
-      image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80',
-      category: 'mercedes',
-      badge: 'أعلى فئة VIP',
-      quantity: 1,
-      tenantId: 'tenant_al_majd_auto',
-      tenantName: 'شركة المجد للسيارات الفاخرة',
-    },
-  ]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [cartMode, setCartMode] = useState<CartMode>('standalone'); // 'standalone' store cart or 'unified' marketplace cart
 
@@ -288,6 +393,13 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   const [historyLog, setHistoryLog] = useState<string[]>(['بدء جلسة العمل']);
   const [autosaveStatus, setAutosaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
 
+  // Auto-detect mobile screen width on mount to render mobile-optimized styles immediately
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setViewport('mobile');
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -308,6 +420,89 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
             businessInfo: { ...prev.businessInfo, brandName: shop.name },
             customDomain: `${shop.slug || 'shop'}.mnmknk.com`,
           }));
+        }
+
+        // Check if a specific template or blank canvas was requested from Themes Gallery
+        if (typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search);
+          const chosenTemplate = urlParams.get('template') || localStorage.getItem('ray_builder_selected_template');
+          if (chosenTemplate) {
+            try { localStorage.removeItem('ray_builder_selected_template'); } catch {}
+            if (chosenTemplate === 'blank') {
+              setWebsite({
+                id: `site_blank_${shopId || 'custom'}`,
+                tenantId: shopId || 'custom',
+                name: shop?.name || 'موقعي الجديد',
+                domain: `${shop?.slug || 'shop'}.saassite.com`,
+                subdomain: shop?.slug || 'shop',
+                activity: (shop?.category || 'RETAIL') as any,
+                language: 'ar',
+                defaultDirection: 'rtl',
+                theme: {
+                  primaryColor: '#00E5FF',
+                  secondaryColor: '#1E293B',
+                  accentColor: '#3B82F6',
+                  fontFamily: 'Cairo, sans-serif',
+                  direction: 'rtl',
+                } as any,
+                currentDraftVersion: 1,
+                pages: [
+                  {
+                    id: 'page_home',
+                    name: 'الرئيسية',
+                    slug: '',
+                    rootNodeId: 'comp_blank_hero',
+                    metadata: {
+                      title: shop?.name || 'الرئيسية',
+                      description: 'الصفحة الرئيسية',
+                      slug: '',
+                      isHomePage: true,
+                    },
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  },
+                ],
+                components: {
+                  comp_blank_hero: {
+                    id: 'comp_blank_hero',
+                    name: 'بداية الموقع',
+                    type: 'hero',
+                    category: 'section',
+                    parentId: null,
+                    props: {
+                      title: shop?.name || 'مرحباً بكم في متجرنا',
+                      subtitle: 'ابدأ بإضافة الأقسام والمنتجات من القائمة الجانبية',
+                      badge: 'قالب فارغ',
+                      align: 'center',
+                    },
+                    styles: {
+                      desktop: {
+                        padding: 'py-20 px-6',
+                        backgroundColor: '#FFFFFF',
+                        textColor: '#0F172A',
+                      },
+                    },
+                    childrenIds: [],
+                  },
+                },
+              });
+              setActivePageId('page_home');
+              return;
+            }
+
+            const target = allActivityWebsites[chosenTemplate] || sampleWebsites[chosenTemplate];
+            if (target) {
+              setWebsite({
+                ...target,
+                id: `site_${shopId || 'custom'}`,
+                name: shop?.name || target.name,
+                subdomain: shop?.slug || target.subdomain,
+              });
+              setActiveTemplateId(chosenTemplate);
+              setActivePageId(target.pages[0]?.id || 'page_home');
+              return;
+            }
+          }
         }
 
         // 1. Direct check from shop response
@@ -360,38 +555,23 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Compute actual live URL on Next.js customer-facing marketplace
+  // Compute actual live URL on Next.js customer-facing marketplace.
+  // Empty string when the shop slug is unknown — callers must not invent a URL.
   const liveWebsiteUrl = useMemo(() => {
+    const slug = builderShopSlug || website.subdomain;
+    if (!slug) return '';
+    // Dev: the marketplace app runs on :5174 — NOT on :3000 (which is this
+    // dashboard itself, so /site/:slug would 404).
     const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    const base = isDev ? 'http://localhost:3000' : (process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'https://mnmknk.com');
-    const slug = builderShopSlug || website.subdomain || 'dev-shop-13e8de3a';
+    const base = isDev
+      ? (process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'http://localhost:5174')
+      : (process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'https://mnmknk.com');
     // Published builder website renderer (uses the published builder config)
     return `${base}/site/${slug}`;
   }, [builderShopSlug, website.subdomain]);
 
-  // Versions
-  const [versions, setVersions] = useState<VersionHistoryItem[]>([
-    {
-      id: 'ver_init_1',
-      versionNumber: 1,
-      label: 'النسخة الأولية',
-      description: 'الهيكل الأولي لموقع شركة المجد للسيارات',
-      timestamp: '2025-01-15T09:00:00Z',
-      author: 'المدير التنفيذي',
-      websiteSnapshot: sampleWebsites['site_al_majd_auto'],
-      isPublished: false,
-    },
-    {
-      id: 'ver_v2_hero',
-      versionNumber: 2,
-      label: 'تحديث الهيرو وأسطول 2025',
-      description: 'إضافة بانر السيارات الفاخرة مع نظام الحجز',
-      timestamp: '2025-03-10T14:30:00Z',
-      author: 'فريق التصميم',
-      websiteSnapshot: sampleWebsites['site_al_majd_auto'],
-      isPublished: true,
-    },
-  ]);
+  // Versions — start empty; snapshot entries are created from real user actions only.
+  const [versions, setVersions] = useState<VersionHistoryItem[]>([]);
 
   // Publishing Pipeline State
   const [publishingStatus, setPublishingStatus] = useState<PublishingPipelineStatus>({
@@ -399,7 +579,7 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
     currentStep: 0,
     totalSteps: 5,
     stepMessage: 'جاهز للنشر على بيئة الإنتاج السحابية',
-    liveUrl: 'https://almajd-motors.com',
+    liveUrl: '',
   });
 
   // Helpers
@@ -431,6 +611,15 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
     setHistoryLog((prev) => [actionDesc, ...prev.slice(0, 40)]);
     setWebsite(newWebsite);
     setAutosaveStatus('unsaved');
+  }, [website]);
+
+  // Keep local storage active site snapshot in sync so reloads never flicker
+  useEffect(() => {
+    if (typeof window !== 'undefined' && website?.components && website?.pages?.length) {
+      try {
+        localStorage.setItem('ray_builder_last_active_site', JSON.stringify(website));
+      } catch {}
+    }
   }, [website]);
 
   // Persist the complete website draft after edits settle.
@@ -1917,7 +2106,10 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
       }
       setAutosaveStatus('saved');
       if (manual) {
-        setHistoryLog((prev) => ['تم حفظ مسودة الموقع بنجاح', ...prev]);
+        setHistoryLog((prev) => [
+          builderShopId ? 'تم حفظ مسودة الموقع بنجاح' : 'تم حفظ نسخة محلية فقط (لا يوجد متجر مرتبط بعد)',
+          ...prev,
+        ]);
       }
     } catch (err) {
       if (typeof window !== 'undefined') {
@@ -1942,10 +2134,35 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
     });
 
     try {
+      if (!builderShopId) {
+        setPublishingStatus({
+          status: 'failed',
+          currentStep: 1,
+          totalSteps: 5,
+          stepMessage: 'لا يوجد متجر مرتبط بالمنشئ — افتح المنشئ من داخل متجرك ثم أعد المحاولة.',
+          errors: ['builderShopId غير متوفر'],
+        });
+        return;
+      }
       await saveDraft(false);
       setPublishingStatus({ status: 'building_nextjs', currentStep: 2, totalSteps: 5, stepMessage: '2/5 تم حفظ مسودة الموقع وتجهيز حزم النشر السريع...' });
-      if (builderShopId) {
-        await apiRequest(`/builder/${builderShopId}/publish`, { method: 'POST' });
+      await apiRequest(`/builder/${builderShopId}/publish`, { method: 'POST' });
+      // Ask the marketplace to drop its cached /site/:slug page so visitors
+      // see the changes immediately (fire-and-forget — publishing already
+      // succeeded, and the ISR window covers it if this fails).
+      const publishSlug = builderShopSlug || website.subdomain;
+      if (publishSlug) {
+        try {
+          const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+          const marketplaceBase = isDev
+            ? (process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'http://localhost:5174')
+            : (process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'https://mnmknk.com');
+          void fetch(`${marketplaceBase}/api/revalidate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug: publishSlug, secret: 'dev-revalidate-secret' }),
+          }).catch(() => undefined);
+        } catch { /* non-fatal */ }
       }
       setPublishingStatus({
         status: 'published',
@@ -1954,33 +2171,17 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
         stepMessage: 'تم نشر نسخة الموقع بنجاح، ومتاحة الآن على منصة Next.js.',
         liveUrl: liveWebsiteUrl,
         publishedAt: new Date().toLocaleTimeString('ar-EG'),
-        buildStats: {
-          pagesCount: website.pages.length,
-          totalSizeKb: 120,
-          staticRoutes: website.pages.length,
-          ssrRoutes: 1,
-          firstLoadJsKb: 28.4,
-          coreWebVitalsEstimatedScore: 98,
-        },
       });
       setHistoryLog((prev) => ['نشر الموقع المحفوظ بنجاح', ...prev]);
-    } catch {
+    } catch (err) {
       setPublishingStatus({
-        status: 'published',
-        currentStep: 5,
+        status: 'failed',
+        currentStep: 2,
         totalSteps: 5,
-        stepMessage: 'تم تجهيز ونشر نسخة الموقع.',
-        liveUrl: liveWebsiteUrl,
-        publishedAt: new Date().toLocaleTimeString('ar-EG'),
-        buildStats: {
-          pagesCount: website.pages.length,
-          totalSizeKb: 120,
-          staticRoutes: website.pages.length,
-          ssrRoutes: 1,
-          firstLoadJsKb: 28.4,
-          coreWebVitalsEstimatedScore: 98,
-        },
+        stepMessage: 'تعذّر النشر على الخادم — تأكد من اتصالك ثم أعد المحاولة.',
+        errors: [err instanceof Error ? err.message : 'خطأ غير معروف أثناء النشر'],
       });
+      setHistoryLog((prev) => ['فشل نشر الموقع — أعد المحاولة', ...prev]);
     }
   }, [builderShopId, liveWebsiteUrl, saveDraft, website]);
 
@@ -2237,6 +2438,8 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
         setIsMobileInspectorOpen,
         isMobileSidebarOpen,
         setIsMobileSidebarOpen,
+        isThemeLoading,
+        setIsThemeLoading,
       }}
     >
       {children}

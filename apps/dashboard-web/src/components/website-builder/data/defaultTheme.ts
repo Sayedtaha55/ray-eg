@@ -415,13 +415,197 @@ export const themePresets: Record<string, { name: string; nameAr: string; tokens
       },
     },
   },
+
+  // ------------------------------------------------------------------
+  // Regional presets — Egyptian & Saudi/Gulf character
+  // ------------------------------------------------------------------
+  egyptianNile: {
+    name: 'Egyptian Nile Blue & Pharaonic Gold',
+    nameAr: 'أزرق النيل والذهبي الفرعوني',
+    tokens: {
+      colors: {
+        ...defaultDesignTokens.colors,
+        primary: '#0e7490',
+        primaryHover: '#155e75',
+        secondary: '#083344',
+        accent: '#d4a017',
+        surface: '#ecfeff',
+        border: '#a5f3fc',
+      },
+      typography: {
+        fontHeading: 'Cairo, Tajawal, sans-serif',
+        fontBody: 'Cairo, sans-serif',
+        scaleRatio: 1.25,
+        baseFontSize: '16px',
+      },
+      radius: { sm: '8px', md: '14px', lg: '20px', xl: '28px', full: '9999px' },
+      shadows: {
+        sm: '0 1px 2px rgba(8, 51, 68, 0.06)',
+        md: '0 4px 10px rgba(8, 51, 68, 0.10), 0 2px 4px rgba(8, 51, 68, 0.05)',
+        lg: '0 12px 24px rgba(8, 51, 68, 0.12), 0 4px 8px rgba(8, 51, 68, 0.05)',
+        glow: '0 0 24px rgba(212, 160, 23, 0.35)',
+      },
+    },
+  },
+  egyptianPapyrus: {
+    name: 'Egyptian Papyrus & Terracotta',
+    nameAr: 'بردي وطيني مصري دافئ',
+    tokens: {
+      colors: {
+        ...defaultDesignTokens.colors,
+        primary: '#b45309',
+        primaryHover: '#92400e',
+        secondary: '#292018',
+        accent: '#0e7490',
+        background: '#fdf8f1',
+        surface: '#f7efe3',
+        textPrimary: '#292018',
+        textSecondary: '#57534e',
+        border: '#e7d9c5',
+      },
+      typography: {
+        fontHeading: 'Amiri, Cairo, serif',
+        fontBody: 'Cairo, sans-serif',
+        scaleRatio: 1.33,
+        baseFontSize: '16px',
+      },
+      radius: { sm: '6px', md: '12px', lg: '18px', xl: '26px', full: '9999px' },
+      shadows: {
+        sm: '0 1px 2px rgba(41, 32, 24, 0.08)',
+        md: '0 4px 10px rgba(41, 32, 24, 0.12), 0 2px 4px rgba(41, 32, 24, 0.06)',
+        lg: '0 12px 24px rgba(41, 32, 24, 0.14), 0 4px 8px rgba(41, 32, 24, 0.06)',
+        glow: '0 0 22px rgba(180, 83, 9, 0.30)',
+      },
+    },
+  },
+  saudiHeritage: {
+    name: 'Saudi Heritage Green & Gold',
+    nameAr: 'أخضر تراثي سعودي وذهبي',
+    tokens: {
+      colors: {
+        ...defaultDesignTokens.colors,
+        primary: '#065f46',
+        primaryHover: '#064e3b',
+        secondary: '#022c22',
+        accent: '#c9a227',
+        surface: '#f0fdf4',
+        border: '#bbf7d0',
+      },
+      typography: {
+        fontHeading: 'Amiri, Tajawal, serif',
+        fontBody: 'Almarai, Cairo, sans-serif',
+        scaleRatio: 1.33,
+        baseFontSize: '16px',
+      },
+      radius: { sm: '6px', md: '10px', lg: '16px', xl: '24px', full: '9999px' },
+      shadows: {
+        sm: '0 1px 2px rgba(2, 44, 34, 0.08)',
+        md: '0 4px 10px rgba(2, 44, 34, 0.12), 0 2px 4px rgba(2, 44, 34, 0.06)',
+        lg: '0 12px 24px rgba(2, 44, 34, 0.16), 0 4px 8px rgba(2, 44, 34, 0.06)',
+        glow: '0 0 24px rgba(201, 162, 39, 0.35)',
+      },
+    },
+  },
+  saudiModern: {
+    name: 'Saudi Modern Sand & Emerald',
+    nameAr: 'رملي عصري خليجي وزمردي',
+    tokens: {
+      colors: {
+        ...defaultDesignTokens.colors,
+        primary: '#047857',
+        primaryHover: '#059669',
+        secondary: '#1c1917',
+        accent: '#d6b68a',
+        background: '#fffdf9',
+        surface: '#faf6ef',
+        textPrimary: '#1c1917',
+        border: '#ede4d3',
+      },
+      typography: {
+        fontHeading: 'Tajawal, IBM Plex Sans Arabic, sans-serif',
+        fontBody: 'IBM Plex Sans Arabic, Cairo, sans-serif',
+        scaleRatio: 1.25,
+        baseFontSize: '16px',
+      },
+      radius: { sm: '10px', md: '16px', lg: '24px', xl: '32px', full: '9999px' },
+      shadows: {
+        sm: '0 1px 3px rgba(28, 25, 23, 0.07)',
+        md: '0 6px 14px rgba(28, 25, 23, 0.10), 0 2px 5px rgba(28, 25, 23, 0.05)',
+        lg: '0 16px 30px rgba(28, 25, 23, 0.13), 0 5px 10px rgba(28, 25, 23, 0.05)',
+        glow: '0 0 26px rgba(4, 120, 87, 0.30)',
+      },
+    },
+  },
+};
+
+// ------------------------------------------------------------------
+// Preset polish — guarantees every preset carries a complete, tuned
+// typography/radius/shadows set matching its character (previously most
+// presets overrode colors only).
+// ------------------------------------------------------------------
+type PresetPolish = {
+  typography?: Partial<DesignTokens['typography']>;
+  radius?: DesignTokens['radius'];
+  shadows?: DesignTokens['shadows'];
+};
+
+const serifHeading = 'Amiri, Cairo, serif';
+const sharpRadius: DesignTokens['radius'] = { sm: '4px', md: '8px', lg: '12px', xl: '16px', full: '9999px' };
+const softRadius: DesignTokens['radius'] = { sm: '10px', md: '16px', lg: '24px', xl: '32px', full: '9999px' };
+const boldShadows: DesignTokens['shadows'] = {
+  sm: '0 2px 4px rgba(0, 0, 0, 0.10)',
+  md: '0 6px 14px rgba(0, 0, 0, 0.16), 0 2px 5px rgba(0, 0, 0, 0.08)',
+  lg: '0 16px 34px rgba(0, 0, 0, 0.22), 0 6px 12px rgba(0, 0, 0, 0.08)',
+  glow: '0 0 26px rgba(0, 0, 0, 0.35)',
+};
+const elegantShadows: DesignTokens['shadows'] = {
+  sm: '0 1px 2px rgba(24, 24, 27, 0.06)',
+  md: '0 6px 16px rgba(24, 24, 27, 0.10), 0 2px 6px rgba(24, 24, 27, 0.05)',
+  lg: '0 18px 36px rgba(24, 24, 27, 0.14), 0 6px 12px rgba(24, 24, 27, 0.06)',
+  glow: '0 0 28px rgba(217, 119, 6, 0.28)',
+};
+
+export const PRESET_POLISH: Record<string, PresetPolish> = {
+  modernBlue: {
+    shadows: {
+      sm: '0 1px 2px rgba(29, 78, 216, 0.06)',
+      md: '0 4px 10px rgba(29, 78, 216, 0.10), 0 2px 4px rgba(29, 78, 216, 0.05)',
+      lg: '0 14px 28px rgba(29, 78, 216, 0.14), 0 5px 10px rgba(29, 78, 216, 0.06)',
+      glow: '0 0 24px rgba(29, 78, 216, 0.30)',
+    },
+  },
+  luxuryGold: { radius: softRadius, shadows: elegantShadows },
+  automotiveSpeed: { typography: { fontHeading: 'Tajawal, sans-serif', scaleRatio: 1.2 }, shadows: boldShadows },
+  realEstateEmerald: { typography: { fontHeading: 'Tajawal, sans-serif' }, shadows: elegantShadows },
+  clinicalClean: { typography: { fontHeading: 'IBM Plex Sans Arabic, sans-serif' }, radius: softRadius },
+  royalPurple: { typography: { fontHeading: 'Tajawal, sans-serif', scaleRatio: 1.3 }, radius: softRadius },
+  restaurantWarm: { radius: softRadius },
+  groceryFresh: { typography: { fontHeading: 'Almarai, sans-serif' }, radius: softRadius },
+  fashionChic: { typography: { fontHeading: serifHeading, scaleRatio: 1.33 }, radius: softRadius },
+  goldRoyalty: { radius: softRadius, shadows: elegantShadows },
+  beautyBlush: { typography: { fontHeading: 'Tajawal, sans-serif' }, radius: softRadius },
+  gymEnergetic: { typography: { fontHeading: 'Tajawal, sans-serif', scaleRatio: 1.2 }, shadows: boldShadows },
+  nurseryGreen: { typography: { fontHeading: 'Almarai, sans-serif' }, radius: softRadius },
+  techCyan: { typography: { fontHeading: 'IBM Plex Sans Arabic, sans-serif', scaleRatio: 1.2 } },
+  homeServiceOrange: { typography: { fontHeading: 'Tajawal, sans-serif' } },
+  travelAzure: { radius: softRadius },
+  legalNavy: { typography: { fontHeading: serifHeading, scaleRatio: 1.2 } },
+  factoryIndustrial: { radius: sharpRadius, shadows: boldShadows },
+  academyIndigo: { radius: softRadius },
+  furnitureWarm: { typography: { fontHeading: serifHeading, scaleRatio: 1.33 }, radius: softRadius, shadows: elegantShadows },
+  flowerRose: { typography: { fontHeading: 'Tajawal, sans-serif' }, radius: softRadius },
+  accountingSlate: { typography: { fontHeading: 'IBM Plex Sans Arabic, sans-serif' } },
+  rentalAmber: { radius: sharpRadius, shadows: boldShadows },
 };
 
 /**
- * Returns fully resolved, non-partial DesignTokens for any preset key with guaranteed fallbacks
+ * Returns fully resolved, non-partial DesignTokens for any preset key with
+ * guaranteed fallbacks. Layers: defaults → preset tokens → per-preset polish
+ * (typography/radius/shadows tuning) so every theme ships complete.
  */
 export const getMergedThemeTokens = (presetKey?: string): DesignTokens => {
   const preset = presetKey && themePresets[presetKey] ? themePresets[presetKey].tokens : {};
+  const polish = presetKey ? PRESET_POLISH[presetKey] : undefined;
   return {
     ...defaultDesignTokens,
     ...preset,
@@ -431,14 +615,17 @@ export const getMergedThemeTokens = (presetKey?: string): DesignTokens => {
     },
     typography: {
       ...defaultDesignTokens.typography,
+      ...(polish?.typography || {}),
       ...(preset.typography || {}),
     },
     radius: {
       ...defaultDesignTokens.radius,
+      ...(polish?.radius || {}),
       ...(preset.radius || {}),
     },
     shadows: {
       ...defaultDesignTokens.shadows,
+      ...(polish?.shadows || {}),
       ...(preset.shadows || {}),
     },
     spacingUnit: preset.spacingUnit || defaultDesignTokens.spacingUnit,

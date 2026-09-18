@@ -156,7 +156,7 @@ export const realEstateComponents: Record<string, ComponentNode> = {
     category: 'typography',
     parentId: 're_hero_text',
     childrenIds: [],
-    props: { text: '✨ فلل وقصور وأبراج سكنية فاخرة في أرقى أحياء الرياض وجدة' },
+    props: { text: '✨ فلل وقصور وأبراج سكنية فاخرة في أرقى أحياء القاهرة الجديدة والشيخ زايد' },
     styles: { desktop: { backgroundColor: 'rgba(5, 150, 105, 0.25)', textColor: '#34d399', paddingLeft: '16px', paddingRight: '16px', paddingTop: '6px', paddingBottom: '6px', borderRadius: '9999px', fontSize: '13px', fontWeight: '700' } },
   },
   're_hero_h1': {
@@ -226,7 +226,7 @@ export const realEstateComponents: Record<string, ComponentNode> = {
           price: '4,850,000 ج.م',
           badge: 'جاهزة للسكن',
           image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80',
-          specs: ['6 أجنحة نوم ماستر', 'مسبح خاص وحديقة ذكية', 'تكييف مركزي ومصعد إيطالي', 'حي الملقا الراقي، الرياض'],
+          specs: ['6 أجنحة نوم ماستر', 'مسبح خاص وحديقة ذكية', 'تكييف مركزي ومصعد إيطالي', 'التجمع الخامس الراقي، القاهرة'],
         },
         {
           id: 'prop_2',
@@ -260,7 +260,7 @@ export const realEstateComponents: Record<string, ComponentNode> = {
       subtitle: 'سيرافقك مستشارنا العقاري المعتمد للإجابة على كافة استفساراتك الفنية والتمويلية',
       fields: [
         { name: 'name', label: 'الاسم الكريم', type: 'text', placeholder: 'الاسم بالكامل' },
-        { name: 'phone', label: 'رقم الجوال (واتساب)', type: 'tel', placeholder: '+966 5X XXX XXXX' },
+        { name: 'phone', label: 'رقم الجوال (واتساب)', type: 'tel', placeholder: '+20 1XX XXX XXXX' },
         { name: 'project', label: 'المشروع المطلوب معاينته', type: 'select', options: ['فيلا الملقا الملكية', 'بنتهاوس أبراج كافد', 'تاون هاوس النرجس', 'مشروع آخر'] },
         { name: 'date', label: 'تاريخ الزيارة المفضل', type: 'date' },
         { name: 'time', label: 'الوقت المناسب', type: 'select', options: ['صباحاً (10:00 - 12:00)', 'عصراً (04:00 - 06:00)', 'مساءً (07:00 - 09:00)'] },
@@ -432,7 +432,7 @@ export const fashionComponents: Record<string, ComponentNode> = {
     childrenIds: [],
     props: {
       title: 'أحدث القطع المتاحة للطلب الفوري',
-      subtitle: 'توصيل سريع خلال 24-48 ساعة لجميع مدن المملكة والدفع عند الاستلام متاح',
+      subtitle: 'توصيل سريع خلال 24-48 ساعة لجميع مدن مصر والدفع عند الاستلام متاح',
       products: [
         {
           id: 'fsh_item_1',
@@ -474,7 +474,7 @@ export const fashionComponents: Record<string, ComponentNode> = {
       subtitle: 'نساعدك في اختيار القصة واللون الأنسب لمناسبتك ومقاساتك الدقيقة في صالة البوتيك الخاصة',
       fields: [
         { name: 'name', label: 'الاسم الكريم', type: 'text', placeholder: 'اسمك الكريم' },
-        { name: 'phone', label: 'رقم الجوال للتواصل', type: 'tel', placeholder: '+966 5X XXX XXXX' },
+        { name: 'phone', label: 'رقم الجوال للتواصل', type: 'tel', placeholder: '+20 1XX XXX XXXX' },
         { name: 'occasion', label: 'نوع المناسبة', type: 'select', options: ['حفل زفاف / ملكة', 'مناسبة عائلية راقية', 'تنسيق خزانة واجتماعات عمل', 'تفصيل خاص حسب الطلب'] },
         { name: 'date', label: 'تاريخ الموعد المفضل', type: 'date' },
       ],
@@ -863,9 +863,9 @@ export const homeServicesComponents: Record<string, ComponentNode> = {
       subtitle: 'حدد نوع الخدمة وعنوانك وسنرسل لك أقرب فني متخصص في حيك فوراً',
       fields: [
         { name: 'name', label: 'الاسم الكريم', type: 'text', placeholder: 'اسم العميل' },
-        { name: 'phone', label: 'رقم الجوال للتواصل', type: 'tel', placeholder: '+966 5X XXX XXXX' },
+        { name: 'phone', label: 'رقم الجوال للتواصل', type: 'tel', placeholder: '+20 1XX XXX XXXX' },
         { name: 'service', label: 'نوع الصيانة المطلوبة', type: 'select', options: ['صيانة وغسيل مكيفات', 'سباكة وكشف تسربات', 'أعطال كهرباء وإنارة', 'صيانة أجهزة منزلية', 'عقد صيانة فيلا سنوي'] },
-        { name: 'district', label: 'الحي والمدينة', type: 'text', placeholder: 'مثال: حي الملقا، الرياض' },
+        { name: 'district', label: 'الحي والمدينة', type: 'text', placeholder: 'مثال: التجمع الخامس، القاهرة' },
         { name: 'urgency', label: 'موعد الحضور', type: 'select', options: ['فوري (خلال 45 - 60 دقيقة)', 'اليوم في المساء', 'تحديد موعد مجدول في يوم محدد'] },
       ],
       submitText: '🚀 تأكيد إرسال طلب الفني',
@@ -1060,7 +1060,7 @@ export const travelComponents: Record<string, ComponentNode> = {
       subtitle: 'أخبرنا عن وجهتك المفضلة وعدد المسافرين وسنقوم بتجهيز جدول سياحي وحجز الطيران والفنادق بأفضل سعر',
       fields: [
         { name: 'name', label: 'الاسم الكريم', type: 'text', placeholder: 'اسم المسافر' },
-        { name: 'phone', label: 'رقم الجوال (واتساب)', type: 'tel', placeholder: '+966 5X XXX XXXX' },
+        { name: 'phone', label: 'رقم الجوال (واتساب)', type: 'tel', placeholder: '+20 1XX XXX XXXX' },
         { name: 'destination', label: 'الوجهة المطلوبة', type: 'select', options: ['جزر المالديف', 'سويسرا وأوروبا', 'البوسنة وسراييفو', 'اليابان ودول آسيا', 'تركيا والشمال التركي', 'وجهة أخرى'] },
         { name: 'travelers', label: 'عدد المسافرين', type: 'select', options: ['شخصين (شهر عسل / زوجين)', 'عائلة (3 - 5 أشخاص)', 'مجموعة سياحية (6+ أشخاص)'] },
         { name: 'travel_date', label: 'تاريخ السفر التقريبي', type: 'date' },
@@ -1236,7 +1236,7 @@ export const lawComponents: Record<string, ComponentNode> = {
       subtitle: 'يتم دراسة ملفك من قبل مستشار قانوني متخصص مع الالتزام التام بسرية المعلومات',
       fields: [
         { name: 'name', label: 'اسم العميل / الشركة', type: 'text', placeholder: 'الاسم بالكامل أو اسم الكيان' },
-        { name: 'phone', label: 'رقم الهاتف للتواصل', type: 'tel', placeholder: '+966 5X XXX XXXX' },
+        { name: 'phone', label: 'رقم الهاتف للتواصل', type: 'tel', placeholder: '+20 1XX XXX XXXX' },
         { name: 'category', label: 'نوع الاستشارة', type: 'select', options: ['قضايا شركات وعقود تجارية', 'نزاعات عمالية وتنظيمية', 'ملكية فكرية وعلامات تجارية', 'تحكيم وتسوية نزاعات', 'استشارة عامة'] },
         { name: 'preferred_format', label: 'طريقة الاستشارة', type: 'select', options: ['حضورياً في مكتبنا بالمركز المالي KAFD', 'عبر مكالمة فيديو مرئية (Zoom / Teams)', 'استشارة هاتفية سريعة'] },
       ],
@@ -1292,7 +1292,7 @@ export const allActivityWebsites: Record<string, Website> = {
         updatedAt: '2025-05-15T12:00:00Z',
         metadata: {
           title: 'مجموعة آفاق العقارية | فلل وقصور وأبراج سكنية وتجارية',
-          description: 'مشاريع عقارية فاخرة في الرياض وجدة مع خطط دفع مرنة ومعاينة ميدانية.',
+          description: 'مشاريع عقارية فاخرة في القاهرة الجديدة والعاصمة الإدارية مع خطط دفع مرنة ومعاينة ميدانية.',
           slug: 'home',
           isHomePage: true,
         },

@@ -22,6 +22,10 @@ export interface PosCashier {
 export interface PosSettings {
   adminPin?: string;
   cashiers: PosCashier[];
+  /** Merchant-level notification preferences (additional to the user mute toggle). */
+  notifications?: { sound?: boolean; banner?: boolean };
+  /** Auto-confirm POS orders right after they are created (no manual confirm page visit). */
+  autoConfirmOrders?: boolean;
 }
 
 /** Fixed permission keys a cashier can hold. */
@@ -55,9 +59,18 @@ export function loadPosSettings(shop: any): PosSettings {
     return {
       adminPin: typeof raw.adminPin === 'string' && raw.adminPin ? raw.adminPin : undefined,
       cashiers,
+      notifications: {
+        sound: raw.notifications?.sound !== false,
+        banner: raw.notifications?.banner !== false,
+      },
+      autoConfirmOrders: raw.autoConfirmOrders === true,
     };
   }
-  return { cashiers: [] };
+  return {
+    cashiers: [],
+    notifications: { sound: true, banner: true },
+    autoConfirmOrders: false,
+  };
 }
 
 /** Persist POS settings via PATCH /shops/me (merge-on-top of previous layout). */

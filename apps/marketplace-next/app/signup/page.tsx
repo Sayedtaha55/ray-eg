@@ -32,7 +32,10 @@ export default function SignupPage() {
           setLoading(true);
           try {
             await api.post('/auth/signup', { name, email, password });
-            router.push('/login');
+            try {
+              sessionStorage.setItem('mnmknk_welcome', JSON.stringify({ type: 'signup', name }));
+            } catch { /* ignore */ }
+            router.push('/');
           } catch (err: any) {
             setError(err?.message || 'فشل إنشاء الحساب. حاول مرة أخرى');
           } finally {

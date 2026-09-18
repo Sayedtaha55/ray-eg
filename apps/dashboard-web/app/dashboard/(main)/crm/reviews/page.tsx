@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Star, Search, Loader2, Plus, Edit, Trash2, Download, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info, Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, User, Eye, MessageSquare, Tag, TrendingUp, Smile, Frown, Meh } from 'lucide-react';
+import { Star, Trash2, Check, X, CheckCircle2, Download, ChevronUp, ChevronDown, MessageSquare } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import { InventoryPage, InvToolButton, InvPagination, InvEmpty } from '@/components/inventory/InventoryShell';
 
 type Review = {
   id: string;
@@ -25,18 +26,18 @@ type Review = {
   updatedAt: string;
 };
 
-const STATUS_STYLES: Record<string, { label: string; color: string; bg: string }> = {
-  pending: { label: 'قيد المراجعة', color: 'text-amber-600', bg: 'bg-amber-100' },
-  approved: { label: 'موافق عليه', color: 'text-green-600', bg: 'bg-green-100' },
-  rejected: { label: 'مرفوض', color: 'text-red-600', bg: 'bg-red-100' },
-  flagged: { label: 'مبلغ عنه', color: 'text-purple-600', bg: 'bg-purple-100' },
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  pending: { label: 'قيد المراجعة', color: 'bg-amber-50 text-amber-600' },
+  approved: { label: 'موافق عليه', color: 'bg-green-50 text-green-600' },
+  rejected: { label: 'مرفوض', color: 'bg-red-50 text-red-600' },
+  flagged: { label: 'مبلغ عنه', color: 'bg-purple-50 text-purple-600' },
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  review: 'مراجعة',
-  rating: 'تقييم',
-  comment: 'تعليق',
-  complaint: 'شكوى',
+const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
+  review: { label: 'مراجعة', color: 'bg-blue-50 text-blue-600' },
+  rating: { label: 'تقييم', color: 'bg-yellow-50 text-yellow-600' },
+  comment: { label: 'تعليق', color: 'bg-emerald-50 text-emerald-600' },
+  complaint: { label: 'شكوى', color: 'bg-red-50 text-red-600' },
 };
 
 export default function ReviewsPage() {
@@ -74,10 +75,10 @@ export default function ReviewsPage() {
         productName: r.productName || '---',
         rating: Number(r.rating || 0),
         title: r.title || '',
-        comment: r.comment || '',
+        comment: r.comment || r.content || '',
         status: r.status || 'pending',
         type: r.type || 'review',
-        verified: r.verified || false,
+        verified: Boolean(r.verified),
         helpfulCount: Number(r.helpfulCount || 0),
         response: r.response || '',
         respondedAt: r.respondedAt || '',
@@ -93,39 +94,27 @@ export default function ReviewsPage() {
     let result = reviews.filter(r =>
       r.customerName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       r.productName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      r.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       r.comment.toLowerCase().includes(debouncedSearch.toLowerCase())
     );
 
-    if (filterStatus !== 'all') {
-      result = result.filter(r => r.status === filterStatus);
-    }
-
-    if (filterType !== 'all') {
-      result = result.filter(r => r.type === filterType);
-    }
-
-    if (filterRating !== 'all') {
-      result = result.filter(r => r.rating === Number(filterRating));
-    }
+    if (filterStatus !== 'all') result = result.filter(r => r.status === filterStatus);
+    if (filterType !== 'all') result = result.filter(r => r.type === filterType);
+    if (filterRating !== 'all') result = result.filter(r => r.rating === Number(filterRating));
 
     result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'rating' ? a.rating : sortBy === 'helpful' ? a.helpfulCount : a.createdAt;
-      const bVal = sortBy === 'rating' ? b.rating : sortBy === 'helpful' ? b.helpfulCount : b.createdAt;
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-      }
+      const aVal = sortBy === 'rating' ? a.rating : sortBy === 'helpfulCount' ? a.helpfulCount : new Date(a.createdAt).getTime();
+      const bVal = sortBy === 'rating' ? b.rating : sortBy === 'helpfulCount' ? b.helpfulCount : new Date(b.createdAt).getTime();
       return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
     });
-
     return result;
   }, [reviews, debouncedSearch, filterStatus, filterType, filterRating, sortBy, sortOrder]);
 
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginatedReviews = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filtered.slice(start, start + itemsPerPage);
   }, [filtered, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
   const toggleSelectAll = useCallback(() => {
     if (selectedIds.size === paginatedReviews.length && paginatedReviews.length > 0) {
@@ -144,45 +133,45 @@ export default function ReviewsPage() {
     });
   }, []);
 
-  const bulkApprove = useCallback(async () => {
-    if (selectedIds.size === 0) return;
+  const removeOne = useCallback(async (rid: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا التقييم؟')) return;
     try {
-      await Promise.all(Array.from(selectedIds).map(id => 
-        apiRequest(`/feedback/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'approved' }) })
-      ));
+      await apiRequest(`/feedback/${rid}`, { method: 'DELETE' });
+      loadReviews();
+    } catch { alert('حدث خطأ أثناء الحذف'); }
+  }, [loadReviews]);
+
+  const removeMany = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm('هل أنت متأكد من حذف التقييمات المحددة؟')) return;
+    try {
+      await Promise.all(Array.from(selectedIds).map(rid => apiRequest(`/feedback/${rid}`, { method: 'DELETE' })));
       loadReviews();
       setSelectedIds(new Set());
-    } catch (error) {
-      alert('حدث خطأ أثناء الموافقة');
-    }
+    } catch { alert('حدث خطأ أثناء الحذف'); }
   }, [selectedIds, loadReviews]);
 
-  const bulkReject = useCallback(async () => {
+  const bulkSetStatus = useCallback(async (st: string) => {
     if (selectedIds.size === 0) return;
     try {
-      await Promise.all(Array.from(selectedIds).map(id => 
-        apiRequest(`/feedback/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'rejected' }) })
-      ));
+      await Promise.all(Array.from(selectedIds).map(rid => apiRequest(`/feedback/${rid}`, { method: 'PATCH', body: JSON.stringify({ status: st }) })));
       loadReviews();
       setSelectedIds(new Set());
-    } catch (error) {
-      alert('حدث خطأ أثناء الرفض');
-    }
+    } catch { alert('حدث خطأ أثناء التحديث'); }
   }, [selectedIds, loadReviews]);
+
+  const setOneStatus = useCallback(async (rid: string, st: string) => {
+    try {
+      await apiRequest(`/feedback/${rid}`, { method: 'PATCH', body: JSON.stringify({ status: st }) });
+      loadReviews();
+    } catch { alert('حدث خطأ أثناء تحديث الحالة'); }
+  }, [loadReviews]);
 
   const exportCSV = useCallback(() => {
     const headers = ['Customer', 'Product', 'Rating', 'Type', 'Status', 'Comment', 'Created At'];
-    const rows = filtered.map(r => [
-      r.customerName,
-      r.productName,
-      r.rating,
-      r.type,
-      r.status,
-      r.comment,
-      r.createdAt
-    ]);
+    const rows = filtered.map(r => [r.customerName, r.productName, r.rating, r.type, r.status, r.comment, r.createdAt]);
     const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'reviews.csv';
@@ -200,237 +189,200 @@ export default function ReviewsPage() {
       setSelectedReview(null);
       setResponseText('');
       loadReviews();
-    } catch (error) {
-      alert('حدث خطأ أثناء إرسال الرد');
-    }
+    } catch { alert('حدث خطأ أثناء إرسال الرد'); }
   }, [selectedReview, responseText, loadReviews]);
 
-  const stats = useMemo(() => {
-    const avgRating = reviews.length > 0 
-      ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length 
-      : 0;
-    return [
-      { label: 'إجمالي التقييمات', value: reviews.length, color: 'bg-blue-50 text-blue-600' },
-      { label: 'متوسط التقييم', value: avgRating.toFixed(1), color: 'bg-yellow-50 text-yellow-600' },
-      { label: 'قيد المراجعة', value: reviews.filter(r => r.status === 'pending').length, color: 'bg-amber-50 text-amber-600' },
-      { label: 'موافق عليه', value: reviews.filter(r => r.status === 'approved').length, color: 'bg-green-50 text-green-600' },
-    ];
-  }, [reviews]);
+  const renderStars = (rating: number) => (
+    <div className="flex items-center gap-0.5">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star key={i} size={12} className={i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-300'} />
+      ))}
+    </div>
+  );
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }).map((_, i) => (
-      <Star
-        key={i}
-        size={16}
-        className={i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-300'}
-      />
-    ));
-  };
+  const avgRatingVal = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+  const apprCount = reviews.filter(r => r.status === 'approved').length;
+  const apprRate = reviews.length > 0 ? Math.round((apprCount / reviews.length) * 100) : 0;
+
+  const statusTabs = [
+    { id: 'all', label: 'الكل', count: reviews.length },
+    { id: 'pending', label: 'قيد المراجعة', count: reviews.filter(r => r.status === 'pending').length },
+    { id: 'approved', label: 'موافق عليه', count: reviews.filter(r => r.status === 'approved').length },
+    { id: 'rejected', label: 'مرفوض', count: reviews.filter(r => r.status === 'rejected').length },
+    { id: 'flagged', label: 'مبلغ عنه', count: reviews.filter(r => r.status === 'flagged').length },
+  ];
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <Star size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">التقييمات</h1>
+    <>
+      <InventoryPage
+        title="التقييمات والمراجعات"
+        subtitle={`عرض وإدارة تقييمات العملاء — المتوسط ${avgRatingVal.toFixed(1)} / 5 • نسبة الموافقة ${apprRate}%`}
+        onInfo={() => setGuideOpen(true)}
+        actions={
+          <InvToolButton onClick={exportCSV}>
+            <Download size={14} /> تصدير CSV
+          </InvToolButton>
+        }
+        tabs={statusTabs}
+        activeTab={filterStatus}
+        onTabChange={(id) => { setFilterStatus(id); setCurrentPage(1); }}
+        search={search}
+        onSearchChange={(v) => { setSearch(v); setCurrentPage(1); }}
+        searchPlaceholder="بحث بالعميل أو المنتج أو التعليق…"
+        filters={
+          <>
+            <select value={filterType} onChange={e => { setFilterType(e.target.value); setCurrentPage(1); }} className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none">
+              <option value="all">كل الأنواع</option>
+              <option value="review">مراجعة</option>
+              <option value="rating">تقييم</option>
+              <option value="comment">تعليق</option>
+              <option value="complaint">شكوى</option>
+            </select>
+            <select value={filterRating} onChange={e => { setFilterRating(e.target.value); setCurrentPage(1); }} className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none">
+              <option value="all">كل التقييمات</option>
+              <option value="5">5 نجوم</option>
+              <option value="4">4 نجوم</option>
+              <option value="3">3 نجوم</option>
+              <option value="2">نجمتان</option>
+              <option value="1">نجمة واحدة</option>
+            </select>
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none">
+              <option value="rating">التقييم</option>
+              <option value="helpfulCount">الأكثر فائدة</option>
+              <option value="createdAt">تاريخ الإنشاء</option>
+            </select>
             <button
-              onClick={() => setGuideOpen(true)}
-              className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all"
-              title="معلومات / Info"
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all"
+              title={sortOrder === 'asc' ? 'تصاعدي' : 'تنازلي'}
             >
-              <Info size={18} />
+              {sortOrder === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
-          </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">إدارة تقييمات ومراجعات العملاء</p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {stats.map((stat, idx) => (
-          <div key={idx} className={`p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end ${stat.color}`}>
-            <span className="text-slate-500 font-semibold text-xs mb-1">{stat.label}</span>
-            <span className="text-xl sm:text-2xl font-bold text-slate-900">{stat.value}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input
-            type="text"
-            placeholder="بحث..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold focus:outline-none focus:border-slate-400"
-          />
-        </div>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold focus:outline-none focus:border-slate-400"
-        >
-          <option value="all">كل الحالات</option>
-          <option value="pending">قيد المراجعة</option>
-          <option value="approved">موافق عليه</option>
-          <option value="rejected">مرفوض</option>
-          <option value="flagged">مبلغ عنه</option>
-        </select>
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold focus:outline-none focus:border-slate-400"
-        >
-          <option value="all">كل الأنواع</option>
-          <option value="review">مراجعة</option>
-          <option value="rating">تقييم</option>
-          <option value="comment">تعليق</option>
-          <option value="complaint">شكوى</option>
-        </select>
-        <select
-          value={filterRating}
-          onChange={(e) => setFilterRating(e.target.value)}
-          className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold focus:outline-none focus:border-slate-400"
-        >
-          <option value="all">كل التقييمات</option>
-          <option value="5">5 نجوم</option>
-          <option value="4">4 نجوم</option>
-          <option value="3">3 نجوم</option>
-          <option value="2">نجمتان</option>
-          <option value="1">نجمة واحدة</option>
-        </select>
-      </div>
-
-      {/* Bulk Actions */}
-      {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
-          <span className="text-sm font-bold text-slate-600">تم اختيار {selectedIds.size} تقييم</span>
-          <button
-            onClick={bulkApprove}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl font-bold text-sm hover:bg-green-700 transition-all"
-          >
-            <CheckCircle2 size={16} />
-            موافقة
-          </button>
-          <button
-            onClick={bulkReject}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all"
-          >
-            <XCircle size={16} />
-            رفض
-          </button>
-        </div>
-      )}
-
-      {/* Reviews List */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : paginatedReviews.length === 0 ? (
-        <div className="text-center py-12">
-          <Star size={48} className="text-slate-300 mx-auto mb-4" />
-          <p className="text-slate-400 font-bold">لا توجد تقييمات</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {paginatedReviews.map((review) => (
-            <div
-              key={review.id}
-              className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 hover:border-slate-300 transition-all"
-            >
-              <div className="flex items-start gap-4">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(review.id)}
-                  onChange={() => toggleSelect(review.id)}
-                  className="mt-1 w-4 h-4 rounded border-slate-300"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-slate-900">{review.customerName}</span>
-                      <span className="text-xs text-slate-400">•</span>
-                      <span className="text-xs text-slate-500">{review.productName}</span>
-                      {review.verified && (
-                        <CheckCircle2 size={14} className="text-green-500" />
-                      )}
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${STATUS_STYLES[review.status]?.bg} ${STATUS_STYLES[review.status]?.color}`}>
-                      {STATUS_STYLES[review.status]?.label}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 mb-2">
-                    {renderStars(review.rating)}
-                  </div>
-                  {review.title && (
-                    <h3 className="font-bold text-slate-800 mb-1">{review.title}</h3>
-                  )}
-                  <p className="text-sm text-slate-600 mb-2">{review.comment}</p>
-                  {review.response && (
-                    <div className="bg-slate-50 rounded-lg p-3 mb-2">
-                      <p className="text-sm text-slate-700 font-bold mb-1">ردك:</p>
-                      <p className="text-sm text-slate-600">{review.response}</p>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">
-                      {new Date(review.createdAt).toLocaleDateString('ar-EG')}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedReview(review);
-                          setResponseText(review.response || '');
-                          setResponseModal(true);
-                        }}
-                        className="p-2 hover:bg-slate-100 rounded-lg transition-all"
-                        title="رد"
-                      >
-                        <MessageSquare size={16} className="text-slate-400" />
-                      </button>
-                    </div>
-                  </div>
+          </>
+        }
+        loading={loading}
+        empty={
+          <InvEmpty icon={Star} title="لا توجد تقييمات مطابقة" />
+        }
+        footer={
+          <>
+            {selectedIds.size > 0 && (
+              <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-[12px] font-bold">
+                <span>{selectedIds.size} تقييم محدد</span>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => bulkSetStatus('approved')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 transition-all">
+                    <Check size={14} /> موافقة
+                  </button>
+                  <button onClick={() => bulkSetStatus('rejected')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-all">
+                    <X size={14} /> رفض
+                  </button>
+                  <button onClick={removeMany} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-all">
+                    <Trash2 size={14} /> حذف
+                  </button>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-500">
-            عرض {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} من {filtered.length}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronRight size={18} />
-            </button>
-            <span className="text-sm font-bold text-slate-600">
-              صفحة {currentPage} من {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft size={18} />
-            </button>
+            )}
+            <InvPagination
+              page={currentPage}
+              totalPages={totalPages}
+              total={filtered.length}
+              perPage={itemsPerPage}
+              onPage={(p) => setCurrentPage(p)}
+              label="تقييم"
+            />
+          </>
+        }
+      >
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-right border-collapse min-w-[900px]">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="p-4 w-10">
+                    <button onClick={toggleSelectAll} className="p-1">
+                      {selectedIds.size === paginatedReviews.length && paginatedReviews.length > 0 ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
+                    </button>
+                  </th>
+                  <th className="p-4 text-xs font-semibold text-slate-500">العميل</th>
+                  <th className="p-4 text-xs font-semibold text-slate-500">المنتج</th>
+                  <th className="p-4 text-xs font-semibold text-slate-500">التقييم</th>
+                  <th className="p-4 text-xs font-semibold text-slate-500">التعليق</th>
+                  <th className="p-4 text-xs font-semibold text-slate-500">النوع</th>
+                  <th className="p-4 text-xs font-semibold text-slate-500">الحالة</th>
+                  <th className="p-4 text-xs font-semibold text-slate-500">التاريخ</th>
+                  <th className="p-4 text-xs font-semibold text-slate-500">الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedReviews.map((review) => {
+                  const statusConfig = STATUS_CONFIG[review.status];
+                  const typeConfig = TYPE_CONFIG[review.type];
+                  return (
+                    <tr key={review.id} className="border-b border-slate-100 hover:bg-slate-50/50">
+                      <td className="p-4">
+                        <button onClick={() => toggleSelect(review.id)} className="p-1">
+                          {selectedIds.has(review.id) ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
+                        </button>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-bold text-slate-900 text-sm">{review.customerName}</div>
+                        <div className="text-slate-500 text-xs">{review.customerEmail}</div>
+                      </td>
+                      <td className="p-4">
+                        <div className="text-slate-600 text-sm">{review.productName}</div>
+                        {review.verified && (
+                          <div className="text-[10px] font-bold text-green-600 flex items-center gap-1"><CheckCircle2 size={10} /> شراء موثق</div>
+                        )}
+                      </td>
+                      <td className="p-4">{renderStars(review.rating)}</td>
+                      <td className="p-4 max-w-[260px]">
+                        {review.title && <div className="font-bold text-slate-800 text-xs mb-0.5">{review.title}</div>}
+                        <div className="text-slate-500 text-xs line-clamp-2">{review.comment}</div>
+                        {review.response && (
+                          <div className="mt-1 text-[10px] font-bold text-emerald-600 flex items-center gap-1"><MessageSquare size={10} /> تم الرد</div>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${typeConfig?.color || ''}`}>{typeConfig?.label || review.type}</span>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${statusConfig?.color || ''}`}>{statusConfig?.label || review.status}</span>
+                      </td>
+                      <td className="p-4">
+                        <div className="text-slate-600 text-xs">{new Date(review.createdAt).toLocaleDateString('ar-EG')}</div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => { setSelectedReview(review); setResponseText(review.response || ''); setResponseModal(true); }}
+                            className="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all"
+                            title="رد"
+                          >
+                            <MessageSquare size={14} />
+                          </button>
+                          {review.status !== 'approved' && (
+                            <button onClick={() => setOneStatus(review.id, 'approved')} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all" title="موافقة">
+                              <Check size={14} />
+                            </button>
+                          )}
+                          {review.status !== 'rejected' && (
+                            <button onClick={() => setOneStatus(review.id, 'rejected')} className="p-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-all" title="رفض">
+                              <X size={14} />
+                            </button>
+                          )}
+                          <button onClick={() => removeOne(review.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all" title="حذف">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
-      )}
+      </InventoryPage>
 
       {/* Response Modal */}
       {responseModal && selectedReview && (
@@ -439,11 +391,7 @@ export default function ReviewsPage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-lg">رد على التقييم</h3>
               <button
-                onClick={() => {
-                  setResponseModal(false);
-                  setSelectedReview(null);
-                  setResponseText('');
-                }}
+                onClick={() => { setResponseModal(false); setSelectedReview(null); setResponseText(''); }}
                 className="p-2 hover:bg-slate-100 rounded-lg"
               >
                 <X size={18} />
@@ -460,18 +408,11 @@ export default function ReviewsPage() {
               className="w-full p-3 rounded-xl border border-slate-200 text-sm font-bold focus:outline-none focus:border-slate-400 resize-none"
             />
             <div className="flex gap-3 mt-4">
-              <button
-                onClick={handleResponse}
-                className="flex-1 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all"
-              >
+              <button onClick={handleResponse} className="flex-1 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all">
                 إرسال الرد
               </button>
               <button
-                onClick={() => {
-                  setResponseModal(false);
-                  setSelectedReview(null);
-                  setResponseText('');
-                }}
+                onClick={() => { setResponseModal(false); setSelectedReview(null); setResponseText(''); }}
                 className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all"
               >
                 إلغاء
@@ -480,6 +421,26 @@ export default function ReviewsPage() {
           </div>
         </div>
       )}
-    </div>
+
+      {/* Guide Modal */}
+      {guideOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setGuideOpen(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg">دليل صفحة التقييمات</h3>
+              <button onClick={() => setGuideOpen(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={18} />
+              </button>
+            </div>
+            <ul className="space-y-2.5 text-sm text-slate-600 font-bold">
+              <li>• التبويبات العلوية للفلترة حسب حالة المراجعة</li>
+              <li>• حدد عدة تقييمات للموافقة أو الرفض أو الحذف الجماعي</li>
+              <li>• زر الرد لإرسال رد المتجر على التقييم</li>
+              <li>• التصدير CSV لتحميل كل التقييمات المطابقة للفلاتر</li>
+            </ul>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

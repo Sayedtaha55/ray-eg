@@ -36,6 +36,15 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 	chat.Post("/:id/messages", middleware.RequireAuth(h.config), h.CreateMessage)
 	chat.Get("/:id/messages", middleware.RequireAuth(h.config), h.ListMessages)
 	chat.Patch("/:id/messages/:messageId/read", middleware.RequireAuth(h.config), h.MarkMessageAsRead)
+
+	// Frontend compatibility aliases: the CRM calls /chats (plural)
+	chats := app.Group("/chats")
+	chats.Post("/", middleware.RequireAuth(h.config), h.CreateChat)
+	chats.Get("/", middleware.RequireAuth(h.config), h.ListChats)
+	chats.Get("/:id", middleware.RequireAuth(h.config), h.GetChat)
+	chats.Post("/:id/messages", middleware.RequireAuth(h.config), h.CreateMessage)
+	chats.Get("/:id/messages", middleware.RequireAuth(h.config), h.ListMessages)
+	chats.Patch("/:id/messages/:messageId/read", middleware.RequireAuth(h.config), h.MarkMessageAsRead)
 }
 
 // CreateChat handles creating a new chat

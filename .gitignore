@@ -33,6 +33,7 @@ apps/marketplace-next/certificates/
 
 # --- Logs ---
 *.log
+*.log'
 *.pid
 logs/
 npm-debug.log*
@@ -40,6 +41,18 @@ yarn-debug.log*
 yarn-error.log*
 reports/i18n-dashboard-report.csv
 /logs-*.txt
+# App-specific log files (root & apps)
+api_bg_err.log
+backend.log
+gobackend-run.log
+gobackend-err.log
+dev-dashboard.log
+dev-marketplace.log
+dev-business.log
+dev-all.log
+apps/business/business-dev.log
+apps/dashboard-web/*.log
+apps/marketplace-next/*.log
 
 # --- OS / IDE ---
 .DS_Store
@@ -118,3 +131,13 @@ buildcheck.txt
 build_err.txt
 temp-ppar
 tatus --short
+
+# --- Ad-hoc probe/analysis artifacts at repo root ---
+*-paths.txt
+*-calls.tsv
+*-out.txt
+probe-*.txt
+mkt-err.log
+mkt-out.log
+
+gobackend/NUL

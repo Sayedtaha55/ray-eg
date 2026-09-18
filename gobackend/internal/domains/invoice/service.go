@@ -53,3 +53,8 @@ func (s *Service) MarkInvoiceAsPaid(ctx context.Context, id string) error {
 func (s *Service) CancelInvoice(ctx context.Context, id string) error {
 	return s.repo.UpdateInvoiceStatus(ctx, id, InvoiceStatusCancelled)
 }
+
+// SendInvoice marks an invoice as sent to the customer
+func (s *Service) SendInvoice(ctx context.Context, id string) error {
+	return s.repo.UpdateInvoiceStatus(ctx, id, InvoiceStatusSent)
+}

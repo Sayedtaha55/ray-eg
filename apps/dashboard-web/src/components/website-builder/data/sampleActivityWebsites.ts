@@ -477,8 +477,8 @@ export const restaurantComponents: Record<string, ComponentNode> = {
       title: 'احجز طاولتك أو مناسبتك الخاصة الآن',
       subtitle: 'اختر الموعد وعدد الضيوف وسنقوم بتجهيز الطاولة لك مسبقاً بكل ترحاب',
       fields: [
-        { name: 'name', label: 'الاسم الكامل', type: 'text', placeholder: 'مثال: محمد الغامدي' },
-        { name: 'phone', label: 'رقم الجوال لتأكيد الحجز', type: 'tel', placeholder: '05xxxxxxxx' },
+        { name: 'name', label: 'الاسم الكامل', type: 'text', placeholder: 'مثال: محمود جابر' },
+        { name: 'phone', label: 'رقم الجوال لتأكيد الحجز', type: 'tel', placeholder: '01xxxxxxxxx' },
         { name: 'guests', label: 'عدد الأفراد / الضيوف', type: 'select', placeholder: 'طاولة لشخصين (2)' },
         { name: 'date', label: 'تاريخ ويوم الحجز', type: 'date', placeholder: 'اليوم' },
         { name: 'time', label: 'وقت الحضور', type: 'select', placeholder: '08:30 مساءً' },
@@ -517,14 +517,14 @@ export const restaurantComponents: Record<string, ComponentNode> = {
         },
         {
           id: 'rev_2',
-          name: 'نورة العتيبي',
+          name: 'نورا عطية',
           role: 'عاشقة القهوة والحلويات',
           text: 'حجزنا طاولة بمناسبة ذكرى تخرج، الاستقبال كان مبهراً وجهزوا لنا الكيكة مع شمعة جميلة. أنصح به بشدة!',
           rating: 5,
         },
         {
           id: 'rev_3',
-          name: 'فهد الدوسري',
+          name: 'فهد سيد',
           role: 'زبون دائم',
           text: 'الباستا بالترافل خرافية والبيتزا خفيفة ومقرمشة. تطبيق الطلب أونلاين سهل وسريع جداً.',
           rating: 5,
@@ -1007,8 +1007,8 @@ export const gymComponents: Record<string, ComponentNode> = {
       title: 'جرب صالة باور فيت مجاناً ليوم كامل',
       subtitle: 'سجل بياناتك واحصل على تصريح دخول تجريبي مجاني يشمل فحص InBody وتوجيه من الكابتن',
       fields: [
-        { name: 'name', label: 'الاسم الكامل', type: 'text', placeholder: 'مثال: ريان الشمري' },
-        { name: 'phone', label: 'رقم الجوال لتلقي باركود الدخول', type: 'tel', placeholder: '05xxxxxxxx' },
+        { name: 'name', label: 'الاسم الكامل', type: 'text', placeholder: 'مثال: يوسف نبيل' },
+        { name: 'phone', label: 'رقم الجوال لتلقي باركود الدخول', type: 'tel', placeholder: '01xxxxxxxxx' },
         { name: 'goal', label: 'هدفك الرياضي الرئيسي', type: 'select', placeholder: 'بناء عضلات وتضخيم / خسارة وزن وتنشيف' },
         { name: 'preferred_time', label: 'الوقت المفضل للزيارة', type: 'select', placeholder: 'الفترة المسائية (من 4 عصراً إلى 10 مساءً)' },
       ],
@@ -1041,7 +1041,7 @@ export const gymComponents: Record<string, ComponentNode> = {
           name: 'كابتن / طارق الحربي',
           role: 'رئيس قسم تدريب كمال الأجسام والقوة',
           image: 'https://images.unsplash.com/photo-1567013127542-490d757e51fc?w=400&auto=format&fit=crop&q=80',
-          bio: 'خبرة 12 سنة وبطل المملكة السابق في اللياقة البدنية والفيزيك.',
+          bio: 'خبرة 12 سنة وبطل مصر السابق في اللياقة البدنية والفيزيك.',
         },
         {
           id: 'tr_2',
@@ -1467,8 +1467,8 @@ export const clinicComponents: Record<string, ComponentNode> = {
       title: 'احجز موعد كشف طبي فوري',
       subtitle: 'اختر القسم والطبيب والتاريخ المناسب وسنرسل لك رسالة تأكيد فورية بالموعد',
       fields: [
-        { name: 'patient_name', label: 'اسم المريض الثلاثي', type: 'text', placeholder: 'مثال: عبدالله بن فهد الدوسري' },
-        { name: 'phone', label: 'رقم الجوال المسجل', type: 'tel', placeholder: '05xxxxxxxx' },
+        { name: 'patient_name', label: 'اسم المريض الثلاثي', type: 'text', placeholder: 'مثال: أحمد محمود عبد الرحيم' },
+        { name: 'phone', label: 'رقم الجوال المسجل', type: 'tel', placeholder: '01xxxxxxxxx' },
         { name: 'department', label: 'القسم الطبي المطلوب', type: 'select', placeholder: 'عيادة طب وجراحة الأسنان' },
         { name: 'doctor', label: 'اسم الطبيب أو الاستشاري (اختياري)', type: 'select', placeholder: 'د. خالد العمري - استشاري زراعة الأسنان' },
         { name: 'date', label: 'تاريخ الموعد المفضل', type: 'date', placeholder: 'اليوم' },
@@ -1934,7 +1934,7 @@ export const salonComponents: Record<string, ComponentNode> = {
       subtitle: 'اختاري الخدمة والمصففة والوقت المناسب لكِ وسنؤكد حجزكِ فوراً',
       fields: [
         { name: 'client_name', label: 'الاسم الكريم', type: 'text', placeholder: 'مثال: سارة السبيعي' },
-        { name: 'phone', label: 'رقم الجوال لتأكيد الحجز', type: 'tel', placeholder: '05xxxxxxxx' },
+        { name: 'phone', label: 'رقم الجوال لتأكيد الحجز', type: 'tel', placeholder: '01xxxxxxxxx' },
         { name: 'service', label: 'نوع الخدمة المطلوبة', type: 'select', placeholder: 'قص وصبغة شعر / باقة العروس / هيدرافاشيل' },
         { name: 'specialist', label: 'الأخصائية المفضلة (اختياري)', type: 'select', placeholder: 'المصففة نادين / خبيرة البشرة سيلين' },
         { name: 'date', label: 'يوم وتاريخ الزيارة', type: 'date', placeholder: 'اليوم' },

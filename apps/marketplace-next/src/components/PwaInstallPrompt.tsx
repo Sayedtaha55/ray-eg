@@ -34,6 +34,15 @@ export function PwaInstallPrompt() {
       localStorage.setItem(DISMISS_KEY, '1');
     };
 
+    // Register service worker for offline support and PWA installability
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch((err) => {
+          console.debug('SW registration skipped or failed:', err);
+        });
+      });
+    }
+
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
     window.addEventListener('appinstalled', onInstalled);
     return () => {

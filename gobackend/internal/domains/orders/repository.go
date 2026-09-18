@@ -17,6 +17,9 @@ type Repository struct {
 	pool *db.Pool
 }
 
+// Pool exposes the underlying pool (used by cross-domain helpers like customers.LinkOrderCustomer).
+func (r *Repository) Pool() *db.Pool { return r.pool }
+
 // NewRepository creates a new orders repository.
 func NewRepository(pool *db.Pool) *Repository {
 	return &Repository{pool: pool}
@@ -177,6 +180,49 @@ func (r *Repository) CountByCourier(ctx context.Context, courierID string) (int6
 func (r *Repository) CountByUserID(ctx context.Context, userID string) (int64, error) {
 	return r.countOrders(ctx, "o.user_id = $1", []any{userID})
 }
+// FindOpenShiftID returns the id of the currently open POS shift of a shop.
+func (r *Repository) FindOpenShiftID(ctx context.Context, shopID string) (string, error) {
+	var id string
+	err := r.pool.QueryRow(ctx,
+		`SELECT id FROM pos_shifts WHERE shop_id = $1 AND status = 'open' LIMIT 1`,
+		shopID,
+	).Scan(&id)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+// ShiftBelongsToShop verifies that a shift id exists and belongs to the shop.
+func (r *Repository) ShiftBelongsToShop(ctx context.Context, shiftID, shopID string) bool {
+	var exists bool
+	err := r.pool.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM pos_shifts WHERE id = $1 AND shop_id = $2)`,
+		shiftID, shopID,
+	).Scan(&exists)
+	return err == nil && exists
+}
+
+// RefreshShiftMetrics recomputes total_sales / orders_count of a POS shift
+// from its linked orders, so the live shift numbers update immediately after
+// each sale instead of only on the next shift read.
+func (r *Repository) RefreshShiftMetrics(ctx context.Context, shiftID string) {
+	if shiftID == "" {
+		return
+	}
+	_, _ = r.pool.Exec(ctx, `
+		UPDATE pos_shifts s SET
+			total_sales = COALESCE(agg.sales, 0),
+			orders_count = COALESCE(agg.cnt, 0)
+		FROM (
+			SELECT SUM(o.total) AS sales, COUNT(*) AS cnt
+			FROM orders o
+			WHERE o.pos_shift_id = $1
+			  AND (o.status IS NULL OR o.status::text NOT IN ('CANCELLED', 'REFUNDED', 'RETURNED'))
+		) agg
+		WHERE s.id = $1 AND s.status = 'open'`, shiftID)
+}
+
 // CreateOrder inserts an order and its items in a transaction, optionally decrementing stock.
 func (r *Repository) CreateOrder(ctx context.Context, order *Order, decrementStock bool) (*Order, error) {
 	tx, err := r.pool.Begin(ctx)
@@ -190,21 +236,24 @@ func (r *Repository) CreateOrder(ctx context.Context, order *Order, decrementSto
 		INSERT INTO orders (
 			id, total, status, payment_method, payment_status, notes, customer_phone,
 			delivery_address_manual, delivery_lat, delivery_lng, delivery_note, customer_note,
-			user_id, shop_id, courier_id, source, created_at, updated_at
+			user_id, shop_id, customer_id, courier_id, source, pos_shift_id, created_at, updated_at
 		) VALUES (
-			gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NULL, $14, NOW(), NOW()
+			gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NULL, NULL, $14, $15, NOW(), NOW()
 		) RETURNING ` + orderColumnsNoAlias
+	var createdCustomerID sql.NullString
 	err = tx.QueryRow(ctx, orderQuery,
 		order.Total, order.Status, order.PaymentMethod, order.PaymentStatus, order.Notes,
 		order.CustomerPhone, order.DeliveryAddressManual, order.DeliveryLat, order.DeliveryLng,
 		order.DeliveryNote, order.CustomerNote, order.UserID, order.ShopID, order.Source,
+		order.PosShiftID,
 	).Scan(
 		&order.ID, &order.Total, &order.Status, &order.PaymentMethod, &order.PaymentStatus,
 		&order.Notes, &order.CustomerPhone, &order.DeliveryAddressManual, &order.DeliveryLat,
 		&order.DeliveryLng, &order.DeliveryNote, &order.CustomerNote, &order.UserID, &order.ShopID,
-		&order.CourierID, &order.HandedToCourierAt, &order.CodCollectedAt, &order.DeliveredAt,
+		&createdCustomerID, &order.CourierID, &order.HandedToCourierAt, &order.CodCollectedAt, &order.DeliveredAt,
 		&order.Source, &order.CreatedAt, &order.UpdatedAt,
 	)
+	order.CustomerID = nullStringPtr(createdCustomerID)
 	if err != nil {
 		return nil, err
 	}
@@ -236,6 +285,11 @@ func (r *Repository) CreateOrder(ctx context.Context, order *Order, decrementSto
 
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
+	}
+
+	// Keep the live POS shift totals in sync immediately after the sale.
+	if order.PosShiftID != nil && strings.TrimSpace(*order.PosShiftID) != "" {
+		r.RefreshShiftMetrics(ctx, *order.PosShiftID)
 	}
 
 	return r.FindByID(ctx, order.ID)
@@ -364,7 +418,7 @@ func (r *Repository) IsUserCourier(ctx context.Context, userID string) (bool, er
 const orderColumns = `
 	o.id, o.total, o.status, o.payment_method, o.payment_status, o.notes, o.customer_phone,
 	o.delivery_address_manual, o.delivery_lat, o.delivery_lng, o.delivery_note, o.customer_note,
-	o.user_id, o.shop_id, o.courier_id, o.handed_to_courier_at, o.cod_collected_at, o.delivered_at,
+	o.user_id, o.shop_id, o.customer_id, o.courier_id, o.handed_to_courier_at, o.cod_collected_at, o.delivered_at,
 	o.source, o.created_at, o.updated_at
 `
 
@@ -374,7 +428,7 @@ const orderColumns = `
 const orderColumnsNoAlias = `
 	id, total, status, payment_method, payment_status, notes, customer_phone,
 	delivery_address_manual, delivery_lat, delivery_lng, delivery_note, customer_note,
-	user_id, shop_id, courier_id, handed_to_courier_at, cod_collected_at, delivered_at,
+	user_id, shop_id, customer_id, courier_id, handed_to_courier_at, cod_collected_at, delivered_at,
 	source, created_at, updated_at
 `
 
@@ -382,14 +436,14 @@ const selectOrder = "SELECT " + orderColumns + " FROM orders o"
 
 func scanOrder(row pgx.Row) (*Order, error) {
 	var o Order
-	var paymentMethod, paymentStatus, notes, customerPhone, deliveryAddressManual, deliveryNote, customerNote, courierID, source sql.NullString
+	var paymentMethod, paymentStatus, notes, customerPhone, deliveryAddressManual, deliveryNote, customerNote, customerID, courierID, source sql.NullString
 	var deliveryLat, deliveryLng sql.NullFloat64
 	var handedAt, codAt, deliveredAt sql.NullTime
 
 	err := row.Scan(
 		&o.ID, &o.Total, &o.Status, &paymentMethod, &paymentStatus, &notes, &customerPhone,
 		&deliveryAddressManual, &deliveryLat, &deliveryLng, &deliveryNote, &customerNote,
-		&o.UserID, &o.ShopID, &courierID, &handedAt, &codAt, &deliveredAt, &source,
+		&o.UserID, &o.ShopID, &customerID, &courierID, &handedAt, &codAt, &deliveredAt, &source,
 		&o.CreatedAt, &o.UpdatedAt,
 	)
 	if err != nil {
@@ -408,6 +462,7 @@ func scanOrder(row pgx.Row) (*Order, error) {
 	o.DeliveryLng = nullFloat64Ptr(deliveryLng)
 	o.DeliveryNote = nullStringPtr(deliveryNote)
 	o.CustomerNote = nullStringPtr(customerNote)
+	o.CustomerID = nullStringPtr(customerID)
 	o.CourierID = nullStringPtr(courierID)
 	o.HandedToCourierAt = nullTimePtr(handedAt)
 	o.CodCollectedAt = nullTimePtr(codAt)

@@ -1,12 +1,17 @@
 import { Metadata } from 'next';
 import Image from 'next/image';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MapPin, MessageCircle, Store } from 'lucide-react';
 import { api } from '@/lib/api';
-import { getProducts, type Product } from '@/lib/services';
+import { getProducts } from '@/lib/services';
 import { ProductCard } from '@/components/ProductCard';
 import { siteConfig } from '@/lib/config';
+import {
+  SiteRenderer,
+  mapSiteProduct,
+  type SiteProduct,
+  type Website,
+} from '@ray-eg/shared/builder';
 
 export const revalidate = 120;
 
@@ -21,6 +26,7 @@ type PublicWebsite = {
     slug: string;
     logoUrl?: string;
     phone?: string;
+    email?: string;
     address?: string;
   };
   config: BuilderConfig;
@@ -32,10 +38,13 @@ async function getWebsite(slug: string): Promise<PublicWebsite | null> {
       revalidate: 120,
       tags: [`site:${slug}`],
     });
-    return data?.data ?? null;
+    if (data?.data?.shop) {
+      return data.data;
+    }
   } catch {
-    return null;
+    // API offline or unknown slug — render an honest 404, never a fake shop.
   }
+  return null;
 }
 
 interface Props {
@@ -48,12 +57,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!site) return { title: 'الموقع غير موجود', robots: { index: false } };
 
   const c = site.config || {};
-  const title = `${site.shop.name} | ${siteConfig.name}`;
+  const website: Website | undefined = c.website;
+  const homeMeta = website?.pages?.find((p) => p.metadata?.isHomePage)?.metadata || website?.pages?.[0]?.metadata;
+
+  const title = `${homeMeta?.ogTitle || homeMeta?.title || site.shop.name} | ${siteConfig.name}`;
   const description =
+    homeMeta?.ogDescription ||
+    homeMeta?.description ||
     c.homeIntroText ||
     c.bannerSubtitle ||
     `${site.shop.name} - تسوق أونلاين من ${site.shop.name} على منصة ${siteConfig.name}`;
-  const image = c.bannerUrl || site.shop.logoUrl || siteConfig.ogImage;
+  const image = homeMeta?.ogImage || c.bannerUrl || site.shop.logoUrl || siteConfig.ogImage;
 
   return {
     title,
@@ -76,14 +90,49 @@ export default async function PublishedSitePage({ params }: Props) {
   if (!site) notFound();
 
   const c = site.config || {};
+  const website: Website | undefined = c.website;
+
+  const products = await getProducts(site.shop.id, 24);
+  const siteProducts: SiteProduct[] = (products || []).map(mapSiteProduct);
+
+  const shopCtx = {
+    id: site.shop.id,
+    name: site.shop.name,
+    slug: site.shop.slug,
+    logoUrl: site.shop.logoUrl,
+    phone: site.shop.phone,
+    email: site.shop.email,
+    address: site.shop.address,
+    whatsapp: (c as any).website?.contact?.whatsapp || site.shop.phone,
+  };
+
+  // New-generation sites: render the exact builder component tree.
+  if (website?.pages?.length && website?.components && Object.keys(website.components).length > 0) {
+    return <SiteRenderer website={website} shop={shopCtx} products={siteProducts} />;
+  }
+
+  // Legacy sites (flat banner/keys config) keep the classic template.
+  return <LegacyPublishedSiteView site={site} products={siteProducts} />;
+}
+
+// ---------------------------------------------------------------------------
+// Legacy template — flat keys: bannerUrl, bannerTitle, homeIntroText, colors…
+// ---------------------------------------------------------------------------
+
+function LegacyPublishedSiteView({
+  site,
+  products,
+}: {
+  site: PublicWebsite;
+  products: SiteProduct[];
+}) {
+  const c = site.config || {};
   const theme = (c as any).website?.theme || {};
   const tColors = theme.colors || {};
   const tTypo = theme.typography || {};
   const tRadius = theme.radius || {};
   const tShadows = theme.shadows || {};
 
-  // Fallbacks mirror the builder's defaultDesignTokens so a site without a
-  // published theme still renders exactly as it looks in the editor.
   const primary = c.primaryColor || tColors.primary || '#1d4ed8';
   const headerBg = c.headerBackgroundColor || tColors.surface || '#f8fafc';
   const headerText = c.headerTextColor || tColors.textPrimary || '#0f172a';
@@ -92,7 +141,6 @@ export default async function PublishedSitePage({ params }: Props) {
   const footerBg = c.footerBackgroundColor || tColors.surface || '#f8fafc';
   const footerText = c.footerTextColor || tColors.textPrimary || '#0f172a';
 
-  // Full theme tokens from the builder (typography, radius, shadows)
   const fontBody = tTypo.fontBody || 'inherit';
   const fontHeading = tTypo.fontHeading || 'inherit';
   const rSm = tRadius.sm || '6px';
@@ -102,11 +150,6 @@ export default async function PublishedSitePage({ params }: Props) {
   const shadowSm = tShadows.sm || '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
   const shadowMd = tShadows.md || '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)';
   const cardRadius = c.productsLayout === 'horizontal' ? rLg : rMd;
-
-  let products: Product[] = [];
-  try {
-    products = await getProducts(site.shop.id, 24);
-  } catch {}
 
   const waPhone = (site.shop.phone || '').replace(/[^0-9]/g, '');
   const waLink = waPhone
@@ -127,7 +170,6 @@ export default async function PublishedSitePage({ params }: Props) {
 
   return (
     <div dir="rtl" className="pub-site min-h-screen" style={{ backgroundColor: pageBg }}>
-      {/* Full theme tokens from the builder applied via CSS variables */}
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -142,10 +184,7 @@ export default async function PublishedSitePage({ params }: Props) {
           `,
         }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* Header */}
       <header
@@ -238,7 +277,7 @@ export default async function PublishedSitePage({ params }: Props) {
           >
             {products.map((p) => (
               <div key={p.id} className="pub-card">
-                <ProductCard product={p} />
+                <ProductCard product={p as any} />
               </div>
             ))}
           </div>

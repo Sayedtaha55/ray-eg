@@ -12,15 +12,31 @@ import {
   ShoppingCart, Eye, Users, DollarSign, Package, Star, RefreshCw, Download,
   TrendingUp, TrendingDown, Bell, Plus, Megaphone, Calendar, Store,
   Settings as SettingsIcon, LogIn, AlertTriangle, ChevronLeft, Wallet, Boxes, BarChart3,
-  History, PieChart as PieIcon, ArrowRight,
+  History, PieChart as PieIcon, ArrowRight, CalendarDays, CalendarCheck, Clock,
 } from 'lucide-react';
 import { useAuth, apiRequest } from '@/lib/auth';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { palette, chartColors, shadows, iconTint, cardClass } from '@/lib/ui/tokens';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /* ============================================================
  * Types (matching backend responses)
  * ============================================================ */
+
+type Booking = {
+  id: string;
+  source: 'website' | 'internal';
+  status: string;
+  itemName: string;
+  customerName: string;
+  customerPhone: string;
+  when: string;
+  price: number;
+  participants?: number;
+  notes?: string;
+  raw?: any;
+};
 
 type OverviewStat = { label: string; label_ar: string; value: string; change: string; up: boolean; icon: string; color: string };
 type WeeklyPoint = { day: string; value: number };
@@ -63,7 +79,7 @@ const LOCALE = 'ar-EG-u-nu-latn';
 // اختصارات افتراضية تظهر لما مفيش تاريخ زيارات لسه
 const DEFAULT_SHORTCUTS: { href: string; labelAr: string }[] = [
   { href: '/dashboard/sales', labelAr: 'كل الطلبات' },
-  { href: '/dashboard/inventory', labelAr: 'المنتجات' },
+  { href: '/dashboard/inventory/products', labelAr: 'المنتجات' },
   { href: '/dashboard/notifications', labelAr: 'الإشعارات' },
   { href: '/dashboard/pos', labelAr: 'الكاشير' },
   { href: '/dashboard/analytics', labelAr: 'التحليلات' },
@@ -117,6 +133,16 @@ const STATUS_META: Record<string, { label: string; chip: string; color: string }
 };
 const statusMeta = (s?: string) =>
   STATUS_META[String(s || '').toUpperCase()] || { label: s || 'أخرى', chip: 'bg-slate-100 text-slate-600 border-slate-200', color: '#94a3b8' };
+
+const BOOKING_STATUS_META: Record<string, { label: string; chip: string; color: string }> = {
+  PENDING: { label: 'بانتظار التأكيد', chip: 'bg-amber-50 text-amber-700 border-amber-200', color: '#d97706' },
+  CONFIRMED: { label: 'مؤكد', chip: 'bg-emerald-50 text-emerald-700 border-emerald-200', color: '#059669' },
+  COMPLETED: { label: 'مكتمل', chip: 'bg-teal-50 text-teal-700 border-teal-200', color: '#0d9488' },
+  CANCELLED: { label: 'ملغي', chip: 'bg-red-50 text-red-700 border-red-200', color: '#dc2626' },
+  EXPIRED: { label: 'منتهي', chip: 'bg-slate-100 text-slate-600 border-slate-200', color: '#64748b' },
+};
+const bookingStatusMeta = (s?: string) =>
+  BOOKING_STATUS_META[String(s || '').toUpperCase()] || { label: s || 'غير محدد', chip: 'bg-slate-100 text-slate-600 border-slate-200', color: '#94a3b8' };
 
 type PeriodKey = '7' | '30' | '90' | '365';
 const PERIODS: Array<{ key: PeriodKey; label: string; timeRange: string }> = [
@@ -363,6 +389,8 @@ export default function DashboardOverview() {
   const [previous, setPrevious] = useState<AnalyticsOverview | null>(null);
   const [salesReport, setSalesReport] = useState<SalesReport | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [recentTab, setRecentTab] = useState<'all' | 'orders' | 'bookings'>('all');
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [sessions, setSessions] = useState<LoginSession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -387,7 +415,11 @@ export default function DashboardOverview() {
       const periodDef = PERIODS.find((x) => x.key === p)!;
       const prev = previousWindow(p);
 
-      const [curRes, prevRes, salesRes, ordersRes, notifUserRes, notifShopRes, sessRes] = await Promise.allSettled([
+      const paramsB = new URLSearchParams({ limit: '50' });
+      const paramsR = new URLSearchParams({ limit: '50' });
+      if (UUID_RE.test(String(shopId))) paramsR.set('shopId', String(shopId));
+
+      const [curRes, prevRes, salesRes, ordersRes, notifUserRes, notifShopRes, sessRes, bookWebRes, bookIntRes] = await Promise.allSettled([
         apiRequest(`/analytics/shop/${shopId}/overview?time_range=${periodDef.timeRange}`),
         apiRequest(`/analytics/shop/${shopId}/overview?time_range=custom&start_date=${prev.start_date}&end_date=${prev.end_date}`),
         apiRequest(`/analytics/shop/${shopId}/sales-report?time_range=last_30_days`),
@@ -395,12 +427,58 @@ export default function DashboardOverview() {
         apiRequest('/notifications/me?limit=5'),
         apiRequest(`/notifications/shop/${shopId}?limit=5`),
         apiRequest('/audit/sessions/me?limit=8'),
+        apiRequest(`/bookings?${paramsB.toString()}`),
+        apiRequest(`/reservations?${paramsR.toString()}`),
       ]);
 
       if (curRes.status === 'fulfilled') setCurrent(curRes.value);
       if (prevRes.status === 'fulfilled') setPrevious(prevRes.value);
       if (salesRes.status === 'fulfilled') setSalesReport(salesRes.value);
       setOrders(ordersRes.status === 'fulfilled' ? (Array.isArray(ordersRes.value) ? ordersRes.value : ordersRes.value?.data || []) : []);
+
+      // دمج حجوزات الموقع والنظام الداخلي
+      const pickList = (v: any): any[] => {
+        const d = v?.data !== undefined ? v.data : v;
+        if (Array.isArray(d)) return d;
+        return d?.reservations || d?.bookings || d?.items || [];
+      };
+      const webList = bookWebRes.status === 'fulfilled' ? pickList(bookWebRes.value) : [];
+      const intList = bookIntRes.status === 'fulfilled' ? pickList(bookIntRes.value) : [];
+      const normBStatus = (s: any): string => {
+        const v = String(s || '').toUpperCase();
+        if (v === 'CONFIRMED' || v === 'COMPLETED' || v === 'CANCELLED' || v === 'EXPIRED') return v;
+        return 'PENDING';
+      };
+      const unifiedBookings: Booking[] = [
+        ...webList.map((b: any): Booking => ({
+          id: `web-${b.id}`,
+          source: 'website',
+          status: normBStatus(b.status),
+          itemName: b.itemName || b.serviceName || 'حجز من الموقع',
+          customerName: b.customerName || 'عميل',
+          customerPhone: b.customerPhone || '',
+          when: b.startAt || (b.bookingDate && b.bookingTime ? `${b.bookingDate}T${b.bookingTime}` : b.createdAt) || '',
+          price: Number(b.totalAmount || b.itemPrice || 0),
+          participants: Number(b.participants || 0),
+          notes: b.notes || '',
+          raw: b,
+        })),
+        ...intList.map((r: any): Booking => ({
+          id: `int-${r.id}`,
+          source: 'internal',
+          status: normBStatus(r.status),
+          itemName: r.itemName || 'حجز داخلي',
+          customerName: r.customerName || 'عميل',
+          customerPhone: r.customerPhone || '',
+          when: r.startTime || r.reservationDate || r.createdAt || '',
+          price: Number(r.itemPrice || 0),
+          participants: Number(r.guests || r.participants || 0),
+          notes: r.notes || '',
+          raw: r,
+        })),
+      ];
+      setBookings(unifiedBookings);
+
       {
         // merge user + shop channel notifications, newest first
         const pick = (v: any) => (Array.isArray(v) ? v : v?.data || []);
@@ -446,36 +524,80 @@ export default function DashboardOverview() {
     return trend; // 30-day daily trend; 90/365 not available daily from backend
   }, [trend, period]);
 
-  const kpis = useMemo(() => ([
-    {
-      key: 'Revenue', label: 'الإيرادات', value: fmtEGP(statByLabel.Revenue || 0),
-      delta: pctDelta(statByLabel.Revenue || 0, prevByLabel.Revenue || 0),
-      spark: trend.map((t) => t.revenue), icon: <DollarSign size={14} />,
-      href: '/dashboard/analytics/sales-performance',
-    },
-    {
-      key: 'Orders', label: 'الطلبات', value: fmtNum(statByLabel.Orders || 0),
-      delta: pctDelta(statByLabel.Orders || 0, prevByLabel.Orders || 0),
-      spark: trend.map((t) => t.orders), icon: <ShoppingCart size={14} />,
-      href: '/dashboard/analytics/sales-performance',
-    },
-    {
-      key: 'Customers', label: 'عملاء اشتروا', value: fmtNum(statByLabel.Customers || 0),
-      delta: pctDelta(statByLabel.Customers || 0, prevByLabel.Customers || 0),
-      spark: [] as number[], icon: <Users size={14} />,
-      href: '/dashboard/analytics/customer-insights',
-    },
-    {
-      key: 'Views', label: 'زوار المتجر', value: fmtNum(statByLabel.Views || 0),
-      delta: null, spark: [] as number[], icon: <Eye size={14} />,
-      href: '/dashboard/analytics/conversions',
-    },
-  ]), [statByLabel, prevByLabel, trend]);
-
   const pendingCount = useMemo(
     () => orders.filter((o) => String(o.status).toUpperCase() === 'PENDING').length,
     [orders],
   );
+
+  const pendingBookingsCount = useMemo(
+    () => bookings.filter((b) => b.status === 'PENDING').length,
+    [bookings],
+  );
+
+  const completedBookingsRevenue = useMemo(
+    () => bookings.filter((b) => b.status === 'COMPLETED').reduce((s, b) => s + (b.price || 0), 0),
+    [bookings],
+  );
+
+  const todayBookings = useMemo(() => {
+    const now = new Date();
+    return bookings.filter((b) => {
+      if (!b.when) return false;
+      const d = new Date(b.when);
+      return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+  }, [bookings]);
+
+  const kpis = useMemo(() => ([
+    {
+      key: 'Revenue',
+      label: 'الإيرادات الإجمالية',
+      value: fmtEGP((statByLabel.Revenue || 0) + completedBookingsRevenue),
+      delta: pctDelta(statByLabel.Revenue || 0, prevByLabel.Revenue || 0),
+      spark: trend.map((t) => t.revenue),
+      icon: <DollarSign size={14} />,
+      href: '/dashboard/analytics/sales-performance',
+      sub: completedBookingsRevenue > 0 ? `تشمل ${fmtEGP(completedBookingsRevenue)} حجوزات` : undefined,
+    },
+    {
+      key: 'Orders',
+      label: 'الطلبات',
+      value: fmtNum(statByLabel.Orders || 0),
+      delta: pctDelta(statByLabel.Orders || 0, prevByLabel.Orders || 0),
+      spark: trend.map((t) => t.orders),
+      icon: <ShoppingCart size={14} />,
+      href: '/dashboard/sales',
+      sub: pendingCount > 0 ? `${pendingCount} قيد الانتظار` : undefined,
+    },
+    {
+      key: 'Bookings',
+      label: 'الحجوزات والمواعيد',
+      value: fmtNum(bookings.length),
+      delta: null,
+      spark: [] as number[],
+      icon: <CalendarDays size={14} />,
+      href: '/dashboard/bookings',
+      sub: todayBookings.length > 0 ? `${todayBookings.length} اليوم` : (pendingBookingsCount > 0 ? `${pendingBookingsCount} بانتظار التأكيد` : undefined),
+    },
+    {
+      key: 'Customers',
+      label: 'العملاء',
+      value: fmtNum(statByLabel.Customers || 0),
+      delta: pctDelta(statByLabel.Customers || 0, prevByLabel.Customers || 0),
+      spark: [] as number[],
+      icon: <Users size={14} />,
+      href: '/dashboard/analytics/customer-insights',
+    },
+    {
+      key: 'Views',
+      label: 'زوار المتجر',
+      value: fmtNum(statByLabel.Views || 0),
+      delta: null,
+      spark: [] as number[],
+      icon: <Eye size={14} />,
+      href: '/dashboard/analytics/conversions',
+    },
+  ]), [statByLabel, prevByLabel, trend, completedBookingsRevenue, bookings.length, todayBookings.length, pendingBookingsCount, pendingCount]);
 
   const exportCsv = () => {
     const rows: string[] = [];
@@ -524,6 +646,62 @@ export default function DashboardOverview() {
     });
     return out;
   }, [orders]);
+
+  const combinedActivities = useMemo(() => {
+    const list: Array<{
+      id: string;
+      rawId?: string;
+      kind: 'order' | 'booking';
+      title: string;
+      customer: string;
+      phone?: string;
+      statusLabel: string;
+      statusChip: string;
+      dateIso?: string;
+      amount: number;
+      href: string;
+    }> = [];
+
+    if (recentTab === 'all' || recentTab === 'orders') {
+      orders.forEach((o) => {
+        const sm = statusMeta(o.status);
+        list.push({
+          id: `order-${o.id}`,
+          rawId: o.id,
+          kind: 'order',
+          title: fmtShortId(o.id),
+          customer: o.customerName || o.customerPhone || 'عميل متجر',
+          phone: o.customerPhone,
+          statusLabel: sm.label,
+          statusChip: sm.chip,
+          dateIso: o.createdAt,
+          amount: o.total || 0,
+          href: '/dashboard/sales',
+        });
+      });
+    }
+
+    if (recentTab === 'all' || recentTab === 'bookings') {
+      bookings.forEach((b) => {
+        const bm = bookingStatusMeta(b.status);
+        list.push({
+          id: `booking-${b.id}`,
+          rawId: b.id,
+          kind: 'booking',
+          title: b.itemName || 'حجز موعد',
+          customer: b.customerName || 'عميل حجز',
+          phone: b.customerPhone,
+          statusLabel: bm.label,
+          statusChip: bm.chip,
+          dateIso: b.when,
+          amount: b.price || 0,
+          href: '/dashboard/bookings',
+        });
+      });
+    }
+
+    return list.sort((a, b) => new Date(b.dateIso || 0).getTime() - new Date(a.dateIso || 0).getTime());
+  }, [orders, bookings, recentTab]);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-[1500px] mx-auto">
@@ -632,28 +810,46 @@ export default function DashboardOverview() {
           <ChevronLeft size={14} className="text-blue-400" />
         </button>
       )}
+      {pendingBookingsCount > 0 && (
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard/bookings')}
+          className="w-full flex items-center gap-2 p-3 rounded-lg border border-amber-200 bg-amber-50 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors text-right"
+        >
+          <CalendarCheck size={14} className="text-amber-500 shrink-0" />
+          <span className="flex-1">لديك {fmtNum(pendingBookingsCount)} حجز بانتظار المراجعة والتأكيد.</span>
+          <ChevronLeft size={14} className="text-amber-400" />
+        </button>
+      )}
 
       {/* ===== KPIs — المؤشرات الرئيسية ===== */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        {kpis.map((k, i) => (
-          <MotionCard key={k.key} delay={0.05 + i * 0.04} className="p-5">
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-[11px] font-semibold text-slate-400">{k.label}</p>
-              <DeltaInline delta={k.delta} />
-            </div>
-            {loading ? (
-              <Skeleton className="h-7 w-24 mt-2" />
-            ) : (
-              <div className="flex items-end justify-between gap-2 mt-1.5">
-                <span className="text-[22px] font-extrabold text-slate-900 tabular-nums leading-7">{k.value}</span>
-                <Sparkline values={k.spark} color={['#4F46E5', '#7C3AED', '#2563EB', '#059669'][i]} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3.5">
+        {kpis.map((k: any, i) => (
+          <MotionCard key={k.key} delay={0.05 + i * 0.04} className="p-4 sm:p-5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] font-semibold text-slate-400">{k.label}</p>
+                <DeltaInline delta={k.delta} />
               </div>
-            )}
+              {loading ? (
+                <Skeleton className="h-7 w-24 mt-2" />
+              ) : (
+                <div className="flex items-end justify-between gap-2 mt-1.5">
+                  <div className="min-w-0">
+                    <span className="text-[18px] sm:text-[21px] font-extrabold text-slate-900 tabular-nums leading-7 truncate block">{k.value}</span>
+                    {k.sub && <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">{k.sub}</p>}
+                  </div>
+                  {k.spark && k.spark.length > 0 && (
+                    <Sparkline values={k.spark} color={['#4F46E5', '#7C3AED', '#EC4899', '#2563EB', '#059669'][i]} />
+                  )}
+                </div>
+              )}
+            </div>
             {!loading && k.href && (
               <button
                 type="button"
                 onClick={() => router.push(k.href)}
-                className="mt-2 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline inline-flex items-center gap-0.5"
+                className="mt-2.5 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline inline-flex items-center gap-0.5 self-start"
               >
                 عرض المزيد
                 <ChevronLeft size={10} />
@@ -731,7 +927,7 @@ export default function DashboardOverview() {
           {/* Quick actions — list style */}
           <MotionCard className="p-2" delay={0.25}>
             {[
-              { label: 'إضافة منتج جديد', desc: 'وسّع كتالوج متجرك', icon: <Plus size={16} />, href: '/dashboard/inventory' },
+              { label: 'إضافة منتج جديد', desc: 'وسّع كتالوج متجرك', icon: <Plus size={16} />, href: '/dashboard/inventory/products' },
               { label: 'طلب جديد', desc: 'سجّل بيع من الكاشير', icon: <ShoppingCart size={16} />, href: '/dashboard/pos' },
               { label: 'حجز جديد', desc: 'احجز موعدًا لعميل', icon: <Calendar size={16} />, href: '/dashboard/bookings' },
               { label: 'حملة إعلانية', desc: 'أطلق عرضًا لعملائك', icon: <Megaphone size={16} />, href: '/dashboard/marketing' },
@@ -761,51 +957,100 @@ export default function DashboardOverview() {
       {/* ===== Orders + Notifications ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <MotionCard className="xl:col-span-2 p-0" delay={0.2}>
-          <SectionHead
-            title="أحدث الطلبات"
-            icon={<ShoppingCart size={14} />}
-            actionLabel="كل الطلبات"
-            onAction={() => router.push('/dashboard/sales')}
-          />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 pt-4 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                <History size={15} />
+              </span>
+              <div>
+                <h3 className="text-[14px] font-extrabold text-slate-900 leading-5">أحدث الطلبات والحجوزات</h3>
+                <p className="text-[11px] font-medium text-slate-400">سجل مدمج لعمليات البيع ومواعيد الحجز</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center bg-slate-100 rounded-lg p-0.5 text-[11px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => setRecentTab('all')}
+                  className={`px-2.5 py-1 rounded-md transition-all ${recentTab === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  الكل ({orders.length + bookings.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecentTab('orders')}
+                  className={`px-2.5 py-1 rounded-md transition-all ${recentTab === 'orders' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  الطلبات ({orders.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecentTab('bookings')}
+                  className={`px-2.5 py-1 rounded-md transition-all ${recentTab === 'bookings' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  الحجوزات ({bookings.length})
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push(recentTab === 'bookings' ? '/dashboard/bookings' : '/dashboard/sales')}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-0.5 shrink-0 mr-1"
+              >
+                {recentTab === 'bookings' ? 'مواعيد الحجوزات' : 'كل الطلبات'} <ChevronLeft size={12} />
+              </button>
+            </div>
+          </div>
           {loading ? (
             <div className="p-5 space-y-2"><Skeleton className="h-9" /><Skeleton className="h-9" /><Skeleton className="h-9" /></div>
-          ) : orders.length === 0 ? (
+          ) : combinedActivities.length === 0 ? (
             <Empty
               icon={<ShoppingCart size={20} />}
-              title="لا توجد طلبات بعد"
-              desc="ابدأ بإضافة منتجاتك ومشاركة رابط متجرك مع عملائك — أول طلب هيظهر هنا فورًا."
-              actionLabel="إنشاء طلب من الكاشير"
-              onAction={() => router.push('/dashboard/pos')}
-              secondaryLabel="إضافة منتج"
-              onSecondary={() => router.push('/dashboard/inventory')}
+              title="لا توجد عمليات بعد"
+              desc="ستظهر هنا طلبات الشراء وحجوزات المواعيد الجديدة فور وصولها."
+              actionLabel="حجز موعد جديد"
+              onAction={() => router.push('/dashboard/bookings')}
+              secondaryLabel="طلب من الكاشير"
+              onSecondary={() => router.push('/dashboard/pos')}
             />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-right">
                 <thead>
                   <tr className="border-b border-slate-100">
-                    <th className="text-[10px] font-semibold text-slate-400 pb-2 pr-5">الطلب</th>
+                    <th className="text-[10px] font-semibold text-slate-400 pb-2 pr-5">النوع / المعرف</th>
                     <th className="text-[10px] font-semibold text-slate-400 pb-2">العميل</th>
                     <th className="text-[10px] font-semibold text-slate-400 pb-2">الحالة</th>
-                    <th className="text-[10px] font-semibold text-slate-400 pb-2">التاريخ</th>
+                    <th className="text-[10px] font-semibold text-slate-400 pb-2">التاريخ / الموعد</th>
                     <th className="text-[10px] font-semibold text-slate-400 pb-2 pl-5 text-left">الإجمالي</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.slice(0, 6).map((o, i) => {
-                    const sm = statusMeta(o.status);
-                    return (
-                      <tr key={o.id || i} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60 transition-colors">
-                        <td className="py-2.5 pr-5 text-xs font-bold text-slate-800 tabular-nums">{fmtShortId(o.id)}</td>
-                        <td className="py-2.5 text-xs text-slate-600">{o.customerName || o.customerPhone || '—'}</td>
-                        <td className="py-2.5">
-                          <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${sm.chip}`}>{sm.label}</span>
-                        </td>
-                        <td className="py-2.5 text-[11px] text-slate-400 whitespace-nowrap">{timeAgo(o.createdAt)}</td>
-                        <td className="py-2.5 pl-5 text-xs font-bold text-slate-900 text-left tabular-nums">{fmtEGP(o.total || 0)}</td>
-                      </tr>
-                    );
-                  })}
+                  {combinedActivities.slice(0, 8).map((it) => (
+                    <tr
+                      key={it.id}
+                      onClick={() => router.push(it.href)}
+                      className="border-b border-slate-50 last:border-0 hover:bg-slate-50/70 transition-colors cursor-pointer"
+                    >
+                      <td className="py-2.5 pr-5">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-black px-1.5 py-0.5 rounded ${it.kind === 'order' ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                            {it.kind === 'order' ? <ShoppingCart size={10} /> : <CalendarCheck size={10} />}
+                            {it.kind === 'order' ? 'طلب' : 'حجز'}
+                          </span>
+                          <span className="text-xs font-bold text-slate-800 truncate max-w-[160px]">{it.title}</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 text-xs text-slate-600">
+                        <div>{it.customer}</div>
+                        {it.phone && <div className="text-[10px] text-slate-400" dir="ltr">{it.phone}</div>}
+                      </td>
+                      <td className="py-2.5">
+                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border whitespace-nowrap ${it.statusChip}`}>{it.statusLabel}</span>
+                      </td>
+                      <td className="py-2.5 text-[11px] text-slate-400 whitespace-nowrap">{timeAgo(it.dateIso)}</td>
+                      <td className="py-2.5 pl-5 text-xs font-bold text-slate-900 text-left tabular-nums">{fmtEGP(it.amount)}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -911,7 +1156,7 @@ export default function DashboardOverview() {
             title="الأكثر مبيعًا"
             icon={<Boxes size={14} />}
             actionLabel="إدارة المنتجات"
-            onAction={() => router.push('/dashboard/inventory')}
+            onAction={() => router.push('/dashboard/inventory/products')}
           />
           {loading ? (
             <div className="p-5 space-y-2"><Skeleton className="h-9" /><Skeleton className="h-9" /><Skeleton className="h-9" /></div>
@@ -921,7 +1166,7 @@ export default function DashboardOverview() {
               title="لا توجد مبيعات منتجات بعد"
               desc="أضف منتجاتك الأولى وشاركها مع عملائك — أكثر المنتجات مبيعًا ستظهر هنا."
               actionLabel="إضافة منتج"
-              onAction={() => router.push('/dashboard/inventory')}
+              onAction={() => router.push('/dashboard/inventory/products')}
             />
           ) : (
             <div className="px-5 py-3 space-y-1">

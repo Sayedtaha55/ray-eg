@@ -1,13 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   LayoutGrid,
   FileText,
-  Palette,
   Sparkles,
   Play,
-  Save,
-  Loader2,
-  CheckCircle2,
   Layers,
 } from 'lucide-react';
 import { useBuilder } from '../../context/BuilderContext';
@@ -22,12 +18,8 @@ export const MobileBuilderTabBar: React.FC = () => {
     setIsMobileInspectorOpen,
     selectedNode,
     setIsLivePreviewOpen,
-    saveDraft,
-    autosaveStatus,
     isFocusMode,
   } = useBuilder();
-
-  const [isSaving, setIsSaving] = useState(false);
 
   if (isFocusMode) return null;
 
@@ -42,15 +34,6 @@ export const MobileBuilderTabBar: React.FC = () => {
     setIsMobileInspectorOpen(!isMobileInspectorOpen);
     // Close sidebar if opening inspector
     setIsMobileSidebarOpen(false);
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await saveDraft(true);
-    } finally {
-      setTimeout(() => setIsSaving(false), 500);
-    }
   };
 
   return (
@@ -87,18 +70,18 @@ export const MobileBuilderTabBar: React.FC = () => {
         <span className="text-[10px] font-bold">الصفحات</span>
       </button>
 
-      {/* 3. Theme / Design System */}
+      {/* 3. Layers */}
       <button
         type="button"
-        onClick={() => handleOpenPanel('design')}
+        onClick={() => handleOpenPanel('layers')}
         className={`flex flex-col items-center justify-center gap-1 py-1 px-2 rounded-xl transition-all cursor-pointer ${
-          isMobileSidebarOpen && activeSidebarTab === 'design'
+          isMobileSidebarOpen && activeSidebarTab === 'layers'
             ? 'text-blue-600 font-bold bg-blue-50'
             : 'text-slate-600 hover:text-slate-900 active:scale-95'
         }`}
       >
-        <Palette className="w-4 h-4" />
-        <span className="text-[10px] font-bold">السمة</span>
+        <Layers className="w-4 h-4" />
+        <span className="text-[10px] font-bold">الطبقات</span>
       </button>
 
       {/* 4. Edit Selected Component (Inspector) */}
@@ -130,25 +113,6 @@ export const MobileBuilderTabBar: React.FC = () => {
       >
         <Play className="w-4 h-4 text-emerald-600 fill-emerald-600" />
         <span className="text-[10px] font-bold">معاينة</span>
-      </button>
-
-      {/* 6. Quick Save */}
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={isSaving}
-        className="flex flex-col items-center justify-center gap-1 py-1 px-2 rounded-xl text-slate-600 hover:text-slate-900 active:scale-95 transition-all cursor-pointer"
-      >
-        {isSaving ? (
-          <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
-        ) : autosaveStatus === 'saved' ? (
-          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-        ) : (
-          <Save className="w-4 h-4 text-blue-600" />
-        )}
-        <span className="text-[10px] font-bold">
-          {isSaving ? 'يحفظ...' : 'حفظ'}
-        </span>
       </button>
     </nav>
   );

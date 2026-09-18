@@ -153,7 +153,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
       dropdownItems: [
         { id: 'sub_about_story', title: 'قصتنا ورؤيتنا', description: 'رحلة الريادة ومسيرة التميز منذ 2015', url: '/about', pageId: 'page_about', badge: 'منذ 2015' },
         { id: 'sub_about_team', title: 'فريق الخبراء والقيادة', description: 'نخبة من المستشارين والمهندسين المعتمدين', url: '/team', pageId: 'page_team', badge: 'خبراء VIP' },
-        { id: 'sub_about_branches', title: 'فروعنا وصالات العرض', description: 'صالاتنا في الرياض وجدة والخبر', url: '/branches', pageId: 'page_branches', badge: '3 صالات' },
+        { id: 'sub_about_branches', title: 'فروعنا وصالات العرض', description: 'صالاتنا في القاهرة والجيزة والإسكندرية', url: '/branches', pageId: 'page_branches', badge: '3 صالات' },
         { id: 'sub_about_certs', title: 'الاعتمادات والجوائز', description: 'شهادات الأيزو وفحص 150+ نقطة المعتمد', url: '/certifications', pageId: 'page_certifications', badge: 'معتمد ISO' },
       ],
     },
@@ -309,7 +309,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     parentId: 'hero_left_col',
     childrenIds: [],
     props: {
-      text: '✨ أحدث موديلات 2025 الحصرية في المملكة',
+      text: '✨ أحدث موديلات 2025 الحصرية في مصر',
       variant: 'subtle',
     },
     styles: {
@@ -654,7 +654,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     props: {
       icon: 'Truck',
       title: 'توصيل VIP حتى باب منزلك',
-      description: 'خدمة نقل مغلقة ومؤمنة بالكامل توصل سيارتك إلى أي مدينة في المملكة.',
+      description: 'خدمة نقل مغلقة ومؤمنة بالكامل توصل سيارتك إلى أي مدينة في مصر.',
       tag: 'خدمة راقية',
     },
     styles: {
@@ -969,7 +969,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     childrenIds: [],
     props: {
       quote: 'خدمة ما بعد البيع والضمان الاحترافي يجعل المجد خياري الأول والوحيد دائماً في شراء السيارات الفاخرة.',
-      author: 'د. ماجد القحطاني',
+      author: 'د. ماجد الشاذلي',
       role: 'استشاري جراحة',
       rating: 5,
     },
@@ -1175,7 +1175,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     childrenIds: [],
     props: {
       title: 'شركة المجد للسيارات الفاخرة',
-      description: 'الوجهة الأولى والموثوقة في المملكة العربية السعودية لاقتناء أحدث وأرقى السيارات العالمية منذ عام 2015.',
+      description: 'الوجهة الأولى والموثوقة في جمهورية مصر العربية لاقتناء أحدث وأرقى السيارات العالمية منذ عام 2015.',
     },
     styles: {
       desktop: {
@@ -1213,7 +1213,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     childrenIds: [],
     props: {
       heading: 'معلومات التواصل',
-      info: ['الرياض، طريق الملك فهد', '+966 50 123 4567', 'info@almajd-motors.com'],
+      info: ['الرياض، طريق الملك فهد', '+20 100 123 4567', 'info@almajd-motors.com'],
     },
     styles: {
       desktop: {
@@ -1651,7 +1651,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     parentId: 'contact_info_sidebar',
     childrenIds: [],
     props: {
-      text: '📞 الهاتف الموحد المجاني: 8001234567 • 💬 واتساب المبيعات المباشر: +966500000000 • 📍 العنوان: طريق الملك فهد - حي النخيل - الرياض • ⏰ أوقات العمل: يومياً من 9:00 ص حتى 10:30 م',
+      text: '📞 الهاتف الموحد المجاني: 8001234567 • 💬 واتساب المبيعات المباشر: +201000000000 • 📍 العنوان: طريق الملك فهد - حي النخيل - الرياض • ⏰ أوقات العمل: يومياً من 9:00 ص حتى 10:30 م',
     },
     styles: {
       desktop: {
@@ -1776,7 +1776,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     parentId: 'contact_form_box',
     childrenIds: [],
     props: {
-      text: 'رقم الجوال: +966 5x xxx xxxx',
+      text: 'رقم الجوال: +20 10x xxx xxxx',
     },
     styles: {
       desktop: {
@@ -1940,7 +1940,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     childrenIds: [],
     props: {
       question: 'هل يتوفر شحن للسيارات إلى خارج مدينة الرياض؟',
-      answer: 'نعم، نوفر خدمة نقل سطحة مغلقة ومؤمنة VIP توصل سيارتك إلى باب منزلك في كافة مناطق ومدن المملكة العربية السعودية ودول الخليج العربي.',
+      answer: 'نعم، نوفر خدمة نقل سطحة مغلقة ومؤمنة VIP توصل سيارتك إلى باب منزلك في كافة مناطق ومدن جمهورية مصر العربية ودول الخليج العربي.',
     },
     styles: {
       desktop: {
@@ -2053,7 +2053,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     category: 'typography',
     parentId: 'about_hero_box',
     childrenIds: [],
-    props: { text: 'نعيد صياغة مفهوم اقتناء السيارات الفاخرة في المملكة' },
+    props: { text: 'نعيد صياغة مفهوم اقتناء السيارات الفاخرة في مصر' },
     styles: {
       desktop: {
         fontSize: '40px',
@@ -2206,7 +2206,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     props: {
       badge: 'محطات مضيئة',
       title: 'مسيرة المجد: عقد من التطور والنجاح المستمر',
-      subtitle: 'خطوات ثابتة وتوسع استراتيجي لخدمة عملائنا في كافة مناطق المملكة ودول الخليج العربي.',
+      subtitle: 'خطوات ثابتة وتوسع استراتيجي لخدمة عملائنا في كافة مناطق مصر ودول الخليج العربي.',
     },
     styles: {
       desktop: {
@@ -2243,7 +2243,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     props: {
       badge: '2015',
       title: 'الانطلاقة والتأسيس',
-      description: 'افتتاح أول صالة عرض متخصصة في الرياض لتقديم سيارات النخبة الرياضية.',
+      description: 'افتتاح أول صالة عرض متخصصة في القاهرة الجديدة لتقديم سيارات النخبة الرياضية.',
     },
     styles: { desktop: { backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0' } },
   },
@@ -2284,8 +2284,8 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     childrenIds: [],
     props: {
       badge: '2024',
-      title: 'التوسع في جدة والخبر',
-      description: 'افتتاح صالتي عرض جديدتين في طريق الملك عبدالعزيز بجدة وطريق الملك فيصل بالخبر.',
+      title: 'التوسع في الإسكندرية والمنصورة',
+      description: 'افتتاح صالتي عرض جديدتين في طريق الحرية بالإسكندرية وطريق الجيش بالمنصورة.',
     },
     styles: { desktop: { backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0' } },
   },
@@ -2722,7 +2722,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     childrenIds: [],
     props: {
       image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80',
-      title: 'م. خالد الدوسري',
+      title: 'م. خالد عبد الرحمن',
       subtitle: 'مدير الضمان وخدمات ما بعد البيع',
       description: 'يشرف على تطبيق معايير الضمان الذهبي وخدمات المساعدة على الطريق على مدار 24 ساعة.',
       badge: 'خدمات ما بعد البيع',
@@ -2856,7 +2856,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
   },
   'br_hero_badge': {
     id: 'br_hero_badge',
-    name: 'شارة صالات المملكة',
+    name: 'شارة صالات مصر',
     type: 'badge',
     category: 'action',
     parentId: 'br_hero_box',
@@ -2947,7 +2947,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
   },
   'br_card_riyadh': {
     id: 'br_card_riyadh',
-    name: 'صالة الرياض الرئيسية',
+    name: 'صالة التجمع الرئيسية',
     type: 'card',
     category: 'section',
     parentId: 'br_grid_box',
@@ -2955,7 +2955,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     props: {
       image: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=700&auto=format&fit=crop&q=80',
       badge: 'الصالة الرئيسية (HQ)',
-      title: 'صالة الرياض - طريق الملك فهد',
+      title: 'صالة التجمع - طريق السويس',
       subtitle: 'حي الصحافة، تقاطع طريق الملك سلمان',
       description: 'مساحة 3,000 م² تضم أحدث سيارات الدفع الرباعي وسوبر سبورت مع لاونج ضيافة VIP.',
       features: [
@@ -3455,7 +3455,7 @@ export const sampleWebsites: Record<string, Website> = {
         updatedAt: '2025-05-10T14:30:00Z',
         metadata: {
           title: 'شركة المجد للسيارات الفاخرة | الرياض - أحدث موديلات 2025',
-          description: 'تصفح تشكيلة حصرية من أرقى السيارات الفارهة والرياضية في المملكة مع ضمان شامل وفحص معتمد.',
+          description: 'تصفح تشكيلة حصرية من أرقى السيارات الفارهة والرياضية في مصر مع ضمان شامل وفحص معتمد.',
           slug: 'home',
           isHomePage: true,
           robots: 'index, follow',
@@ -3472,7 +3472,7 @@ export const sampleWebsites: Record<string, Website> = {
               addressLocality: 'الرياض',
               addressCountry: 'SA',
             },
-            telephone: '+966501234567',
+            telephone: '+201001234567',
           }, null, 2),
         },
       },
@@ -3485,7 +3485,7 @@ export const sampleWebsites: Record<string, Website> = {
         updatedAt: '2025-05-10T14:30:00Z',
         metadata: {
           title: 'من نحن وقصتنا | شركة المجد للسيارات الفاخرة',
-          description: 'تعرف على قصة شركة المجد للسيارات ورؤيتنا الريادية في عالم السيارات الفارهة والرياضية بالمملكة.',
+          description: 'تعرف على قصة شركة المجد للسيارات ورؤيتنا الريادية في عالم السيارات الفارهة والرياضية في مصر.',
           slug: 'about',
           isHomePage: false,
         },

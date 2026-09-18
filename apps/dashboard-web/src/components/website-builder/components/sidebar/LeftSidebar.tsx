@@ -3,7 +3,6 @@ import {
   Layers,
   LayoutGrid,
   FileText,
-  Palette,
   ChevronRight,
   ChevronLeft,
   PanelLeftClose,
@@ -13,7 +12,6 @@ import { useBuilder } from '../../context/BuilderContext';
 import { LayersPanel } from './LayersPanel';
 import { SectionLibraryPanel } from './SectionLibraryPanel';
 import { PagesPanel } from './PagesPanel';
-import { DesignSystemPanel } from './DesignSystemPanel';
 
 export const LeftSidebar: React.FC = () => {
   const {
@@ -31,8 +29,6 @@ export const LeftSidebar: React.FC = () => {
     { id: 'layers', label: 'الطبقات', icon: Layers },
     { id: 'sections', label: 'الأقسام', icon: LayoutGrid },
     { id: 'pages', label: 'الصفحات', icon: FileText },
-    { id: 'design', label: 'السمة', icon: Palette },
-    // SEO أُزيل: تعديل بيانات الصفحة متاح من تبويب "الصفحات" (PagesPanel)
   ] as const;
 
   if (isFocusMode) return null;
@@ -125,7 +121,6 @@ export const LeftSidebar: React.FC = () => {
               {activeSidebarTab === 'layers' && <LayersPanel />}
               {activeSidebarTab === 'sections' && <SectionLibraryPanel />}
               {activeSidebarTab === 'pages' && <PagesPanel />}
-              {activeSidebarTab === 'design' && <DesignSystemPanel />}
             </div>
           </div>
         )}
@@ -185,7 +180,6 @@ export const LeftSidebar: React.FC = () => {
               {activeSidebarTab === 'layers' && <LayersPanel />}
               {activeSidebarTab === 'sections' && <SectionLibraryPanel />}
               {activeSidebarTab === 'pages' && <PagesPanel />}
-              {activeSidebarTab === 'design' && <DesignSystemPanel />}
             </div>
           </div>
         </div>

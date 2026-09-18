@@ -41,8 +41,9 @@ export default async function ActivityPage({ params }: Props) {
       </Link>
 
       <div className="flex items-center gap-4 mb-10">
-        <div className="w-16 h-16 bg-brand-cyan/10 rounded-xl flex items-center justify-center text-3xl">
-          {config?.icon || '📦'}
+        <div className="w-16 h-16 rounded-xl overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={config?.image || '/images/activities/cars.svg'} alt={config?.label.ar || 'نشاط'} width={64} height={64} className="w-full h-full object-cover" />
         </div>
         <div>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight">{config?.label.ar || 'نشاط'}</h1>

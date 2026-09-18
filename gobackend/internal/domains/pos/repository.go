@@ -47,29 +47,51 @@ func scanShift(scanner interface{ Scan(dest ...any) error }) (*Shift, error) {
 	return &s, nil
 }
 
-// refreshMetrics recomputes total_sales/orders_count from POS orders inside the shift window.
+// refreshMetrics recomputes total_sales/orders_count from POS orders inside
+// the shift window.
+//
+// Strategy (in priority order):
+//  1. Direct join via pos_shift_id column (set by the syncer on push).
+//     This is exact and immune to clock-skew.
+//  2. Time-window fallback with a 10-minute grace buffer before the shift
+//     start. This handles orders that arrived on the server before the shift
+//     record was created (cashier desktop pushes orders whose local
+//     created_at is a few seconds before the server-side opened_at).
 func (r *Repository) refreshMetrics(ctx context.Context, shiftID string) error {
 	shift, err := r.GetByIDRaw(ctx, shiftID)
 	if err != nil || shift == nil {
 		return err
 	}
 
-	var (
-		sales float64
-		count int
-	)
 	end := time.Now().UTC()
 	if shift.ClosedAt != nil {
 		end = *shift.ClosedAt
 	}
+
+	// 10-minute grace buffer absorbs clock-skew between the cashier device
+	// and the server (desktop records orders locally before the server shift
+	// is created, so those orders arrive with created_at slightly before
+	// pos_shifts.opened_at).
+	windowStart := shift.OpenedAt.Add(-10 * time.Minute)
+
+	var sales float64
+	var count int
+
 	err = r.pool.QueryRow(ctx, `
 		SELECT COALESCE(SUM(total), 0), COUNT(*)
 		FROM orders
 		WHERE shop_id = $1
 		  AND LOWER(COALESCE(source, '')) = 'pos'
-		  AND status NOT IN ('CANCELLED', 'REFUNDED', 'RETURNED')
-		  AND created_at >= $2 AND created_at <= $3`,
-		shift.ShopID, shift.OpenedAt, end,
+		  AND (status IS NULL OR status::text NOT IN ('CANCELLED', 'REFUNDED', 'RETURNED'))
+		  AND (
+		        pos_shift_id = $4
+		        OR (
+		             (pos_shift_id IS NULL OR pos_shift_id = '')
+		             AND created_at >= $2
+		             AND created_at <= $3
+		           )
+		      )`,
+		shift.ShopID, windowStart, end, shiftID,
 	).Scan(&sales, &count)
 	if err != nil {
 		return err
@@ -128,6 +150,13 @@ func (r *Repository) List(ctx context.Context, shopID string, take int) ([]*Shif
 		s, err := scanShift(rows)
 		if err != nil {
 			return nil, err
+		}
+		// Refresh metrics for open shifts so the list always shows live numbers.
+		if s.Status == "open" {
+			_ = r.refreshMetrics(ctx, s.ID)
+			if fresh, err := r.GetByID(ctx, shopID, s.ID); err == nil && fresh != nil {
+				s = fresh
+			}
 		}
 		out = append(out, s)
 	}

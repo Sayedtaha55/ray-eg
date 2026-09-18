@@ -35,23 +35,24 @@ func (r *Repository) CreateReview(ctx context.Context, userID string, targetType
 	query := `
 		INSERT INTO reviews (id, user_id, target_type, target_id, rating, comment, user_name, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
-		RETURNING id, user_id, target_type, target_id, rating, comment, user_name, created_at, updated_at
+		RETURNING id, user_id, target_type, target_id, rating, COALESCE(comment,''), user_name, created_at, updated_at
 	`
 
 	var review Review
+	var createdAt, updatedAt time.Time
 	err = r.pool.QueryRow(ctx, query,
 		id, userID, targetType, targetID, data.Rating, data.Comment, userName, now,
 	).Scan(
 		&review.ID, &review.UserID, &review.TargetType, &review.TargetID,
-		&review.Rating, &review.Comment, &review.UserName, &review.CreatedAt, &review.UpdatedAt,
+		&review.Rating, &review.Comment, &review.UserName, &createdAt, &updatedAt,
 	)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create review: %w", err)
 	}
 
-	review.CreatedAt = now.Format(time.RFC3339)
-	review.UpdatedAt = now.Format(time.RFC3339)
+	review.CreatedAt = createdAt.Format(time.RFC3339)
+	review.UpdatedAt = updatedAt.Format(time.RFC3339)
 
 	return &review, nil
 }
@@ -69,7 +70,7 @@ func (r *Repository) ListReviews(ctx context.Context, targetType ReviewTarget, t
 	}
 
 	query := `
-		SELECT id, user_id, target_type, target_id, rating, comment, user_name, created_at, updated_at
+		SELECT id, user_id, target_type, target_id, rating, COALESCE(comment,''), user_name, created_at, updated_at
 		FROM reviews
 		WHERE target_type = $1 AND target_id = $2
 		ORDER BY created_at DESC
@@ -85,12 +86,15 @@ func (r *Repository) ListReviews(ctx context.Context, targetType ReviewTarget, t
 	var reviews []Review
 	for rows.Next() {
 		var rev Review
+		var createdAt, updatedAt time.Time
 		if err := rows.Scan(
 			&rev.ID, &rev.UserID, &rev.TargetType, &rev.TargetID,
-			&rev.Rating, &rev.Comment, &rev.UserName, &rev.CreatedAt, &rev.UpdatedAt,
+			&rev.Rating, &rev.Comment, &rev.UserName, &createdAt, &updatedAt,
 		); err != nil {
 			continue
 		}
+		rev.CreatedAt = createdAt.Format(time.RFC3339)
+		rev.UpdatedAt = updatedAt.Format(time.RFC3339)
 		reviews = append(reviews, rev)
 	}
 

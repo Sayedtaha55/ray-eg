@@ -15,6 +15,7 @@ import {
   Layers,
   Plus,
   ArrowRight,
+  ShieldCheck,
 } from 'lucide-react';
 import { useBuilder } from '../../context/BuilderContext';
 import { CODE_PRESETS, CodePreset } from '../../services/aiGeneratorService';
@@ -179,26 +180,26 @@ export const CodeWorkspace: React.FC = () => {
           <div className="flex items-center gap-1">
             <button
               onClick={() => setActiveFile('html')}
-              className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-t text-xs font-mono transition-colors cursor-pointer ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-t text-xs font-mono transition-colors cursor-pointer ${
                 activeFile === 'html'
                   ? 'bg-slate-950 text-orange-400 border-t-2 border-orange-500 font-bold'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`}
             >
               <FileCode className="w-3.5 h-3.5" />
-              <span>index.html</span>
+              <span>كود التضمين (HTML/Embed)</span>
             </button>
 
             <button
               onClick={() => setActiveFile('styles.css')}
-              className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-t text-xs font-mono transition-colors cursor-pointer ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-t text-xs font-mono transition-colors cursor-pointer ${
                 activeFile === 'styles.css'
                   ? 'bg-slate-950 text-cyan-400 border-t-2 border-cyan-500 font-bold'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
               }`}
             >
               <FileCode className="w-3.5 h-3.5" />
-              <span>styles.css</span>
+              <span>تنسيقات التصميم (CSS)</span>
             </button>
 
             <button
@@ -210,20 +211,14 @@ export const CodeWorkspace: React.FC = () => {
               }`}
             >
               <FileCode className="w-3.5 h-3.5" />
-              <span>script.js</span>
+              <span>برمجة متقدمة (JS)</span>
             </button>
+          </div>
 
-            <button
-              onClick={() => setActiveFile('component.tsx')}
-              className={`hidden md:flex items-center gap-1.5 px-3 py-1 rounded-t text-xs font-mono transition-colors cursor-pointer ${
-                activeFile === 'component.tsx'
-                  ? 'bg-slate-950 text-blue-400 border-t-2 border-blue-500 font-bold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`}
-            >
-              <FileCode className="w-3.5 h-3.5" />
-              <span>component.tsx</span>
-            </button>
+          {/* Security Sandboxed Badge */}
+          <div className="hidden lg:flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-800 text-[11px] font-semibold text-emerald-400">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>بيئة معزولة آمنة (Sandboxed)</span>
           </div>
         </div>
 

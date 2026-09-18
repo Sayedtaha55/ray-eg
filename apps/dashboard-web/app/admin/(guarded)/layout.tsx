@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, ShieldAlert, Users, Settings, LogOut, Bell, Menu, Sparkles,
-  MessageSquare, CreditCard, Store, BarChart3, FileText, Truck, Headphones,
+  MessageSquare, CreditCard, Store, BarChart3, FileText, Truck, Headphones, Eye,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { ToastProvider } from '@/components/settings/ToastProvider';
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { href: '/admin/feedback', label: 'التقييمات', icon: MessageSquare },
   { href: '/admin/customer-service', label: 'خدمة العملاء', icon: Headphones },
   { href: '/admin/analytics', label: 'التحليلات', icon: BarChart3 },
+  { href: '/admin/visitors', label: 'زيارات الموقع', icon: Eye },
   { href: '/admin/notifications', label: 'الإشعارات', icon: Bell },
   { href: '/admin/content', label: 'المحتوى', icon: FileText },
   { href: '/admin/settings', label: 'الإعدادات', icon: Settings },

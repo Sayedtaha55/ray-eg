@@ -33,6 +33,10 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 
 	// Dashboard CRM routes (segments & tags) under /shops/:shopId/...
 	h.RegisterSegmentsTagsRoutes(app)
+	// Dashboard compatibility routes: /customers/shop/:shopId + promote
+	h.RegisterDashboardRoutes(app)
+	// Unified customer CRUD / search / archive / profile / statement / loyalty
+	h.RegisterShopCustomerRoutes(app)
 }
 
 // ListCustomers handles listing all customers

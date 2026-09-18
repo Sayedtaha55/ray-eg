@@ -94,7 +94,7 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       {
         id: 're_1',
         title: 'قصر الملقا المودرن',
-        subtitle: 'حي الملقا | 6 غرف نوم ماستر + مسبح ومصعد',
+        subtitle: 'التجمع الخامس | 6 غرف نوم ماستر + مسبح ومصعد',
         price: '4,850,000 ج.م',
         badge: 'جاهز للإفراغ',
         imageUrl: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80',
@@ -114,7 +114,7 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       {
         id: 're_3',
         title: 'بنتهاوس السليمانية سكاي',
-        subtitle: 'إطلالة بانورامية على برج المملكة',
+        subtitle: 'إطلالة بانورامية على برج مصر',
         price: '3,100,000 ج.م',
         badge: 'فرصة استثمارية',
         imageUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop&q=80',
@@ -128,13 +128,13 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'تأكيد حجز الجولة العقارية',
       fields: [
         { name: 'name', label: 'الاسم الكامل', type: 'text', placeholder: 'مثال: عبدالله الراجحي', required: true },
-        { name: 'phone', label: 'رقم الجوال / واتساب', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال / واتساب', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'project', label: 'المشروع المهتم به', type: 'select', placeholder: 'اختر المشروع', required: true, options: ['قصر الملقا المودرن', 'تاون هاوس النرجس فيو', 'بنتهاوس السليمانية سكاي', 'أراضي استثمارية'] },
         { name: 'budget', label: 'الميزانية المتوقعة', type: 'select', placeholder: 'نطاق الميزانية', required: false, options: ['1.5 إلى 2.5 مليون ج.م', '2.5 إلى 5 ملايين ج.م', 'أكثر من 5 ملايين ج.م'] },
       ],
     },
     reviews: [
-      { name: 'م. خالد الدوسري', role: 'مستثمر عقاري', rating: 5, comment: 'شريت فيلا بمشروع الملقا، التشطيب يفوق الوصف والالتزام بمواعيد الإفراغ كان دقيقاً جداً.', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+      { name: 'م. خالد عبد الرحمن', role: 'مستثمر عقاري', rating: 5, comment: 'شريت فيلا بمشروع مدينتي، التشطيب يفوق الوصف والالتزام بمواعيد الإفراغ كان دقيقاً جداً.', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
     ],
   },
   {
@@ -212,13 +212,13 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'إرسال طلب المقايسة الهندسية',
       fields: [
         { name: 'name', label: 'اسم العميل / المؤسسة', type: 'text', placeholder: 'الاسم الكريم', required: true },
-        { name: 'phone', label: 'رقم الاتصال والواتساب', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الاتصال والواتساب', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'project_type', label: 'نوع المشروع', type: 'select', placeholder: 'اختر نوع البناء', required: true, options: ['فيلا سكنية خاصة', 'عمارة شقق تمليك', 'مجمع تجاري / صالات', 'استراحة أو منتجع'] },
         { name: 'area', label: 'مساحة البناء الإجمالية التقريبية', type: 'text', placeholder: 'مثال: 750 م²', required: true },
       ],
     },
     reviews: [
-      { name: 'أ. فهد القحطاني', role: 'مالك فيلا بحي حطين', rating: 5, comment: 'سلمتهم فيلتي عظم وتشطيب، دقة متناهية ونظافة موقع والتزام بالجدول الزمني باليوم.', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' },
+      { name: 'أ. فهد السيد', role: 'مالك فيلا بالتجمع الخامس', rating: 5, comment: 'سلمتهم فيلتي عظم وتشطيب، دقة متناهية ونظافة موقع والتزام بالجدول الزمني باليوم.', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' },
     ],
   },
   {
@@ -247,7 +247,7 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       stats: [
         { label: 'تصميم وموديل متوفر', value: '+1,800' },
         { label: 'متر مربع في المستودعات', value: '+500k م²' },
-        { label: 'صالة عرض بالمملكة', value: '14 معرض' },
+        { label: 'صالة عرض في مصر', value: '14 معرض' },
       ],
       heroImage: 'https://images.unsplash.com/photo-1600585152220-90363fe7e115?w=1200&auto=format&fit=crop&q=80',
     },
@@ -296,8 +296,8 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'طلب التصميم وتجهيز العينات',
       fields: [
         { name: 'name', label: 'الاسم', type: 'text', placeholder: 'اسم العميل', required: true },
-        { name: 'phone', label: 'رقم الجوال للتواصل والواتساب', type: 'tel', placeholder: '05xxxxxxxx', required: true },
-        { name: 'city', label: 'المدينة', type: 'select', placeholder: 'اختر المدينة', required: true, options: ['الرياض', 'جدة', 'الدمام والخبر', 'مكة المكرمة', 'المدينة المنورة', 'القصيم'] },
+        { name: 'phone', label: 'رقم الجوال للتواصل والواتساب', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
+        { name: 'city', label: 'المدينة', type: 'select', placeholder: 'اختر المدينة', required: true, options: ['القاهرة', 'الجيزة', 'الإسكندرية', 'القاهرة الجديدة', 'الشيخ زايد', 'المنصورة'] },
         { name: 'notes', label: 'المساحة والنوع المطلوب (أرضيات، دورات مياه، واجهات)', type: 'textarea', placeholder: 'اكتب تفاصيل طلبك...', required: false },
       ],
     },
@@ -380,7 +380,7 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'تأكيد حجز الاستشارة التصميمية',
       fields: [
         { name: 'name', label: 'الاسم الكريم', type: 'text', placeholder: 'اسم العميل', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'style', label: 'النمط التصميمي المفضل', type: 'select', placeholder: 'اختر النمط', required: true, options: ['مودرن معاصر Modern', 'نيوكلاسيك فاخر Neoclassic', 'مينيمال إسكندنافي Japandi', 'إندستجنيه / كافيهات'] },
         { name: 'area', label: 'المساحة بالمتر المربع', type: 'text', placeholder: 'مثال: 450 م²', required: false },
       ],
@@ -464,12 +464,12 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'طلب تسعير المشاريع',
       fields: [
         { name: 'name', label: 'اسم العميل / المؤسسة', type: 'text', placeholder: 'الاسم', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'bathrooms_count', label: 'عدد دورات المياه بالمشروع', type: 'select', placeholder: 'اختر العدد', required: true, options: ['1 إلى 3 حمامات', '4 إلى 8 حمامات', '9 إلى 20 حمام', 'مشروع مجمع عمائر أكثر من 20'] },
       ],
     },
     reviews: [
-      { name: 'م. يوسف الغامدي', role: 'مقاول تشطيبات', rating: 5, comment: 'تعاملت مع أكوا ستايل في 4 مشاريع فلل، الجودة ممتازة وخدمة ما بعد البيع وتوفر قطع الغيار تطمن.', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' },
+      { name: 'م. يوسف فؤاد', role: 'مقاول تشطيبات', rating: 5, comment: 'تعاملت مع أكوا ستايل في 4 مشاريع فلل، الجودة ممتازة وخدمة ما بعد البيع وتوفر قطع الغيار تطمن.', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' },
     ],
   },
   {
@@ -547,13 +547,13 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'تأكيد موعد رفع المقاسات',
       fields: [
         { name: 'name', label: 'الاسم', type: 'text', placeholder: 'الاسم الكريم', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
-        { name: 'district', label: 'المدينة والحي', type: 'text', placeholder: 'مثال: الرياض - حي الملقا', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
+        { name: 'district', label: 'المدينة والحي', type: 'text', placeholder: 'مثال: القاهرة - التجمع الخامس', required: true },
         { name: 'type', label: 'الخدمة المطلوبة', type: 'select', placeholder: 'اختر الخدمة', required: true, options: ['مطبخ رئيسي مودرن', 'مطبخ خدمة / ديرتي كيتشن', 'خزائن ملابس Walk-in', 'مطبخ وخزائن معاً'] },
       ],
     },
     reviews: [
-      { name: 'أ. نورة الشمري', role: 'عميلة بالرياض', rating: 5, comment: 'ركبوا لي المطبخ في 14 يوم فقط، الخامات والإنارة والبلوم شيء فاخر جداً وسعره منافس جداً.', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
+      { name: 'أ. نورا محمود', role: 'عميلة بمدينة نصر', rating: 5, comment: 'ركبوا لي المطبخ في 14 يوم فقط، الخامات والإنارة والبلوم شيء فاخر جداً وسعره منافس جداً.', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
     ],
   },
   {
@@ -631,7 +631,7 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'إرسال مخطط الإنارة للدراسة',
       fields: [
         { name: 'name', label: 'الاسم', type: 'text', placeholder: 'الاسم الكريم', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'space_type', label: 'نوع المبنى', type: 'select', placeholder: 'اختر النوع', required: true, options: ['فيلا سكنية خاصة', 'شقة تمليك', 'مكتب أو شركة', 'معرض تجاري / مطعم'] },
       ],
     },
@@ -714,7 +714,7 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'تأكيد طلب الاستشارة الذكية',
       fields: [
         { name: 'name', label: 'الاسم', type: 'text', placeholder: 'اسم العميل', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'status', label: 'حالة العقار', type: 'select', placeholder: 'اختر الحالة', required: true, options: ['قيد الإنشاء والتأسيس (عظم)', 'في مرحلة التشطيب النهائي', 'مسكون وجاهز (تحديث لاسلكي)'] },
       ],
     },
@@ -725,7 +725,7 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
   {
     id: 'site_landscaping_pools',
     tenantId: 'tenant_landscaping_pools',
-    name: 'شركة واحة الرياض لتنسيق الحدائق والمسابح والمظلات',
+    name: 'شركة واحة النيل لتنسيق الحدائق والمسابح والمظلات',
     category: 'تنسيق الحدائق والمسابح والمظلات',
     categoryGroup: 'real_estate_living',
     icon: '🌴',
@@ -797,7 +797,7 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'تأكيد موعد معاينة الحديقة',
       fields: [
         { name: 'name', label: 'الاسم', type: 'text', placeholder: 'الاسم الكريم', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'service', label: 'الخدمة المطلوبة', type: 'select', placeholder: 'اختر الخدمة', required: true, options: ['تنسيق حديقة كاملة مع شلال', 'إنشاء مسبح جديد أو ترميمه', 'مظلات وبرجولات وجلسات خارجية', 'لاندسكيب ومسبح وبرجولة معاً'] },
       ],
     },
@@ -880,13 +880,13 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'إرسال طلب المقايسة الفورية',
       fields: [
         { name: 'name', label: 'الاسم', type: 'text', placeholder: 'الاسم الكريم', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'doors_count', label: 'عدد الأبواب التقريبي', type: 'text', placeholder: 'مثال: 12 باب', required: false },
         { name: 'windows_count', label: 'عدد النوافذ التقريبي', type: 'text', placeholder: 'مثال: 16 نافذة', required: false },
       ],
     },
     reviews: [
-      { name: 'أ. بدر العتيبي', role: 'عميل بحي المونسية', rating: 5, comment: 'ركبت أبواب WPC لجميع غرف وحمامات الفيلا ونوافذ UPVC، عزل الصوت خيالي وراحة البال لا تقدر بثمن.', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' },
+      { name: 'أ. بدر عاشور', role: 'عميل بحي المعادي', rating: 5, comment: 'ركبت أبواب WPC لجميع غرف وحمامات الفيلا ونوافذ UPVC، عزل الصوت خيالي وراحة البال لا تقدر بثمن.', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' },
     ],
   },
   {
@@ -925,7 +925,7 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       { title: 'تنفيذ احترافي وضمان جودة المعجون', description: 'تأسيس صلب باستخدام شبك فايبر لعدم ظهور أي شروخ شعرية مستقبلاً.', iconName: 'CheckCircle2' },
     ],
     itemsSectionTitle: 'الخامات والدهانات الأكثر طلباً للمجالس والصالات',
-    itemsSectionSubtitle: 'عينات جاهزة للمعاينة في صالات العرض بالرياض وجدة والخبر',
+    itemsSectionSubtitle: 'عينات جاهزة للمعاينة في صالات العرض بالقاهرة والجيزة والإسكندرية',
     items: [
       {
         id: 'paint_1',
@@ -964,12 +964,12 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'تحديد موعد معاينة الجدران',
       fields: [
         { name: 'name', label: 'الاسم', type: 'text', placeholder: 'الاسم الكريم', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'interest', label: 'الخامة المهتم بها', type: 'select', placeholder: 'اختر الخامة', required: true, options: ['دهانات ليم ووش وترابية', 'ميكروسيمنت أرضيات وجدران', 'ورق جدران وبديل رخام وخشب', 'دهانات سادة جوتن وبروفايل'] },
       ],
     },
     reviews: [
-      { name: 'د. حصة الرشيد', role: 'عميلة بالرياض', rating: 5, comment: 'شغل الليم ووش بالصالون الرئيسي طلع فخم ومريح جداً للأعصاب، والعمالة نظيفة ومدربة.', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80' },
+      { name: 'د. حصة الرشيد', role: 'عميلة بمدينة نصر', rating: 5, comment: 'شغل الليم ووش بالصالون الرئيسي طلع فخم ومريح جداً للأعصاب، والعمالة نظيفة ومدربة.', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80' },
     ],
   },
   {
@@ -1047,7 +1047,7 @@ export const megaBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'إرسال مخطط التكييف للدراسة',
       fields: [
         { name: 'name', label: 'الاسم', type: 'text', placeholder: 'اسم العميل', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'brand', label: 'الماركة المفضلة', type: 'select', placeholder: 'اختر الماركة', required: true, options: ['دايكن اليابانية Daikin', 'جري Gree Inverter', 'كارير الأمريكية Carrier', 'أو جنرال O-General'] },
       ],
     },

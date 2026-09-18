@@ -5,26 +5,63 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, ShoppingBag, Store, Volume2, VolumeX, X } from 'lucide-react';
 import { useOrderBell, type OrderBellEvent } from '@/hooks/useOrderBell';
 import { ringPosOrder, ringWebsiteOrder, primeAudio } from '@/lib/order-sounds';
+import { apiRequest } from '@/lib/auth';
+import { loadPosSettings } from '@/lib/posSettings';
 
 /**
  * Mounted once in the dashboard layout. Watches for NEW_ORDER notifications
  * and rings the matching bell:
  *   1) طلب من الموقع (website)  → رنة الموقع
  *   2) طلب من نقطة البيع/الكاشير (pos) → رنة نقطة البيع
+ *
+ * Merchant-level preferences (رنة/بانر) come from POS cashier settings
+ * (`notifications.sound` / `notifications.banner`) — layered on top of the
+ * user-level mute toggle below.
  */
 export default function OrderBellWatcher() {
   const [event, setEvent] = useState<OrderBellEvent | null>(null);
   const soundOnRef = React.useRef(true);
+  // merchant settings — defaults: both enabled (fetch failure → defaults).
+  // State (not refs) so toggle updates always re-render reliably.
+  const [merchantSound, setMerchantSound] = useState(true);
+  const [merchantBanner, setMerchantBanner] = useState(true);
   const { soundOn } = useOrderBell(
     useCallback((evt: OrderBellEvent) => {
       setEvent(evt);
-      if (soundOnRef.current) {
+      if (soundOnRef.current && merchantSoundRef.current) {
         if (evt.source === 'pos') ringPosOrder();
         else ringWebsiteOrder();
       }
     }, [])
   );
+  const merchantSoundRef = React.useRef(true);
+  merchantSoundRef.current = merchantSound;
   soundOnRef.current = soundOn;
+
+  // Load merchant POS settings once + follow live updates from the settings page
+  useEffect(() => {
+    let cancelled = false;
+    const applySettings = (rawShop: any) => {
+      const settings = loadPosSettings(rawShop?.data ?? rawShop);
+      setMerchantSound(settings.notifications?.sound !== false);
+      setMerchantBanner(settings.notifications?.banner !== false);
+    };
+    apiRequest('/shops/me')
+      .then((shop: any) => {
+        if (cancelled) return;
+        applySettings(shop);
+      })
+      .catch(() => {}); // fetch failure → keep defaults (both enabled)
+    const onSettingsChanged = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      applySettings({ layoutConfig: { posSettings: detail?.posSettings } });
+    };
+    window.addEventListener('pos-settings-changed', onSettingsChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('pos-settings-changed', onSettingsChanged);
+    };
+  }, []);
 
   useEffect(() => {
     const unlock = () => primeAudio();
@@ -44,10 +81,12 @@ export default function OrderBellWatcher() {
   }, [event]);
 
   const isPos = event?.source === 'pos';
+  // merchant setting: hide the banner entirely when disabled (user mute still applies)
+  const showBanner = merchantBanner;
 
   return (
     <AnimatePresence>
-      {event && (
+      {event && showBanner && (
         <motion.div
           initial={{ opacity: 0, y: -24, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}

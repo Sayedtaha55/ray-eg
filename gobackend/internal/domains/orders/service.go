@@ -1,6 +1,7 @@
 package orders
 
 import (
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/customers"
 	"context"
 	"strconv"
 	"strings"
@@ -105,6 +106,28 @@ func (s *Service) createOrderCore(ctx context.Context, req CreateOrderRequest, u
 		DeliveryLng:           req.DeliveryLng,
 		DeliveryNote:          req.DeliveryNote,
 		CustomerNote:          req.CustomerNote,
+		PosShiftID:            req.PosShiftID,
+	}
+
+	// POS orders are always linked to the currently open shift so the shift
+	// totals (total_sales / orders_count) join exactly — even if the device
+	// clock is skewed. The cashier desktop sends posShiftId; the dashboard
+	// POS doesn't, so fall back to the shop's open shift.
+	if source == "pos" {
+		if order.PosShiftID == nil || strings.TrimSpace(*order.PosShiftID) == "" {
+			if shiftID, err := s.repo.FindOpenShiftID(ctx, shopID); err == nil && shiftID != "" {
+				order.PosShiftID = &shiftID
+			}
+		}
+		// A stale shift id (shift already closed / other shop) must not point
+		// the order at the wrong shift — fall back to the open one.
+		if order.PosShiftID != nil && !s.repo.ShiftBelongsToShop(ctx, *order.PosShiftID, shopID) {
+			if shiftID, err := s.repo.FindOpenShiftID(ctx, shopID); err == nil && shiftID != "" {
+				order.PosShiftID = &shiftID
+			} else {
+				order.PosShiftID = nil
+			}
+		}
 	}
 
 	if req.Status != nil {
@@ -158,6 +181,26 @@ func (s *Service) createOrderCore(ctx context.Context, req CreateOrderRequest, u
 	if err != nil {
 		logger.Global().Error("create order failed", zap.Error(err))
 		return nil, errors.Internal("create_order_failed", err)
+	}
+
+	// العميل الموحد: اربط الطلب بالعميل المركزي (بحث بالهاتف → إنشاء لو جديد →
+	// عدادات + نقاط ولاء). Best-effot — لا يفشل الطلب أبدًا.
+	{
+		cPhone := customerPhone
+		cName := ""
+		if req.Customer != nil {
+			if cName == "" {
+				cName = strings.TrimSpace(req.Customer.Name)
+			}
+			if cPhone == "" {
+				cPhone = strings.TrimSpace(req.Customer.Phone)
+			}
+		}
+		if cPhone != "" {
+			linkCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			customers.LinkOrderCustomer(linkCtx, s.repo.Pool(), created.ShopID, cPhone, cName, created.Source, created.ID, created.Total)
+			cancel()
+		}
 	}
 
 	// Fire-and-forget: notify the shop about the new order (bell ring on

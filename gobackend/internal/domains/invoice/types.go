@@ -6,6 +6,7 @@ type InvoiceStatus string
 const (
 	InvoiceStatusDraft     InvoiceStatus = "DRAFT"
 	InvoiceStatusPending   InvoiceStatus = "PENDING"
+	InvoiceStatusSent      InvoiceStatus = "SENT"
 	InvoiceStatusPaid      InvoiceStatus = "PAID"
 	InvoiceStatusOverdue   InvoiceStatus = "OVERDUE"
 	InvoiceStatusCancelled InvoiceStatus = "CANCELLED"

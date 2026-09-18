@@ -112,6 +112,7 @@ function LegacyShopView({
 
   return (
     <div
+      className="pb-16 md:pb-0"
       style={{
         backgroundColor: colors.background,
         fontFamily: config.typography?.fontFamily?.body || 'Cairo, Inter, sans-serif',
@@ -461,6 +462,74 @@ function LegacyShopView({
           </div>
         </footer>
       )}
+
+      {/* Mobile App-like Sticky Bottom Bar */}
+      <nav
+        aria-label="التنقل السريع للهاتف"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-3 py-1.5 shadow-xl flex items-center justify-around"
+      >
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl text-[10px] font-bold transition-all ${
+            activeTab === 'home' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <Home size={18} />
+          <span>الرئيسية</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('products');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl text-[10px] font-bold transition-all ${
+            activeTab === 'products' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <ShoppingBag size={18} />
+          <span>المنتجات ({products.length})</span>
+        </button>
+
+        {shop.whatsapp ? (
+          <a
+            href={`https://wa.me/${shop.whatsapp.replace(/\D/g, '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl text-[10px] font-bold text-emerald-600 hover:text-emerald-700 transition-all"
+          >
+            <MessageCircle size={18} />
+            <span>واتساب</span>
+          </a>
+        ) : shop.phone ? (
+          <a
+            href={`tel:${shop.phone}`}
+            className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl text-[10px] font-bold text-blue-600 hover:text-blue-700 transition-all"
+          >
+            <Phone size={18} />
+            <span>اتصال</span>
+          </a>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('info');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-xl text-[10px] font-bold transition-all ${
+            activeTab === 'info' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <Info size={18} />
+          <span>عن المتجر</span>
+        </button>
+      </nav>
     </div>
   );
 }

@@ -30,7 +30,7 @@ func (h *Handler) shopIDAndUser(c *fiber.Ctx) (string, bool, error) {
 	if shopID == "" {
 		shopID = user.ShopID
 	}
-	if !h.shopAllowed(&user, shopID) {
+	if !h.shopAllowed(user, shopID) {
 		return "", false, c.Status(fiber.StatusForbidden).JSON(fiber.Map{"success": false, "error": "Forbidden"})
 	}
 	return shopID, true, nil

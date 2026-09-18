@@ -415,7 +415,7 @@ export default function RetailAddProductPage() {
       });
 
       alert('تم إضافة المنتج بنجاح');
-      router.push('/dashboard/inventory');
+      router.push('/dashboard/inventory/products');
     } catch (err: any) {
       console.error('Failed to save product:', err);
       alert(err?.message || 'فشل حفظ المنتج');

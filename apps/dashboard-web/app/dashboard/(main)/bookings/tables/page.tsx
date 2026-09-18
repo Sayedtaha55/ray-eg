@@ -1,7 +1,6 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import { GenericSubPage } from '@/components/GenericSectionPage';
-
-export default function TablesPage() {
-  return <GenericSubPage pageId="bookings/tables" />;
+/** الطاولات والأماكن تبويب داخل الصفحة الرئيسية للحجوزات */
+export default function TablesRedirect() {
+  redirect('/dashboard/bookings');
 }

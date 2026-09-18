@@ -1,482 +1,414 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { Clock, Calendar, CheckCircle2, XCircle, Loader2, Search, RefreshCw, Download, Filter, ChevronDown, Info, Target, BookOpen, Zap, Link2, ChevronRight, Lightbulb } from 'lucide-react';
-import { apiRequest } from '@/lib/auth';
+/**
+ * صفحة الحضور — سجل حضور الموظفين اليومي (حاضر / متأخر / غائب):
+ * تسجيل حضور لأي موظف، فلترة حسب الحالة والتاريخ، بحث باسم الموظف،
+ * ترقيم صفحات، وتصدير CSV. نفس هيكل صفحات HR الموحدة.
+ */
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CalendarDays, Download, Plus, RefreshCw } from 'lucide-react';
 import { useShop } from '@/hooks/useShop';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import { downloadCsv } from '@/lib/csv';
+import { createAttendance, fetchAttendance, fetchEmployees } from '@/lib/api/hr';
+import type { HrAttendanceRecord, HrAttendanceStatus, HrEmployee } from '@/lib/api/hr';
+import {
+  HR_FILTER_SELECT_CLS,
+  HR_INPUT_CLS,
+  HrEmpty,
+  HrField,
+  HrModal,
+  HrModalActions,
+  HrPageShell,
+  HrPagination,
+  HrRow,
+  HrStatusPill,
+  HrTableCard,
+} from '@/components/hr/HRShell';
+import type { HrTab } from '@/components/hr/HRShell';
+import { HRGuideDrawer } from '@/components/hr/HRGuideDrawer';
 
-type AttendanceRecord = {
-  id: string;
-  employeeName: string;
-  employeeId: string;
-  status: 'present' | 'absent' | 'late' | 'leave';
-  checkIn?: string;
-  checkOut?: string;
-  date: string;
+const TODAY = new Date().toLocaleDateString('en-CA');
+const PER_PAGE = 25;
+const WEEK_AGO = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+const PRIMARY_BTN =
+  'h-10 px-5 rounded-full bg-slate-900 text-white hover:bg-slate-700 text-[12px] font-bold flex items-center gap-1.5 transition-colors';
+const SECONDARY_BTN =
+  'h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 transition-colors';
+
+/** التاريخ بصيغة YYYY-MM-DD من السجل */
+const dateOf = (r: HrAttendanceRecord) => String(r.date || '').slice(0, 10);
+
+/** تصفية التاريخ: today = نفس اليوم، week = آخر 7 أيام، month = نفس السنة والشهر، all = الكل */
+const inDateBucket = (date: string, bucket: string): boolean => {
+  if (bucket === 'all') return true;
+  const d = String(date || '').slice(0, 10);
+  if (!d) return false;
+  if (bucket === 'today') return d === TODAY;
+  if (bucket === 'month') return d.slice(0, 7) === TODAY.slice(0, 7);
+  const parsed = new Date(d);
+  return !Number.isNaN(parsed.getTime()) && parsed >= WEEK_AGO;
 };
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-  present: { label: 'حاضر', color: 'text-green-600', bg: 'bg-green-100', icon: <CheckCircle2 size={12} /> },
-  absent: { label: 'غائب', color: 'text-red-600', bg: 'bg-red-100', icon: <XCircle size={12} /> },
-  late: { label: 'متأخر', color: 'text-amber-600', bg: 'bg-amber-100', icon: <Clock size={12} /> },
-  leave: { label: 'إجازة', color: 'text-blue-600', bg: 'bg-blue-100', icon: <Calendar size={12} /> },
+/** تسمية ولون حالة الحضور */
+const statusMeta = (status: string): { label: string; tone: 'emerald' | 'amber' | 'red' | 'slate' } => {
+  const s = String(status || '').toLowerCase();
+  if (s === 'present') return { label: 'حاضر', tone: 'emerald' };
+  if (s === 'late') return { label: 'متأخر', tone: 'amber' };
+  if (s === 'absent') return { label: 'غائب', tone: 'red' };
+  return { label: s || '—', tone: 'slate' };
 };
-
-/* ============================================================
- * HR Guide System
- * ============================================================ */
-
-type GuideStep = {
-  title: string;
-  description: string;
-};
-
-type GuideLink = {
-  label: string;
-  onClick?: () => void;
-};
-
-type HRGuideData = {
-  purpose: string;
-  whenToUse: string;
-  whatsInside: string[];
-  steps: GuideStep[];
-  bestPractices: string[];
-  tips: string[];
-  shortcuts: string[];
-  relatedLinks?: GuideLink[];
-};
-
-const GuideSectionBlock: React.FC<{
-  icon: any;
-  iconColor: string;
-  iconBg: string;
-  heading: string;
-  children: React.ReactNode;
-}> = ({ icon: Icon, iconColor, iconBg, heading, children }) => (
-  <div className="rounded-xl border border-slate-100 p-4 bg-white">
-    <div className="flex items-center gap-2.5 mb-3">
-      <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${iconBg} ${iconColor} shrink-0`}>
-        <Icon size={16} />
-      </div>
-      <h4 className="font-bold text-slate-900 text-sm">{heading}</h4>
-    </div>
-    {children}
-  </div>
-);
-
-const HRGuideContent: React.FC<{ guide: HRGuideData }> = ({ guide }) => (
-  <div className="space-y-4">
-    <GuideSectionBlock icon={Target} iconColor="text-blue-600" iconBg="bg-blue-50" heading="وظيفة الصفحة / Page Purpose">
-      <p className="text-slate-600 text-sm leading-relaxed">{guide.purpose}</p>
-    </GuideSectionBlock>
-
-    <GuideSectionBlock icon={Clock} iconColor="text-amber-600" iconBg="bg-amber-50" heading="متى تستخدمها / When to Use">
-      <p className="text-slate-600 text-sm leading-relaxed">{guide.whenToUse}</p>
-    </GuideSectionBlock>
-
-    <GuideSectionBlock icon={BookOpen} iconColor="text-purple-600" iconBg="bg-purple-50" heading="ماذا ستجد داخلها / What's Inside">
-      <ul className="space-y-1.5">
-        {guide.whatsInside.map((item, i) => (
-          <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-            <ChevronRight size={14} className="text-slate-300 mt-0.5 shrink-0" />
-            {item}
-          </li>
-        ))}
-      </ul>
-    </GuideSectionBlock>
-
-    {guide.steps.length > 0 && (
-      <GuideSectionBlock icon={Zap} iconColor="text-cyan-600" iconBg="bg-cyan-50" heading="خطوات الاستخدام / How to Use">
-        <ol className="space-y-2">
-          {guide.steps.map((step, i) => (
-            <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-xs font-bold shrink-0">{i + 1}</span>
-              <div>
-                <div className="font-semibold text-slate-900">{step.title}</div>
-                <div className="text-slate-500">{step.description}</div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </GuideSectionBlock>
-    )}
-
-    {guide.bestPractices.length > 0 && (
-      <GuideSectionBlock icon={Target} iconColor="text-green-600" iconBg="bg-green-50" heading="أفضل الممارسات / Best Practices">
-        <ul className="space-y-1.5">
-          {guide.bestPractices.map((practice, i) => (
-            <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-              <CheckCircle2 size={14} className="text-green-500 mt-0.5 shrink-0" />
-              {practice}
-            </li>
-          ))}
-        </ul>
-      </GuideSectionBlock>
-    )}
-
-    {guide.tips.length > 0 && (
-      <GuideSectionBlock icon={Lightbulb} iconColor="text-amber-600" iconBg="bg-amber-50" heading="نصائح / Tips">
-        <ul className="space-y-1.5">
-          {guide.tips.map((tip, i) => (
-            <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-              <Zap size={14} className="text-amber-500 mt-0.5 shrink-0" />
-              {tip}
-            </li>
-          ))}
-        </ul>
-      </GuideSectionBlock>
-    )}
-
-    {guide.shortcuts.length > 0 && (
-      <GuideSectionBlock icon={Link2} iconColor="text-indigo-600" iconBg="bg-indigo-50" heading="اختصارات / Shortcuts">
-        <ul className="space-y-1.5">
-          {guide.shortcuts.map((shortcut, i) => (
-            <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-              <ChevronRight size={14} className="text-indigo-400 mt-0.5 shrink-0" />
-              {shortcut}
-            </li>
-          ))}
-        </ul>
-      </GuideSectionBlock>
-    )}
-
-    {guide.relatedLinks && guide.relatedLinks.length > 0 && (
-      <GuideSectionBlock icon={Link2} iconColor="text-slate-600" iconBg="bg-slate-100" heading="روابط ذات صلة / Related Links">
-        <div className="flex flex-wrap gap-2">
-          {guide.relatedLinks.map((link, i) => (
-            <button
-              key={i}
-              onClick={link.onClick}
-              className="px-3 py-1.5 rounded-lg bg-slate-50 text-slate-700 text-xs font-semibold hover:bg-slate-100 transition-all"
-            >
-              {link.label}
-            </button>
-          ))}
-        </div>
-      </GuideSectionBlock>
-    )}
-  </div>
-);
-
-const InfoDrawer: React.FC<{
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}> = ({ title, onClose, children }) => (
-  <div className="fixed inset-0 z-50 flex" onClick={onClose}>
-    <div className="absolute inset-0 bg-black/40 animate-[fadeIn_0.15s_ease-out]" />
-    <div
-      className="relative ml-auto h-full w-full max-w-md bg-white shadow-2xl overflow-y-auto"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between z-10">
-        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-          <Info size={20} className="text-slate-400" />
-          {title}
-        </h3>
-        <button onClick={onClose} className="p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all">
-          <XCircle size={20} />
-        </button>
-      </div>
-      <div className="px-6 py-5 space-y-5 text-sm text-slate-600 leading-relaxed">{children}</div>
-      <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-3">
-        <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">
-          حسناً
-        </button>
-      </div>
-    </div>
-  </div>
-);
 
 export default function AttendancePage() {
-  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const { shop, loading: shopLoading } = useShop();
+  const shopId = shop?.id || '';
+
+  const [records, setRecords] = useState<HrAttendanceRecord[]>([]);
+  const [employees, setEmployees] = useState<HrEmployee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 200);
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [dateRange, setDateRange] = useState('today');
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [statusTab, setStatusTab] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [sort, setSort] = useState('newest');
+  const [page, setPage] = useState(1);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  // حقول مودال تسجيل حضور
+  const [employeeId, setEmployeeId] = useState('');
+  const [employeeName, setEmployeeName] = useState('');
+  const [date, setDate] = useState(TODAY);
+  const [checkIn, setCheckIn] = useState('');
+  const [status, setStatus] = useState<HrAttendanceStatus>('present');
+  const [formError, setFormError] = useState('');
 
-  const { shop } = useShop();
-
-  const attendanceGuide: HRGuideData = {
-    purpose: 'تتبع حضور وانصراف الموظفين يومياً مع إمكانية تصفية السجلات حسب التاريخ والحالة وتصدير التقارير.',
-    whenToUse: 'استخدم هذه الصفحة يومياً لتسجيل حضور الموظفين، مراجعة سجلات الحضور، وتصدير تقارير الحضور الشهرية.',
-    whatsInside: [
-      'سجلات الحضور اليومية',
-      'تصفية حسب الحالة (حاضر، غائب، متأخر، إجازة)',
-      'تصفية حسب التاريخ (اليوم، الأسبوع، الشهر)',
-      'إحصائيات الحضور',
-      'تصدير تقارير CSV',
-      'بحث متقدم'
-    ],
-    steps: [
-      { title: 'تسجيل الحضور', description: 'اضغط على زر تسجيل الحضور عند وصول الموظف' },
-      { title: 'تسجيل الانصراف', description: 'اضغط على زر تسجيل الانصراف عند مغادرة الموظف' },
-      { title: 'تصفية السجلات', description: 'استخدم فلاتر الحالة والتاريخ للوصول للسجلات المطلوبة' },
-      { title: 'تصدير التقرير', description: 'اضغط على زر تصدير CSV للحصول على تقرير الحضور' }
-    ],
-    bestPractices: [
-      'سجل الحضور والانصراف في الوقت المحدد',
-      'راجع سجلات الحضور يومياً',
-      'استخدم الفلاتر للوصول السريع للبيانات',
-      'صدر تقارير دورية للمتابعة'
-    ],
-    tips: [
-      'يمكنك البحث عن موظف محدد باستخدام شريط البحث',
-      'الألوان المختلفة تشير إلى حالات مختلفة',
-      'يمكنك ترتيب السجلات حسب التاريخ أو الاسم'
-    ],
-    shortcuts: [
-      'استخدم مفتاح Enter للبحث السريع',
-      'اضغط F5 لتحديث البيانات'
-    ],
-    relatedLinks: [
-      { label: 'إدارة الموظفين', onClick: () => window.location.href = '/dashboard/hr' },
-      { label: 'الإجازات', onClick: () => window.location.href = '/dashboard/hr/leaves' }
-    ]
-  };
-
-  const loadAttendance = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async () => {
+    if (!shopId) return;
     try {
-      const shopData = await apiRequest('/shops/me');
-      const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
-      
-      // TODO: Replace with actual API call
-      // const data = await apiRequest(`/attendance/shop/${sid}`);
-      // setRecords(Array.isArray(data) ? data : []);
-      setRecords([]);
-    } catch { setRecords([]); } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { loadAttendance(); }, [loadAttendance]);
-
-  const filteredAndSorted = React.useMemo(() => {
-    let result = records.filter(r => 
-      r.employeeName.toLowerCase().includes(debouncedSearch.toLowerCase())
-    );
-
-    if (filterStatus !== 'all') {
-      result = result.filter(r => r.status === filterStatus);
+      const data = await fetchAttendance(shopId);
+      setRecords(data);
+      fetchEmployees(shopId).then(setEmployees).catch(() => {});
+    } catch (err: any) {
+      setError(err?.message || 'تعذر تحميل سجل الحضور');
+    } finally {
+      setLoading(false);
     }
+  }, [shopId]);
 
-    const now = new Date();
-    if (dateRange === 'today') {
-      result = result.filter(r => new Date(r.date).toDateString() === now.toDateString());
-    } else if (dateRange === 'week') {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      result = result.filter(r => new Date(r.date) >= weekAgo);
-    } else if (dateRange === 'month') {
-      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      result = result.filter(r => new Date(r.date) >= monthAgo);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    setError('');
+    try {
+      await load();
+    } finally {
+      setRefreshing(false);
     }
-
-    result = [...result].sort((a, b) => {
-      let comparison = 0;
-      if (sortBy === 'date') {
-        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
-      } else if (sortBy === 'name') {
-        comparison = a.employeeName.localeCompare(b.employeeName);
-      }
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-    return result;
-  }, [records, debouncedSearch, filterStatus, dateRange, sortBy, sortOrder]);
-
-  const totalPages = Math.ceil(filteredAndSorted.length / itemsPerPage);
-  const paginatedData = filteredAndSorted.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const exportCSV = () => {
-    const headers = ['Employee Name', 'Status', 'Check In', 'Check Out', 'Date'];
-    const rows = filteredAndSorted.map(r => [
-      r.employeeName,
-      r.status,
-      r.checkIn || '-',
-      r.checkOut || '-',
-      new Date(r.date).toLocaleDateString('ar-EG')
-    ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'attendance.csv';
-    link.click();
   };
 
-  const statusCounts = React.useMemo(() => 
-    Object.keys(STATUS_CONFIG).map(key => ({
-      key,
-      count: records.filter(r => r.status === key).length,
-      ...STATUS_CONFIG[key]
-    })), [records]
+  /* حضور اليوم (حاضر أو متأخر) وعدد الموظفين النشطين — للعنوان الفرعي */
+  const todayPresent = useMemo(
+    () =>
+      records.filter((r) => {
+        const s = String(r.status || '').toLowerCase();
+        return dateOf(r) === TODAY && (s === 'present' || s === 'late');
+      }).length,
+    [records]
   );
+  const activeEmployees = useMemo(
+    () =>
+      employees.length > 0
+        ? employees.filter((e) => String(e.status || 'active').toLowerCase() === 'active').length
+        : records.length,
+    [employees, records]
+  );
+
+  const tabs: HrTab[] = useMemo(
+    () => [
+      { id: 'all', label: 'الكل', count: records.length },
+      { id: 'present', label: 'حاضر', count: records.filter((r) => String(r.status).toLowerCase() === 'present').length },
+      { id: 'late', label: 'متأخر', count: records.filter((r) => String(r.status).toLowerCase() === 'late').length },
+      { id: 'absent', label: 'غائب', count: records.filter((r) => String(r.status).toLowerCase() === 'absent').length },
+    ],
+    [records]
+  );
+
+  const filtered = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    const list = records.filter(
+      (r) =>
+        (statusTab === 'all' || String(r.status).toLowerCase() === statusTab) &&
+        inDateBucket(String(r.date), dateFilter) &&
+        (!q || String(r.employeeName || '').toLowerCase().includes(q))
+    );
+    if (sort === 'name')
+      return [...list].sort((a, b) => String(a.employeeName || '').localeCompare(String(b.employeeName || ''), 'ar'));
+    if (sort === 'oldest')
+      return [...list].sort(
+        (a, b) => dateOf(a).localeCompare(dateOf(b)) || String(a.checkIn || '').localeCompare(String(b.checkIn || ''))
+      );
+    return [...list].sort(
+      (a, b) => dateOf(b).localeCompare(dateOf(a)) || String(b.checkIn || '').localeCompare(String(a.checkIn || ''))
+    );
+  }, [records, statusTab, dateFilter, debouncedSearch, sort]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const paginated = useMemo(() => filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE), [filtered, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, statusTab, dateFilter, sort]);
+
+  const exportCsv = () => {
+    downloadCsv(
+      `attendance-${TODAY}.csv`,
+      ['الموظف', 'التاريخ', 'الحضور', 'الانصراف', 'الساعات', 'الحالة'],
+      filtered.map((r) => [
+        r.employeeName || '',
+        dateOf(r) || '—',
+        r.checkIn || '—',
+        r.checkOut || '—',
+        r.hours || '',
+        statusMeta(String(r.status)).label,
+      ])
+    );
+  };
+
+  const openModal = () => {
+    setEmployeeId('');
+    setEmployeeName('');
+    setDate(TODAY);
+    setCheckIn(new Date().toTimeString().slice(0, 5));
+    setStatus('present');
+    setFormError('');
+    setModalOpen(true);
+  };
+
+  const submitAttendance = async () => {
+    if (!shopId) return;
+    if (!employeeId || !employeeName) {
+      setFormError('اختر موظفاً');
+      return;
+    }
+    setSaving(true);
+    setFormError('');
+    try {
+      await createAttendance(shopId, {
+        employee_id: employeeId,
+        employeeName,
+        date,
+        checkIn,
+        status,
+      });
+      setModalOpen(false);
+      await load();
+    } catch (err: any) {
+      setError(err?.message || 'تعذر تسجيل الحضور');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <Clock size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">الحضور والانصراف</h1>
-            <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-              <Info size={18} />
+    <>
+      <HrPageShell
+        title="الحضور"
+        subtitle={`سجل حضور الفريق — حضور اليوم: ${todayPresent} من ${activeEmployees} موظف`}
+        onInfo={() => setGuideOpen(true)}
+        actions={
+          <>
+            <button onClick={openModal} className={PRIMARY_BTN}>
+              <Plus size={15} />
+              تسجيل حضور
             </button>
-          </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">تتبع حضور وانصراف الموظفين</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all">
-          <Download size={16} />
-          <span>تصدير CSV</span>
-        </button>
-        <button onClick={loadAttendance} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-all">
-          <RefreshCw size={16} />
-          <span>تحديث</span>
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {statusCounts.map(s => (
-          <button 
-            key={s.key} 
-            onClick={() => setFilterStatus(filterStatus === s.key ? 'all' : s.key)}
-            className={`p-3 rounded-xl border text-center transition-all ${
-              filterStatus === s.key ? 'border-slate-900 bg-slate-50' : 'border-slate-100 hover:border-slate-200 bg-white'
-            }`}
-          >
-            <div className={`flex items-center justify-center gap-1 mb-1 ${s.color}`}>
-              {s.icon}
-              <span className="text-xs font-bold">{s.label}</span>
-            </div>
-            <div className="text-lg font-black text-slate-900">{s.count}</div>
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3 p-4 rounded-2xl border border-slate-100 bg-white">
-        <div className="flex items-center gap-2">
-          <Filter size={16} className="text-slate-400" />
-          <span className="text-sm font-bold text-slate-600">تصفية:</span>
-        </div>
-        <select 
-          value={dateRange}
-          onChange={(e) => setDateRange(e.target.value)}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#00E5FF]"
+            <button onClick={exportCsv} className={SECONDARY_BTN}>
+              <Download size={15} />
+              تصدير CSV
+            </button>
+            <button onClick={refresh} className={SECONDARY_BTN}>
+              <RefreshCw size={15} className={loading || shopLoading || refreshing ? 'animate-spin' : ''} />
+              تحديث
+            </button>
+          </>
+        }
+        error={error || undefined}
+        onDismissError={() => setError('')}
+        tabs={tabs}
+        activeTab={statusTab}
+        onTabChange={setStatusTab}
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="ابحث باسم الموظف…"
+        filters={
+          <>
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className={HR_FILTER_SELECT_CLS}
+            >
+              <option value="all">كل التواريخ</option>
+              <option value="today">اليوم</option>
+              <option value="week">آخر 7 أيام</option>
+              <option value="month">هذا الشهر</option>
+            </select>
+            <select value={sort} onChange={(e) => setSort(e.target.value)} className={HR_FILTER_SELECT_CLS}>
+              <option value="newest">الأحدث</option>
+              <option value="oldest">الأقدم</option>
+              <option value="name">الاسم</option>
+            </select>
+          </>
+        }
+        loading={loading || shopLoading}
+        empty={
+          filtered.length === 0 ? (
+            <HrEmpty
+              icon={CalendarDays}
+              title={records.length === 0 ? 'لا توجد سجلات حضور بعد' : 'لا توجد نتائج مطابقة للبحث أو الفلترة'}
+            >
+              {records.length === 0 && <p className="text-xs text-slate-400">اضغط «تسجيل حضور» لتسجيل أول سجل</p>}
+            </HrEmpty>
+          ) : undefined
+        }
+        footer={
+          <HrPagination
+            page={page}
+            totalPages={totalPages}
+            total={filtered.length}
+            perPage={PER_PAGE}
+            onPage={setPage}
+            label="سجل"
+          />
+        }
+      >
+        <HrTableCard
+          columns={[
+            { label: 'الموظف', className: 'col-span-3' },
+            { label: 'التاريخ', className: 'col-span-2' },
+            { label: 'الحضور', className: 'col-span-2' },
+            { label: 'الانصراف', className: 'col-span-2' },
+            { label: 'الحالة', className: 'col-span-3' },
+          ]}
         >
-          <option value="today">اليوم</option>
-          <option value="week">هذا الأسبوع</option>
-          <option value="month">هذا الشهر</option>
-        </select>
-        <div className="flex items-center gap-2 mr-4">
-          <ChevronDown size={16} className="text-slate-400" />
-          <span className="text-sm font-bold text-slate-600">ترتيب:</span>
-        </div>
-        <select 
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#00E5FF]"
-        >
-          <option value="date">التاريخ</option>
-          <option value="name">الاسم</option>
-        </select>
-      </div>
-
-      <div className="relative">
-        <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="بحث عن موظف..."
-          className="w-full pr-12 pl-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-        />
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : paginatedData.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <Calendar size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm">لا توجد سجلات حضور</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="divide-y divide-slate-100">
-            {paginatedData.map((rec) => (
-              <div key={rec.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    rec.status === 'present' ? 'bg-green-50' : 
-                    rec.status === 'absent' ? 'bg-red-50' : 
-                    rec.status === 'late' ? 'bg-amber-50' : 'bg-blue-50'
-                  }`}>
-                    {STATUS_CONFIG[rec.status].icon}
-                  </div>
-                  <div>
-                    <div className="font-bold text-sm text-slate-900">{rec.employeeName}</div>
-                    <div className="text-xs text-slate-500 font-semibold">
-                      {rec.checkIn && `دخول: ${rec.checkIn}`} {rec.checkOut && `| خروج: ${rec.checkOut}`}
-                    </div>
+          {paginated.map((r) => {
+            const meta = statusMeta(String(r.status));
+            return (
+              <HrRow key={r.id}>
+                <div className="col-span-3 min-w-0">
+                  <div className="font-bold text-slate-800 text-[13px] truncate">{r.employeeName || '—'}</div>
+                  <div className="text-[11px] text-slate-400 truncate" dir="ltr">
+                    {r.employee_id ? `${r.employee_id.slice(0, 8)}…` : '—'}
                   </div>
                 </div>
-                <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                  STATUS_CONFIG[rec.status].bg
-                } ${STATUS_CONFIG[rec.status].color}`}>
-                  {STATUS_CONFIG[rec.status].label}
-                </span>
-              </div>
-            ))}
-          </div>
-          
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between p-4 border-t border-slate-100">
-              <span className="text-xs text-slate-500 font-semibold">
-                صفحة {currentPage} من {totalPages}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  السابق
-                </button>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  التالي
-                </button>
-              </div>
+                <div className="col-span-2 text-slate-600 text-[12px] tabular-nums" dir="ltr">
+                  {dateOf(r) || '—'}
+                </div>
+                <div className="col-span-2 text-slate-800 text-[13px] font-bold tabular-nums" dir="ltr">
+                  {r.checkIn || '—'}
+                </div>
+                <div className="col-span-2 min-w-0">
+                  <div className="text-[13px] tabular-nums" dir="ltr">
+                    {r.checkOut ? (
+                      <span className="font-bold text-slate-800">{r.checkOut}</span>
+                    ) : (
+                      <span className="text-slate-300">—</span>
+                    )}
+                  </div>
+                  {r.hours ? <div className="text-[11px] text-slate-400">({r.hours} ساعات)</div> : null}
+                </div>
+                <div className="col-span-3">
+                  <HrStatusPill tone={meta.tone}>{meta.label}</HrStatusPill>
+                </div>
+              </HrRow>
+            );
+          })}
+        </HrTableCard>
+      </HrPageShell>
+
+      {modalOpen && (
+        <HrModal
+          title="تسجيل حضور"
+          subtitle="سجّل حضور موظف ليوم العمل"
+          onClose={() => setModalOpen(false)}
+          footer={
+            <HrModalActions
+              onCancel={() => setModalOpen(false)}
+              onSubmit={submitAttendance}
+              submitting={saving}
+              submitLabel="تسجيل"
+            />
+          }
+        >
+          {formError && (
+            <div className="px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[12px] font-bold">
+              {formError}
             </div>
           )}
-        </div>
+          <HrField label="الموظف" required>
+            {employees.length === 0 ? (
+              <select value="" disabled className={HR_INPUT_CLS}>
+                <option value="">أضف موظفين أولاً من صفحة الموظفين</option>
+              </select>
+            ) : (
+              <select
+                value={employeeId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setEmployeeId(id);
+                  setEmployeeName(employees.find((emp) => emp.id === id)?.name || '');
+                }}
+                className={HR_INPUT_CLS}
+              >
+                <option value="">— اختر الموظف —</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </HrField>
+          <div className="grid grid-cols-2 gap-3">
+            <HrField label="التاريخ">
+              <input
+                type="date"
+                dir="ltr"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className={HR_INPUT_CLS}
+              />
+            </HrField>
+            <HrField label="وقت الحضور">
+              <input
+                type="time"
+                dir="ltr"
+                value={checkIn}
+                onChange={(e) => setCheckIn(e.target.value)}
+                className={HR_INPUT_CLS}
+              />
+            </HrField>
+          </div>
+          <HrField label="الحالة">
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as HrAttendanceStatus)}
+              className={HR_INPUT_CLS}
+            >
+              <option value="present">حاضر</option>
+              <option value="late">متأخر</option>
+              <option value="absent">غائب</option>
+            </select>
+          </HrField>
+        </HrModal>
       )}
 
-      {guideOpen && (
-        <InfoDrawer title="الحضور والانصراف" onClose={() => setGuideOpen(false)}>
-          <HRGuideContent guide={attendanceGuide} />
-        </InfoDrawer>
-      )}
-    </div>
+      <HRGuideDrawer page="attendance" title="دليل صفحة الحضور" open={guideOpen} onClose={() => setGuideOpen(false)} />
+    </>
   );
 }

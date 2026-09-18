@@ -23,7 +23,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen pt-16 md:pt-20 pb-16 lg:pb-0">{children}</main>
+      <main className="min-h-screen pb-16 lg:pb-0">{children}</main>
       <Footer />
       <MobileFooter />
       <CartDrawer />

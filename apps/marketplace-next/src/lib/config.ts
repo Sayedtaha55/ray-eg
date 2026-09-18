@@ -20,21 +20,46 @@ export const navLinks = [
   { href: '/', label: { ar: 'الرئيسية', en: 'Home' } },
   { href: '/offers', label: { ar: 'العروض', en: 'Offers' } },
   { href: '/map', label: { ar: 'الخريطة', en: 'Map' } },
-  { href: '/dalil', label: { ar: 'الدليل', en: 'Guide' } },
+  { href: '/dalil', label: { ar: 'الأقسام', en: 'Categories' } },
 ];
 
+// الأنشطة الأساسية المعروضة في الصفحة الرئيسية والدليل.
+// image: مسار صورة القسم — استبدل الملف في public/images/activities/ بنفس الاسم
+// لتغيير الصورة (SVG أو PNG أو WEBP) بدون تعديل الكود.
 export const activities = [
-  { id: 'cars', label: { ar: 'سيارات', en: 'Cars' }, icon: '🚗' },
-  { id: 'real-estate', label: { ar: 'عقارات', en: 'Real Estate' }, icon: '🏠' },
-  { id: 'agriculture', label: { ar: 'زراعة', en: 'Agriculture' }, icon: '🌱' },
-  { id: 'medical', label: { ar: 'طبي', en: 'Medical' }, icon: '⚕️' },
-  { id: 'factories', label: { ar: 'مصانع', en: 'Factories' }, icon: '🏭' },
-  { id: 'construction', label: { ar: 'مقاولات', en: 'Construction' }, icon: '🏗️' },
-  { id: 'trade', label: { ar: 'تجارة', en: 'Trade' }, icon: '📦' },
-  { id: 'tourism', label: { ar: 'سياحة', en: 'Tourism' }, icon: '✈️' },
-  { id: 'animal', label: { ar: 'حيوانات', en: 'Animals' }, icon: '🐾' },
-  { id: 'fish', label: { ar: 'أسماك', en: 'Fish' }, icon: '🐟' },
-  { id: 'energy', label: { ar: 'طاقة', en: 'Energy' }, icon: '⚡' },
-  { id: 'professional', label: { ar: 'خدمات مهنية', en: 'Professional' }, icon: '💼' },
-  { id: 'home', label: { ar: 'خدمات منزلية', en: 'Home Services' }, icon: '🏡' },
+  {
+    id: 'cars',
+    label: { ar: 'سيارات', en: 'Cars' },
+    image: '/images/activities/cars.svg',
+  },
+  {
+    id: 'real-estate',
+    label: { ar: 'عقارات', en: 'Real Estate' },
+    image: '/images/activities/real-estate.svg',
+  },
+  {
+    id: 'agriculture',
+    label: { ar: 'زراعة', en: 'Agriculture' },
+    image: '/images/activities/agriculture.svg',
+  },
+  {
+    id: 'medical',
+    label: { ar: 'طبي', en: 'Medical' },
+    image: '/images/activities/medical.svg',
+  },
+  {
+    id: 'construction',
+    label: { ar: 'مقاولات', en: 'Construction' },
+    image: '/images/activities/construction.svg',
+  },
+  {
+    id: 'professional',
+    label: { ar: 'خدمات مهنية', en: 'Professional' },
+    image: '/images/activities/professional.svg',
+  },
+  {
+    id: 'home',
+    label: { ar: 'خدمات منزلية', en: 'Home Services' },
+    image: '/images/activities/home.svg',
+  },
 ];

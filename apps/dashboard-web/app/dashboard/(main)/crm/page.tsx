@@ -1,704 +1,541 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Users, Search, Loader2, Plus, Edit, Trash2, Download, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info, Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, Mail, Phone, MapPin, ShoppingBag, Star, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
+import {
+  Users, Search, Loader2, Plus, Download, ChevronDown, ChevronLeft, Check, Info,
+  AlertTriangle, Archive, ArchiveRestore, MessageCircle, Eye, Pencil,
+} from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import { useShop } from '@/hooks/useShop';
 
-type Customer = {
+/* ============================================================
+ * العملاء — القائمة المركزية الموحدة (كيان واحد لكل النظام)
+ * ============================================================ */
+
+type ShopCustomer = {
   id: string;
+  code: string;
   name: string;
-  nameAr: string;
   email: string;
   phone: string;
-  address: string;
+  customerType: string; // individual | company
+  companyName: string;
+  status: string; // active | inactive | blocked
   city: string;
-  country: string;
-  status: 'active' | 'inactive' | 'blocked';
+  branch: string;
+  source: string;
+  segmentId: string;
+  tags: string[];
+  archived: boolean;
+  loyaltyBalance: number;
+  balanceDue: number;
   totalOrders: number;
   totalSpent: number;
-  lastOrderDate: string;
-  registrationDate: string;
-  loyaltyPoints: number;
-  averageOrderValue: number;
-  description: string;
+  lastPurchaseAt: string | null;
   createdAt: string;
-  updatedAt: string;
+};
+
+type Tag = { id: string; name: string; nameAr?: string; color?: string };
+type Segment = { id: string; name: string; nameAr?: string };
+
+const SOURCE_LABELS: Record<string, string> = {
+  pos: 'الكاشير', website: 'الموقع', bookings: 'الحجوزات', services: 'الخدمات',
+  manual: 'يدوي', import: 'استيراد', app: 'تطبيق العميل', customer: 'الموقع',
+};
+
+const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
+  active: { label: 'نشط', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  inactive: { label: 'غير نشط', cls: 'bg-slate-50 text-slate-600 border-slate-200' },
+  blocked: { label: 'محظور', cls: 'bg-red-50 text-red-600 border-red-200' },
 };
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const { shop } = useShop();
+  const shopId = shop?.id || '';
+  const [customers, setCustomers] = useState<ShopCustomer[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [segments, setSegments] = useState<Segment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 200);
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [guideOpen, setGuideOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('createdAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [statusTab, setStatusTab] = useState<string>('all'); // all|active|inactive|blocked|debtors
+  const [sourceFilter, setSourceFilter] = useState('');
+  const [segmentFilter, setSegmentFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedActivity, setExpandedActivity] = useState<Record<string, any[]>>({});
+  const [archivingId, setArchivingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [addModal, setAddModal] = useState(false);
-  const [editModal, setEditModal] = useState(false);
-  const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    nameAr: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    country: '',
-    status: 'active' as 'active' | 'inactive' | 'blocked',
-    description: '',
-  });
 
-  const loadCustomers = useCallback(async () => {
+  const load = useCallback(async () => {
+    if (!shopId) return;
     setLoading(true);
+    setError('');
     try {
-      const shopData = await apiRequest('/shops/me');
-      const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
-      const res = await apiRequest(`/customers/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
-      setCustomers(data.map((c: any) => ({
-        id: String(c.id),
-        name: c.name || '---',
-        nameAr: c.nameAr || c.name_ar || '---',
-        email: c.email || '---',
-        phone: c.phone || '---',
-        address: c.address || '---',
-        city: c.city || '---',
-        country: c.country || '---',
-        status: c.status || 'active',
-        totalOrders: Number(c.totalOrders || c.total_orders || 0),
-        totalSpent: Number(c.totalSpent || c.total_spent || 0),
-        lastOrderDate: c.lastOrderDate || c.last_order_date || null,
-        registrationDate: c.registrationDate || c.registration_date || new Date().toISOString(),
-        loyaltyPoints: Number(c.loyaltyPoints || c.loyalty_points || 0),
-        averageOrderValue: Number(c.averageOrderValue || c.average_order_value || 0),
-        description: c.description || '',
-        createdAt: c.createdAt || new Date().toISOString(),
-        updatedAt: c.updatedAt || new Date().toISOString(),
-      })));
-    } catch { setCustomers([]); } finally { setLoading(false); }
-  }, []);
+      const [custsRes, tagsRes, segRes] = await Promise.allSettled([
+        apiRequest(`/shops/${shopId}/customers?limit=500`),
+        apiRequest(`/shops/${shopId}/tags`),
+        apiRequest(`/shops/${shopId}/segments`),
+      ]);
+      if (custsRes.status === 'fulfilled') {
+        const data = Array.isArray(custsRes.value) ? custsRes.value : (custsRes.value?.data || []);
+        setCustomers(Array.isArray(data) ? data : []);
+      } else {
+        setCustomers([]);
+        setError('تعذر تحميل العملاء');
+      }
+      if (tagsRes.status === 'fulfilled') {
+        const t = Array.isArray(tagsRes.value) ? tagsRes.value : (tagsRes.value?.data || []);
+        setTags(Array.isArray(t) ? t : []);
+      }
+      if (segRes.status === 'fulfilled') {
+        const s = Array.isArray(segRes.value) ? segRes.value : (segRes.value?.data || []);
+        setSegments(Array.isArray(s) ? s : []);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [shopId]);
 
-  useEffect(() => { loadCustomers(); }, [loadCustomers]);
+  useEffect(() => { load(); }, [load]);
+
+  const tagName = (id: string) => {
+    const t = tags.find((x) => x.id === id);
+    return t?.nameAr || t?.name || id;
+  };
+  const tagColor = (id: string) => tags.find((x) => x.id === id)?.color || '#64748B';
+  const segmentName = (id: string) => {
+    const s = segments.find((x) => x.id === id);
+    return s?.nameAr || s?.name || '';
+  };
+
+  const counts = useMemo(() => ({
+    all: customers.length,
+    active: customers.filter((c) => c.status === 'active').length,
+    inactive: customers.filter((c) => c.status === 'inactive').length,
+    blocked: customers.filter((c) => c.status === 'blocked').length,
+    debtors: customers.filter((c) => c.balanceDue > 0).length,
+  }), [customers]);
 
   const filtered = useMemo(() => {
-    let result = customers.filter(c =>
-      c.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      c.nameAr.includes(debouncedSearch) ||
-      c.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      c.phone.includes(debouncedSearch)
-    );
-
-    if (filterStatus !== 'all') {
-      result = result.filter(c => c.status === filterStatus);
-    }
-
-    result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'name' ? a.name : sortBy === 'totalSpent' ? a.totalSpent : sortBy === 'totalOrders' ? a.totalOrders : a.createdAt;
-      const bVal = sortBy === 'name' ? b.name : sortBy === 'totalSpent' ? b.totalSpent : sortBy === 'totalOrders' ? b.totalOrders : b.createdAt;
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-      }
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
-      }
-      return 0;
-    });
-
+    let result = [...customers];
+    if (statusTab === 'debtors') result = result.filter((c) => c.balanceDue > 0);
+    else if (statusTab !== 'all') result = result.filter((c) => c.status === statusTab);
+    if (sourceFilter) result = result.filter((c) => c.source === sourceFilter);
+    if (segmentFilter) result = result.filter((c) => c.segmentId === segmentFilter);
+    if (tagFilter) result = result.filter((c) => (c.tags || []).includes(tagFilter));
     return result;
-  }, [customers, debouncedSearch, filterStatus, sortBy, sortOrder]);
+  }, [customers, statusTab, sourceFilter, segmentFilter, tagFilter]);
 
-  const paginatedCustomers = useMemo(() => {
+  const paginated = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filtered.slice(start, start + itemsPerPage);
   }, [filtered, currentPage, itemsPerPage]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
 
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-
-  const toggleSelectAll = useCallback(() => {
-    if (selectedIds.size === paginatedCustomers.length && paginatedCustomers.length > 0) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(paginatedCustomers.map(c => c.id)));
-    }
-  }, [paginatedCustomers, selectedIds.size]);
-
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const bulkDelete = useCallback(async () => {
-    if (selectedIds.size === 0) return;
-    if (!confirm(`هل أنت متأكد من حذف ${selectedIds.size} عميل؟`)) return;
-    try {
-      // TODO: Implement bulk delete API call
-      alert(`تم حذف ${selectedIds.size} عميل`);
-      setSelectedIds(new Set());
-      loadCustomers();
-    } catch (error) {
-      alert('حدث خطأ أثناء الحذف');
-    }
-  }, [selectedIds, loadCustomers]);
+  useEffect(() => { setCurrentPage(1); }, [statusTab, sourceFilter, segmentFilter, tagFilter, debouncedSearch, showArchived]);
 
   const exportCSV = useCallback(() => {
-    const headers = ['Name', 'Name (Arabic)', 'Email', 'Phone', 'Address', 'City', 'Country', 'Status', 'Total Orders', 'Total Spent', 'Last Order Date', 'Registration Date', 'Loyalty Points', 'Average Order Value', 'Created At'];
-    const rows = filtered.map(c => [
-      c.name,
-      c.nameAr,
-      c.email,
-      c.phone,
-      c.address,
-      c.city,
-      c.country,
-      c.status,
-      c.totalOrders,
-      c.totalSpent,
-      c.lastOrderDate || '-',
-      c.registrationDate,
-      c.loyaltyPoints,
-      c.averageOrderValue,
-      c.createdAt
-    ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csv = [
+      ['الكود', 'الاسم', 'الهاتف', 'الإيميل', 'النوع', 'المصدر', 'الحالة', 'الطلبات', 'المبيعات', 'المستحق', 'نقاط الولاء', 'التسجيل'].join(','),
+      ...filtered.map((c) => [
+        c.code, c.name, c.phone, c.email,
+        c.customerType === 'company' ? 'شركة' : 'فرد',
+        SOURCE_LABELS[c.source] || c.source, c.status,
+        c.totalOrders, c.totalSpent, c.balanceDue, c.loyaltyBalance,
+        new Date(c.createdAt).toLocaleDateString('ar-EG'),
+      ].join(',')),
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'customers.csv';
+    link.download = `customers-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   }, [filtered]);
 
-  const handleAdd = useCallback(async () => {
+  const toggleArchive = async (c: ShopCustomer) => {
+    setArchivingId(c.id);
     try {
-      const shopData = await apiRequest('/shops/me');
-      const sid = shopData?.id;
-      if (!sid) return;
-      await apiRequest('/customers', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...formData,
-          shopId: sid,
-        }),
-      });
-      setAddModal(false);
-      setFormData({ name: '', nameAr: '', email: '', phone: '', address: '', city: '', country: '', status: 'active', description: '' });
-      loadCustomers();
-    } catch (error) {
-      alert('حدث خطأ أثناء إضافة العميل');
-    }
-  }, [formData, loadCustomers]);
-
-  const handleEdit = useCallback(async () => {
-    if (!editCustomer) return;
-    try {
-      await apiRequest(`/customers/${editCustomer.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(formData),
-      });
-      setEditModal(false);
-      setEditCustomer(null);
-      setFormData({ name: '', nameAr: '', email: '', phone: '', address: '', city: '', country: '', status: 'active', description: '' });
-      loadCustomers();
-    } catch (error) {
-      alert('حدث خطأ أثناء تعديل العميل');
-    }
-  }, [editCustomer, formData, loadCustomers]);
-
-  const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا العميل؟')) return;
-    try {
-      await apiRequest(`/customers/${id}`, { method: 'DELETE' });
-      loadCustomers();
-    } catch (error) {
-      alert('حدث خطأ أثناء الحذف');
-    }
-  }, [loadCustomers]);
-
-  const openEditModal = useCallback((customer: Customer) => {
-    setEditCustomer(customer);
-    setFormData({
-      name: customer.name,
-      nameAr: customer.nameAr,
-      email: customer.email,
-      phone: customer.phone,
-      address: customer.address,
-      city: customer.city,
-      country: customer.country,
-      status: customer.status,
-      description: customer.description,
-    });
-    setEditModal(true);
-  }, []);
-
-  const STATUS_CONFIG = {
-    active: { label: 'نشط', color: 'bg-green-50 text-green-700' },
-    inactive: { label: 'غير نشط', color: 'bg-slate-50 text-slate-600' },
-    blocked: { label: 'محظور', color: 'bg-red-50 text-red-600' },
+      await apiRequest(`/shops/${shopId}/customers/${c.id}/${c.archived ? 'restore' : 'archive'}`, { method: 'POST' });
+      setCustomers((prev) => prev.map((x) => (x.id === c.id ? { ...x, archived: !c.archived } : x)));
+      setExpandedId(null);
+    } catch {} finally { setArchivingId(null); }
   };
 
-  const stats = useMemo(() => {
-    const total = customers.length;
-    const active = customers.filter(c => c.status === 'active').length;
-    const totalSpent = customers.reduce((sum, c) => sum + c.totalSpent, 0);
-    const totalOrders = customers.reduce((sum, c) => sum + c.totalOrders, 0);
-    const avgOrderValue = customers.length > 0 ? totalSpent / totalOrders : 0;
-    const totalLoyaltyPoints = customers.reduce((sum, c) => sum + c.loyaltyPoints, 0);
-    return [
-      { label: 'إجمالي العملاء', value: total, icon: Users, color: 'bg-blue-50 text-blue-600' },
-      { label: 'نشط', value: active, icon: CheckCircle2, color: 'bg-green-50 text-green-600' },
-      { label: 'إجمالي الإنفاق', value: `ج.م ${totalSpent.toLocaleString()}`, icon: TrendingUp, color: 'bg-purple-50 text-purple-600' },
-      { label: 'إجمالي الطلبات', value: totalOrders.toLocaleString(), icon: ShoppingBag, color: 'bg-amber-50 text-amber-600' },
-      { label: 'متوسط الطلب', value: `ج.م ${avgOrderValue.toFixed(0)}`, icon: Star, color: 'bg-cyan-50 text-cyan-600' },
-      { label: 'نقاط الولاء', value: totalLoyaltyPoints.toLocaleString(), icon: Star, color: 'bg-emerald-50 text-emerald-600' },
-    ];
-  }, [customers]);
+  const loadExpandedActivity = async (c: ShopCustomer) => {
+    if (expandedActivity[c.id]) return;
+    try {
+      const rows = await apiRequest(`/shops/${shopId}/customers/${c.id}/activity?type=orders`);
+      setExpandedActivity((prev) => ({ ...prev, [c.id]: Array.isArray(rows) ? rows.slice(0, 3) : [] }));
+    } catch {
+      setExpandedActivity((prev) => ({ ...prev, [c.id]: [] }));
+    }
+  };
+
+  const TABS = [
+    { id: 'all', label: 'الكل', count: counts.all },
+    { id: 'active', label: 'نشط', count: counts.active },
+    { id: 'inactive', label: 'غير نشط', count: counts.inactive },
+    { id: 'blocked', label: 'محظور', count: counts.blocked },
+    { id: 'debtors', label: 'مدينون', count: counts.debtors },
+  ];
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <Users size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right flex-1">
+    <div
+      className="min-h-full bg-[#F4F5F7] text-slate-900"
+      style={{ fontFamily: "'Cairo','Tajawal',system-ui,sans-serif" }}
+    >
+      {/* هيدر موحد */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="px-4 sm:px-6 py-5 max-w-[1400px] mx-auto flex items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-slate-900">العملاء</h1>
+              <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
+                <Info size={16} />
+              </button>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              قاعدة عملاء موحدة لكل النظام — كاشير وموقع وحجوزات
+              {customers.length > 0 && <span className="font-semibold"> — {customers.length} عميل</span>}
+              {counts.debtors > 0 && <span className="text-red-600 font-semibold"> — {counts.debtors} مدين</span>}
+            </p>
+          </div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">العملاء</h1>
-            <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-              <Info size={18} />
+            <button
+              onClick={exportCSV}
+              className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5"
+            >
+              <Download size={13} />
+              تصدير
+            </button>
+            <Link
+              href="/dashboard/crm/new"
+              className="h-10 px-5 rounded-full bg-slate-900 text-white text-[12px] font-bold hover:bg-slate-700 flex items-center gap-1.5"
+            >
+              <Plus size={13} />
+              عميل جديد
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-3">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-[12px] font-bold">
+            <AlertTriangle size={15} />
+            {error}
+          </div>
+        </div>
+      )}
+
+      {/* شريط الفلاتر */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4">
+        <div className="bg-white border border-slate-200 rounded-xl">
+          <div className="px-2 sm:px-3 py-2 flex gap-0.5 overflow-x-auto">
+            {TABS.map((t) => {
+              const isActive = statusTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setStatusTab(t.id)}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 ${
+                    isActive ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'
+                  }`}
+                >
+                  {t.label}
+                  <span className={`text-[10px] tabular-nums px-1.5 rounded-full ${isActive ? 'bg-white/20' : 'bg-slate-100'}`}>{t.count}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="px-2 sm:px-3 pb-2 flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="بحث بالاسم أو الهاتف أو الإيميل أو الكود أو رقم طلب..."
+                className="w-full h-10 bg-slate-50 border border-slate-200 rounded-full py-2 pr-9 pl-4 text-xs font-bold outline-none focus:ring-2 focus:ring-slate-200"
+              />
+            </div>
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              className="h-10 px-3 rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-slate-200"
+            >
+              <option value="">كل المصادر</option>
+              {Object.entries(SOURCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            {segments.length > 0 && (
+              <select
+                value={segmentFilter}
+                onChange={(e) => setSegmentFilter(e.target.value)}
+                className="h-10 px-3 rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-slate-200"
+              >
+                <option value="">كل الشرائح</option>
+                {segments.map((s) => <option key={s.id} value={s.id}>{s.nameAr || s.name}</option>)}
+              </select>
+            )}
+            {tags.length > 0 && (
+              <select
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value)}
+                className="h-10 px-3 rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-slate-200"
+              >
+                <option value="">كل الوسوم</option>
+                {tags.map((t) => <option key={t.id} value={t.id}>{t.nameAr || t.name}</option>)}
+              </select>
+            )}
+            <button
+              onClick={() => setShowArchived((v) => !v)}
+              className={`h-10 px-4 rounded-full border text-xs font-bold transition-all flex items-center gap-1.5 ${
+                showArchived ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <Archive size={13} />
+              الأرشيف
             </button>
           </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">إدارة بيانات العملاء</p>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        {stats.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
-            <div className={`p-2 rounded-xl ${s.color}`}><s.icon size={20} /></div>
-            <div><p className="text-xs font-bold text-slate-400">{s.label}</p><p className="text-lg font-black text-slate-900">{s.value}</p></div>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex flex-wrap gap-3">
-          <button onClick={() => setAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all">
-            <Plus size={18} />
-            عميل جديد
-          </button>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
-            <Download size={18} />
-            تصدير CSV
-          </button>
-        </div>
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900">{selectedIds.size} محدد</span>
-            <button onClick={bulkDelete} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-700 font-bold text-xs hover:bg-red-100 transition-all">
-              <Trash2 size={14} />
-              حذف
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute top-1/2 -translate-y-1/2 right-3 text-slate-300" size={18} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالاسم أو الإيميل أو الهاتف..." className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-white border border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الحالة:</span>
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="active">نشط</option>
-            <option value="inactive">غير نشط</option>
-            <option value="blocked">محظور</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الترتيب:</span>
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="name">الاسم</option>
-            <option value="totalSpent">إجمالي الإنفاق</option>
-            <option value="totalOrders">إجمالي الطلبات</option>
-            <option value="createdAt">تاريخ التسجيل</option>
-          </select>
-        </div>
-        <button
-          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
-        >
-          {sortOrder === 'asc' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-      </div>
-
-      {/* Customers List */}
+      {/* الجدول */}
       {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4">
+          <div className="bg-white border border-slate-200 rounded-xl flex items-center justify-center py-16">
+            <div className="w-8 h-8 border-[3px] border-slate-200 border-t-slate-900 rounded-full animate-spin" />
+          </div>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <Users size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm">لا يوجد عملاء حالياً</p>
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4">
+          <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
+            <Users size={32} className="mx-auto mb-3 text-slate-300" />
+            <p className="text-slate-400 font-bold text-sm">{showArchived ? 'الأرشيف فاضي' : 'لا يوجد عملاء حالياً'}</p>
+          </div>
         </div>
       ) : (
-        <div className="hidden md:block overflow-x-auto touch-auto">
-          <table className="w-full text-right border-collapse min-w-[1600px]">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="p-4 w-10">
-                  <button onClick={toggleSelectAll} className="p-1">
-                    {selectedIds.size === paginatedCustomers.length && paginatedCustomers.length > 0 ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                  </button>
-                </th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الاسم</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الإيميل</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الهاتف</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">العنوان</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الحالة</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الطلبات</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الإنفاق</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">آخر طلب</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">نقاط الولاء</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">متوسط الطلب</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الإجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedCustomers.map((customer) => {
-                const statusConfig = STATUS_CONFIG[customer.status];
-                return (
-                  <tr key={customer.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                    <td className="p-4">
-                      <button onClick={() => toggleSelect(customer.id)} className="p-1">
-                        {selectedIds.has(customer.id) ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                      </button>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">{customer.name}</div>
-                      <div className="text-slate-500 text-xs">{customer.nameAr}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-slate-600 text-sm flex items-center gap-1">
-                        <Mail size={12} />
-                        {customer.email}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-slate-600 text-sm flex items-center gap-1">
-                        <Phone size={12} />
-                        {customer.phone}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-slate-600 text-sm flex items-center gap-1">
-                        <MapPin size={12} />
-                        {customer.city}, {customer.country}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${statusConfig.color}`}>
-                        {statusConfig.label}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">{customer.totalOrders}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">ج.م {customer.totalSpent.toLocaleString()}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-slate-600 text-sm">{customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString('ar-EG') : '-'}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm flex items-center gap-1">
-                        <Star size={12} className="text-amber-500" />
-                        {customer.loyaltyPoints}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">ج.م {customer.averageOrderValue.toFixed(0)}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => openEditModal(customer)} className="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all" title="تعديل">
-                          <Edit size={14} />
-                        </button>
-                        <button onClick={() => handleDelete(customer.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all" title="حذف">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4 pb-6 space-y-3">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-right border-collapse min-w-[1500px]">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200">
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الاسم</th>
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الهاتف</th>
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الكود</th>
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">النوع</th>
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الوسوم</th>
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">المبيعات</th>
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الطلبات</th>
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">المستحق</th>
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">آخر عملية</th>
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">المصدر</th>
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الحالة</th>
+                    <th className="px-3 py-2.5 w-10"></th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                </thead>
+                <tbody>
+                  {paginated.map((c) => {
+                    const status = STATUS_LABELS[c.status] || { label: c.status, cls: 'bg-slate-50 text-slate-600 border-slate-200' };
+                    const isExpanded = expandedId === c.id;
+                    return (
+                      <React.Fragment key={c.id}>
+                        <tr className={`border-b border-slate-100 hover:bg-slate-50/70 transition-colors ${isExpanded ? 'bg-slate-50/70' : ''}`}>
+                          <td className="px-3 py-3">
+                            <div className="text-xs font-bold text-slate-900">{c.name}</div>
+                            {c.customerType === 'company' && c.companyName && (
+                              <div className="text-[10px] text-slate-400 font-semibold">{c.companyName}</div>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 text-xs font-semibold text-slate-600 tabular-nums" dir="ltr">{c.phone}</td>
+                          <td className="px-3 py-3 text-[11px] font-bold text-slate-500 tabular-nums">{c.code}</td>
+                          <td className="px-3 py-3 text-[11px] font-semibold text-slate-600">{c.customerType === 'company' ? 'شركة' : 'فرد'}</td>
+                          <td className="px-3 py-3">
+                            <div className="flex items-center gap-1 flex-wrap max-w-[140px]">
+                              {(c.tags || []).slice(0, 3).map((t) => (
+                                <span key={t} className="text-[9px] font-bold px-1.5 py-0.5 rounded-md text-white" style={{ backgroundColor: tagColor(t) }}>
+                                  {tagName(t)}
+                                </span>
+                              ))}
+                              {(c.tags || []).length === 0 && <span className="text-[10px] text-slate-300">—</span>}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-xs font-bold text-slate-900 tabular-nums">ج.م {c.totalSpent.toLocaleString()}</td>
+                          <td className="px-3 py-3 text-xs font-semibold text-slate-600 tabular-nums">{c.totalOrders}</td>
+                          <td className="px-3 py-3">
+                            {c.balanceDue > 0 ? (
+                              <span className="text-xs font-bold text-red-600 tabular-nums">ج.م {c.balanceDue.toLocaleString()}</span>
+                            ) : (
+                              <span className="text-[11px] text-slate-300">—</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 text-[11px] font-semibold text-slate-400">
+                            {c.lastPurchaseAt ? new Date(c.lastPurchaseAt).toLocaleDateString('ar-EG') : '—'}
+                          </td>
+                          <td className="px-3 py-3 text-[11px] font-semibold text-slate-500">{SOURCE_LABELS[c.source] || c.source}</td>
+                          <td className="px-3 py-3">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${status.cls}`}>{status.label}</span>
+                          </td>
+                          <td className="px-3 py-3">
+                            <button
+                              onClick={() => {
+                                setExpandedId(isExpanded ? null : c.id);
+                                if (!isExpanded) loadExpandedActivity(c);
+                              }}
+                              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-all"
+                              title={isExpanded ? 'إغلاق' : 'تفاصيل'}
+                            >
+                              <ChevronDown size={16} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+                          </td>
+                        </tr>
 
-      {/* Add Modal */}
-      {addModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setAddModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">عميل جديد</h2>
-              <button onClick={() => setAddModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+                        {/* صف التوسيع — نظرة سريعة على العميل */}
+                        {isExpanded && (
+                          <tr className="bg-slate-50/50">
+                            <td colSpan={12} className="px-6 py-4 border-b border-slate-200">
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                                  {[
+                                    { label: 'الطلبات', value: String(c.totalOrders) },
+                                    { label: 'الإنفاق', value: `ج.م ${c.totalSpent.toLocaleString()}` },
+                                    { label: 'متوسط الطلب', value: `ج.م ${c.totalOrders > 0 ? Math.round(c.totalSpent / c.totalOrders).toLocaleString() : 0}` },
+                                    { label: 'نقاط الولاء', value: String(c.loyaltyBalance) },
+                                    { label: 'المستحق', value: `ج.م ${c.balanceDue.toLocaleString()}` },
+                                  ].map((s) => (
+                                    <div key={s.label} className="bg-white border border-slate-200 rounded-lg px-3 py-2">
+                                      <div className="text-[10px] font-bold text-slate-400">{s.label}</div>
+                                      <div className="text-sm font-bold text-slate-900 tabular-nums">{s.value}</div>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <div className="bg-white border border-slate-200 rounded-lg p-3">
+                                  <div className="text-[11px] font-bold text-slate-500 mb-2">آخر الطلبات</div>
+                                  {(expandedActivity[c.id] || []).length === 0 ? (
+                                    <p className="text-[11px] text-slate-400 font-semibold">لا توجد طلبات بعد</p>
+                                  ) : (
+                                    <div className="space-y-1">
+                                      {(expandedActivity[c.id] || []).map((o: any) => (
+                                        <div key={o.id} className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                                          <span className="tabular-nums text-slate-900 font-bold">#{String(o.id).slice(0, 8)}</span>
+                                          <span>{o.status}</span>
+                                          <span className="tabular-nums">ج.م {Number(o.total || 0).toLocaleString()}</span>
+                                          <span className="text-slate-400">{o.createdAt ? new Date(o.createdAt).toLocaleDateString('ar-EG') : ''}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Link
+                                    href={`/dashboard/crm/${c.id}`}
+                                    className="h-8 px-3 rounded-lg bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-700 flex items-center gap-1.5"
+                                  >
+                                    <Eye size={13} />
+                                    عرض الملف الكامل
+                                  </Link>
+                                  <Link
+                                    href={`/dashboard/crm/${c.id}/edit`}
+                                    className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 text-[11px] font-bold hover:bg-slate-50 flex items-center gap-1.5"
+                                  >
+                                    <Pencil size={12} />
+                                    تعديل
+                                  </Link>
+                                  <a
+                                    href={`https://wa.me/2${(c.phone || '').replace(/\D/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="h-8 px-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold hover:bg-emerald-100 flex items-center gap-1.5"
+                                  >
+                                    <MessageCircle size={12} />
+                                    واتساب
+                                  </a>
+                                  <button
+                                    onClick={() => toggleArchive(c)}
+                                    disabled={archivingId === c.id}
+                                    className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-slate-50 flex items-center gap-1.5 disabled:opacity-50"
+                                  >
+                                    {archivingId === c.id ? <Loader2 size={12} className="animate-spin" /> : c.archived ? <ArchiveRestore size={12} /> : <Archive size={12} />}
+                                    {c.archived ? 'استعادة' : 'أرشفة'}
+                                  </button>
+                                  <Link
+                                    href={`/dashboard/crm/${c.id}`}
+                                    className="mr-auto text-[11px] font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1"
+                                  >
+                                    الملف الكامل
+                                    <ChevronLeft size={12} />
+                                  </Link>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (إنجليزي)</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Customer Name"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (عربي)</label>
-                <input
-                  type="text"
-                  value={formData.nameAr}
-                  onChange={e => setFormData({ ...formData, nameAr: e.target.value })}
-                  placeholder="اسم العميل"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الإيميل</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={e => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="email@example.com"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الهاتف</label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+20 123 456 7890"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">العنوان</label>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={e => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="العنوان"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">المدينة</label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={e => setFormData({ ...formData, city: e.target.value })}
-                  placeholder="المدينة"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">البلد</label>
-                <input
-                  type="text"
-                  value={formData.country}
-                  onChange={e => setFormData({ ...formData, country: e.target.value })}
-                  placeholder="البلد"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الحالة</label>
+
+            {/* Pagination */}
+            <div className="px-3 py-3 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-500">عرض</span>
                 <select
-                  value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
+                  value={itemsPerPage}
+                  onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                  className="px-2 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold outline-none focus:ring-2 focus:ring-slate-200"
                 >
-                  <option value="active">نشط</option>
-                  <option value="inactive">غير نشط</option>
-                  <option value="blocked">محظور</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
                 </select>
+                <span className="text-[11px] font-bold text-slate-500">لكل صفحة</span>
               </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الوصف</label>
-                <textarea
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="وصف العميل"
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  السابق
+                </button>
+                <span className="text-[11px] font-bold text-slate-700 tabular-nums">صفحة {currentPage} من {totalPages}</span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  التالي
+                </button>
               </div>
-              <button
-                onClick={handleAdd}
-                className="w-full py-2.5 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all"
-              >
-                إضافة العميل
-              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit Modal */}
-      {editModal && editCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">تعديل العميل</h2>
-              <button onClick={() => setEditModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (إنجليزي)</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (عربي)</label>
-                <input
-                  type="text"
-                  value={formData.nameAr}
-                  onChange={e => setFormData({ ...formData, nameAr: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الإيميل</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={e => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الهاتف</label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">العنوان</label>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={e => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">المدينة</label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={e => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">البلد</label>
-                <input
-                  type="text"
-                  value={formData.country}
-                  onChange={e => setFormData({ ...formData, country: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الحالة</label>
-                <select
-                  value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="active">نشط</option>
-                  <option value="inactive">غير نشط</option>
-                  <option value="blocked">محظور</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الوصف</label>
-                <textarea
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <button
-                onClick={handleEdit}
-                className="w-full py-2.5 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all"
-              >
-                حفظ التعديلات
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Guide Modal */}
+      {/* دليل الصفحة */}
       {guideOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setGuideOpen(false)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">دليل العملاء</h2>
-              <button onClick={() => setGuideOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-black text-slate-900">عن صفحة العملاء</h2>
+              <button onClick={() => setGuideOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><Check size={18} className="text-slate-400" /></button>
             </div>
-            <div className="space-y-6 text-right">
-              <div>
-                <div className="flex items-center gap-2 mb-2"><Info size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">وظيفة الصفحة</h3></div>
-                <p className="text-sm text-slate-600 leading-relaxed">إدارة بيانات العملاء والمعلومات الشخصية.</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-2"><Users size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">الميزات</h3></div>
-                <ul className="text-sm text-slate-600 space-y-1.5 pr-4">
-                  <li>• إضافة وتعديل وحذف العملاء</li>
-                  <li>• تتبع الطلبات والإنفاق</li>
-                  <li>• إدارة نقاط الولاء</li>
-                  <li>• تصدير تقارير العملاء</li>
-                </ul>
-              </div>
+            <div className="space-y-3 text-right text-sm text-slate-600 leading-relaxed">
+              <p>قاعدة عملاء موحدة لكل النظام: أي عميل يتسجل من الكاشير أو الموقع أو الحجوزات يظهر هنا تلقائيًا — مفيش قواعد منفصلة.</p>
+              <p>• اضغط السهم جنب أي عميل لنظرة سريعة على طلباته وأرقامه.</p>
+              <p>• «عرض الملف الكامل» يفتح الملف الموحد: النشاط، كشف الحساب، سجل التواصل، ونقاط الولاء.</p>
+              <p>• الأرشفة تخفي العميل من القوائم مع الاحتفاظ بكل عملياته القديمة.</p>
             </div>
           </div>
         </div>

@@ -1,7 +1,6 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import { GenericSubPage } from '@/components/GenericSectionPage';
-
-export default function CalendarPage() {
-  return <GenericSubPage pageId="bookings/calendar" />;
+/** التقويم تبويب داخل الصفحة الرئيسية للحجوزات */
+export default function CalendarRedirect() {
+  redirect('/dashboard/bookings');
 }

@@ -31,7 +31,9 @@ type Order struct {
 	CustomerNote          *string     `json:"customerNote,omitempty"`
 	UserID                string      `json:"userId"`
 	ShopID                string      `json:"shopId"`
+	CustomerID            *string     `json:"customerId,omitempty"` // العميل المركزي
 	CourierID             *string     `json:"courierId,omitempty"`
+	PosShiftID            *string     `json:"posShiftId,omitempty"`
 	HandedToCourierAt     *time.Time  `json:"handedToCourierAt,omitempty"`
 	CodCollectedAt        *time.Time  `json:"codCollectedAt,omitempty"`
 	DeliveredAt           *time.Time  `json:"deliveredAt,omitempty"`
@@ -90,6 +92,9 @@ type CreateOrderRequest struct {
 	CustomerNote          *string           `json:"customerNote,omitempty"`
 	Source                *string           `json:"source,omitempty"`
 	Status                *string           `json:"status,omitempty"`
+	// PosShiftID links this order to a POS shift. Sent by the cashier desktop
+	// syncer so refreshMetrics can use a direct join instead of time-window.
+	PosShiftID            *string           `json:"posShiftId,omitempty"`
 }
 
 // UpdateOrderRequest updates order status and metadata.

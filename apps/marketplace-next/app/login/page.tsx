@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { LogIn, Mail, Lock, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { api, storeAuthToken } from '@/lib/api';
-
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -35,7 +34,10 @@ export default function LoginPage() {
             const token = data?.token?.accessToken || data?.accessToken || data?.token || res?.accessToken || res?.token;
             if (token) {
               storeAuthToken(token);
-              router.push('/profile');
+              try {
+                sessionStorage.setItem('mnmknk_welcome', JSON.stringify({ type: 'login' }));
+              } catch { /* ignore */ }
+              router.push('/');
             } else {
               setError('استجابة غير صحيحة من الخادم');
             }

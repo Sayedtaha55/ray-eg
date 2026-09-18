@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Sparkles,
   Paintbrush,
-  Smartphone,
   Layers,
   ChevronLeft,
   ChevronRight,
@@ -30,7 +29,7 @@ export const RightInspector: React.FC = () => {
   } = useBuilder();
 
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
-  const [inspectorMode, setInspectorMode] = useState<'integrated' | 'style' | 'responsive'>('integrated');
+  const [inspectorMode, setInspectorMode] = useState<'integrated' | 'style'>('integrated');
 
   // Auto-open desktop inspector when an element is clicked
   React.useEffect(() => {
@@ -42,12 +41,11 @@ export const RightInspector: React.FC = () => {
   const tabs = [
     { id: 'integrated', label: 'شامل', icon: Sparkles, desc: 'تعديل متكامل للقسم والمحتوى والألوان والصور' },
     { id: 'style', label: 'المظهر', icon: Paintbrush, desc: 'التنسيقات المتقدمة والأبعاد والخطوط' },
-    { id: 'responsive', label: 'التجاوب', icon: Smartphone, desc: 'معاينة وضبط قياسات الشاشات' },
   ] as const;
 
   if (isFocusMode) return null;
 
-  const handleTabClick = (tabId: 'integrated' | 'style' | 'responsive') => {
+  const handleTabClick = (tabId: 'integrated' | 'style') => {
     if (inspectorMode === tabId && isInspectorOpen) {
       setIsInspectorOpen(false);
     } else {
@@ -100,60 +98,6 @@ export const RightInspector: React.FC = () => {
             <TypographySection />
             <ColorBackgroundSection />
             <PropsInspector />
-          </div>
-        )}
-
-        {inspectorMode === 'responsive' && (
-          <div className="p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-800">تجاوب الشاشات</span>
-              <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded uppercase">
-                Active: {viewport}
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-500 leading-relaxed">
-              يمكنك تخصيص أنماط خاصة بكل قياس شاشة. يتم توريث خصائص Desktop للشاشات الأصغر تلقائياً ما لم يتم تجاوزها.
-            </p>
-
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => setViewport('desktop')}
-                className={`w-full p-2.5 rounded-xl border text-right text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                  viewport === 'desktop' ? 'bg-blue-50 border-blue-400 text-blue-900' : 'bg-slate-50 border-slate-200 text-slate-700'
-                }`}
-              >
-                <span>سطح المكتب (Desktop 1280px+)</span>
-                <span className="text-[10px] text-slate-400 font-mono">Base Styles</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewport('tablet')}
-                className={`w-full p-2.5 rounded-xl border text-right text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                  viewport === 'tablet' ? 'bg-blue-50 border-blue-400 text-blue-900' : 'bg-slate-50 border-slate-200 text-slate-700'
-                }`}
-              >
-                <span>تابلت (Tablet 768px - 1024px)</span>
-                <span className="text-[10px] text-blue-600 font-mono">
-                  {selectedNode.styles.tablet ? 'Overridden' : 'Inherited'}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewport('mobile')}
-                className={`w-full p-2.5 rounded-xl border text-right text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                  viewport === 'mobile' ? 'bg-blue-50 border-blue-400 text-blue-900' : 'bg-slate-50 border-slate-200 text-slate-700'
-                }`}
-              >
-                <span>جوال (Mobile 390px - 480px)</span>
-                <span className="text-[10px] text-blue-600 font-mono">
-                  {selectedNode.styles.mobile ? 'Overridden' : 'Inherited'}
-                </span>
-              </button>
-            </div>
           </div>
         )}
       </div>
@@ -229,18 +173,6 @@ export const RightInspector: React.FC = () => {
               >
                 <Paintbrush className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 <span>المظهر</span>
-              </button>
-
-              <button
-                onClick={() => setInspectorMode('responsive')}
-                className={`flex-1 py-2 sm:py-2.5 text-center border-b-2 flex items-center justify-center gap-1 sm:gap-1.5 transition-colors cursor-pointer ${
-                  inspectorMode === 'responsive'
-                    ? 'border-blue-600 text-blue-600 bg-white font-bold'
-                    : 'border-transparent hover:text-slate-900'
-                }`}
-              >
-                <Smartphone className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span>التجاوب</span>
               </button>
             </div>
 
@@ -322,17 +254,6 @@ export const RightInspector: React.FC = () => {
                 }`}
               >
                 المظهر
-              </button>
-              <button
-                type="button"
-                onClick={() => setInspectorMode('responsive')}
-                className={`flex-1 py-2 text-center border-b-2 transition-colors cursor-pointer ${
-                  inspectorMode === 'responsive'
-                    ? 'border-blue-600 text-blue-600 font-bold bg-white'
-                    : 'border-transparent text-slate-600'
-                }`}
-              >
-                التجاوب
               </button>
             </div>
 

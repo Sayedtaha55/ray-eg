@@ -225,6 +225,21 @@ type SalesTrendPoint struct {
 	Orders  int64   `json:"orders"`
 }
 
+// SalesPerformanceMetric represents a single metric card on the dashboard
+// sales performance page. Value is the current half of the selected window and
+// PreviousValue is the first half (a real period-over-period comparison).
+type SalesPerformanceMetric struct {
+	ID            string  `json:"id"`
+	Name          string  `json:"name"`
+	Value         float64 `json:"value"`
+	PreviousValue float64 `json:"previousValue"`
+	Target        float64 `json:"target,omitempty"`
+	Unit          string  `json:"unit"`
+	Period        string  `json:"period"`
+	Category      string  `json:"category"` // revenue | orders | products | conversion
+	Trend         string  `json:"trend"`    // up | down | stable
+}
+
 // SalesByCategory represents sales broken down by category
 type SalesByCategory struct {
 	Category    string  `json:"category"`

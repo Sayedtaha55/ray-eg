@@ -1,9 +1,21 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ShoppingCart, Search, Loader2, Plus, Edit, Trash2, Eye, Download, Upload, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info, MoreVertical, Package2, BarChart3, TrendingUp, AlertTriangle, Calendar, Clock, Truck, FileText, DollarSign, CheckCircle2, XCircle } from 'lucide-react';
+import {
+  ShoppingCart, Plus, Edit, Trash2, Download, Upload, Check, X, Info,
+  ArrowUpDown, Calendar, Clock, Truck, FileText, DollarSign, CheckCircle2, XCircle,
+} from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import {
+  InventoryPage,
+  InvTableCard,
+  InvRow,
+  InvRowAction,
+  InvStatusPill,
+  InvPagination,
+  InvBulkBar,
+} from '@/components/inventory/InventoryShell';
 
 type PurchaseOrder = {
   id: string;
@@ -229,11 +241,20 @@ export default function PurchaseOrdersPage() {
 
   const STATUS_CONFIG = {
     draft: { label: 'مسودة', color: 'bg-slate-50 text-slate-600', icon: <FileText size={12} /> },
-    sent: { label: 'مرسل', color: 'bg-blue-50 text-blue-600', icon: <Truck size={12} /> },
-    confirmed: { label: 'مؤكد', color: 'bg-cyan-50 text-cyan-600', icon: <CheckCircle2 size={12} /> },
-    partial: { label: 'جزئي', color: 'bg-amber-50 text-amber-600', icon: <Clock size={12} /> },
-    received: { label: 'مستلم', color: 'bg-green-50 text-green-600', icon: <CheckCircle2 size={12} /> },
+    sent: { label: 'بانتظار الموافقة', color: 'bg-blue-50 text-blue-600', icon: <Truck size={12} /> },
+    confirmed: { label: 'مطلوب استلامه', color: 'bg-cyan-50 text-cyan-600', icon: <CheckCircle2 size={12} /> },
+    partial: { label: 'مستلم جزئيًا', color: 'bg-amber-50 text-amber-600', icon: <Clock size={12} /> },
+    received: { label: 'مستلم بالكامل', color: 'bg-green-50 text-green-600', icon: <CheckCircle2 size={12} /> },
     cancelled: { label: 'ملغي', color: 'bg-red-50 text-red-600', icon: <XCircle size={12} /> },
+  };
+
+  const STATUS_TONE: Record<string, 'emerald' | 'slate' | 'red' | 'amber'> = {
+    draft: 'slate',
+    sent: 'slate',
+    confirmed: 'emerald',
+    partial: 'amber',
+    received: 'emerald',
+    cancelled: 'red',
   };
 
   const stats = useMemo(() => {
@@ -246,280 +267,200 @@ export default function PurchaseOrdersPage() {
     return [
       { label: 'إجمالي الأوامر', value: total, icon: ShoppingCart, color: 'bg-blue-50 text-blue-600' },
       { label: 'مسودة', value: draft, icon: FileText, color: 'bg-slate-50 text-slate-600' },
-      { label: 'مرسل', value: sent, icon: Truck, color: 'bg-blue-50 text-blue-600' },
-      { label: 'مؤكد', value: confirmed, icon: CheckCircle2, color: 'bg-cyan-50 text-cyan-600' },
-      { label: 'مستلم', value: received, icon: CheckCircle2, color: 'bg-green-50 text-green-600' },
+      { label: 'بانتظار الموافقة', value: sent, icon: Truck, color: 'bg-blue-50 text-blue-600' },
+      { label: 'مطلوب استلامه', value: confirmed, icon: CheckCircle2, color: 'bg-cyan-50 text-cyan-600' },
+      { label: 'مستلم بالكامل', value: received, icon: CheckCircle2, color: 'bg-green-50 text-green-600' },
       { label: 'إجمالي القيمة', value: `ج.م ${totalAmount.toLocaleString()}`, icon: DollarSign, color: 'bg-purple-50 text-purple-600' },
     ];
   }, [orders]);
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <ShoppingCart size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">أوامر الشراء</h1>
-            <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-              <Info size={18} />
-            </button>
-          </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">إدارة أوامر الشراء من الموردين</p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        {stats.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
-            <div className={`p-2 rounded-xl ${s.color}`}><s.icon size={20} /></div>
-            <div><p className="text-xs font-bold text-slate-400">{s.label}</p><p className="text-lg font-black text-slate-900">{s.value}</p></div>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex flex-wrap gap-3">
-          <button onClick={() => setAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all">
-            <Plus size={18} />
+    <InventoryPage
+      title="أوامر الشراء"
+      subtitle={
+        <>
+          إدارة أوامر الشراء من الموردين — {stats[5].value}
+        </>
+      }
+      onInfo={() => setGuideOpen(true)}
+      actions={
+        <>
+          <button
+            onClick={() => setAddModal(true)}
+            className="h-10 px-5 rounded-full text-[12px] font-bold flex items-center gap-1.5 transition-colors bg-slate-900 text-white hover:bg-slate-700"
+          >
+            <Plus size={14} />
             أمر شراء جديد
           </button>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
-            <Download size={18} />
+          <button
+            onClick={exportCSV}
+            className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 hidden sm:flex items-center gap-1.5"
+          >
+            <Download size={14} />
             تصدير CSV
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">
-            <Upload size={18} />
+          <button
+            className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 hidden sm:flex items-center gap-1.5"
+          >
+            <Upload size={14} />
             استيراد
           </button>
-        </div>
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900">{selectedIds.size} محدد</span>
-            <button onClick={bulkDelete} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-700 font-bold text-xs hover:bg-red-100 transition-all">
-              <Trash2 size={14} />
-              حذف
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute top-1/2 -translate-y-1/2 right-3 text-slate-300" size={18} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث برقم الأمر أو المورد..." className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-
-      {/* Advanced Filters */}
-      <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-white border border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الحالة:</span>
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="draft">مسودة</option>
-            <option value="sent">مرسل</option>
-            <option value="confirmed">مؤكد</option>
-            <option value="partial">جزئي</option>
-            <option value="received">مستلم</option>
-            <option value="cancelled">ملغي</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الترتيب:</span>
+        </>
+      }
+      tabs={[
+        { id: 'all', label: 'الكل', count: stats[0].value as number },
+        { id: 'draft', label: 'مسودة', count: stats[1].value as number },
+        { id: 'sent', label: 'بانتظار الموافقة', count: stats[2].value as number },
+        { id: 'confirmed', label: 'مطلوب استلامه', count: stats[3].value as number },
+        { id: 'partial', label: 'مستلم جزئيًا', count: orders.filter(o => o.status === 'partial').length },
+        { id: 'received', label: 'مستلم بالكامل', count: stats[4].value as number },
+        { id: 'cancelled', label: 'ملغي', count: orders.filter(o => o.status === 'cancelled').length },
+      ]}
+      activeTab={filterStatus}
+      onTabChange={(id) => {
+        setFilterStatus(id);
+        setCurrentPage(1);
+      }}
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="بحث برقم الأمر أو المورد..."
+      filters={
+        <>
           <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
+            className="h-10 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
           >
             <option value="orderNumber">رقم الأمر</option>
             <option value="orderDate">تاريخ الأمر</option>
             <option value="totalAmount">القيمة</option>
             <option value="createdAt">تاريخ الإنشاء</option>
           </select>
-        </div>
-        <button
-          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
-        >
-          {sortOrder === 'asc' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-      </div>
-
-      {/* Orders List */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <ShoppingCart size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm">لا توجد أوامر شراء حالياً</p>
-        </div>
-      ) : (
-        <>
-          {/* Mobile View */}
-          <div className="space-y-3 md:hidden">
-            {paginatedOrders.map((order) => {
-              const statusConfig = STATUS_CONFIG[order.status];
-              return (
-                <div key={order.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <button onClick={() => toggleSelect(order.id)} className="shrink-0 p-1">
-                      {selectedIds.has(order.id) ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-slate-900 text-sm">{order.orderNumber}</div>
-                      <div className="text-slate-500 text-xs">{order.supplierName}</div>
-                    </div>
-                    <div className="shrink-0">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 ${statusConfig.color}`}>
-                        {statusConfig.icon}
-                        {statusConfig.label}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                    <Calendar size={12} />
-                    <span>{new Date(order.orderDate).toLocaleDateString('ar-EG')}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                    <Package2 size={12} />
-                    <span>{order.itemCount} صنف</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                    <DollarSign size={12} />
-                    <span>ج.م {order.totalAmount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => openEditModal(order)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 text-slate-600 text-xs hover:bg-slate-100 transition-all">
-                      <Edit size={12} />
-                      تعديل
-                    </button>
-                    <button onClick={() => handleDelete(order.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 text-red-600 text-xs hover:bg-red-100 transition-all">
-                      <Trash2 size={12} />
-                      حذف
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto touch-auto">
-            <table className="w-full text-right border-collapse min-w-[1400px]">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="p-4 w-10">
-                    <button onClick={toggleSelectAll} className="p-1">
-                      {selectedIds.size === paginatedOrders.length && paginatedOrders.length > 0 ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                    </button>
-                  </th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">رقم الأمر</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">المورد</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الحالة</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">تاريخ الأمر</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">التاريخ المتوقع</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">عدد الأصناف</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">القيمة</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">المدفوع</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedOrders.map((order) => {
-                  const statusConfig = STATUS_CONFIG[order.status];
-                  return (
-                    <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <td className="p-4">
-                        <button onClick={() => toggleSelect(order.id)} className="p-1">
-                          {selectedIds.has(order.id) ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                        </button>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 text-sm">{order.orderNumber}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-slate-600 text-sm">{order.supplierName}</div>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 w-fit ${statusConfig.color}`}>
-                          {statusConfig.icon}
-                          {statusConfig.label}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-slate-600 text-sm flex items-center gap-1">
-                          <Calendar size={12} />
-                          {new Date(order.orderDate).toLocaleDateString('ar-EG')}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-slate-600 text-sm">{order.expectedDate ? new Date(order.expectedDate).toLocaleDateString('ar-EG') : '-'}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 text-sm">{order.itemCount}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 text-sm">ج.م {order.totalAmount.toLocaleString()}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 text-sm">ج.م {order.paidAmount.toLocaleString()}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => openEditModal(order)} className="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all" title="تعديل">
-                            <Edit size={14} />
-                          </button>
-                          <button onClick={() => handleDelete(order.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all" title="حذف">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
-              <div className="text-xs font-bold text-slate-500">
-                عرض {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} من {filtered.length}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight size={18} />
-                </button>
-                <span className="text-xs font-bold text-slate-600 px-3">
-                  صفحة {currentPage} من {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-              </div>
-            </div>
-          )}
+          <button
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="h-10 w-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+            title={sortOrder === 'asc' ? 'تصاعدي' : 'تنازلي'}
+          >
+            <ArrowUpDown size={15} className={sortOrder === 'desc' ? 'rotate-180' : ''} />
+          </button>
         </>
+      }
+      loading={loading}
+      empty={
+        filtered.length === 0 ? (
+          <>
+            <ShoppingCart size={32} className="mx-auto mb-3 text-slate-300" />
+            <p className="text-slate-400 font-bold text-sm">لا توجد أوامر شراء حالياً</p>
+          </>
+        ) : undefined
+      }
+      footer={
+        <InvPagination
+          page={currentPage}
+          totalPages={totalPages}
+          total={filtered.length}
+          perPage={itemsPerPage}
+          onPage={setCurrentPage}
+          label="أمر شراء"
+        />
+      }
+    >
+      {selectedIds.size > 0 && (
+        <div className="mb-3">
+          <InvBulkBar>
+            <span>{selectedIds.size} أمر شراء محدد</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={bulkDelete}
+                className="h-8 px-3 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-200 text-[11px] font-bold flex items-center gap-1.5"
+              >
+                <Trash2 size={13} />
+                حذف
+              </button>
+            </div>
+          </InvBulkBar>
+        </div>
       )}
+
+      <InvTableCard
+        headerExtra={
+          <div className="col-span-1 flex items-center">
+            <button onClick={toggleSelectAll} className="p-1" title="تحديد الكل">
+              {selectedIds.size === paginatedOrders.length && paginatedOrders.length > 0 ? (
+                <Check size={16} className="text-[#00E5FF]" />
+              ) : (
+                <div className="w-4 h-4 border-2 border-slate-300 rounded" />
+              )}
+            </button>
+          </div>
+        }
+        columns={[
+          { label: 'رقم الأمر', className: 'col-span-1' },
+          { label: 'المورد', className: 'col-span-2' },
+          { label: 'الحالة', className: 'col-span-1' },
+          { label: 'تاريخ الأمر', className: 'col-span-1' },
+          { label: 'التاريخ المتوقع', className: 'col-span-1' },
+          { label: 'الأصناف', className: 'col-span-1' },
+          { label: 'القيمة', className: 'col-span-1' },
+          { label: 'المدفوع', className: 'col-span-1' },
+          { label: 'الإجراءات', className: 'col-span-2' },
+        ]}
+      >
+        {paginatedOrders.map((order) => {
+          const statusConfig = STATUS_CONFIG[order.status];
+          return (
+            <InvRow key={order.id} muted={order.status === 'cancelled'}>
+              <div className="col-span-1 flex items-center">
+                <button onClick={() => toggleSelect(order.id)} className="p-1">
+                  {selectedIds.has(order.id) ? (
+                    <Check size={16} className="text-[#00E5FF]" />
+                  ) : (
+                    <div className="w-4 h-4 border-2 border-slate-300 rounded" />
+                  )}
+                </button>
+              </div>
+              <div className="col-span-1 min-w-0">
+                <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                  {order.orderNumber}
+                </div>
+              </div>
+              <div className="col-span-2 pr-4 text-slate-600 text-xs sm:text-sm truncate">
+                {order.supplierName}
+              </div>
+              <div className="col-span-1">
+                <InvStatusPill tone={STATUS_TONE[order.status]}>
+                  {statusConfig.icon}
+                  {statusConfig.label}
+                </InvStatusPill>
+              </div>
+              <div className="col-span-1 pr-4 text-slate-600 text-xs sm:text-sm flex items-center gap-1">
+                <Calendar size={12} />
+                {new Date(order.orderDate).toLocaleDateString('ar-EG')}
+              </div>
+              <div className="col-span-1 pr-4 text-slate-600 text-xs sm:text-sm">
+                {order.expectedDate ? new Date(order.expectedDate).toLocaleDateString('ar-EG') : '-'}
+              </div>
+              <div className="col-span-1 font-semibold text-slate-900 text-xs sm:text-sm">
+                {order.itemCount}
+              </div>
+              <div className="col-span-1 font-bold text-slate-900 text-xs sm:text-sm">
+                ج.م {order.totalAmount.toLocaleString()}
+              </div>
+              <div className="col-span-1 font-bold text-slate-900 text-xs sm:text-sm">
+                ج.م {order.paidAmount.toLocaleString()}
+              </div>
+              <div className="col-span-2 flex items-center justify-end gap-1.5">
+                <InvRowAction onClick={() => openEditModal(order)} title="تعديل">
+                  <Edit size={14} />
+                </InvRowAction>
+                <InvRowAction onClick={() => handleDelete(order.id)} title="حذف" danger>
+                  <Trash2 size={14} />
+                </InvRowAction>
+              </div>
+            </InvRow>
+          );
+        })}
+      </InvTableCard>
 
       {/* Add Modal */}
       {addModal && (
@@ -571,7 +512,7 @@ export default function PurchaseOrdersPage() {
               </div>
               <button
                 onClick={handleAdd}
-                className="w-full py-2.5 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all"
+                className="w-full py-2.5 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-700 transition-all"
               >
                 إنشاء أمر الشراء
               </button>
@@ -629,7 +570,7 @@ export default function PurchaseOrdersPage() {
               </div>
               <button
                 onClick={handleEdit}
-                className="w-full py-2.5 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all"
+                className="w-full py-2.5 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-700 transition-all"
               >
                 حفظ التعديلات
               </button>
@@ -664,6 +605,6 @@ export default function PurchaseOrdersPage() {
           </div>
         </div>
       )}
-    </div>
+    </InventoryPage>
   );
 }

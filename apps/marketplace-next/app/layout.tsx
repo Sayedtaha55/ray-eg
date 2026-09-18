@@ -5,6 +5,7 @@ import { QueryProvider } from '@/components/QueryProvider';
 import { CartProvider } from '@/lib/cart';
 import { WishlistProvider } from '@/lib/wishlist';
 import { AppChrome } from '@/components/AppChrome';
+import { PageViewTracker } from '@/components/PageViewTracker';
 import { PwaInstallPrompt } from '@/components/PwaInstallPrompt';
 import { siteConfig } from '@/lib/config';
 import ConsentBanner from '@ray-eg/shared/components/common/ConsentBanner';
@@ -66,25 +67,30 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/fonts/fonts.css" as="style" />
         <link rel="stylesheet" href="/fonts/fonts.css" />
         <link rel="dns-prefetch" href="https://tile.openstreetmap.org" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-                window.addEventListener('load', function () {
-                  navigator.serviceWorker.register('/sw.js').catch(function (err) {
-                    console.warn('SW registration failed:', err);
+        {/* PWA service worker — production only. In dev its caches keep serving
+            stale pages/CSS and break hot reload. */}
+        {process.env.NODE_ENV === 'production' && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+                  window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('/sw.js').catch(function (err) {
+                      console.warn('SW registration failed:', err);
+                    });
                   });
-                });
-              }
-            `,
-          }}
-        />
+                }
+              `,
+            }}
+          />
+        )}
       </head>
       <body suppressHydrationWarning>
         <QueryProvider>
           <AppProvider>
             <CartProvider>
               <WishlistProvider>
+                <PageViewTracker />
                 <BreachNotice />
                 <AppChrome>{children}</AppChrome>
                 <PwaInstallPrompt />

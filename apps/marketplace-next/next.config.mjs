@@ -33,7 +33,10 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              // 'unsafe-inline' is required for Next.js inline styles/scripts injected at runtime.
+              // 'unsafe-eval' is required in development — React Refresh and the Next.js dev
+              // runtime rely on eval(); production keeps the strict policy without it.
+              `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",

@@ -7,10 +7,11 @@ import {
   Loader2,
   Upload,
   Image as ImageIcon,
-  Clock,
-  Stethoscope,
+  ClipboardList,
   ArrowRight,
   Save,
+  Info,
+  ChevronDown,
 } from 'lucide-react';
 import { useShop } from '@/hooks/useShop';
 import { apiRequest } from '@/lib/auth';
@@ -20,24 +21,24 @@ import ExtendedProductSections, {
   defaultExtraData,
 } from '@/components/products/ExtendedProductSections';
 import { RichDescriptionEditor } from '@/components/products/RichDescriptionEditor';
-import {
-  OrderFormFieldsBuilder,
-  type OrderFormField,
-} from '@/components/products/OrderFormFieldsBuilder';
 
-const DURATION_PRESETS = [
-  { value: 15, label: '15 دقيقة' },
-  { value: 30, label: '30 دقيقة' },
-  { value: 45, label: '45 دقيقة' },
-  { value: 60, label: 'ساعة' },
-  { value: 90, label: 'ساعة ونصف' },
-  { value: 120, label: 'ساعتين' },
+const GOOGLE_PRODUCT_CATEGORIES = [
+  'مستلزمات الحيوانات والحيوانات الأليفة',
+  'الفن والترفيه',
+  'تجاري وصناعي',
+  'كاميرات وأجهزة بصرية',
+  'ملابس وإكسسوارات',
+  'إلكترونيات',
+  'المأكولات والمشروبات والتبغ',
+  'الأثاث',
+  'الصحة والجمال',
+  'الحديقة والمنزل',
+  'الرضيع والطفل',
+  'أجهزة',
+  'وسائط',
+  'المركبات وقطع الغيار',
+  'المستلزمات المكتبية',
 ];
-
-type ServiceExtraData = ProductExtraData & {
-  orderFormFields?: OrderFormField[];
-  durationMinutes?: number | null;
-};
 
 export default function ServiceAddProductPage() {
   const { shop } = useShop();
@@ -57,15 +58,11 @@ export default function ServiceAddProductPage() {
   const [googleCategory, setGoogleCategory] = useState('');
   const [localCategory, setLocalCategory] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [durationMinutes, setDurationMinutes] = useState('60');
-  const [customDuration, setCustomDuration] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [isActive, setIsActive] = useState(true);
-  const [extraData, setExtraData] = useState<ServiceExtraData>(
-    defaultExtraData() as ServiceExtraData
-  );
+  const [extraData, setExtraData] = useState<ProductExtraData>(defaultExtraData());
 
   const [showQuickCategoryModal, setShowQuickCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -99,23 +96,13 @@ export default function ServiceAddProductPage() {
       setCategory(typeof p.category === 'string' ? p.category : String(p.category?.name || ''));
       setImageUrl(String(p.imageUrl || p.image_url || ''));
       setIsActive(p.isActive !== false);
-      const ex = (p.extraData || {}) as ServiceExtraData;
+      const ex = (p.extraData || {}) as ProductExtraData;
       setExtraData({ ...defaultExtraData(), ...ex });
       setCostPrice(ex.costPrice != null ? String(ex.costPrice) : '');
       setBrand(String(ex.brand || ''));
       setGoogleCategory(String(ex.googleCategory || ''));
       setLocalCategory(String(ex.localCategory || ''));
       setYoutubeUrl(String(ex.youtubeUrl || ''));
-      if (ex.durationMinutes != null && Number(ex.durationMinutes) > 0) {
-        const mins = String(ex.durationMinutes);
-        if (DURATION_PRESETS.some((d) => String(d.value) === mins)) {
-          setDurationMinutes(mins);
-          setCustomDuration(false);
-        } else {
-          setCustomDuration(true);
-          setDurationMinutes(mins);
-        }
-      }
     } catch (err: any) {
       console.error('Failed to load service for edit:', err);
       alert(err?.message || 'تعذر تحميل بيانات الخدمة للتعديل');
@@ -156,19 +143,13 @@ export default function ServiceAddProductPage() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      alert('يرجى إدخال اسم الخدمة');
+      alert('يرجى إدخال اسم المنتج أو الخدمة');
       return;
     }
 
     const parsedPrice = Number(price);
     if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
       alert('السعر غير صحيح');
-      return;
-    }
-
-    const parsedDuration = Number(durationMinutes);
-    if (!Number.isFinite(parsedDuration) || parsedDuration <= 0) {
-      alert('مدة الخدمة غير صحيحة');
       return;
     }
 
@@ -198,13 +179,12 @@ export default function ServiceAddProductPage() {
         name: name.trim(),
         description: description.trim() || null,
         price: parsedPrice,
-        category: category || 'خدمات عامة',
+        category: category || 'خدمات حسب الطلب',
         imageUrl: finalImageUrl,
         isActive,
         shopId,
-        unit: 'service',
-        trackStock: false,
-        durationMinutes: parsedDuration,
+        unit: 'custom_service',
+        trackStock: !extraData.unlimitedStock,
         extraData: {
           ...extraData,
           costPrice: costPrice ? Number(costPrice) : null,
@@ -212,7 +192,6 @@ export default function ServiceAddProductPage() {
           googleCategory: googleCategory || undefined,
           localCategory: localCategory || undefined,
           youtubeUrl: youtubeUrl || undefined,
-          durationMinutes: parsedDuration,
         },
       };
 
@@ -245,17 +224,17 @@ export default function ServiceAddProductPage() {
     >
       {/* Header */}
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-sky-500 flex items-center justify-center shrink-0">
-          <span className="text-2xl">🩺</span>
+        <div className="w-12 h-12 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+          <ClipboardList size={26} />
         </div>
         <div className="text-right flex-1">
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
-            {editId ? 'تعديل الخدمة' : 'إضافة خدمة'}
+            {editId ? 'تعديل خدمة حسب الطلب' : 'إضافة خدمة حسب الطلب'}
           </h1>
           <p className="text-sm font-bold text-slate-400 mt-1">
             {editId
               ? 'عدّل بيانات الخدمة ونموذج الطلب الخاص بها'
-              : 'أضف خدمة بمواعيدها ومدتها وسعرها — بدون مخزون'}
+              : 'خدمات مخصصة كالطباعة، التصاميم، والمكتبات مع نموذج مخصص لاستقبال متطلبات العميل'}
           </p>
         </div>
         <button
@@ -272,268 +251,309 @@ export default function ServiceAddProductPage() {
           <X size={18} />
           <span>إلغاء</span>
         </button>
-      </div>
-
-      {/* Basic Info */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-6">
-        <h2 className="text-lg font-bold text-slate-900">المعلومات الأساسية</h2>
-
-        {/* Image: drag & drop + gallery + youtube */}
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOver(false);
-              const file = e.dataTransfer.files?.[0];
-              if (file && file.type.startsWith('image/'))
-                handleImageUpload({ target: { files: [file] } } as any);
-            }}
-            className={`w-28 h-28 rounded-xl border-2 border-dashed flex items-center justify-center transition-all ${dragOver ? 'border-sky-400 bg-sky-50' : 'border-slate-200 bg-slate-50'}`}
-          >
-            {imageUrl ? (
-              <img src={imageUrl} alt="Preview" className="w-full h-full object-cover rounded-xl" />
-            ) : (
-              <div className="text-center text-slate-300">
-                <ImageIcon size={22} className="mx-auto" />
-                <span className="text-[9px] font-bold block mt-1">اسحب وأفلت</span>
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col items-start gap-2">
-            <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-all cursor-pointer">
-              <Upload size={16} />
-              <span>اختر من المعرض</span>
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-            </label>
-            <div className="w-full sm:w-72 text-right">
-              <label className="text-xs font-bold text-slate-500 mb-1.5 block">
-                أو أضف رابط يوتيوب
-              </label>
-              <input
-                type="url"
-                value={youtubeUrl}
-                onChange={(e) => setYoutubeUrl(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-                dir="ltr"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">اسم المنتج</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-              placeholder="أدخل اسم المنتج"
-            />
-          </div>
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">السعر *</label>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              min="0"
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-              placeholder="أدخل السعر"
-            />
-          </div>
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">سعر التكلفة</label>
-            <input
-              type="number"
-              value={costPrice}
-              onChange={(e) => setCostPrice(e.target.value)}
-              min="0"
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-              placeholder="أدخل سعر التكلفة"
-            />
-          </div>
-          <div className="text-right">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-slate-500 block">التصنيفات</label>
-              <button
-                type="button"
-                onClick={() => setShowQuickCategoryModal(true)}
-                className="text-xs font-bold text-sky-600 hover:underline"
-              >
-                + فئة جديدة
-              </button>
-            </div>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-            >
-              <option value="">اختر التصنيفات</option>
-              {categories.map((cat: any) => {
-                const val = cat.name || cat.nameAr || cat.name_ar || String(cat.id || '');
-                const label = cat.nameAr || cat.name || cat.name_ar || val;
-                return (
-                  <option key={cat.id || val} value={val}>
-                    {label}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">
-              العلامة التجارية
-            </label>
-            <input
-              type="text"
-              value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-              placeholder="اختر العلامة التجارية"
-            />
-          </div>
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">تصنيفات جوجل</label>
-            <input
-              type="text"
-              value={googleCategory}
-              onChange={(e) => setGoogleCategory(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-              placeholder="اختار تصنيف جوجل"
-            />
-          </div>
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">تصنيف محلي</label>
-            <input
-              type="text"
-              value={localCategory}
-              onChange={(e) => setLocalCategory(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-              placeholder="تصنيف محلي"
-            />
-          </div>
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1.5">
-              <Clock size={12} />
-              مدة الخدمة
-            </label>
-            {customDuration ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={durationMinutes}
-                  onChange={(e) => setDurationMinutes(e.target.value)}
-                  min="5"
-                  step="5"
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-                  placeholder="بالدقائق"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustomDuration(false);
-                    setDurationMinutes('60');
-                  }}
-                  className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-all shrink-0"
-                >
-                  قوائم جاهزة
-                </button>
-              </div>
-            ) : (
-              <select
-                value={durationMinutes}
-                onChange={(e) => {
-                  if (e.target.value === '__CUSTOM__') {
-                    setCustomDuration(true);
-                    setDurationMinutes('');
-                  } else {
-                    setDurationMinutes(e.target.value);
-                  }
-                }}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-              >
-                {DURATION_PRESETS.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.label}
-                  </option>
-                ))}
-                <option value="__CUSTOM__">مدة أخرى...</option>
-              </select>
-            )}
-          </div>
-        </div>
-
-        <div className="text-right">
-          <label className="text-xs font-bold text-slate-500 mb-1.5 block">وصف المنتج</label>
-          <RichDescriptionEditor
-            value={description}
-            onChange={setDescription}
-            placeholder="اكتب تفاصيل الخدمة وما تشمله..."
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="isActive"
-            checked={isActive}
-            onChange={(e) => setIsActive(e.target.checked)}
-            className="w-4 h-4 rounded border-slate-300"
-          />
-          <label htmlFor="isActive" className="text-sm font-medium text-slate-700">
-            متاحة للحجز
-          </label>
-        </div>
-      </div>
-
-      {/* Extended sections (advanced, discounts, channels, purchase options, tags, shipping, inventory, SEO, custom fields, notifications) */}
-      <ExtendedProductSections value={extraData} onChange={setExtraData} />
-
-      {/* Order form builder — service-specific */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
-        <h2 className="text-lg font-bold text-slate-900">نموذج الطلب</h2>
-        <p className="text-xs text-slate-400 font-bold">
-          أضف حقولًا مخصصة تناسب نوع خدمتك — يجيبها العميل أثناء الطلب، وتوصللك مع كل طلب.
-        </p>
-        <OrderFormFieldsBuilder
-          value={extraData.orderFormFields || []}
-          onChange={(fields) => setExtraData((prev) => ({ ...prev, orderFormFields: fields }))}
-        />
-      </div>
-
-      {/* Note */}
-      <div className="flex items-start gap-3 p-4 rounded-xl bg-sky-50 border border-sky-100">
-        <Stethoscope size={18} className="text-sky-600 shrink-0 mt-0.5" />
-        <p className="text-xs text-sky-700 leading-relaxed">
-          الخدمات لا تتبع المخزون — العملاء يحجزون مواعيد ويختارون مقدم الخدمة والوقت المناسب. يمكنك
-          إدارة مواعيد الحجز وقائمة مقدمي الخدمة من قسم الحجوزات.
-        </p>
-      </div>
-
-      {/* Save Button */}
-      <div className="flex justify-end gap-3">
-        <button
-          onClick={() => router.back()}
-          className="px-6 py-3 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-all"
-        >
-          إلغاء
-        </button>
         <button
           onClick={handleSave}
           disabled={saving || loadingProduct}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-black transition-all disabled:opacity-50"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-black transition-all disabled:opacity-50"
         >
-          {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-          <span>{editId ? 'حفظ التعديلات' : 'حفظ الخدمة'}</span>
+          {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+          <span>{editId ? 'حفظ التعديلات' : 'حفظ'}</span>
         </button>
       </div>
+
+      {/* Main Grid: Left column (Live Preview) + Right column (Fields & Sections) */}
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 items-start">
+        {/* Live preview panel (Sticky on Desktop) */}
+        <div className="bg-white rounded-2xl p-5 lg:sticky lg:top-4 text-center border border-slate-200/80 shadow-xs order-2 lg:order-1">
+          <div className="w-full aspect-square rounded-xl bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center mb-4">
+            {imageUrl ? (
+              <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300">
+                <ImageIcon size={44} />
+              </div>
+            )}
+          </div>
+          {name.trim() ? (
+            <p className="text-sm font-black text-slate-900 mb-1">{name.trim()}</p>
+          ) : null}
+          {price ? (
+            <p className="text-sm font-black text-teal-600 mb-2">
+              ج.م {Number(price).toFixed(2)}
+              {extraData.discountPrice ? (
+                <span className="text-[11px] font-bold text-slate-400 line-through mr-2">
+                  ج.م {Number(extraData.discountPrice).toFixed(2)}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
+          {extraData.subtitle || extraData.promoTitle ? (
+            <p className="text-[11px] font-bold text-slate-400 leading-relaxed mb-2">
+              {[extraData.promoTitle, extraData.subtitle].filter(Boolean).join(' — ')}
+            </p>
+          ) : null}
+          {!name.trim() && !price && (
+            <div className="text-center py-2">
+              <p className="text-xs font-black text-slate-700 mb-1.5">أضف المعلومات الأساسية</p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                تُظهر المعاينة الصورة، الاسم، السعر، السعر المخفض, العنوان الفرعي والترويجي. ستتمكن من معاينة صفحة المنتج الكاملة على ثيم متجرك بعد الحفظ.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right column: Basic info + Extended sections */}
+        <div className="space-y-6 order-1 lg:order-2">
+          {/* 1. Basic Info Card */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 space-y-4 shadow-xs">
+            <h2 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100">
+              المعلومات الأساسية
+            </h2>
+
+            {/* Upload zone */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file && file.type.startsWith('image/')) handleImageUpload({ target: { files: [file] } } as any);
+              }}
+              className={`rounded-2xl border-2 border-dashed p-5 text-center transition-all ${
+                dragOver ? 'border-teal-400 bg-teal-50/50' : 'border-slate-200 bg-slate-50/40'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-4">
+                <div className="w-16 h-16 rounded-xl border-2 border-slate-200 bg-white flex items-center justify-center text-slate-300 overflow-hidden shrink-0">
+                  {imageUrl ? (
+                    <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon size={26} />
+                  )}
+                </div>
+                <div className="text-right flex-1 min-w-0">
+                  <p className="text-xs font-black text-slate-700">اسحب الصورة وأفلتها هنا</p>
+                  <label className="inline-block mt-2 px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-all shadow-2xs">
+                    اختار من المعرض
+                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                  </label>
+                </div>
+              </div>
+              <div className="mt-3 text-left border-t border-slate-100 pt-2" dir="ltr">
+                <input
+                  type="url"
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  placeholder="أو أضف رابط يوتيوب"
+                  className="w-full max-w-sm text-xs px-2 py-1.5 rounded-lg border border-transparent hover:border-slate-200 focus:border-teal-400 outline-none bg-transparent text-teal-600 underline placeholder:text-slate-400 placeholder:no-underline font-semibold"
+                />
+              </div>
+            </div>
+
+            {/* Name */}
+            <div className="text-right">
+              <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
+                اسم المنتج <Info size={13} className="text-slate-300" />
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full h-11 pl-16 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
+                  placeholder="أدخل اسم المنتج"
+                />
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 h-7 px-2 rounded-md border border-slate-200 bg-white text-[10px] font-bold text-slate-500 flex items-center gap-0.5 select-none">
+                  AR <ChevronDown size={10} />
+                </span>
+              </div>
+            </div>
+
+            {/* Price & Cost price (2 columns) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Price */}
+              <div className="text-right">
+                <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
+                  السعر <span className="text-red-500">*</span> <Info size={13} className="text-slate-300" />
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    min="0"
+                    step="any"
+                    className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
+                    placeholder="أدخل السعر"
+                  />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">#</span>
+                </div>
+              </div>
+
+              {/* Cost price */}
+              <div className="text-right">
+                <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
+                  سعر التكلفة <Info size={13} className="text-slate-300" />
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={costPrice}
+                    onChange={(e) => setCostPrice(e.target.value)}
+                    min="0"
+                    step="any"
+                    className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
+                    placeholder="أدخل سعر التكلفة"
+                  />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">#</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Categories & Brand (2 columns) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Categories */}
+              <div className="text-right">
+                <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
+                  التصنيفات <Info size={13} className="text-slate-300" />
+                </label>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="flex-1 h-11 px-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 focus:outline-none focus:border-teal-400"
+                  >
+                    <option value="">اختر التصنيفات</option>
+                    {categories.map((cat: any) => {
+                      const val = cat.name || cat.nameAr || cat.name_ar || String(cat.id || '');
+                      const label = cat.nameAr || cat.name || cat.name_ar || val;
+                      return (
+                        <option key={cat.id || val} value={val}>
+                          {label}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickCategoryModal(true)}
+                    className="h-11 w-11 rounded-xl bg-teal-50 border border-teal-100 text-teal-700 text-lg font-bold hover:bg-teal-100 transition-all shrink-0 flex items-center justify-center"
+                    title="فئة جديدة"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Brand */}
+              <div className="text-right">
+                <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
+                  العلامة التجارية <Info size={13} className="text-slate-300" />
+                </label>
+                <input
+                  type="text"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
+                  placeholder="اختر العلامة التجارية"
+                />
+              </div>
+            </div>
+
+            {/* Google category */}
+            <div className="text-right">
+              <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
+                تصنيفات جوجل <Info size={13} className="text-slate-300" />
+              </label>
+              <select
+                value={googleCategory}
+                onChange={(e) => setGoogleCategory(e.target.value)}
+                className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 focus:outline-none focus:border-teal-400"
+              >
+                <option value="">اختار تصنيف جوجل</option>
+                {GOOGLE_PRODUCT_CATEGORIES.map((gc) => (
+                  <option key={gc} value={gc}>
+                    {gc}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Local category */}
+            <div className="text-right">
+              <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
+                تصنيف محلي <Info size={13} className="text-slate-300" />
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={localCategory}
+                  onChange={(e) => setLocalCategory(e.target.value)}
+                  className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
+                  placeholder="تصنيف محلي"
+                />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 text-sm">👑</span>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="text-right">
+              <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
+                وصف المنتج <Info size={13} className="text-slate-300" />
+              </label>
+              <RichDescriptionEditor
+                value={description}
+                onChange={setDescription}
+                placeholder="اكتب مواصفات وتفاصيل الخدمة وما تشمله..."
+              />
+            </div>
+
+            {/* Available for sale / order */}
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 accent-teal-600"
+              />
+              <label htmlFor="isActive" className="text-xs font-bold text-slate-700 cursor-pointer">
+                متاح للطلب والبيع في المتجر
+              </label>
+            </div>
+          </div>
+
+          {/* 2. Extended sections (المعلومات المتقدمة، التخفيضات، قنوات عرض المنتج، خيارات الشراء، الوسوم، الشحن، المخزون، بيانات SEO، الكميات، الخيارات، نموذج الطلب، الحقول المخصصة، الإشعارات) */}
+          <ExtendedProductSections
+            value={extraData}
+            onChange={setExtraData}
+            showOrderForm={true}
+          />
+
+          {/* Bottom Save & Cancel Buttons */}
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={() => router.back()}
+              className="px-6 py-3 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-all"
+            >
+              إلغاء
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving || loadingProduct}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-black transition-all disabled:opacity-50"
+            >
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+              <span>{editId ? 'حفظ التعديلات' : 'حفظ الخدمة'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Quick Add Category Modal */}
       {showQuickCategoryModal && (
         <div
@@ -541,37 +561,37 @@ export default function ServiceAddProductPage() {
           onClick={() => setShowQuickCategoryModal(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4"
+            className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between flex-row-reverse">
-              <h3 className="text-lg font-black text-slate-900">إضافة تخصص/فئة جديدة سريعة</h3>
+              <h3 className="text-lg font-black text-slate-900">إضافة تصنيف جديد</h3>
               <button
                 onClick={() => setShowQuickCategoryModal(false)}
-                className="p-1 hover:bg-slate-100 rounded-lg"
+                className="p-1 hover:bg-slate-100 rounded-lg text-slate-400"
               >
-                <X size={18} className="text-slate-400" />
+                <X size={18} />
               </button>
             </div>
             <div>
               <label className="text-xs font-bold text-slate-500 mb-1 block">
-                اسم التخصص / الفئة *
+                اسم التصنيف *
               </label>
               <input
                 type="text"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="مثال: استشارات عامة"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
+                placeholder="مثال: خدمات الطباعة والتصوير"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-200"
               />
             </div>
             <div className="flex items-center gap-2 pt-2">
               <button
                 type="button"
                 onClick={handleQuickAddCategory}
-                className="flex-1 py-2.5 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all"
+                className="flex-1 py-2.5 rounded-xl bg-teal-600 text-white font-bold text-sm hover:bg-teal-700 transition-all"
               >
-                إضافة التخصص
+                إضافة التصنيف
               </button>
               <button
                 type="button"

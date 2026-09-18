@@ -16,37 +16,42 @@ const DEFAULT_FEATURES: Record<string, string[]> = {
   branches: ['branchesList', 'branchCompare'],
   team: ['teamMembers', 'teamRoles'],
   sales: ['orders', 'salesOrders', 'deliveryNotes'],
-  inventory: ['products'],
-  finance: ['invoice', 'revenue', 'wallets', 'eta'],
-  accounting: ['accounts', 'journal', 'trialBalance', 'financialReports', 'expenses', 'taxes'],
-  crm: ['customers', 'customerStatements', 'creditLimits', 'wholesalePricing'],
+  inventory: ['inventoryoverview', 'products', 'purchaseorders', 'warehouses', 'stocktake', 'suppliers'],
+  finance: ['invoice', 'collections', 'wallets', 'expenses', 'receivables', 'payables', 'settlements', 'eta'],
+  accounting: ['accounts', 'journal', 'ledger', 'trialBalance', 'financialReports', 'taxes'],
+  crm: ['customers', 'customerStatements', 'creditLimits', 'customerSegments', 'customerTags', 'loyaltyProgram'],
   pos: ['posCheckout', 'posSettings'],
-  website: ['website'],
-  analytics: [
-    'allAnalytics',
-    'kpi',
-    'charts',
-    'salesPerformance',
-    'productPerformance',
-    'inventoryReports',
-    'customerInsights',
-    'engagementAnalytics',
-    'visitors',
-    'conversions',
-    'returnsReport',
-    'financeAnalytics',
-    'marketingAnalytics',
-    'operationsAnalytics',
-    'paymentsAnalytics',
-    'logisticsAnalytics',
-  ],
+  website: ['website', 'website_themes', 'website_builder'],
+  analytics: [],
 };
+
+/**
+ * صفحات إعادة الهيكلة الجديدة — بتظهر دايمًا
+ * حتى لو المتجر محفوظ عنده enabledFeatures قديمة من غيرها، لأنها جزء
+ * من الهيكل الأساسي مش ميزة اختيارية.
+ */
+const ALWAYS_VISIBLE_ITEMS = new Set([
+  'website',
+  'website_themes',
+  'website_builder',
+  'collections',
+  'receivables',
+  'payables',
+  'settlements',
+  'ledger',
+  'reportsHub',
+  // صفحات إعادة هيكلة المخزون — 6 صفحات أساسية
+  'inventoryoverview',
+  'products',
+  'purchaseorders',
+  'warehouses',
+  'stocktake',
+  'suppliers',
+]);
 
 const FEATURE_ALIASES: Record<string, string> = {
   sales: 'orders',
   addProduct: 'products',
-  customerSegments: 'customers',
-  customerTags: 'customers',
   marketingHub: 'campaigns',
   promotions: 'campaigns',
   bookingsOverview: 'reservations',
@@ -139,8 +144,8 @@ export default function useVisibleSections() {
       : sidebarSections;
     return base
       .map((section) => {
-        // Always show dashboard and settings
-        if (section.id === 'dashboard' || section.id === 'settings') return section;
+        // Always show dashboard, settings, and website
+        if (section.id === 'dashboard' || section.id === 'settings' || section.id === 'website') return section;
         // Analytics is a reporting core: always show every analytics page.
         // Shops saved before the analytics pages existed carry stale
         // enabledFeatures.analytics lists that would silently hide pages.
@@ -153,7 +158,7 @@ export default function useVisibleSections() {
         const activeFeatures = enabledFeatures[moduleId] || new Set<string>();
         const items = section.items.filter((item) => {
           const featureId = (FEATURE_ALIASES[item.id] || item.id).toLowerCase();
-          return activeFeatures.has(featureId);
+          return activeFeatures.has(featureId) || ALWAYS_VISIBLE_ITEMS.has(featureId);
         });
         if (items.length === 0) return null;
         return { ...section, items };

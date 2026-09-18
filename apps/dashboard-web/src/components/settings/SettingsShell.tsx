@@ -15,16 +15,20 @@ import AccountTab from './tabs/AccountTab';
 import SecurityTab from './tabs/SecurityTab';
 import StoreTab from './tabs/StoreTab';
 import BookingSettingsTab from './tabs/BookingSettingsTab';
+import OrdersSettingsTab from './tabs/OrdersSettingsTab';
+import PosSettingsTab from './tabs/PosSettingsTab';
 import ModulesTab from './tabs/ModulesTab';
 import AppsTab from './tabs/AppsTab';
 import ReceiptThemeTab from './tabs/ReceiptThemeTab';
 import PaymentsTab from './tabs/PaymentsTab';
 import SocialMediaTab from './tabs/SocialMediaTab';
 import NotificationsTab from './tabs/NotificationsTab';
+import { ShoppingCart, Printer, CalendarDays } from 'lucide-react';
 
 type SettingsTab =
   | 'overview' | 'account' | 'security' | 'store' | 'modules' | 'apps'
   | 'receipt_theme' | 'payments' | 'notifications' | 'booking_settings'
+  | 'orders_settings' | 'pos_settings'
   | 'social_media';
 
 type SaveHandler = () => Promise<boolean>;
@@ -45,23 +49,25 @@ export default function SettingsShell({ shop, onSaved }: SettingsShellProps) {
     return category === 'SERVICE' || category === 'BOOKING';
   })();
 
-  // Build the list of available tabs (conditional like React app)
+  // Build the list of available tabs in general settings
   const settingsTabs = React.useMemo(() => {
-    const list: Array<{ id: SettingsTab; icon: React.ReactNode; label: string }> = [
-      { id: 'overview', icon: <Home className="w-5 h-5" />, label: 'النظرة العامة' },
-      { id: 'account', icon: <User className="w-5 h-5" />, label: 'الحساب' },
-      { id: 'security', icon: <Shield className="w-5 h-5" />, label: 'الأمان' },
-      { id: 'store', icon: <Store className="w-5 h-5" />, label: 'المتجر' },
-      ...(isBooking ? [{ id: 'booking_settings' as const, icon: <Clock className="w-5 h-5" />, label: 'إعدادات الحجوزات' }] : []),
-      { id: 'modules', icon: <Puzzle className="w-5 h-5" />, label: 'الوحدات' },
-      { id: 'apps', icon: <LayoutGrid className="w-5 h-5" />, label: 'التطبيقات' },
-      ...(!isBooking ? [{ id: 'receipt_theme' as const, icon: <FileText className="w-5 h-5" />, label: 'تصميم الإيصال' }] : []),
-      { id: 'payments', icon: <CreditCard className="w-5 h-5" />, label: 'المدفوعات' },
-      { id: 'social_media', icon: <Share2 className="w-5 h-5" />, label: 'السوشيال ميديا' },
-      { id: 'notifications', icon: <Bell className="w-5 h-5" />, label: 'الإشعارات' },
+    const list: Array<{ id: SettingsTab; icon: React.ReactNode; label: string; badge?: string }> = [
+      { id: 'overview', icon: <Home className="w-4 h-4" />, label: 'النظرة العامة' },
+      { id: 'store', icon: <Store className="w-4 h-4" />, label: 'بيانات المتجر والنشاط' },
+      { id: 'booking_settings', icon: <CalendarDays className="w-4 h-4" />, label: 'إعدادات الحجوزات' },
+      { id: 'orders_settings', icon: <ShoppingCart className="w-4 h-4" />, label: 'إعدادات الطلبات' },
+      { id: 'pos_settings', icon: <Printer className="w-4 h-4" />, label: 'إعدادات الكاشير (POS)' },
+      { id: 'payments', icon: <CreditCard className="w-4 h-4" />, label: 'المدفوعات' },
+      { id: 'receipt_theme', icon: <FileText className="w-4 h-4" />, label: 'تصميم الإيصال' },
+      { id: 'account', icon: <User className="w-4 h-4" />, label: 'الحساب' },
+      { id: 'security', icon: <Shield className="w-4 h-4" />, label: 'الأمان' },
+      { id: 'notifications', icon: <Bell className="w-4 h-4" />, label: 'الإشعارات' },
+      { id: 'social_media', icon: <Share2 className="w-4 h-4" />, label: 'السوشيال ميديا' },
+      { id: 'modules', icon: <Puzzle className="w-4 h-4" />, label: 'الوحدات' },
+      { id: 'apps', icon: <LayoutGrid className="w-4 h-4" />, label: 'التطبيقات' },
     ];
     return list;
-  }, [isBooking]);
+  }, []);
 
   const allowedTabs = new Set(settingsTabs.map((t) => t.id));
   const requestedTab = String(searchParams?.get('tab') || '').trim().toLowerCase() as SettingsTab;
@@ -132,7 +138,7 @@ export default function SettingsShell({ shop, onSaved }: SettingsShellProps) {
     };
   }, [toast]);
 
-  const handleTabClick = (tabId: SettingsTab) => {
+  const handleTabClick = (tabId: string) => {
     const params = new URLSearchParams(searchParams?.toString() || '');
     params.set('tab', tabId);
     router.push(`/dashboard/settings?${params.toString()}`);
@@ -146,32 +152,34 @@ export default function SettingsShell({ shop, onSaved }: SettingsShellProps) {
 
   const renderTabContent = (tabId: SettingsTab) => {
     switch (tabId) {
-      case 'overview': return <OverviewTab shop={shop} />;
+      case 'overview': return <OverviewTab shop={shop} onSelectTab={handleTabClick} />;
       case 'account': return <AccountTab shop={shop} onSaved={onSaved} />;
       case 'security': return <SecurityTab shop={shop} onSaved={onSaved} />;
       case 'store': return <StoreTab shop={shop} onSaved={onSaved} />;
       case 'booking_settings': return <BookingSettingsTab shop={shop} onSaved={onSaved} />;
+      case 'orders_settings': return <OrdersSettingsTab shop={shop} onSaved={onSaved} />;
+      case 'pos_settings': return <PosSettingsTab shop={shop} onSaved={onSaved} />;
       case 'modules': return <ModulesTab shop={shop} onSaved={onSaved} />;
       case 'apps': return <AppsTab shop={shop} onSaved={onSaved} />;
       case 'receipt_theme': return <ReceiptThemeTab shop={shop} />;
       case 'payments': return <PaymentsTab shop={shop} onSaved={onSaved} />;
       case 'social_media': return <SocialMediaTab shop={shop} onSaved={onSaved} />;
       case 'notifications': return <NotificationsTab shop={shop} />;
-      default: return <OverviewTab shop={shop} />;
+      default: return <OverviewTab shop={shop} onSelectTab={handleTabClick} />;
     }
   };
 
   return (
-    <div className="p-4 sm:p-6 md:p-8">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 mb-6 flex-row-reverse">
+      <div className="flex items-center justify-between gap-4 flex-row-reverse">
         <div className="flex items-center gap-4 flex-row-reverse">
           <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
             <SettingsIcon size={24} className="text-[#00E5FF]" />
           </div>
           <div className="text-right">
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900">الإعدادات</h1>
-            <p className="text-sm font-bold text-slate-400 mt-1">إدارة بيانات المتجر والإعدادات</p>
+            <p className="text-sm font-bold text-slate-400 mt-1">إدارة بيانات المتجر، الحجوزات، الطلبات ونقاط البيع</p>
           </div>
         </div>
 

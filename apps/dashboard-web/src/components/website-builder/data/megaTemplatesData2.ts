@@ -79,7 +79,7 @@ export const moreBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'تأكيد حجز الموعد',
       fields: [
         { name: 'name', label: 'الاسم الكريم', type: 'text', placeholder: 'الاسم', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'car_model', label: 'الموديل المطلوب', type: 'select', placeholder: 'اختر السيارة', required: true, options: ['مرسيدس S-Class / E-Class', 'بورش كايين / باناميرا', 'رينج روفر / ديفندر', 'أخرى'] },
       ],
     },
@@ -162,7 +162,7 @@ export const moreBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'تأكيد حجز موعد الحماية',
       fields: [
         { name: 'name', label: 'الاسم', type: 'text', placeholder: 'اسم العميل', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'car_info', label: 'نوع وموديل السيارة', type: 'text', placeholder: 'مثال: لاندكروزر 2026', required: true },
         { name: 'package', label: 'الباقة المطلوبة', type: 'select', placeholder: 'اختر الباقة', required: true, options: ['حماية مقدمة PPF', 'حماية البودي كامل PPF', 'عازل حراري نانو سيراميك', 'تلميع ساطع وسيراميك 9H'] },
       ],
@@ -246,7 +246,7 @@ export const moreBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'تأكيد حجز موعد الصيانة',
       fields: [
         { name: 'name', label: 'الاسم', type: 'text', placeholder: 'الاسم الكريم', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'car_brand', label: 'ماركة السيارة', type: 'select', placeholder: 'اختر الماركة', required: true, options: ['مرسيدس بنز Mercedes', 'بي إم دبليو BMW', 'بورش Porsche', 'أودي / فولكس واجن', 'رينج روفر / لاندروفر'] },
         { name: 'issue', label: 'وصف العطل أو الصيانة المطلوبة', type: 'textarea', placeholder: 'اذكر المشكلة أو الصيانة...', required: false },
       ],
@@ -333,7 +333,7 @@ export const moreBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'طلب تسعير التوزيعات والمناسبات',
       fields: [
         { name: 'name', label: 'الاسم', type: 'text', placeholder: 'الاسم الكريم', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'quantity', label: 'الكمية التقريبية المطلوبة', type: 'select', placeholder: 'اختر الكمية', required: true, options: ['من 10 إلى 50 علبة توزيعات', 'من 50 إلى 200 علبة زواج', 'أكثر من 200 علبة مؤتمرات وشركات'] },
       ],
     },
@@ -419,7 +419,7 @@ export const moreBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'طلب عرض أسعار الشركات',
       fields: [
         { name: 'name', label: 'اسم الشركة / المنشأة', type: 'text', placeholder: 'الاسم', required: true },
-        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'employees_count', label: 'عدد الموظفين أو استهلاك القهوة الشهري', type: 'select', placeholder: 'اختر النطاق', required: true, options: ['أقل من 20 موظف (حوالي 5 كجم شهرياً)', '20 إلى 80 موظف (15 إلى 30 كجم)', 'مؤسسة كبرى أكثر من 100 موظف'] },
       ],
     },
@@ -463,7 +463,7 @@ export const moreBusinessActivities: BusinessActivityDetail[] = [
     features: [
       { title: 'تقنية المسح الرقمي ثلاثي الأبعاد 3D Scanner', description: 'وداعاً لعجينة القياس التقليدية المزعجة مع ماسح ليزري فائق السرعة والدقة.', iconName: 'Sparkles' },
       { title: 'زراعة الأسنان الألمانية الموجهة بالكمبيوتر (Surgical Guide)', description: 'دقة متناهية بدون جراحة أو خياطة مع التئام سريع وعودة للحياة الطبيعية فوراً.', iconName: 'ShieldCheck' },
-      { title: 'خطط تقسيط ميسرة 0% فوائد مع تمارا وتابي', description: 'عالج أسنانك براحة تامة وقسط تكلفتك على دفعات شهرية ميسرة.', iconName: 'CreditCard' },
+      { title: 'خطط تقسيط ميسرة 0% فوائد مع الدفع عند الاستلام', description: 'عالج أسنانك براحة تامة وقسط تكلفتك على دفعات شهرية ميسرة.', iconName: 'CreditCard' },
     ],
     itemsSectionTitle: 'أشهر العلاجات والخدمات التجميلية للأسنان',
     itemsSectionSubtitle: 'عيادات مجهزة بأحدث معايير مكافحة العدوى والتعقيم الطبي الفضائي',
@@ -505,12 +505,12 @@ export const moreBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'تأكيد حجز موعد العيادة',
       fields: [
         { name: 'name', label: 'الاسم', type: 'text', placeholder: 'اسم المريض الكريم', required: true },
-        { name: 'phone', label: 'رقم الجوال للتواصل والواتساب', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال للتواصل والواتساب', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'treatment', label: 'العلاج أو الإجراء المطلوب', type: 'select', placeholder: 'اختر العلاج', required: true, options: ['ابتسامة هوليوود وعدسات إيماكس', 'زراعة سن أو أكثر', 'تبييض أسنان وتنظيف جير', 'تقويم أسنان شفاف إنفزلاين', 'علاج عصب وأسنان عام'] },
       ],
     },
     reviews: [
-      { name: 'أ. ريم الشلهوب', role: 'مراجعة بالعيادة', rating: 5, comment: 'ركبت عدسات الإيماكس عند دكتور المركز، الابتسامة طبيعية جداً وما حسيت بأي ألم خلال كل الجلسات.', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80' },
+      { name: 'أ. ريم مصطفى', role: 'مراجعة بالعيادة', rating: 5, comment: 'ركبت عدسات الإيماكس عند دكتور المركز، الابتسامة طبيعية جداً وما حسيت بأي ألم خلال كل الجلسات.', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80' },
     ],
   },
   // =========================================================================
@@ -591,7 +591,7 @@ export const moreBusinessActivities: BusinessActivityDetail[] = [
       buttonText: 'طلب التقرير والفحص المجاني',
       fields: [
         { name: 'name', label: 'الاسم', type: 'text', placeholder: 'الاسم الكريم', required: true },
-        { name: 'phone', label: 'رقم الجوال للتواصل والواتساب', type: 'tel', placeholder: '05xxxxxxxx', required: true },
+        { name: 'phone', label: 'رقم الجوال للتواصل والواتساب', type: 'tel', placeholder: '01xxxxxxxxx', required: true },
         { name: 'website_url', label: 'رابط موقعك أو متجرك أو حسابك', type: 'url', placeholder: 'https://yourwebsite.com', required: true },
         { name: 'budget', label: 'الميزانية الإعلانية الشهرية المتوقعة', type: 'select', placeholder: 'اختر الميزانية', required: true, options: ['من 5,000 إلى 15,000 ج.م', 'من 15,000 إلى 50,000 ج.م', 'أكثر من 50,000 ج.م'] },
       ],

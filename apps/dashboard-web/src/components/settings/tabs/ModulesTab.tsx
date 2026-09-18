@@ -256,6 +256,11 @@ const REGISTRY_FEATURES: Record<
   ],
   crm: [
     { id: 'customers', label: 'Customers', labelAr: 'العملاء', defaultEnabled: true },
+    { id: 'customerStatements', label: 'Statements', labelAr: 'كشوف الحساب', defaultEnabled: true },
+    { id: 'creditLimits', label: 'Credit Limits', labelAr: 'حدود الائتمان', defaultEnabled: true },
+    { id: 'customerSegments', label: 'Segments', labelAr: 'الشرائح', defaultEnabled: true },
+    { id: 'customerTags', label: 'Tags', labelAr: 'الوسوم', defaultEnabled: true },
+    { id: 'loyaltyProgram', label: 'Loyalty & Rewards', labelAr: 'الولاء والمكافآت', defaultEnabled: true },
     { id: 'chats', label: 'Chats', labelAr: 'المحادثات' },
     { id: 'tickets', label: 'Tickets', labelAr: 'التذاكر' },
     { id: 'complaints', label: 'Complaints', labelAr: 'الشكاوى' },

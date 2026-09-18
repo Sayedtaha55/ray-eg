@@ -1,9 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ClipboardCheck, Search, Loader2, Plus, Edit, Trash2, Eye, Download, Upload, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info, MoreVertical, Package2, BarChart3, TrendingUp, AlertTriangle, Calendar, Clock, CheckCircle2, XCircle, FileText } from 'lucide-react';
+import { ClipboardCheck, Plus, Edit, Trash2, Download, Upload, ArrowUpDown, Check, X, Info, Clock, CheckCircle2, XCircle, FileText, AlertTriangle, Calendar } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import {
+  InventoryPage,
+  InvTableCard,
+  InvRow,
+  InvRowAction,
+  InvStatusPill,
+  InvPagination,
+  InvBulkBar,
+} from '@/components/inventory/InventoryShell';
 
 type Stocktake = {
   id: string;
@@ -81,7 +90,9 @@ export default function StocktakePage() {
       s.location.includes(debouncedSearch)
     );
 
-    if (filterStatus !== 'all') {
+    if (filterStatus === 'discrepancies') {
+      result = result.filter(s => s.discrepancyCount > 0);
+    } else if (filterStatus !== 'all') {
       result = result.filter(s => s.status === filterStatus);
     }
 
@@ -232,10 +243,17 @@ export default function StocktakePage() {
   }, []);
 
   const STATUS_CONFIG = {
-    draft: { label: 'مسودة', color: 'bg-slate-50 text-slate-600', icon: <FileText size={12} /> },
-    in_progress: { label: 'جاري', color: 'bg-blue-50 text-blue-600', icon: <Clock size={12} /> },
-    completed: { label: 'مكتمل', color: 'bg-green-50 text-green-600', icon: <CheckCircle2 size={12} /> },
-    cancelled: { label: 'ملغي', color: 'bg-red-50 text-red-600', icon: <XCircle size={12} /> },
+    draft: { label: 'جرد جديد', icon: <FileText size={12} /> },
+    in_progress: { label: 'جاري', icon: <Clock size={12} /> },
+    completed: { label: 'بانتظار الاعتماد', icon: <CheckCircle2 size={12} /> },
+    cancelled: { label: 'ملغي', icon: <XCircle size={12} /> },
+  };
+
+  const STATUS_TONE: Record<Stocktake['status'], 'slate' | 'amber' | 'emerald' | 'red'> = {
+    draft: 'slate',
+    in_progress: 'amber',
+    completed: 'emerald',
+    cancelled: 'red',
   };
 
   const stats = useMemo(() => {
@@ -246,286 +264,192 @@ export default function StocktakePage() {
     const totalDiscrepancies = stocktakes.reduce((sum, s) => sum + s.discrepancyCount, 0);
     return [
       { label: 'إجمالي الجرد', value: total, icon: ClipboardCheck, color: 'bg-blue-50 text-blue-600' },
-      { label: 'مسودة', value: draft, icon: FileText, color: 'bg-slate-50 text-slate-600' },
-      { label: 'جاري', value: inProgress, icon: Clock, color: 'bg-blue-50 text-blue-600' },
-      { label: 'مكتمل', value: completed, icon: CheckCircle2, color: 'bg-green-50 text-green-600' },
+      { label: 'جرد جديد', value: draft, icon: FileText, color: 'bg-slate-50 text-slate-600' },
+      { label: 'الجاري', value: inProgress, icon: Clock, color: 'bg-blue-50 text-blue-600' },
+      { label: 'بانتظار الاعتماد', value: completed, icon: CheckCircle2, color: 'bg-green-50 text-green-600' },
       { label: 'الاختلافات', value: totalDiscrepancies, icon: AlertTriangle, color: 'bg-amber-50 text-amber-600' },
     ];
   }, [stocktakes]);
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <ClipboardCheck size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">جرد المخزون</h1>
-            <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-              <Info size={18} />
-            </button>
-          </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">إدارة عمليات جرد المخزون</p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        {stats.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
-            <div className={`p-2 rounded-xl ${s.color}`}><s.icon size={20} /></div>
-            <div><p className="text-xs font-bold text-slate-400">{s.label}</p><p className="text-lg font-black text-slate-900">{s.value}</p></div>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex flex-wrap gap-3">
-          <button onClick={() => setAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all">
-            <Plus size={18} />
+    <InventoryPage
+      title="جرد المخزون"
+      subtitle={
+        <>
+          إدارة عمليات جرد المخزون — {stats[4].value} اختلاف مسجل
+        </>
+      }
+      onInfo={() => setGuideOpen(true)}
+      actions={
+        <>
+          <button
+            onClick={() => setAddModal(true)}
+            className="h-10 px-5 rounded-full text-[12px] font-bold flex items-center gap-1.5 transition-colors bg-slate-900 text-white hover:bg-slate-700"
+          >
+            <Plus size={14} />
             جرد جديد
           </button>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
-            <Download size={18} />
+          <button
+            onClick={exportCSV}
+            className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 hidden sm:flex items-center gap-1.5"
+          >
+            <Download size={14} />
             تصدير CSV
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">
-            <Upload size={18} />
+          <button className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 hidden sm:flex items-center gap-1.5">
+            <Upload size={14} />
             استيراد
           </button>
-        </div>
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900">{selectedIds.size} محدد</span>
-            <button onClick={bulkDelete} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-700 font-bold text-xs hover:bg-red-100 transition-all">
-              <Trash2 size={14} />
-              حذف
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute top-1/2 -translate-y-1/2 right-3 text-slate-300" size={18} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالاسم أو المرجع..." className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-
-      {/* Advanced Filters */}
-      <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-white border border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الحالة:</span>
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="draft">مسودة</option>
-            <option value="in_progress">جاري</option>
-            <option value="completed">مكتمل</option>
-            <option value="cancelled">ملغي</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الترتيب:</span>
+        </>
+      }
+      tabs={[
+        { id: 'all', label: 'سجل الجرد', count: stats[0].value as number },
+        { id: 'draft', label: 'جرد جديد', count: stats[1].value as number },
+        { id: 'in_progress', label: 'الجاري', count: stats[2].value as number },
+        { id: 'completed', label: 'بانتظار الاعتماد', count: stats[3].value as number },
+        { id: 'discrepancies', label: 'الفروقات', count: stocktakes.filter(s => s.discrepancyCount > 0).length },
+      ]}
+      activeTab={filterStatus}
+      onTabChange={(id) => {
+        setFilterStatus(id);
+        setCurrentPage(1);
+      }}
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="بحث بالاسم أو المرجع..."
+      filters={
+        <>
           <select
             value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
+            onChange={(e) => setSortBy(e.target.value)}
+            className="h-10 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
           >
             <option value="name">الاسم</option>
             <option value="startDate">تاريخ البدء</option>
             <option value="createdAt">تاريخ الإنشاء</option>
           </select>
-        </div>
-        <button
-          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
-        >
-          {sortOrder === 'asc' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-      </div>
-
-      {/* Stocktakes List */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+          <button
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="h-10 w-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+            title={sortOrder === 'asc' ? 'تصاعدي' : 'تنازلي'}
+          >
+            <ArrowUpDown size={15} className={sortOrder === 'desc' ? 'rotate-180' : ''} />
+          </button>
+        </>
+      }
+      loading={loading}
+      empty={
+        <>
           <ClipboardCheck size={32} className="mx-auto mb-3 text-slate-300" />
           <p className="text-slate-400 font-bold text-sm">لا توجد عمليات جرد حالياً</p>
-        </div>
-      ) : (
-        <>
-          {/* Mobile View */}
-          <div className="space-y-3 md:hidden">
-            {paginatedStocktakes.map((stocktake) => {
-              const statusConfig = STATUS_CONFIG[stocktake.status];
-              return (
-                <div key={stocktake.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <button onClick={() => toggleSelect(stocktake.id)} className="shrink-0 p-1">
-                      {selectedIds.has(stocktake.id) ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-slate-900 text-sm">{stocktake.name}</div>
-                      <div className="text-slate-500 text-xs">{stocktake.reference}</div>
-                    </div>
-                    <div className="shrink-0">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 ${statusConfig.color}`}>
-                        {statusConfig.icon}
-                        {statusConfig.label}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                    <Calendar size={12} />
-                    <span>{new Date(stocktake.startDate).toLocaleDateString('ar-EG')}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                    <Package2 size={12} />
-                    <span>{stocktake.itemCount} صنف</span>
-                  </div>
-                  {stocktake.discrepancyCount > 0 && (
-                    <div className="flex items-center gap-1 text-xs text-amber-600 mb-2">
-                      <AlertTriangle size={12} />
-                      <span>{stocktake.discrepancyCount} اختلاف</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => openEditModal(stocktake)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 text-slate-600 text-xs hover:bg-slate-100 transition-all">
-                      <Edit size={12} />
-                      تعديل
-                    </button>
-                    <button onClick={() => handleDelete(stocktake.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 text-red-600 text-xs hover:bg-red-100 transition-all">
-                      <Trash2 size={12} />
-                      حذف
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto touch-auto">
-            <table className="w-full text-right border-collapse min-w-[1200px]">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="p-4 w-10">
-                    <button onClick={toggleSelectAll} className="p-1">
-                      {selectedIds.size === paginatedStocktakes.length && paginatedStocktakes.length > 0 ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                    </button>
-                  </th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الاسم</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">المرجع</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الحالة</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">تاريخ البدء</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الموقع</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">عدد الأصناف</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الاختلافات</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">القيمة</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedStocktakes.map((stocktake) => {
-                  const statusConfig = STATUS_CONFIG[stocktake.status];
-                  return (
-                    <tr key={stocktake.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <td className="p-4">
-                        <button onClick={() => toggleSelect(stocktake.id)} className="p-1">
-                          {selectedIds.has(stocktake.id) ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                        </button>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 text-sm">{stocktake.name}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-slate-600 text-sm">{stocktake.reference}</div>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 w-fit ${statusConfig.color}`}>
-                          {statusConfig.icon}
-                          {statusConfig.label}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-slate-600 text-sm flex items-center gap-1">
-                          <Calendar size={12} />
-                          {new Date(stocktake.startDate).toLocaleDateString('ar-EG')}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-slate-600 text-sm">{stocktake.location}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 text-sm">{stocktake.itemCount}</div>
-                      </td>
-                      <td className="p-4">
-                        {stocktake.discrepancyCount > 0 ? (
-                          <div className="flex items-center gap-1 text-amber-600 text-sm font-bold">
-                            <AlertTriangle size={12} />
-                            {stocktake.discrepancyCount}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 text-sm">-</span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-900 text-sm">ج.م {stocktake.totalValue.toLocaleString()}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => openEditModal(stocktake)} className="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all" title="تعديل">
-                            <Edit size={14} />
-                          </button>
-                          <button onClick={() => handleDelete(stocktake.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all" title="حذف">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
-              <div className="text-xs font-bold text-slate-500">
-                عرض {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} من {filtered.length}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight size={18} />
-                </button>
-                <span className="text-xs font-bold text-slate-600 px-3">
-                  صفحة {currentPage} من {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-              </div>
-            </div>
-          )}
         </>
+      }
+      footer={
+        <InvPagination
+          page={currentPage}
+          totalPages={totalPages}
+          total={filtered.length}
+          perPage={itemsPerPage}
+          onPage={setCurrentPage}
+          label="جرد"
+        />
+      }
+    >
+      {selectedIds.size > 0 && (
+        <div className="mb-3">
+          <InvBulkBar>
+            <span>{selectedIds.size} جرد محدد</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={bulkDelete}
+                className="h-8 px-3 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-200 text-[11px] font-bold flex items-center gap-1.5"
+              >
+                <Trash2 size={13} />
+                حذف
+              </button>
+            </div>
+          </InvBulkBar>
+        </div>
       )}
+
+      <InvTableCard
+        headerExtra={
+          <div className="col-span-1 flex items-center">
+            <button onClick={toggleSelectAll} className="p-1" title="تحديد الكل">
+              {selectedIds.size === paginatedStocktakes.length && paginatedStocktakes.length > 0 ? (
+                <Check size={16} className="text-[#00E5FF]" />
+              ) : (
+                <div className="w-4 h-4 border-2 border-slate-300 rounded" />
+              )}
+            </button>
+          </div>
+        }
+        columns={[
+          { label: 'الاسم', className: 'col-span-2' },
+          { label: 'المرجع', className: 'col-span-1' },
+          { label: 'الحالة', className: 'col-span-1' },
+          { label: 'تاريخ البدء', className: 'col-span-2' },
+          { label: 'الموقع', className: 'col-span-1' },
+          { label: 'عدد الأصناف', className: 'col-span-1' },
+          { label: 'الاختلافات', className: 'col-span-1' },
+          { label: 'القيمة', className: 'col-span-1' },
+          { label: 'إجراءات', className: 'col-span-1' },
+        ]}
+      >
+        {paginatedStocktakes.map((stocktake) => {
+          const statusConfig = STATUS_CONFIG[stocktake.status];
+          return (
+            <InvRow key={stocktake.id}>
+              <div className="col-span-1 flex items-center">
+                <button onClick={() => toggleSelect(stocktake.id)} className="p-1">
+                  {selectedIds.has(stocktake.id) ? (
+                    <Check size={16} className="text-[#00E5FF]" />
+                  ) : (
+                    <div className="w-4 h-4 border-2 border-slate-300 rounded" />
+                  )}
+                </button>
+              </div>
+              <div className="col-span-2 min-w-0">
+                <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{stocktake.name}</div>
+              </div>
+              <div className="col-span-1 text-slate-600 text-xs sm:text-sm truncate">{stocktake.reference}</div>
+              <div className="col-span-1">
+                <InvStatusPill tone={STATUS_TONE[stocktake.status]}>
+                  {statusConfig.icon}
+                  {statusConfig.label}
+                </InvStatusPill>
+              </div>
+              <div className="col-span-2 text-slate-600 text-xs sm:text-sm flex items-center gap-1 truncate">
+                <Calendar size={12} />
+                {new Date(stocktake.startDate).toLocaleDateString('ar-EG')}
+              </div>
+              <div className="col-span-1 text-slate-600 text-xs sm:text-sm truncate">{stocktake.location}</div>
+              <div className="col-span-1 font-semibold text-slate-900 text-xs sm:text-sm">{stocktake.itemCount}</div>
+              <div className="col-span-1">
+                {stocktake.discrepancyCount > 0 ? (
+                  <div className="flex items-center gap-1 text-amber-600 text-xs sm:text-sm font-bold">
+                    <AlertTriangle size={12} />
+                    {stocktake.discrepancyCount}
+                  </div>
+                ) : (
+                  <span className="text-slate-400 text-xs sm:text-sm">-</span>
+                )}
+              </div>
+              <div className="col-span-1 font-bold text-slate-900 text-xs sm:text-sm whitespace-nowrap">
+                ج.م {stocktake.totalValue.toLocaleString()}
+              </div>
+              <div className="col-span-1 flex items-center justify-end gap-1.5">
+                <InvRowAction onClick={() => openEditModal(stocktake)} title="تعديل">
+                  <Edit size={14} />
+                </InvRowAction>
+                <InvRowAction onClick={() => handleDelete(stocktake.id)} title="حذف" danger>
+                  <Trash2 size={14} />
+                </InvRowAction>
+              </div>
+            </InvRow>
+          );
+        })}
+      </InvTableCard>
 
       {/* Add Modal */}
       {addModal && (
@@ -587,7 +511,7 @@ export default function StocktakePage() {
               </div>
               <button
                 onClick={handleAdd}
-                className="w-full py-2.5 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all"
+                className="w-full py-2.5 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-700 transition-all"
               >
                 إنشاء الجرد
               </button>
@@ -652,7 +576,7 @@ export default function StocktakePage() {
               </div>
               <button
                 onClick={handleEdit}
-                className="w-full py-2.5 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all"
+                className="w-full py-2.5 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-700 transition-all"
               >
                 حفظ التعديلات
               </button>
@@ -688,6 +612,6 @@ export default function StocktakePage() {
           </div>
         </div>
       )}
-    </div>
+    </InventoryPage>
   );
 }

@@ -1,14 +1,16 @@
 import { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Tag, TrendingUp, Star, Sparkles } from 'lucide-react';
+import { ArrowLeft, Tag, TrendingUp, Sparkles } from 'lucide-react';
 import { getShops, getOffers, getSeasonalOffers } from '@/lib/services';
 import { activities, siteConfig } from '@/lib/config';
 import { ShopCard } from '@/components/ShopCard';
 import { ProductCard } from '@/components/ProductCard';
-import { ShopCardSkeleton, ProductCardSkeleton } from '@/components/Skeleton';
+import { ShopCardSkeleton } from '@/components/Skeleton';
 import { HeroSlider } from '@/components/HeroSlider';
 import { AppDownloadBanner } from '@/components/AppDownloadBanner';
+import { HeroSearch } from '@/components/HeroSearch';
+import { WelcomeBanner } from '@/components/WelcomeBanner';
+import { WelcomeToast } from '@/components/WelcomeToast';
 
 export const metadata: Metadata = {
   title: `${siteConfig.name} - ${siteConfig.nameArabic}`,
@@ -60,30 +62,65 @@ export default async function HomePage() {
     <div className="overflow-hidden">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
-      
+
+      {/* Welcome toast after login/signup */}
+      <WelcomeToast />
+
       {/* Hero Section */}
-      <section className="relative w-full overflow-hidden bg-brand-black">
-        {/* Banner Images Slider */}
-        <div className="relative w-full aspect-[5/4] sm:aspect-[2/1] overflow-hidden">
-          <HeroSlider />
+      <section className="relative w-full">
+        {/* Hero search — the header turns solid as soon as this reaches the top */}
+        <div id="hero-search" className="max-w-[1400px] mx-auto px-4 md:px-6 pt-1 md:pt-2 pb-4 md:pb-6">
+          <HeroSearch />
+        </div>
+
+        {/* Rounded welcome banner */}
+        <div className="px-4 md:px-6 pb-2">
+          <div className="relative max-w-[1400px] mx-auto rounded-3xl md:rounded-[2.5rem] overflow-hidden shadow-xl shadow-slate-200/60 dark:shadow-black/40">
+            <div className="relative w-full aspect-[5/4] sm:aspect-[2/1] overflow-hidden">
+              <HeroSlider />
+            </div>
+            <WelcomeBanner />
+          </div>
         </div>
 
         {/* Screen-reader only title for SEO */}
         <h1 className="sr-only">من مكانك - المنصة الأولى للتجارة الذكية في مصر</h1>
       </section>
 
-      {/* Featured Section */}
-      <section className="py-24 bg-slate-50 dark:bg-slate-950/50">
+      {/* Categories quick strip — small cards right under the hero banner */}
+      <section aria-label="الأقسام" className="pt-5 md:pt-8">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6">
-          <div className="flex items-end justify-between mb-12">
+          <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 md:flex-wrap md:justify-center md:overflow-visible">
+            {activities.map((a, i) => (
+              <Link
+                key={a.id}
+                href={`/activity/${a.id}`}
+                className="group flex flex-col items-center gap-1.5 shrink-0 w-[74px]"
+              >
+                <span
+                  className="w-14 h-14 rounded-2xl overflow-hidden transition-transform group-hover:scale-105"
+                >
+                  {/* صورة القسم — استبدل الملف في public/images/activities/ لتغييرها */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={a.image} alt={a.label.ar} width={56} height={56} className="w-full h-full object-cover" loading="lazy" />
+                </span>
+                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 text-center leading-tight">
+                  {a.label.ar}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Section */}
+      <section className="py-10 md:py-24 bg-slate-50 dark:bg-slate-950/50">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6">
+          <div className="flex items-end justify-between mb-6 md:mb-12">
             <div className="text-right">
-              <div className="flex items-center gap-2 mb-3 justify-end">
-                <Star className="w-5 h-5 text-brand-cyan fill-brand-cyan" />
-                <span className="text-xs font-semibold text-brand-cyan">الأفضل تقييماً</span>
-              </div>
-              <h2 className="text-4xl md:text-6xl font-bold tracking-tight">متاجر مميزة</h2>
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight">متاجر مميزة</h2>
             </div>
-            <Link href="/dalil" className="group flex items-center gap-3 text-brand-cyan font-semibold text-sm">
+            <Link href="/dalil" className="group flex items-center gap-2 md:gap-3 text-brand-cyan font-semibold text-xs md:text-sm">
               <span className="border-b-2 border-brand-cyan/0 group-hover:border-brand-cyan transition-all">عرض جميع المتاجر</span>
               <ArrowLeft className="w-4 h-4 rotate-180 transition-transform group-hover:translate-x-2" />
             </Link>

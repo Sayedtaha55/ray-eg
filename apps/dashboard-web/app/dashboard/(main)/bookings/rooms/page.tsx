@@ -1,7 +1,6 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import { GenericSubPage } from '@/components/GenericSectionPage';
-
-export default function RoomsPage() {
-  return <GenericSubPage pageId="bookings/rooms" />;
+/** الغرف والقاعات تبويب داخل الصفحة الرئيسية للحجوزات */
+export default function RoomsRedirect() {
+  redirect('/dashboard/bookings');
 }

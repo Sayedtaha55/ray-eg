@@ -18,6 +18,9 @@ import {
   Check,
   X,
   AlertTriangle,
+  Bell,
+  Zap,
+  Save,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useShop } from '@/hooks/useShop';
@@ -39,6 +42,36 @@ const genId = () => {
   } catch {}
   return `c_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
 };
+
+/** Small pill-style toggle switch: ON purple / OFF slate (RTL-aware knob). */
+const ToggleRow: React.FC<{
+  label: string;
+  desc?: string;
+  on: boolean;
+  disabled?: boolean;
+  onToggle: () => void;
+}> = ({ label, desc, on, disabled, onToggle }) => (
+  <button
+    type="button"
+    onClick={onToggle}
+    disabled={disabled}
+    className="w-full flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-slate-100 text-right hover:border-purple-100 transition-all disabled:opacity-50"
+  >
+    <span className="min-w-0">
+      <span className="block font-black text-slate-900 text-sm">{label}</span>
+      {desc ? (
+        <span className="block text-[11px] font-bold text-slate-400 mt-0.5">{desc}</span>
+      ) : null}
+    </span>
+    <span
+      className={`shrink-0 w-11 h-6 rounded-full flex items-center p-0.5 transition-colors ${
+        on ? 'bg-[#BD00FF] justify-end' : 'bg-slate-300 justify-start'
+      }`}
+    >
+      <span className="w-5 h-5 rounded-full bg-white shadow transition-transform" />
+    </span>
+  </button>
+);
 
 const POSCashierSettingsPage: React.FC = () => {
   const { shop, loading: shopLoading } = useShop();
@@ -68,10 +101,10 @@ const POSCashierSettingsPage: React.FC = () => {
   const [showPinFor, setShowPinFor] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error' | 'info'; msg: string } | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showFeedback = useCallback((type: 'success' | 'error', msg: string) => {
+  const showFeedback = useCallback((type: 'success' | 'error' | 'info', msg: string) => {
     setFeedback({ type, msg });
     if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
     feedbackTimer.current = setTimeout(() => setFeedback(null), 3500);
@@ -91,6 +124,12 @@ const POSCashierSettingsPage: React.FC = () => {
       try {
         await savePosSettings(shop, next);
         setPosSettings(next);
+        // let the bell watcher (and any POS listener) pick up the new settings live
+        try {
+          window.dispatchEvent(
+            new CustomEvent('pos-settings-changed', { detail: { posSettings: next } })
+          );
+        } catch {}
         showFeedback('success', successMsg);
         return true;
       } catch (e: any) {
@@ -249,6 +288,31 @@ const POSCashierSettingsPage: React.FC = () => {
       isArabic ? 'تم حذف الكاشير' : 'Cashier deleted'
     );
     if (ok) setDeleteId(null);
+  };
+
+  // ─── Notification + auto-confirm toggles ────────────────────────
+  // Toggle edits stay LOCAL until the merchant presses «حفظ التعديلات».
+  const [togglesDirty, setTogglesDirty] = useState(false);
+  const handleToggleNotification = (key: 'sound' | 'banner') => {
+    const base = posSettings || { cashiers: [] };
+    const current = base.notifications || { sound: true, banner: true };
+    setPosSettings({ ...base, notifications: { ...current, [key]: current[key] === false } });
+    setTogglesDirty(true);
+    showFeedback('info', isArabic ? 'اضغط «حفظ التعديلات» لتطبيق التغيير' : 'Press Save to apply');
+  };
+  const handleToggleAutoConfirm = () => {
+    const base = posSettings || { cashiers: [] };
+    setPosSettings({ ...base, autoConfirmOrders: base.autoConfirmOrders !== true });
+    setTogglesDirty(true);
+    showFeedback('info', isArabic ? 'اضغط «حفظ التعديلات» لتطبيق التغيير' : 'Press Save to apply');
+  };
+  const handleSaveToggles = async () => {
+    if (!posSettings) return;
+    const ok = await persist(
+      posSettings,
+      isArabic ? 'تم حفظ التعديلات وتطبيقها فورًا' : 'Settings saved and applied'
+    );
+    if (ok) setTogglesDirty(false);
   };
 
   const gateLoading = shopLoading || posSettings === null;
@@ -683,6 +747,70 @@ const POSCashierSettingsPage: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Notifications */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+            <h4 className="font-black text-slate-900 text-sm flex items-center gap-2 mb-1">
+              <Bell size={16} className="text-[#BD00FF]" />
+              {isArabic ? 'الإشعارات والتنبيهات' : 'Notifications'}
+            </h4>
+            <ToggleRow
+              label={isArabic ? 'تشغيل رنة الإشعارات' : 'Notification sound'}
+              desc={
+                isArabic
+                  ? 'رنة تُعزف عند وصول طلب جديد للوحة'
+                  : 'Plays a ring when a new order arrives'
+              }
+              on={posSettings!.notifications?.sound !== false}
+              disabled={saving}
+              onToggle={() => handleToggleNotification('sound')}
+            />
+            <ToggleRow
+              label={isArabic ? 'إظهار إشعار الطلب الجديد' : 'New order banner'}
+              desc={
+                isArabic
+                  ? 'البانر اللي بيظهر أعلى اللوحة عند وصول طلب'
+                  : 'The banner shown at the top when an order arrives'
+              }
+              on={posSettings!.notifications?.banner !== false}
+              disabled={saving}
+              onToggle={() => handleToggleNotification('banner')}
+            />
+          </div>
+
+          {/* Auto-confirm orders */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+            <h4 className="font-black text-slate-900 text-sm flex items-center gap-2 mb-1">
+              <Zap size={16} className="text-[#BD00FF]" />
+              {isArabic ? 'تأكيد الطلبات' : 'Order confirmation'}
+            </h4>
+            <ToggleRow
+              label={isArabic ? 'تأكيد الطلبات تلقائيًا' : 'Auto-confirm orders'}
+              desc={
+                isArabic
+                  ? 'أي طلب من الكاشير يتأكد فورًا — مش محتاج تروح صفحة الطلبات وتأكده بنفسك'
+                  : 'POS orders are confirmed instantly — no manual confirm needed'
+              }
+              on={posSettings!.autoConfirmOrders === true}
+              disabled={saving}
+              onToggle={handleToggleAutoConfirm}
+            />
+          </div>
+
+          {/* حفظ التعديلات — explicit save for the toggles above */}
+          <button
+            type="button"
+            onClick={handleSaveToggles}
+            disabled={saving || !togglesDirty}
+            className={`w-full py-3.5 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 ${
+              togglesDirty
+                ? 'bg-gradient-to-l from-[#BD00FF] to-[#8A00C2] text-white shadow-lg shadow-[#BD00FF]/25 hover:from-[#8A00C2] hover:to-[#BD00FF]'
+                : 'bg-slate-100 text-slate-400 cursor-default'
+            } disabled:opacity-60`}
+          >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            {isArabic ? 'حفظ التعديلات' : 'Save Changes'}
+          </button>
         </div>
       )}
     </div>

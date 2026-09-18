@@ -1,488 +1,513 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+/**
+ * صفحة الموظفين — نفس الهيكل المعياري لبقية أقسام الداشبورد
+ * (هيدر أبيض + تابات بعدّادات + بطاقة بحث/فلاتر + جدول grid-cols-12 + ترقيم).
+ * كل البيانات من الباكند عبر src/lib/api/hr.ts — بدون localStorage.
+ */
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Download, Pencil, Plus, RefreshCw, Trash2, UserCog } from 'lucide-react';
 import {
-  Users, Search, UserCog, Clock, Wallet, Plus, X,
-  Phone, Mail, Loader2, Calendar, CheckCircle2, Info, Target, BookOpen, Zap, Link2, ChevronRight, Lightbulb, XCircle
-} from 'lucide-react';
-import { apiRequest } from '@/lib/auth';
+  EMPLOYEE_STATUS_LABELS,
+  HR_FILTER_SELECT_CLS,
+  HR_INPUT_CLS,
+  HrField,
+  HrModal,
+  HrModalActions,
+  HrPageShell,
+  HrPagination,
+  HrRow,
+  HrRowAction,
+  HrStatusPill,
+  HrTableCard,
+  HrToolbar,
+  employeeStatusTone,
+  formatMoney,
+} from '@/components/hr/HRShell';
+import { HRGuideDrawer } from '@/components/hr/HRGuideDrawer';
+import {
+  createEmployee,
+  deleteEmployee,
+  fetchEmployees,
+  fetchRoles,
+  updateEmployee,
+  type HrEmployee,
+  type HrEmployeePayload,
+  type HrRole,
+} from '@/lib/api/hr';
+import { downloadCsv } from '@/lib/csv';
+import { useShop } from '@/hooks/useShop';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
-type Employee = {
-  id: string;
+const PRIMARY_BTN =
+  'h-10 px-5 rounded-full bg-slate-900 text-white hover:bg-slate-700 text-[12px] font-bold flex items-center gap-1.5 transition-colors';
+const SECONDARY_BTN =
+  'h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 transition-colors';
+
+const today = () => new Date().toLocaleDateString('en-CA');
+
+type EmployeeForm = {
   name: string;
-  email?: string;
-  phone?: string;
-  role?: string;
-  status?: string;
+  role: string;
+  roleId: string;
+  email: string;
+  phone: string;
+  salary: string;
+  hireDate: string;
+  status: string;
 };
 
-const STORAGE_KEY = 'shop_employees';
-
-/* ============================================================
- * HR Guide System
- * ============================================================ */
-
-type GuideStep = {
-  title: string;
-  description: string;
+const emptyForm: EmployeeForm = {
+  name: '',
+  role: '',
+  roleId: '',
+  email: '',
+  phone: '',
+  salary: '',
+  hireDate: '',
+  status: 'active',
 };
 
-type GuideLink = {
-  label: string;
-  onClick?: () => void;
-};
+export default function HrEmployeesPage() {
+  const { shop, loading: shopLoading } = useShop();
+  const shopId = shop?.id || '';
 
-type HRGuideData = {
-  purpose: string;
-  whenToUse: string;
-  whatsInside: string[];
-  steps: GuideStep[];
-  bestPractices: string[];
-  tips: string[];
-  shortcuts: string[];
-  relatedLinks?: GuideLink[];
-};
-
-const GuideSectionBlock: React.FC<{
-  icon: any;
-  iconColor: string;
-  iconBg: string;
-  heading: string;
-  children: React.ReactNode;
-}> = ({ icon: Icon, iconColor, iconBg, heading, children }) => (
-  <div className="rounded-xl border border-slate-100 p-4 bg-white">
-    <div className="flex items-center gap-2.5 mb-3">
-      <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${iconBg} ${iconColor} shrink-0`}>
-        <Icon size={16} />
-      </div>
-      <h4 className="font-bold text-slate-900 text-sm">{heading}</h4>
-    </div>
-    {children}
-  </div>
-);
-
-const HRGuideContent: React.FC<{ guide: HRGuideData }> = ({ guide }) => (
-  <div className="space-y-4">
-    <GuideSectionBlock icon={Target} iconColor="text-blue-600" iconBg="bg-blue-50" heading="وظيفة الصفحة / Page Purpose">
-      <p className="text-slate-600 text-sm leading-relaxed">{guide.purpose}</p>
-    </GuideSectionBlock>
-
-    <GuideSectionBlock icon={Clock} iconColor="text-amber-600" iconBg="bg-amber-50" heading="متى تستخدمها / When to Use">
-      <p className="text-slate-600 text-sm leading-relaxed">{guide.whenToUse}</p>
-    </GuideSectionBlock>
-
-    <GuideSectionBlock icon={BookOpen} iconColor="text-purple-600" iconBg="bg-purple-50" heading="ماذا ستجد داخلها / What's Inside">
-      <ul className="space-y-1.5">
-        {guide.whatsInside.map((item, i) => (
-          <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-            <ChevronRight size={14} className="text-slate-300 mt-0.5 shrink-0" />
-            {item}
-          </li>
-        ))}
-      </ul>
-    </GuideSectionBlock>
-
-    {guide.steps.length > 0 && (
-      <GuideSectionBlock icon={Zap} iconColor="text-cyan-600" iconBg="bg-cyan-50" heading="خطوات الاستخدام / How to Use">
-        <ol className="space-y-2">
-          {guide.steps.map((step, i) => (
-            <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-xs font-bold shrink-0">{i + 1}</span>
-              <div>
-                <div className="font-semibold text-slate-900">{step.title}</div>
-                <div className="text-slate-500">{step.description}</div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </GuideSectionBlock>
-    )}
-
-    {guide.bestPractices.length > 0 && (
-      <GuideSectionBlock icon={Target} iconColor="text-green-600" iconBg="bg-green-50" heading="أفضل الممارسات / Best Practices">
-        <ul className="space-y-1.5">
-          {guide.bestPractices.map((practice, i) => (
-            <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-              <CheckCircle2 size={14} className="text-green-500 mt-0.5 shrink-0" />
-              {practice}
-            </li>
-          ))}
-        </ul>
-      </GuideSectionBlock>
-    )}
-
-    {guide.tips.length > 0 && (
-      <GuideSectionBlock icon={Lightbulb} iconColor="text-amber-600" iconBg="bg-amber-50" heading="نصائح / Tips">
-        <ul className="space-y-1.5">
-          {guide.tips.map((tip, i) => (
-            <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-              <Zap size={14} className="text-amber-500 mt-0.5 shrink-0" />
-              {tip}
-            </li>
-          ))}
-        </ul>
-      </GuideSectionBlock>
-    )}
-
-    {guide.shortcuts.length > 0 && (
-      <GuideSectionBlock icon={Link2} iconColor="text-indigo-600" iconBg="bg-indigo-50" heading="اختصارات / Shortcuts">
-        <ul className="space-y-1.5">
-          {guide.shortcuts.map((shortcut, i) => (
-            <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-              <ChevronRight size={14} className="text-indigo-400 mt-0.5 shrink-0" />
-              {shortcut}
-            </li>
-          ))}
-        </ul>
-      </GuideSectionBlock>
-    )}
-
-    {guide.relatedLinks && guide.relatedLinks.length > 0 && (
-      <GuideSectionBlock icon={Link2} iconColor="text-slate-600" iconBg="bg-slate-100" heading="روابط ذات صلة / Related Links">
-        <div className="flex flex-wrap gap-2">
-          {guide.relatedLinks.map((link, i) => (
-            <button
-              key={i}
-              onClick={link.onClick}
-              className="px-3 py-1.5 rounded-lg bg-slate-50 text-slate-700 text-xs font-semibold hover:bg-slate-100 transition-all"
-            >
-              {link.label}
-            </button>
-          ))}
-        </div>
-      </GuideSectionBlock>
-    )}
-  </div>
-);
-
-const InfoDrawer: React.FC<{
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}> = ({ title, onClose, children }) => (
-  <div className="fixed inset-0 z-50 flex" onClick={onClose}>
-    <div className="absolute inset-0 bg-black/40 animate-[fadeIn_0.15s_ease-out]" />
-    <div
-      className="relative ml-auto h-full w-full max-w-md bg-white shadow-2xl overflow-y-auto"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between z-10">
-        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-          <Info size={20} className="text-slate-400" />
-          {title}
-        </h3>
-        <button onClick={onClose} className="p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all">
-          <XCircle size={20} />
-        </button>
-      </div>
-      <div className="px-6 py-5 space-y-5 text-sm text-slate-600 leading-relaxed">{children}</div>
-      <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-3">
-        <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">
-          حسناً
-        </button>
-      </div>
-    </div>
-  </div>
-);
-
-export default function HrPage() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<HrEmployee[]>([]);
+  const [roles, setRoles] = useState<HrRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
+  const debouncedSearch = useDebouncedValue(search, 200);
+  const [statusTab, setStatusTab] = useState<'all' | 'active' | 'inactive'>('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [page, setPage] = useState(1);
+  const perPage = 25;
+
   const [guideOpen, setGuideOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<HrEmployee | null>(null);
+  const [form, setForm] = useState<EmployeeForm>(emptyForm);
+  const [formError, setFormError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const hrGuide: HRGuideData = {
-    purpose: 'إدارة الموظفين والحضور والرواتب والإجازات والمهام في مكان واحد.',
-    whenToUse: 'استخدم هذه الصفحة كنقطة البداية لإدارة جميع جوانب الموارد البشرية.',
-    whatsInside: [
-      'قائمة الموظفين',
-      'إحصائيات سريعة',
-      'بحث متقدم',
-      'روابط لجميع أقسام HR'
-    ],
-    steps: [
-      { title: 'إضافة موظف', description: 'اضغط على زر إضافة موظف لإدخال بيانات موظف جديد' },
-      { title: 'البحث عن موظف', description: 'استخدم شريط البحث للوصول السريع لأي موظف' },
-      { title: 'الانتقال للأقسام', description: 'استخدم القائمة الجانبية للوصول للحضور والرواتب والإجازات' }
-    ],
-    bestPractices: [
-      'حافظ على بيانات الموظفين محدثة',
-      'راجع الإحصائيات بانتظام',
-      'استخدم البحث للوصول السريع'
-    ],
-    tips: [
-      'يمكنك الوصول لجميع أقسام HR من القائمة الجانبية',
-      'الإحصائيات تتحدث تلقائياً'
-    ],
-    shortcuts: [
-      'استخدم مفتاح Enter للبحث السريع',
-      'اضغط F5 لتحديث البيانات'
-    ],
-    relatedLinks: [
-      { label: 'الحضور', onClick: () => window.location.href = '/dashboard/hr/attendance' },
-      { label: 'الرواتب', onClick: () => window.location.href = '/dashboard/hr/payroll' },
-      { label: 'الإجازات', onClick: () => window.location.href = '/dashboard/hr/leaves' },
-      { label: 'المهام', onClick: () => window.location.href = '/dashboard/hr/tasks' }
-    ]
-  };
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
+  const loadEmployees = useCallback(
+    async (silent = false) => {
+      if (!shopId) return;
+      if (silent) setRefreshing(true);
+      else setLoading(true);
+      setError('');
       try {
-        const shopData = await apiRequest('/shops/me');
-        const sid = shopData?.id;
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-              setEmployees(parsed);
-              setLoading(false);
-              return;
-            }
-          }
-        } catch {}
-        setEmployees([]);
+        const [list, roleList] = await Promise.all([
+          fetchEmployees(shopId),
+          fetchRoles(shopId).catch(() => [] as HrRole[]),
+        ]);
+        setEmployees(list);
+        setRoles(roleList);
       } catch (err: any) {
-        setError(err?.message || 'فشل تحميل البيانات');
+        setError(err?.message || 'فشل تحميل الموظفين');
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
-    })();
-  }, []);
+    },
+    [shopId]
+  );
 
-  const saveEmployees = (list: Employee[]) => {
-    setEmployees(list);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch {}
-  };
+  useEffect(() => {
+    loadEmployees();
+  }, [loadEmployees]);
 
-  const filteredEmployees = useMemo(() => {
-    if (!search.trim()) return employees;
-    const q = search.trim().toLowerCase();
-    return employees.filter((e) =>
-      String(e.name || '').toLowerCase().includes(q) ||
-      String(e.email || '').toLowerCase().includes(q) ||
-      String(e.role || '').toLowerCase().includes(q)
-    );
-  }, [employees, search]);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, statusTab, roleFilter, sortBy]);
+
+  const roleOptions = useMemo(
+    () => Array.from(new Set(employees.map((e) => String(e.role || '').trim()).filter(Boolean))).sort(),
+    [employees]
+  );
 
   const stats = useMemo(() => {
     const total = employees.length;
-    const active = employees.filter((e) => String(e.status || 'active').toLowerCase() !== 'inactive').length;
-    return { total, active };
+    const active = employees.filter((e) => employeeStatusTone(e.status) === 'emerald').length;
+    const inactive = total - active;
+    const payroll = employees
+      .filter((e) => employeeStatusTone(e.status) === 'emerald')
+      .reduce((sum, e) => sum + Number(e.salary || 0), 0);
+    return { total, active, inactive, payroll };
   }, [employees]);
 
-  const handleAddEmployee = (data: Partial<Employee>) => {
-    const newEmp: Employee = {
-      id: `emp_${Date.now()}`,
-      name: data.name || '',
-      email: data.email || '',
-      phone: data.phone || '',
-      role: data.role || 'موظف',
-      status: 'active',
-    };
-    saveEmployees([...employees, newEmp]);
-    setShowAddModal(false);
+  const filtered = useMemo(() => {
+    let list = [...employees];
+    if (statusTab === 'active') list = list.filter((e) => employeeStatusTone(e.status) === 'emerald');
+    if (statusTab === 'inactive') list = list.filter((e) => employeeStatusTone(e.status) === 'slate');
+    if (roleFilter !== 'all') list = list.filter((e) => String(e.role || '').trim() === roleFilter);
+    const q = debouncedSearch.trim().toLowerCase();
+    if (q) {
+      list = list.filter((e) =>
+        [e.name, e.email, e.phone, e.role].some((v) => String(v || '').toLowerCase().includes(q))
+      );
+    }
+    list.sort((a, b) => {
+      if (sortBy === 'name') return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
+      if (sortBy === 'salary') return Number(b.salary || 0) - Number(a.salary || 0);
+      return String(b.created_at || '').localeCompare(String(a.created_at || ''));
+    });
+    return list;
+  }, [employees, statusTab, roleFilter, debouncedSearch, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  const paginated = useMemo(
+    () => filtered.slice((page - 1) * perPage, page * perPage),
+    [filtered, page]
+  );
+
+  const openAdd = () => {
+    setEditing(null);
+    setForm(emptyForm);
+    setFormError('');
+    setModalOpen(true);
   };
 
-  const handleDeleteEmployee = (id: string) => {
-    saveEmployees(employees.filter((e) => e.id !== id));
+  const openEdit = (emp: HrEmployee) => {
+    setEditing(emp);
+    setForm({
+      name: emp.name || '',
+      role: emp.role || '',
+      roleId: emp.role_id || '',
+      email: emp.email || '',
+      phone: emp.phone || '',
+      salary: emp.salary ? String(emp.salary) : '',
+      hireDate: emp.hire_date || '',
+      status: emp.status || 'active',
+    });
+    setFormError('');
+    setModalOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!form.name.trim()) {
+      setFormError('الاسم مطلوب');
+      return;
+    }
+    if (!shopId) return;
+    setSaving(true);
+    setFormError('');
+    const payload: HrEmployeePayload = {
+      name: form.name.trim(),
+      role: form.role.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim(),
+      salary: Number(form.salary) || 0,
+      hire_date: form.hireDate,
+      status: form.status,
+    };
+    if (form.roleId) payload.role_id = form.roleId;
+    try {
+      if (editing) await updateEmployee(shopId, editing.id, payload);
+      else await createEmployee(shopId, payload);
+      setModalOpen(false);
+      await loadEmployees(true);
+    } catch (err: any) {
+      setFormError(err?.message || 'فشل حفظ الموظف');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (emp: HrEmployee) => {
+    if (!shopId) return;
+    if (!window.confirm(`هل أنت متأكد من حذف الموظف "${emp.name}"؟`)) return;
+    setDeletingId(emp.id);
+    try {
+      await deleteEmployee(shopId, emp.id);
+      await loadEmployees(true);
+    } catch (err: any) {
+      setError(err?.message || 'فشل حذف الموظف');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleExport = () => {
+    downloadCsv(
+      `employees-${today()}.csv`,
+      ['الاسم', 'المنصب', 'البريد الإلكتروني', 'الهاتف', 'الراتب', 'تاريخ التعيين', 'الحالة'],
+      filtered.map((e) => [
+        e.name,
+        e.role,
+        e.email,
+        e.phone,
+        e.salary,
+        e.hire_date,
+        EMPLOYEE_STATUS_LABELS[String(e.status || 'active')] || e.status,
+      ])
+    );
   };
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-row-reverse">
-        <div className="flex items-center gap-4 flex-row-reverse">
-          <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-            <Users size={24} className="text-[#00E5FF]" />
-          </div>
-          <div className="text-right">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900">الموارد البشرية</h1>
-              <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-                <Info size={18} />
-              </button>
-            </div>
-            <p className="text-sm font-bold text-slate-400 mt-1">إدارة الموظفين والحضور والرواتب</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-all"
-        >
-          <Plus size={18} />
-          <span>إضافة موظف</span>
-        </button>
-      </div>
-
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-bold text-right">
-          {error}
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 bg-blue-50 text-blue-600">
-            <Users size={20} />
-          </div>
-          <span className="text-slate-500 font-semibold text-xs mb-1">إجمالي الموظفين</span>
-          <span className="text-xl sm:text-2xl font-bold text-slate-900">{stats.total}</span>
-        </div>
-        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 bg-green-50 text-green-600">
-            <CheckCircle2 size={20} />
-          </div>
-          <span className="text-slate-500 font-semibold text-xs mb-1">موظفون نشطون</span>
-          <span className="text-xl sm:text-2xl font-bold text-slate-900">{stats.active}</span>
-        </div>
-        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 bg-amber-50 text-amber-600">
-            <Clock size={20} />
-          </div>
-          <span className="text-slate-500 font-semibold text-xs mb-1">الحضور اليوم</span>
-          <span className="text-xl sm:text-2xl font-bold text-slate-900">0</span>
-        </div>
-        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 bg-cyan-50 text-cyan-600">
-            <Wallet size={20} />
-          </div>
-          <span className="text-slate-500 font-semibold text-xs mb-1">الرواتب الشهرية</span>
-          <span className="text-xl sm:text-2xl font-bold text-slate-900">ج.م 0</span>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="بحث عن موظف..."
-          className="w-full pr-12 pl-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
-        />
-      </div>
-
-      {/* Employees list */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : filteredEmployees.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <UserCog size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm mb-4">لا يوجد موظفون</p>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-all"
-          >
+    <>
+      <HrPageShell
+      title="الموظفين"
+      subtitle={`إدارة فريق العمل — ${stats.total} موظف`}
+      onInfo={() => setGuideOpen(true)}
+      actions={
+        <>
+          <button onClick={openAdd} className={PRIMARY_BTN}>
+            <Plus size={15} />
             إضافة موظف
           </button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filteredEmployees.map((emp) => (
-            <div key={emp.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all">
-              <div className="flex items-center justify-between flex-row-reverse">
-                <div className="flex items-center gap-3 flex-row-reverse">
-                  <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center shrink-0">
-                    <span className="text-white font-bold text-sm">
-                      {String(emp.name || 'م').charAt(0)}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-slate-900 text-sm">{emp.name}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">{emp.role || 'موظف'}</div>
-                  </div>
+          <button onClick={handleExport} className={SECONDARY_BTN}>
+            <Download size={15} />
+            تصدير CSV
+          </button>
+          <button onClick={() => loadEmployees(true)} className={SECONDARY_BTN}>
+            <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
+            تحديث
+          </button>
+        </>
+      }
+      error={error || undefined}
+      onDismissError={() => setError('')}
+      tabs={[
+        { id: 'all', label: 'الكل', count: stats.total },
+        { id: 'active', label: 'نشط', count: stats.active },
+        { id: 'inactive', label: 'غير نشط', count: stats.inactive },
+      ]}
+      activeTab={statusTab}
+      onTabChange={(id) => setStatusTab(id as typeof statusTab)}
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="بحث بالاسم أو البريد أو الهاتف…"
+      filters={
+        <>
+          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className={HR_FILTER_SELECT_CLS}>
+            <option value="all">كل المناصب</option>
+            {roleOptions.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={HR_FILTER_SELECT_CLS}>
+            <option value="newest">الأحدث</option>
+            <option value="name">الاسم</option>
+            <option value="salary">الراتب الأعلى</option>
+          </select>
+        </>
+      }
+      loading={loading || shopLoading}
+      empty={
+        <HrEmptyBlock onAdd={openAdd} />
+      }
+      footer={
+        <HrPagination
+          page={page}
+          totalPages={totalPages}
+          total={filtered.length}
+          perPage={perPage}
+          onPage={setPage}
+          label="موظف"
+        />
+      }
+    >
+      <HrToolbar hint={`نشط: ${stats.active} — غير نشط: ${stats.inactive} — إجمالي الرواتب الشهرية: ${formatMoney(stats.payroll)}`} />
+      <div className="mt-3">
+        <HrTableCard
+          columns={[
+            { label: 'الموظف', className: 'col-span-3' },
+            { label: 'المنصب', className: 'col-span-2' },
+            { label: 'التواصل', className: 'col-span-2' },
+            { label: 'الراتب', className: 'col-span-2' },
+            { label: 'تاريخ التعيين', className: 'col-span-1' },
+            { label: 'الحالة', className: 'col-span-1' },
+            { label: 'إجراءات', className: 'col-span-1' },
+          ]}
+        >
+          {paginated.map((emp) => (
+            <HrRow key={emp.id}>
+              <div className="col-span-3 flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-full bg-slate-900 flex items-center justify-center shrink-0">
+                  <span className="text-white font-bold text-sm">{(emp.name || 'م').charAt(0)}</span>
                 </div>
-                <div className="flex items-center gap-2 flex-row-reverse">
-                  {emp.phone && (
-                    <span className="text-xs text-slate-500 hidden sm:block" dir="ltr">{emp.phone}</span>
-                  )}
-                  <button
-                    onClick={() => handleDeleteEmployee(emp.id)}
-                    className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"
-                  >
-                    <X size={14} />
-                  </button>
+                <div className="min-w-0">
+                  <div className="font-bold text-slate-900 text-[13px] truncate">{emp.name || '—'}</div>
+                  <div className="text-[11px] text-slate-400 truncate" dir="ltr">
+                    {emp.email || '—'}
+                  </div>
                 </div>
               </div>
-            </div>
+              <div className="col-span-2 text-[13px] text-slate-600 font-semibold">
+                {emp.role || '—'}
+              </div>
+              <div className="col-span-2 text-[12px] text-slate-600" dir="ltr">
+                {emp.phone || '—'}
+              </div>
+              <div className="col-span-2 text-[13px] font-bold text-slate-900 tabular-nums">
+                {formatMoney(emp.salary)}
+              </div>
+              <div className="col-span-1 text-[12px] text-slate-500 tabular-nums">
+                {emp.hire_date || '—'}
+              </div>
+              <div className="col-span-1">
+                <HrStatusPill tone={employeeStatusTone(emp.status)}>
+                  {EMPLOYEE_STATUS_LABELS[String(emp.status || 'active')] || emp.status}
+                </HrStatusPill>
+              </div>
+              <div className="col-span-1 flex items-center gap-2 justify-end">
+                <HrRowAction onClick={() => openEdit(emp)} title="تعديل">
+                  <Pencil size={14} />
+                </HrRowAction>
+                <HrRowAction onClick={() => handleDelete(emp)} title="حذف" danger>
+                  {deletingId === emp.id ? (
+                    <span className="w-3.5 h-3.5 border-2 border-red-200 border-t-red-600 rounded-full animate-spin" />
+                  ) : (
+                    <Trash2 size={14} />
+                  )}
+                </HrRowAction>
+              </div>
+            </HrRow>
           ))}
-        </div>
+        </HrTableCard>
+      </div>
+      </HrPageShell>
+
+      {modalOpen && (
+        <HrModal
+          title={editing ? 'تعديل موظف' : 'إضافة موظف'}
+          subtitle={editing ? `تعديل بيانات ${editing.name}` : 'أدخل بيانات الموظف الجديد'}
+          onClose={() => setModalOpen(false)}
+        >
+          {formError && (
+            <div className="px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[12px] font-bold">
+              {formError}
+            </div>
+          )}
+          <HrField label="الاسم" required>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className={HR_INPUT_CLS}
+              placeholder="اسم الموظف"
+            />
+          </HrField>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <HrField label="المنصب">
+              <input
+                type="text"
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value, roleId: '' })}
+                className={HR_INPUT_CLS}
+                placeholder="موظف"
+              />
+            </HrField>
+            <HrField label="ربط بدور صلاحيات">
+              <select
+                value={form.roleId}
+                onChange={(e) => {
+                  const roleId = e.target.value;
+                  const picked = roles.find((r) => r.id === roleId);
+                  setForm({ ...form, roleId, role: picked ? picked.name_ar || picked.name : form.role });
+                }}
+                className={HR_INPUT_CLS}
+              >
+                <option value="">بدون دور</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name_ar || r.name}
+                  </option>
+                ))}
+              </select>
+            </HrField>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <HrField label="البريد الإلكتروني">
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className={HR_INPUT_CLS}
+                dir="ltr"
+                placeholder="name@example.com"
+              />
+            </HrField>
+            <HrField label="الهاتف">
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                className={HR_INPUT_CLS}
+                dir="ltr"
+                placeholder="01xxxxxxxxx"
+              />
+            </HrField>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <HrField label="الراتب الأساسي">
+              <input
+                type="number"
+                min={0}
+                value={form.salary}
+                onChange={(e) => setForm({ ...form, salary: e.target.value })}
+                className={HR_INPUT_CLS}
+                dir="ltr"
+                placeholder="0"
+              />
+            </HrField>
+            <HrField label="تاريخ التعيين">
+              <input
+                type="date"
+                value={form.hireDate}
+                onChange={(e) => setForm({ ...form, hireDate: e.target.value })}
+                className={HR_INPUT_CLS}
+                dir="ltr"
+              />
+            </HrField>
+          </div>
+          <HrField label="الحالة">
+            <select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              className={HR_INPUT_CLS}
+            >
+              <option value="active">نشط</option>
+              <option value="inactive">غير نشط</option>
+            </select>
+          </HrField>
+          <HrModalActions
+            onCancel={() => setModalOpen(false)}
+            onSubmit={handleSubmit}
+            submitLabel={editing ? 'حفظ التعديلات' : 'إضافة الموظف'}
+            submitting={saving}
+          />
+        </HrModal>
       )}
 
-      {/* Add employee modal */}
-      {showAddModal && (
-        <AddEmployeeModal
-          onClose={() => setShowAddModal(false)}
-          onAdd={handleAddEmployee}
-        />
-      )}
-
-      {/* Guide drawer */}
-      {guideOpen && (
-        <InfoDrawer title="الموارد البشرية" onClose={() => setGuideOpen(false)}>
-          <HRGuideContent guide={hrGuide} />
-        </InfoDrawer>
-      )}
-    </div>
+      <HRGuideDrawer
+        page="employees"
+        title="دليل صفحة الموظفين"
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
+      />
+    </>
   );
 }
 
-function AddEmployeeModal({ onClose, onAdd }: { onClose: () => void; onAdd: (data: Partial<Employee>) => void }) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [role, setRole] = useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onAdd({ name: name.trim(), email: email.trim(), phone: phone.trim(), role: role.trim() || 'موظف' });
-  };
-
+function HrEmptyBlock({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-6 flex-row-reverse">
-          <h2 className="text-xl font-black text-slate-900">إضافة موظف</h2>
-          <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-lg">
-            <X size={20} className="text-slate-400" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">الاسم</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400" />
-          </div>
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">المنصب</label>
-            <input type="text" value={role} onChange={(e) => setRole(e.target.value)} placeholder="موظف"
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400" />
-          </div>
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">الهاتف</label>
-            <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr"
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400" />
-          </div>
-          <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">البريد الإلكتروني</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400" />
-          </div>
-          <button type="submit"
-            className="w-full px-4 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-all">
-            إضافة
-          </button>
-        </form>
-      </div>
+    <div className="text-center">
+      <UserCog size={32} className="mx-auto mb-3 text-slate-300" />
+      <p className="text-slate-400 font-bold text-sm">لا يوجد موظفون بعد</p>
+      <button
+        onClick={onAdd}
+        className="mt-3 h-9 px-4 rounded-full bg-slate-900 text-white text-[12px] font-bold hover:bg-slate-700 transition-colors inline-flex items-center gap-1.5"
+      >
+        <Plus size={15} />
+        إضافة موظف
+      </button>
     </div>
   );
 }

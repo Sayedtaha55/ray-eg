@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation';
+import DalilPage, { metadata } from '../dalil/page';
 
-export default function ShopsRedirect() {
-  redirect('/');
-}
+export { metadata };
+export default DalilPage;

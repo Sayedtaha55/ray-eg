@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Printer, X } from 'lucide-react';
+import { readCurrentCashier } from '@/lib/posSettings';
 
 /* ============================================================
  * Shared print utilities — used by sales list and order detail page.
@@ -29,6 +30,7 @@ export type PrintOverrides = {
   customerAddress?: string;
   customerNote?: string;
   footerNote?: string;
+  cashierName?: string;
 };
 
 // order notes carry "discount:fixed:8|tip:fixed:34" style metadata from POS checkout
@@ -179,6 +181,7 @@ export function buildPrintHtml(order: PrintOrder, shop: any, mode: 'invoice' | '
               ${customerNote ? `<div style="margin-top:4px;"><strong>ملاحظة:</strong> ${escapeHtmlText(customerNote)}</div>` : ''}
               ${customerPhone ? `<div style="margin-top:6px;"><strong>الهاتف:</strong> ${escapeHtmlText(customerPhone)}</div>` : ''}
               ${createdAtLabel ? `<div style="margin-top:6px;">${escapeHtmlText(createdAtLabel)}</div>` : ''}
+              ${ov.cashierName ? `<div style="margin-top:4px;"><strong>الكاشير:</strong> ${escapeHtmlText(ov.cashierName)}</div>` : ''}
             </div>
             <div class="sep"></div>
             <table>
@@ -232,7 +235,19 @@ export function PrintPreviewModal({ order, shop, mode, onClose }: {
 }) {
   const [ov, setOv] = useState<PrintOverrides>({});
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
-  const html = useMemo(() => buildPrintHtml(order, shop, mode, ov), [order, shop, mode, ov]);
+  // current cashier session (set at POS gate login) — shows on the invoice
+  const sessionCashier = React.useMemo(() => {
+    try {
+      const c = readCurrentCashier();
+      return c?.name || '';
+    } catch {
+      return '';
+    }
+  }, []);
+  const html = useMemo(
+    () => buildPrintHtml(order, shop, mode, { cashierName: sessionCashier, ...ov }),
+    [order, shop, mode, ov, sessionCashier]
+  );
   const isInvoice = mode === 'invoice';
 
   const originalName = order?.customerName || order?.customer_name || order?.user?.name || '';

@@ -1,9 +1,27 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Megaphone, Search, Loader2, Plus, Edit, Trash2, Download, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info, Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, Play, Pause, BarChart3, Users, Target, DollarSign } from 'lucide-react';
+/**
+ * الحملات — مركز إدارة الحملات التسويقية.
+ * تبويبات: الكل / النشطة / المسودة / المجدولة / المنتهية / المتوقفة.
+ * إنشاء الحملة: هدف (حسب نوع النشاط) + جمهور (شرائح/وسوم نظام العملاء) + قنوات متعددة + محتوى + جدولة.
+ * النتائج معروضة داخل كل صف: وصول/نقرات/تحويلات + الميزانية والعائد.
+ */
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import {
+  Megaphone, Plus, Edit, Trash2, Download, X, Info, Loader2, Check,
+  Target, Users, Mail, MessageSquare, Bell, TrendingUp, Link as LinkIcon, ArrowUpDown,
+} from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import {
+  InventoryPage,
+  InvTableCard,
+  InvRow,
+  InvRowAction,
+  InvStatusPill,
+  InvPagination,
+  type InvTab,
+} from '@/components/inventory/InventoryShell';
 
 type Campaign = {
   id: string;
@@ -16,6 +34,11 @@ type Campaign = {
   budget: number;
   spent: number;
   targetAudience: string;
+  goal?: string;
+  channels?: string[];
+  linkUrl?: string;
+  ctaLabel?: string;
+  offerRef?: string;
   reach: number;
   impressions: number;
   clicks: number;
@@ -28,730 +51,510 @@ type Campaign = {
   updatedAt: string;
 };
 
-export default function CampaignsPage() {
+// ─── الأهداف — تظهر حسب نوع النشاط (فاضي = لكل الأنشطة) ──────────────────
+const GOALS: { id: string; label: string; cats: string[] }[] = [
+  { id: 'sales', label: 'زيادة المبيعات', cats: [] },
+  { id: 'new_customers', label: 'جذب عملاء جدد', cats: [] },
+  { id: 'reactivate', label: 'إعادة تنشيط العملاء', cats: [] },
+  { id: 'product', label: 'الترويج لمنتج', cats: ['RETAIL', 'FASHION', 'ELECTRONICS', 'FOOD', 'RESTAURANT'] },
+  { id: 'service', label: 'الترويج لخدمة', cats: ['SERVICE', 'HEALTH', 'OTHER'] },
+  { id: 'booking', label: 'الترويج لحجز', cats: ['SERVICE', 'HEALTH'] },
+  { id: 'subscriptions', label: 'زيادة الاشتراكات', cats: ['SERVICE', 'HEALTH', 'OTHER'] },
+  { id: 'bookings', label: 'زيادة الحجوزات', cats: ['SERVICE', 'HEALTH', 'OTHER'] },
+  { id: 'custom', label: 'هدف مخصص', cats: [] },
+];
+
+const AUDIENCE_OPTIONS = [
+  { id: 'all', label: 'جميع العملاء' },
+  { id: 'new', label: 'عملاء جدد' },
+  { id: 'inactive', label: 'عملاء غير نشطين' },
+  { id: 'vip', label: 'عملاء مميزون' },
+  { id: 'debt', label: 'لديهم مديونية' },
+  { id: 'segment', label: 'شريحة معينة' },
+  { id: 'tag', label: 'وسم معين' },
+];
+
+const CHANNELS = [
+  { id: 'email', label: 'البريد الإلكتروني', icon: Mail },
+  { id: 'sms', label: 'الرسائل النصية', icon: MessageSquare },
+  { id: 'push', label: 'الإشعارات الفورية', icon: Bell },
+];
+
+const TAB_IDS = ['all', 'running', 'draft', 'scheduled', 'completed', 'paused'];
+const fmt = (n: number) => Number(n || 0).toLocaleString('en-US');
+const d = (s: string) => (s ? new Date(s).toLocaleDateString('ar-EG') : '—');
+
+const STATUS_LABEL: Record<string, string> = {
+  running: 'نشطة', draft: 'مسودة', scheduled: 'مجدولة', paused: 'متوقفة', completed: 'منتهية', cancelled: 'ملغاة',
+};
+const STATUS_TONE: Record<string, 'emerald' | 'slate' | 'red' | 'amber'> = {
+  running: 'emerald', draft: 'slate', scheduled: 'amber', paused: 'amber', completed: 'slate', cancelled: 'red',
+};
+
+const emptyForm = {
+  name: '', nameAr: '',
+  type: 'email' as Campaign['type'],
+  status: 'draft' as Campaign['status'],
+  goal: '', goalCustom: '',
+  audienceType: 'all',
+  audienceValue: '',
+  channels: ['email'] as string[],
+  linkUrl: '', ctaLabel: '', offerRef: '',
+  startDate: new Date().toISOString().split('T')[0],
+  endDate: '',
+  budget: 0,
+  description: '',
+};
+
+function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 200);
-  const [guideOpen, setGuideOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [filterType, setFilterType] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('createdAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [tab, setTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [addModal, setAddModal] = useState(false);
-  const [editModal, setEditModal] = useState(false);
-  const [editCampaign, setEditCampaign] = useState<Campaign | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    nameAr: '',
-    type: 'email' as 'email' | 'sms' | 'social' | 'push' | 'display' | 'custom',
-    status: 'draft' as 'draft' | 'scheduled' | 'running' | 'paused' | 'completed' | 'cancelled',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: '',
-    budget: 0,
-    targetAudience: 'all',
-    description: '',
-  });
+  const itemsPerPage = 10;
+  const [saving, setSaving] = useState(false);
 
-  const loadCampaigns = useCallback(async () => {
+  const [addModal, setAddModal] = useState(false);
+  const [editCampaign, setEditCampaign] = useState<Campaign | null>(null);
+  const [form, setForm] = useState(emptyForm);
+
+  const [shopSid, setShopSid] = useState('');
+  const [shopCategory, setShopCategory] = useState('');
+  const [segments, setSegments] = useState<{ id: string; name: string }[]>([]);
+  const [tags, setTags] = useState<{ id: string; name: string }[]>([]);
+
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
       if (!sid) { setLoading(false); return; }
-      const res = await apiRequest(`/campaigns/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
+      setShopSid(sid);
+      setShopCategory(String(shopData?.category || ''));
+      const res = await apiRequest(`/campaigns/shop/${sid}`).catch(() => []);
+      const data = Array.isArray(res) ? res : res?.data || [];
       setCampaigns(data.map((c: any) => ({
-        id: String(c.id),
-        name: c.name || '---',
-        nameAr: c.nameAr || c.name_ar || '---',
-        type: c.type || 'email',
-        status: c.status || 'draft',
-        startDate: c.startDate || c.start_date || new Date().toISOString(),
-        endDate: c.endDate || c.end_date || '',
-        budget: Number(c.budget || 0),
-        spent: Number(c.spent || 0),
+        id: String(c.id), name: c.name || '---', nameAr: c.nameAr || c.name_ar || '---',
+        type: c.type || 'email', status: c.status || 'draft',
+        startDate: c.startDate || c.start_date || '', endDate: c.endDate || c.end_date || '',
+        budget: Number(c.budget || 0), spent: Number(c.spent || 0),
         targetAudience: c.targetAudience || c.target_audience || 'all',
-        reach: Number(c.reach || 0),
-        impressions: Number(c.impressions || 0),
-        clicks: Number(c.clicks || 0),
-        conversions: Number(c.conversions || 0),
-        ctr: Number(c.ctr || 0),
-        cpa: Number(c.cpa || 0),
-        roas: Number(c.roas || 0),
-        description: c.description || '',
-        createdAt: c.createdAt || new Date().toISOString(),
-        updatedAt: c.updatedAt || new Date().toISOString(),
+        goal: c.goal || '', channels: c.channels || [],
+        linkUrl: c.linkUrl || '', ctaLabel: c.ctaLabel || '', offerRef: c.offerRef || '',
+        reach: Number(c.reach || 0), impressions: Number(c.impressions || 0), clicks: Number(c.clicks || 0),
+        conversions: Number(c.conversions || 0), ctr: Number(c.ctr || 0), cpa: Number(c.cpa || 0), roas: Number(c.roas || 0),
+        description: c.description || '', createdAt: c.createdAt || '', updatedAt: c.updatedAt || '',
       })));
-    } catch { setCampaigns([]); } finally { setLoading(false); }
+    } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { loadCampaigns(); }, [loadCampaigns]);
+  useEffect(() => { load(); }, [load]);
+
+  // شرائح + وسوم من نظام العملاء (lazy عند الحاجة)
+  useEffect(() => {
+    if (!shopSid || segments.length > 0) return;
+    apiRequest(`/shops/${shopSid}/segments`).then((r: any) => setSegments((Array.isArray(r) ? r : r?.data || []).map((s: any) => ({ id: String(s.id), name: s.name || '---' })))).catch(() => {});
+    apiRequest(`/shops/${shopId2(shopSid)}/tags`).then((r: any) => setTags((Array.isArray(r) ? r : r?.data || []).map((t: any) => ({ id: String(t.id), name: t.name || '---' })))).catch(() => {});
+  }, [shopSid, segments.length]);
+
+  const availableGoals = useMemo(
+    () => GOALS.filter((g) => g.cats.length === 0 || g.cats.includes(shopCategory)),
+    [shopCategory]
+  );
 
   const filtered = useMemo(() => {
-    let result = campaigns.filter(c =>
-      c.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      c.nameAr.includes(debouncedSearch)
-    );
-
-    if (filterType !== 'all') {
-      result = result.filter(c => c.type === filterType);
+    let result = campaigns;
+    if (tab !== 'all') {
+      result = result.filter((c) => (tab === 'completed' ? ['completed', 'cancelled'].includes(c.status) : c.status === tab));
     }
+    const q = debouncedSearch.trim().toLowerCase();
+    if (q) result = result.filter((c) => c.name.toLowerCase().includes(q) || c.nameAr.includes(debouncedSearch) || (c.goal || '').includes(debouncedSearch));
+    return [...result].sort((a, b) => (Date.parse(b.startDate) || 0) - (Date.parse(a.startDate) || 0));
+  }, [campaigns, tab, debouncedSearch]);
 
-    if (filterStatus !== 'all') {
-      result = result.filter(c => c.status === filterStatus);
-    }
-
-    result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'name' ? a.name : sortBy === 'budget' ? a.budget : sortBy === 'impressions' ? a.impressions : a.createdAt;
-      const bVal = sortBy === 'name' ? b.name : sortBy === 'budget' ? b.budget : sortBy === 'impressions' ? b.impressions : b.createdAt;
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-      }
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
-      }
-      return 0;
-    });
-
-    return result;
-  }, [campaigns, debouncedSearch, filterType, filterStatus, sortBy, sortOrder]);
-
-  const paginatedCampaigns = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filtered.slice(start, start + itemsPerPage);
-  }, [filtered, currentPage, itemsPerPage]);
-
+  const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
-  const toggleSelectAll = useCallback(() => {
-    if (selectedIds.size === paginatedCampaigns.length && paginatedCampaigns.length > 0) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(paginatedCampaigns.map(c => c.id)));
+  const tabs: InvTab[] = [
+    { id: 'all', label: 'جميع الحملات', count: campaigns.length },
+    { id: 'running', label: 'النشطة', count: campaigns.filter((c) => c.status === 'running').length },
+    { id: 'draft', label: 'المسودة', count: campaigns.filter((c) => c.status === 'draft').length },
+    { id: 'scheduled', label: 'المجدولة', count: campaigns.filter((c) => c.status === 'scheduled').length },
+    { id: 'completed', label: 'المنتهية', count: campaigns.filter((c) => ['completed', 'cancelled'].includes(c.status)).length },
+    { id: 'paused', label: 'المتوقفة', count: campaigns.filter((c) => c.status === 'paused').length },
+  ];
+
+  const buildAudience = () => {
+    if (form.audienceType === 'segment' && form.audienceValue) {
+      const seg = segments.find((s) => s.id === form.audienceValue);
+      return `segment:${form.audienceValue}:${seg?.name || ''}`;
     }
-  }, [paginatedCampaigns, selectedIds.size]);
+    if (form.audienceType === 'tag' && form.audienceValue) {
+      const tg = tags.find((t) => t.id === form.audienceValue);
+      return `tag:${form.audienceValue}:${tg?.name || ''}`;
+    }
+    return form.audienceType;
+  };
 
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+  const parseAudience = (a: string): { type: string; value: string } => {
+    const parts = (a || '').split(':');
+    if (parts[0] === 'segment' || parts[0] === 'tag') return { type: parts[0], value: parts[1] || '' };
+    return { type: a || 'all', value: '' };
+  };
 
-  const bulkDelete = useCallback(async () => {
-    if (selectedIds.size === 0) return;
-    if (!confirm(`هل أنت متأكد من حذف ${selectedIds.size} حملة؟`)) return;
+  const goalLabel = (c: Campaign) => {
+    if (!c.goal) return '—';
+    const g = GOALS.find((x) => x.id === c.goal);
+    if (g && g.id !== 'custom') return g.label;
+    return c.goal === 'custom' ? 'هدف مخصص' : c.goal;
+  };
+
+  const audienceLabel = (c: Campaign) => {
+    const p = parseAudience(c.targetAudience);
+    if (p.type === 'segment') { const s = segments.find((x) => x.id === p.value); return `شريحة: ${c.targetAudience.split(':')[2] || s?.name || p.value}`; }
+    if (p.type === 'tag') { return `وسم: ${c.targetAudience.split(':')[2] || p.value}`; }
+    return AUDIENCE_OPTIONS.find((o) => o.id === p.type)?.label || p.type;
+  };
+
+  const save = async () => {
+    if (!form.name && !form.nameAr) { alert('اكتب اسم الحملة'); return; }
+    setSaving(true);
     try {
-      // TODO: Implement bulk delete API call
-      alert(`تم حذف ${selectedIds.size} حملة`);
-      setSelectedIds(new Set());
-      loadCampaigns();
-    } catch (error) {
-      alert('حدث خطأ أثناء الحذف');
-    }
-  }, [selectedIds, loadCampaigns]);
+      const payload = {
+        name: form.name || form.nameAr,
+        nameAr: form.nameAr || form.name,
+        type: form.type,
+        status: form.status,
+        goal: form.goal === 'custom' ? `custom:${form.goalCustom}` : form.goal,
+        targetAudience: buildAudience(),
+        channels: form.channels,
+        linkUrl: form.linkUrl,
+        ctaLabel: form.ctaLabel,
+        offerRef: form.offerRef,
+        startDate: form.startDate,
+        endDate: form.endDate,
+        budget: form.budget,
+        description: form.description,
+      };
+      if (editCampaign) {
+        await apiRequest(`/campaigns/${editCampaign.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+      } else {
+        await apiRequest('/campaigns', { method: 'POST', body: JSON.stringify({ ...payload, shopId: shopSid }) });
+      }
+      setAddModal(false); setEditCampaign(null); setForm(emptyForm); load();
+    } catch { alert('حدث خطأ أثناء حفظ الحملة'); }
+    finally { setSaving(false); }
+  };
 
-  const exportCSV = useCallback(() => {
-    const headers = ['Name', 'Name (Arabic)', 'Type', 'Status', 'Start Date', 'End Date', 'Budget', 'Spent', 'Target Audience', 'Reach', 'Impressions', 'Clicks', 'Conversions', 'CTR %', 'CPA', 'ROAS', 'Created At'];
-    const rows = filtered.map(c => [
-      c.name,
-      c.nameAr,
-      c.type,
-      c.status,
-      c.startDate,
-      c.endDate || '-',
-      c.budget,
-      c.spent,
-      c.targetAudience,
-      c.reach,
-      c.impressions,
-      c.clicks,
-      c.conversions,
-      c.ctr,
-      c.cpa,
-      c.roas,
-      c.createdAt
-    ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const openEdit = (c: Campaign) => {
+    const p = parseAudience(c.targetAudience);
+    const goalRaw = c.goal || '';
+    setForm({
+      name: c.name, nameAr: c.nameAr, type: c.type, status: c.status,
+      goal: goalRaw.startsWith('custom:') ? 'custom' : goalRaw,
+      goalCustom: goalRaw.startsWith('custom:') ? goalRaw.slice(7) : '',
+      audienceType: p.type, audienceValue: p.value,
+      channels: c.channels?.length ? c.channels : [c.type === 'sms' ? 'sms' : c.type === 'push' ? 'push' : 'email'],
+      linkUrl: c.linkUrl || '', ctaLabel: c.ctaLabel || '', offerRef: c.offerRef || '',
+      startDate: c.startDate?.split('T')[0] || '', endDate: c.endDate?.split('T')[0] || '',
+      budget: c.budget, description: c.description,
+    });
+    setEditCampaign(c);
+    setAddModal(true);
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm('هل أنت متأكد من حذف الحملة؟')) return;
+    try { await apiRequest(`/campaigns/${id}`, { method: 'DELETE' }); load(); }
+    catch { alert('حدث خطأ أثناء الحذف'); }
+  };
+
+  const exportCSV = () => {
+    const headers = ['Name', 'Goal', 'Audience', 'Channels', 'Status', 'Budget', 'Spent', 'Reach', 'Clicks', 'Conversions', 'ROAS', 'Start', 'End'];
+    const body = filtered.map((c) => [c.name, goalLabel(c), c.targetAudience, (c.channels || []).join('+'), c.status, c.budget, c.spent, c.reach, c.clicks, c.conversions, c.roas, c.startDate, c.endDate]);
+    const blob = new Blob([[headers, ...body].map((r) => r.join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'campaigns.csv';
     link.click();
-  }, [filtered]);
-
-  const handleAdd = useCallback(async () => {
-    try {
-      const shopData = await apiRequest('/shops/me');
-      const sid = shopData?.id;
-      if (!sid) return;
-      await apiRequest('/campaigns', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...formData,
-          shopId: sid,
-        }),
-      });
-      setAddModal(false);
-      setFormData({ name: '', nameAr: '', type: 'email', status: 'draft', startDate: new Date().toISOString().split('T')[0], endDate: '', budget: 0, targetAudience: 'all', description: '' });
-      loadCampaigns();
-    } catch (error) {
-      alert('حدث خطأ أثناء إضافة الحملة');
-    }
-  }, [formData, loadCampaigns]);
-
-  const handleEdit = useCallback(async () => {
-    if (!editCampaign) return;
-    try {
-      await apiRequest(`/campaigns/${editCampaign.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(formData),
-      });
-      setEditModal(false);
-      setEditCampaign(null);
-      setFormData({ name: '', nameAr: '', type: 'email', status: 'draft', startDate: new Date().toISOString().split('T')[0], endDate: '', budget: 0, targetAudience: 'all', description: '' });
-      loadCampaigns();
-    } catch (error) {
-      alert('حدث خطأ أثناء تعديل الحملة');
-    }
-  }, [editCampaign, formData, loadCampaigns]);
-
-  const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذه الحملة؟')) return;
-    try {
-      await apiRequest(`/campaigns/${id}`, { method: 'DELETE' });
-      loadCampaigns();
-    } catch (error) {
-      alert('حدث خطأ أثناء الحذف');
-    }
-  }, [loadCampaigns]);
-
-  const openEditModal = useCallback((campaign: Campaign) => {
-    setEditCampaign(campaign);
-    setFormData({
-      name: campaign.name,
-      nameAr: campaign.nameAr,
-      type: campaign.type,
-      status: campaign.status,
-      startDate: campaign.startDate.split('T')[0],
-      endDate: campaign.endDate,
-      budget: campaign.budget,
-      targetAudience: campaign.targetAudience,
-      description: campaign.description,
-    });
-    setEditModal(true);
-  }, []);
-
-  const TYPE_CONFIG = {
-    email: { label: 'إيميل', color: 'bg-blue-50 text-blue-600' },
-    sms: { label: 'SMS', color: 'bg-green-50 text-green-600' },
-    social: { label: 'سوشيال ميديا', color: 'bg-purple-50 text-purple-600' },
-    push: { label: 'إشعارات', color: 'bg-amber-50 text-amber-600' },
-    display: { label: 'عرض', color: 'bg-cyan-50 text-cyan-600' },
-    custom: { label: 'مخصص', color: 'bg-slate-50 text-slate-600' },
   };
 
-  const STATUS_CONFIG = {
-    draft: { label: 'مسودة', color: 'bg-slate-50 text-slate-600' },
-    scheduled: { label: 'مجدول', color: 'bg-blue-50 text-blue-600' },
-    running: { label: 'جاري', color: 'bg-green-50 text-green-600' },
-    paused: { label: 'متوقف', color: 'bg-amber-50 text-amber-600' },
-    completed: { label: 'مكتمل', color: 'bg-cyan-50 text-cyan-600' },
-    cancelled: { label: 'ملغي', color: 'bg-red-50 text-red-600' },
-  };
-
-  const stats = useMemo(() => {
-    const total = campaigns.length;
-    const running = campaigns.filter(c => c.status === 'running').length;
-    const totalBudget = campaigns.reduce((sum, c) => sum + c.budget, 0);
-    const totalSpent = campaigns.reduce((sum, c) => sum + c.spent, 0);
-    const totalConversions = campaigns.reduce((sum, c) => sum + c.conversions, 0);
-    const avgROAS = campaigns.length > 0 ? campaigns.reduce((sum, c) => sum + c.roas, 0) / campaigns.length : 0;
-    return [
-      { label: 'إجمالي الحملات', value: total, icon: Megaphone, color: 'bg-blue-50 text-blue-600' },
-      { label: 'جاري', value: running, icon: Play, color: 'bg-green-50 text-green-600' },
-      { label: 'الميزانية', value: `ج.م ${totalBudget.toLocaleString()}`, icon: DollarSign, color: 'bg-purple-50 text-purple-600' },
-      { label: 'المصروف', value: `ج.م ${totalSpent.toLocaleString()}`, icon: DollarSign, color: 'bg-red-50 text-red-600' },
-      { label: 'التحويلات', value: totalConversions.toLocaleString(), icon: Target, color: 'bg-cyan-50 text-cyan-600' },
-      { label: 'متوسط ROAS', value: avgROAS.toFixed(1), icon: BarChart3, color: 'bg-amber-50 text-amber-600' },
-    ];
-  }, [campaigns]);
+  const totalBudget = campaigns.reduce((s, c) => s + c.budget, 0);
+  const totalSpent = campaigns.reduce((s, c) => s + c.spent, 0);
+  const totalReach = campaigns.reduce((s, c) => s + c.reach, 0);
+  const totalConv = campaigns.reduce((s, c) => s + c.conversions, 0);
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <Megaphone size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">الحملات</h1>
-            <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-              <Info size={18} />
-            </button>
-          </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">إدارة حملات التسويق</p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        {stats.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
-            <div className={`p-2 rounded-xl ${s.color}`}><s.icon size={20} /></div>
-            <div><p className="text-xs font-bold text-slate-400">{s.label}</p><p className="text-lg font-black text-slate-900">{s.value}</p></div>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex flex-wrap gap-3">
-          <button onClick={() => setAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all">
-            <Plus size={18} />
-            حملة جديدة
-          </button>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
-            <Download size={18} />
+    <InventoryPage
+      title="الحملات"
+      subtitle={
+        <>
+          مركز إدارة الحملات التسويقية — أهداف حسب نشاطك، وجمهور من شرائح عملائك
+          {totalConv > 0 && <span className="text-emerald-600 font-semibold"> — {fmt(totalConv)} تحويل من {fmt(totalReach)} وصول</span>}
+        </>
+      }
+      onInfo={() => setGuideOpen(true)}
+      actions={
+        <>
+          <button onClick={exportCSV} className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 hidden sm:flex items-center gap-1.5">
+            <Download size={14} />
             تصدير CSV
           </button>
-        </div>
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900">{selectedIds.size} محدد</span>
-            <button onClick={bulkDelete} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-700 font-bold text-xs hover:bg-red-100 transition-all">
-              <Trash2 size={14} />
-              حذف
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute top-1/2 -translate-y-1/2 right-3 text-slate-300" size={18} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالاسم..." className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-white border border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">النوع:</span>
-          <select
-            value={filterType}
-            onChange={e => setFilterType(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="email">إيميل</option>
-            <option value="sms">SMS</option>
-            <option value="social">سوشيال ميديا</option>
-            <option value="push">إشعارات</option>
-            <option value="display">عرض</option>
-            <option value="custom">مخصص</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الحالة:</span>
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="draft">مسودة</option>
-            <option value="scheduled">مجدول</option>
-            <option value="running">جاري</option>
-            <option value="paused">متوقف</option>
-            <option value="completed">مكتمل</option>
-            <option value="cancelled">ملغي</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الترتيب:</span>
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="name">الاسم</option>
-            <option value="budget">الميزانية</option>
-            <option value="impressions">المشاهدات</option>
-            <option value="createdAt">تاريخ الإنشاء</option>
-          </select>
-        </div>
-        <button
-          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
-        >
-          {sortOrder === 'asc' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-      </div>
-
-      {/* Campaigns List */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+          <button onClick={() => { setForm(emptyForm); setEditCampaign(null); setAddModal(true); }} className="h-10 px-5 rounded-full text-[12px] font-bold flex items-center gap-1.5 transition-colors bg-slate-900 text-white hover:bg-slate-700">
+            <Plus size={14} />
+            حملة جديدة
+          </button>
+        </>
+      }
+      tabs={tabs}
+      activeTab={tab}
+      onTabChange={(id) => { setTab(id); setCurrentPage(1); }}
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="دوّر باسم الحملة أو هدفها…"
+      loading={loading}
+      empty={
+        <>
           <Megaphone size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm">لا توجد حملات حالياً</p>
-        </div>
-      ) : (
-        <div className="hidden md:block overflow-x-auto touch-auto">
-          <table className="w-full text-right border-collapse min-w-[1800px]">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="p-4 w-10">
-                  <button onClick={toggleSelectAll} className="p-1">
-                    {selectedIds.size === paginatedCampaigns.length && paginatedCampaigns.length > 0 ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                  </button>
-                </th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الاسم</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">النوع</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الحالة</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">تاريخ البدء</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">تاريخ النهاية</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الميزانية</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">المصروف</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الوصول</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">المشاهدات</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">النقرات</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">التحويلات</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">CTR</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">CPA</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">ROAS</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الإجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedCampaigns.map((campaign) => {
-                const typeConfig = TYPE_CONFIG[campaign.type];
-                const statusConfig = STATUS_CONFIG[campaign.status];
-                return (
-                  <tr key={campaign.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                    <td className="p-4">
-                      <button onClick={() => toggleSelect(campaign.id)} className="p-1">
-                        {selectedIds.has(campaign.id) ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                      </button>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">{campaign.name}</div>
-                      <div className="text-slate-500 text-xs">{campaign.nameAr}</div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${typeConfig.color}`}>
-                        {typeConfig.label}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${statusConfig.color}`}>
-                        {statusConfig.label}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-slate-600 text-sm flex items-center gap-1">
-                        <Calendar size={12} />
-                        {new Date(campaign.startDate).toLocaleDateString('ar-EG')}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-slate-600 text-sm">{campaign.endDate ? new Date(campaign.endDate).toLocaleDateString('ar-EG') : '-'}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">ج.م {campaign.budget.toLocaleString()}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">ج.م {campaign.spent.toLocaleString()}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">{campaign.reach.toLocaleString()}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">{campaign.impressions.toLocaleString()}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">{campaign.clicks.toLocaleString()}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">{campaign.conversions.toLocaleString()}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">{campaign.ctr.toFixed(1)}%</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">ج.م {campaign.cpa.toFixed(0)}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">{campaign.roas.toFixed(1)}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => openEditModal(campaign)} className="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all" title="تعديل">
-                          <Edit size={14} />
-                        </button>
-                        <button onClick={() => handleDelete(campaign.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all" title="حذف">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+          <p className="text-slate-400 font-bold text-sm">لا توجد حملات في هذا القسم</p>
+        </>
+      }
+      footer={<InvPagination page={currentPage} totalPages={totalPages} total={filtered.length} perPage={itemsPerPage} onPage={setCurrentPage} label="حملة" />}
+    >
+      <InvTableCard
+        columns={[
+          { label: 'الحملة', className: 'col-span-3' },
+          { label: 'الهدف', className: 'col-span-2' },
+          { label: 'الجمهور', className: 'col-span-2' },
+          { label: 'القنوات', className: 'col-span-1' },
+          { label: 'النتائج', className: 'col-span-2' },
+          { label: 'الحالة', className: 'col-span-1' },
+          { label: '', className: 'col-span-1' },
+        ]}
+      >
+        {paginated.map((c) => (
+          <InvRow key={c.id} muted={['draft', 'cancelled'].includes(c.status)}>
+            <div className="col-span-3 min-w-0">
+              <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{c.name}</div>
+              <div className="text-xs font-medium text-slate-500 mt-0.5 truncate">
+                {c.nameAr !== '---' ? c.nameAr : ''} {c.budget > 0 ? `• ميزانية ج.م ${fmt(c.budget)} (أُنفقت ${fmt(c.spent)})` : ''}
+              </div>
+              <div className="text-[11px] text-slate-400 font-medium mt-0.5">{d(c.startDate)} → {d(c.endDate)}</div>
+            </div>
+            <div className="col-span-2 pr-4 min-w-0">
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-700">
+                <Target size={12} className="text-slate-400" />
+                {goalLabel(c)}
+              </span>
+              {c.offerRef && <span className="block text-[11px] text-slate-400 font-medium truncate">عرض مرتبط: {c.offerRef}</span>}
+            </div>
+            <div className="col-span-2 pr-4 min-w-0">
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 truncate">
+                <Users size={12} className="text-slate-400" />
+                {audienceLabel(c)}
+              </span>
+            </div>
+            <div className="col-span-1 pr-4">
+              <div className="flex gap-1">
+                {(c.channels?.length ? c.channels : [c.type === 'sms' ? 'sms' : c.type === 'push' ? 'push' : 'email']).map((ch) => {
+                  const meta = ch === 'sms' ? { icon: MessageSquare, cls: 'text-green-600 bg-green-50' } : ch === 'push' ? { icon: Bell, cls: 'text-purple-600 bg-purple-50' } : { icon: Mail, cls: 'text-blue-600 bg-blue-50' };
+                  const Icon = meta.icon;
+                  return <span key={ch} className={`w-6 h-6 rounded-md flex items-center justify-center ${meta.cls}`} title={ch}><Icon size={11} /></span>;
+                })}
+              </div>
+            </div>
+            <div className="col-span-2 pr-4 text-xs">
+              <span className="font-bold text-slate-700">{fmt(c.clicks)} نقرة</span>
+              <span className="block text-[11px] text-slate-400 font-medium">
+                وصول {fmt(c.reach)} • تحويل {fmt(c.conversions)}
+                {c.roas > 0 ? ` • ROAS ${c.roas.toFixed(1)}x` : ''}
+              </span>
+            </div>
+            <div className="col-span-1">
+              <InvStatusPill tone={STATUS_TONE[c.status] || 'slate'}>{STATUS_LABEL[c.status] || c.status}</InvStatusPill>
+            </div>
+            <div className="col-span-1 flex items-center justify-end gap-1.5">
+              <InvRowAction onClick={() => openEdit(c)} title="تعديل">
+                <Edit size={14} />
+              </InvRowAction>
+              <InvRowAction onClick={() => remove(c.id)} title="حذف" danger>
+                <Trash2 size={14} />
+              </InvRowAction>
+            </div>
+          </InvRow>
+        ))}
+      </InvTableCard>
 
-      {/* Add Modal */}
+      {/* ═══ Add/Edit Campaign Modal ═══ */}
       {addModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setAddModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">حملة جديدة</h2>
+              <h2 className="text-xl font-black text-slate-900">{editCampaign ? 'تعديل الحملة' : 'حملة جديدة'}</h2>
               <button onClick={() => setAddModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-5">
+              {/* الأساسيات */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-bold text-slate-700 mb-1 block">اسم الحملة (إنجليزي)</label>
+                  <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Summer Sale" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 mb-1 block">اسم الحملة (عربي)</label>
+                  <input type="text" value={form.nameAr} onChange={(e) => setForm({ ...form, nameAr: e.target.value })} placeholder="عرض الصيف" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
+                </div>
+              </div>
+
+              {/* الهدف — حسب النشاط */}
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (إنجليزي)</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Campaign Name"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
+                <label className="text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5 block">
+                  <Target size={14} className="text-slate-400" />
+                  الهدف من الحملة {shopCategory && <span className="text-[10px] font-bold text-slate-300">(خيارات نشاطك: {shopCategory})</span>}
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                  {availableGoals.map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => setForm({ ...form, goal: g.id })}
+                      className={`h-9 px-3 rounded-full text-[11px] font-bold border transition-all text-right ${
+                        form.goal === g.id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+                {form.goal === 'custom' && (
+                  <input
+                    type="text"
+                    value={form.goalCustom}
+                    onChange={(e) => setForm({ ...form, goalCustom: e.target.value })}
+                    placeholder="اكتب الهدف المخصص…"
+                    className="mt-2 w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
+                  />
+                )}
+              </div>
+
+              {/* الجمهور — من نظام العملاء */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-bold text-slate-700 mb-1 flex items-center gap-1.5 block">
+                    <Users size={14} className="text-slate-400" />
+                    الجمهور المستهدف
+                  </label>
+                  <select value={form.audienceType} onChange={(e) => setForm({ ...form, audienceType: e.target.value, audienceValue: '' })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200">
+                    {AUDIENCE_OPTIONS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 mb-1 block">
+                    {form.audienceType === 'segment' ? 'اختار الشريحة' : form.audienceType === 'tag' ? 'اختار الوسم' : 'تفاصيل'}
+                  </label>
+                  {form.audienceType === 'segment' ? (
+                    <select value={form.audienceValue} onChange={(e) => setForm({ ...form, audienceValue: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200">
+                      <option value="">اختار الشريحة…</option>
+                      {segments.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  ) : form.audienceType === 'tag' ? (
+                    <select value={form.audienceValue} onChange={(e) => setForm({ ...form, audienceValue: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200">
+                      <option value="">اختار الوسم…</option>
+                      {tags.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  ) : (
+                    <div className="h-10 flex items-center text-xs font-bold text-slate-400">بيتحدد تلقائيًا حسب الاختيار</div>
+                  )}
+                </div>
+              </div>
+
+              {/* القنوات */}
+              <div>
+                <label className="text-sm font-bold text-slate-700 mb-1.5 block">قنوات الحملة (اختر واحدة أو أكثر)</label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {CHANNELS.map((ch) => {
+                    const Icon = ch.icon;
+                    const active = form.channels.includes(ch.id);
+                    return (
+                      <button
+                        key={ch.id}
+                        type="button"
+                        onClick={() => setForm({ ...form, channels: active ? form.channels.filter((x) => x !== ch.id) || [] : [...form.channels, ch.id], type: active && form.channels.length === 1 ? 'email' : (form.channels.includes(ch.id) ? form.type : ch.id as any) })}
+                        className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-[11px] font-black transition-all ${
+                          active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
+                        }`}
+                      >
+                        {active ? <Check size={14} /> : <Icon size={14} />}
+                        {ch.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] font-bold text-slate-400 mt-1.5">الإرسال بيتم من وحدة القناة نفسها (إيميل/SMS/إشعارات) — من غير ما تنتقل بين صفحات.</p>
+              </div>
+
+              {/* المحتوى */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-bold text-slate-700 mb-1 flex items-center gap-1.5 block"><LinkIcon size={13} className="text-slate-400" />رابط الحملة (اختياري)</label>
+                  <input type="text" value={form.linkUrl} onChange={(e) => setForm({ ...form, linkUrl: e.target.value })} placeholder="https://…" dir="ltr" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-right focus:outline-none focus:ring-2 focus:ring-slate-200" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 mb-1 block">نص زر الإجراء (CTA)</label>
+                  <input type="text" value={form.ctaLabel} onChange={(e) => setForm({ ...form, ctaLabel: e.target.value })} placeholder="اطلب الآن" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
+                </div>
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (عربي)</label>
-                <input
-                  type="text"
-                  value={formData.nameAr}
-                  onChange={e => setFormData({ ...formData, nameAr: e.target.value })}
-                  placeholder="اسم الحملة"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
+                <label className="text-sm font-bold text-slate-700 mb-1 block">عرض / كوبون مرتبط (اختياري)</label>
+                <input type="text" value={form.offerRef} onChange={(e) => setForm({ ...form, offerRef: e.target.value })} placeholder="SALE20 أو اسم العرض" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">النوع</label>
-                <select
-                  value={formData.type}
-                  onChange={e => setFormData({ ...formData, type: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="email">إيميل</option>
-                  <option value="sms">SMS</option>
-                  <option value="social">سوشيال ميديا</option>
-                  <option value="push">إشعارات</option>
-                  <option value="display">عرض</option>
-                  <option value="custom">مخصص</option>
-                </select>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">الوصف / نص الحملة</label>
+                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
               </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الحالة</label>
-                <select
-                  value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="draft">مسودة</option>
-                  <option value="scheduled">مجدول</option>
-                  <option value="running">جاري</option>
-                  <option value="paused">متوقف</option>
-                  <option value="completed">مكتمل</option>
-                  <option value="cancelled">ملغي</option>
-                </select>
+
+              {/* الجدولة + الميزانية */}
+              <div className="grid grid-cols-4 gap-3">
+                <div>
+                  <label className="text-sm font-bold text-slate-700 mb-1 block">تاريخ البداية</label>
+                  <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 mb-1 block">تاريخ النهاية</label>
+                  <input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 mb-1 block">الميزانية (اختياري)</label>
+                  <input type="number" min={0} value={form.budget || ''} onChange={(e) => setForm({ ...form, budget: Number(e.target.value) })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 mb-1 block">الحالة</label>
+                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as Campaign['status'] })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200">
+                    <option value="draft">مسودة</option>
+                    <option value="scheduled">مجدولة</option>
+                    <option value="running">نشطة</option>
+                    <option value="paused">متوقفة</option>
+                    <option value="completed">منتهية</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">تاريخ البدء</label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">تاريخ النهاية</label>
-                <input
-                  type="date"
-                  value={formData.endDate}
-                  onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الميزانية</label>
-                <input
-                  type="number"
-                  value={formData.budget}
-                  onChange={e => setFormData({ ...formData, budget: Number(e.target.value) })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الجمهور المستهدف</label>
-                <select
-                  value={formData.targetAudience}
-                  onChange={e => setFormData({ ...formData, targetAudience: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="all">الكل</option>
-                  <option value="new">جدد</option>
-                  <option value="returning">عائدين</option>
-                  <option value="vip">VIP</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الوصف</label>
-                <textarea
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="وصف الحملة"
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <button
-                onClick={handleAdd}
-                className="w-full py-2.5 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all"
-              >
-                إضافة الحملة
+
+              <button onClick={save} disabled={saving} className="w-full py-2.5 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Megaphone size={14} />}
+                {editCampaign ? 'حفظ التعديلات' : 'إنشاء الحملة'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit Modal */}
-      {editModal && editCampaign && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">تعديل الحملة</h2>
-              <button onClick={() => setEditModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (إنجليزي)</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (عربي)</label>
-                <input
-                  type="text"
-                  value={formData.nameAr}
-                  onChange={e => setFormData({ ...formData, nameAr: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">النوع</label>
-                <select
-                  value={formData.type}
-                  onChange={e => setFormData({ ...formData, type: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="email">إيميل</option>
-                  <option value="sms">SMS</option>
-                  <option value="social">سوشيال ميديا</option>
-                  <option value="push">إشعارات</option>
-                  <option value="display">عرض</option>
-                  <option value="custom">مخصص</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الحالة</label>
-                <select
-                  value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="draft">مسودة</option>
-                  <option value="scheduled">مجدول</option>
-                  <option value="running">جاري</option>
-                  <option value="paused">متوقف</option>
-                  <option value="completed">مكتمل</option>
-                  <option value="cancelled">ملغي</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">تاريخ البدء</label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">تاريخ النهاية</label>
-                <input
-                  type="date"
-                  value={formData.endDate}
-                  onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الميزانية</label>
-                <input
-                  type="number"
-                  value={formData.budget}
-                  onChange={e => setFormData({ ...formData, budget: Number(e.target.value) })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الجمهور المستهدف</label>
-                <select
-                  value={formData.targetAudience}
-                  onChange={e => setFormData({ ...formData, targetAudience: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="all">الكل</option>
-                  <option value="new">جدد</option>
-                  <option value="returning">عائدين</option>
-                  <option value="vip">VIP</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الوصف</label>
-                <textarea
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <button
-                onClick={handleEdit}
-                className="w-full py-2.5 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all"
-              >
-                حفظ التعديلات
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Guide Modal */}
+      {/* ═══ Guide Modal ═══ */}
       {guideOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setGuideOpen(false)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
               <h2 className="text-xl font-black text-slate-900">دليل الحملات</h2>
               <button onClick={() => setGuideOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
@@ -759,22 +562,35 @@ export default function CampaignsPage() {
             <div className="space-y-6 text-right">
               <div>
                 <div className="flex items-center gap-2 mb-2"><Info size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">وظيفة الصفحة</h3></div>
-                <p className="text-sm text-slate-600 leading-relaxed">إدارة حملات التسويق المتكاملة.</p>
+                <p className="text-sm text-slate-600 leading-relaxed">إنشاء وإدارة الحملات التسويقية: هدف واضح، جمهور مستهدف من شرائح عملائك، قنوات إرسال متعددة، ومتابعة النتائج.</p>
               </div>
               <div>
-                <div className="flex items-center gap-2 mb-2"><Megaphone size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">الميزات</h3></div>
+                <div className="flex items-center gap-2 mb-2"><Target size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">الأهداف حسب نشاطك</h3></div>
+                <p className="text-sm text-slate-600 leading-relaxed">النظام يفهم نوع نشاطك ويعرض الأهداف المناسبة فقط — ترويج منتج للمتاجر، حجز للعيادات والخدمات، اشتراكات للجيم وهكذا.</p>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-2"><TrendingUp size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">النتائج</h3></div>
                 <ul className="text-sm text-slate-600 space-y-1.5 pr-4">
-                  <li>• إضافة وتعديل وحذف الحملات</li>
-                  <li>• أنواع مختلفة (إيميل، SMS، سوشيال ميديا، إشعارات)</li>
-                  <li>• تتبع الأداء (الميزانية، المصروف، الوصول، التحويلات، CTR، CPA، ROAS)</li>
-                  <li>• جدولة الحملات</li>
-                  <li>• تصدير تقارير الحملات</li>
+                  <li>• كل حملة بتعرض: الوصول، النقرات، التحويلات، والعائد</li>
+                  <li>• الإرسال بيتم من وحدة القناة (إيميل/SMS/إشعارات) تلقائيًا</li>
+                  <li>• اربط عرض أو كوبون بالحملة عشان تتتبع مبيعاتها</li>
                 </ul>
               </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </InventoryPage>
+  );
+}
+
+// helper — نفس sid (موجود لوضوح الاستدعاء)
+function shopId2(sid: string) { return sid; }
+
+export default function CampaignsPageExport() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-sm font-bold text-slate-500">جاري التحميل...</div>}>
+      <CampaignsPage />
+    </Suspense>
   );
 }

@@ -44,8 +44,10 @@ export default async function DalilPage() {
       <div className="flex flex-wrap gap-2 mb-8">
         <Link href="/dalil" className="px-4 py-2 rounded-lg text-xs font-semibold bg-brand-black text-white">الكل</Link>
         {activities.map((a) => (
-          <Link key={a.id} href={`/activity/${a.id}`} className="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-            {a.icon} {a.label.ar}
+          <Link key={a.id} href={`/activity/${a.id}`} className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={a.image} alt="" width={16} height={16} className="w-4 h-4 rounded object-cover" loading="lazy" />
+            {a.label.ar}
           </Link>
         ))}
       </div>

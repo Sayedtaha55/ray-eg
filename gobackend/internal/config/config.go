@@ -89,7 +89,12 @@ type AuthConfig struct {
 	JWTSecret                string        `env:"JWT_SECRET,required"`
 	AccessTokenExpiry        time.Duration `env:"AUTH_ACCESS_TOKEN_EXPIRY" envDefault:"15m"`
 	RefreshTokenExpiry       time.Duration `env:"AUTH_REFRESH_TOKEN_EXPIRY" envDefault:"168h"`
+	// CookieName is the name of the httpOnly cookie that stores the refresh token.
 	CookieName               string        `env:"AUTH_COOKIE_NAME" envDefault:"ray_session"`
+	// AccessCookieName is the name of the httpOnly cookie that stores the short-lived access token.
+	// When non-empty, the backend sets this cookie on login/refresh so the frontend
+	// does not need to store the access token in localStorage.
+	AccessCookieName         string        `env:"AUTH_ACCESS_COOKIE_NAME" envDefault:"ray_access"`
 	CookieMaxAge             time.Duration `env:"AUTH_COOKIE_MAX_AGE" envDefault:"168h"`
 	CookieDomain             string        `env:"COOKIE_DOMAIN"`
 	AdminBootstrapToken      string        `env:"ADMIN_BOOTSTRAP_TOKEN"`

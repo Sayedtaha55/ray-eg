@@ -28,6 +28,10 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
 
+  // Never intercept local dev servers — Turbopack reuses stable asset URLs,
+  // so cached CSS/JS here goes stale and breaks hot reload.
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return;
+
   // Skip API requests and cross-origin traffic (maps tiles, etc.)
   if (url.pathname.startsWith('/api/') || url.origin !== self.location.origin) return;
 
@@ -45,18 +49,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: cache-first
+  // Static assets: stale-while-revalidate — serve instantly from cache but
+  // refresh the copy in the background so deploys propagate.
   event.respondWith(
-    caches.match(request).then(
-      (cached) =>
-        cached ||
-        fetch(request).then((response) => {
+    caches.match(request).then((cached) => {
+      const refresh = fetch(request)
+        .then((response) => {
           if (response.ok && (url.pathname.startsWith('/_next/') || url.pathname.startsWith('/images/') || url.pathname.startsWith('/fonts/') || url.pathname.startsWith('/brand/'))) {
             const copy = response.clone();
             caches.open(STATIC_CACHE).then((cache) => cache.put(request, copy));
           }
           return response;
         })
-    )
+        .catch(() => cached);
+      return cached || refresh;
+    })
   );
 });

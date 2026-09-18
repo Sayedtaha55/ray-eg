@@ -24,6 +24,12 @@ import {
   Layers,
   Store,
   Globe2,
+  Menu,
+  X,
+  ShoppingCart,
+  Package,
+  Tag,
+  Zap,
 } from 'lucide-react';
 
 interface ComponentRendererProps {
@@ -56,11 +62,13 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     setProductSearchQuery,
   } = useBuilder();
 
-  // Local interactive state for preview mode (e.g. FAQ accordion toggle, form submission, mega menu dropdown)
+  // Local interactive state for preview mode (e.g. FAQ accordion toggle, form submission, mega menu dropdown, mobile drawer)
   const [isFaqOpen, setIsFaqOpen] = useState(true);
   const [openDropdown, setOpenDropdown] = useState<boolean>(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  const [isMobileMenuDrawerOpen, setIsMobileMenuDrawerOpen] = useState<boolean>(false);
+  const [hoveredProductCardId, setHoveredProductCardId] = useState<string | null>(null);
 
   const node = website.components[nodeId];
   if (!node || node.isHidden) return null;
@@ -133,7 +141,9 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       backdropFilter: merged.backdropBlur ? `blur(${merged.backdropBlur})` : undefined,
       WebkitBackdropFilter: merged.backdropBlur ? `blur(${merged.backdropBlur})` : undefined,
       overflow: merged.overflow,
-      wordBreak: 'break-word',
+      textOverflow: merged.textOverflow,
+      flexShrink: merged.flexShrink as any,
+      wordBreak: 'normal',
       overflowWrap: 'break-word',
       position: merged.position,
       top: merged.top,
@@ -142,6 +152,73 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       left: merged.left,
       zIndex: merged.zIndex,
     };
+
+    // Responsive Mobile Safeguards for All Themes:
+    if (currentViewport === 'mobile') {
+      // 1. Buttons must never awkwardly wrap single characters or break Arabic words vertically
+      if (node.type === 'button') {
+        css.whiteSpace = 'nowrap';
+        css.flexShrink = 0;
+        css.wordBreak = 'normal';
+        if (!m.fontSize && (!d.fontSize || parseInt(d.fontSize) > 13)) {
+          css.fontSize = '12px';
+        }
+        if (!m.paddingLeft && (!d.paddingLeft || parseInt(d.paddingLeft) > 12)) {
+          css.paddingLeft = '12px';
+        }
+        if (!m.paddingRight && (!d.paddingRight || parseInt(d.paddingRight) > 12)) {
+          css.paddingRight = '12px';
+        }
+        if (!m.paddingTop && (!d.paddingTop || parseInt(d.paddingTop) > 8)) {
+          css.paddingTop = '6px';
+        }
+        if (!m.paddingBottom && (!d.paddingBottom || parseInt(d.paddingBottom) > 8)) {
+          css.paddingBottom = '6px';
+        }
+      }
+
+      // 2. Headings must never break letters of an Arabic word awkwardly
+      if (node.type === 'heading') {
+        css.wordBreak = 'normal';
+        css.overflowWrap = 'break-word';
+        if (!m.fontSize && d.fontSize && parseInt(d.fontSize) > 20) {
+          css.fontSize = `${Math.max(15, Math.round(parseInt(d.fontSize) * 0.72))}px`;
+        }
+        // In headers, keep brand heading single line
+        if (node.parentId?.includes('header') || node.id?.includes('brand') || node.id?.includes('logo')) {
+          css.whiteSpace = 'nowrap';
+          css.fontSize = m.fontSize || '14px';
+          css.flexShrink = 0;
+        }
+      }
+
+      // 3. Header navigation links on mobile: hide cramped bullet text on small phone screens
+      if (
+        (typeof node.props.text === 'string' && (node.props.text.includes('•') || node.props.text.includes('|') || node.props.text.includes('▾'))) ||
+        ((node.parentId?.includes('header') || node.parentId?.includes('sec_') || node.id?.includes('nav')) && (node.type === 'paragraph' || node.id?.includes('nav') || node.category === 'navigation'))
+      ) {
+        css.display = 'none';
+      }
+
+      // 4. Containers and sections: never exceed screen width on mobile
+      if (node.type === 'header' || node.category === 'section' || node.type === 'container') {
+        css.maxWidth = '100%';
+        if (!m.paddingLeft && d.paddingLeft && parseInt(d.paddingLeft) > 16) {
+          css.paddingLeft = '14px';
+        }
+        if (!m.paddingRight && d.paddingRight && parseInt(d.paddingRight) > 16) {
+          css.paddingRight = '14px';
+        }
+      }
+
+      // 5. Flex rows: allow wrapping if content overflows
+      if (merged.display === 'flex' && merged.flexDirection === 'row' && !m.flexWrap && !merged.flexWrap) {
+        if (!node.parentId?.includes('header')) {
+          css.flexWrap = 'wrap';
+        }
+        css.gap = merged.gap || '8px';
+      }
+    }
 
     return css;
   };
@@ -429,6 +506,194 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
   // Custom Rendering for specific Component Types
   switch (node.type) {
+    case 'header': {
+      const isMobile = currentViewport === 'mobile';
+      const hideCart = Boolean(node.props.hideCart || (website.theme as any)?.hideCart);
+      const cartIconType = node.props.cartIcon || 'ShoppingBag';
+
+      return (
+        <header
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all ${outlineClass} relative`}
+        >
+          {isMobile ? (
+            <div className="w-full flex items-center justify-between gap-3 px-3 py-2.5">
+              {/* Brand Logo / Name */}
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                {node.childrenIds && node.childrenIds.length > 0 ? (
+                  node.childrenIds.map((cId) => {
+                    const child = website.components[cId];
+                    if (!child) return null;
+                    if (child.id.includes('nav') || child.type === 'paragraph' || child.category === 'navigation') return null;
+                    if (child.type === 'button' || child.id.includes('cta')) return null;
+                    return (
+                      <ComponentRenderer
+                        key={cId}
+                        nodeId={cId}
+                        isInteractivePreview={isInteractivePreview}
+                        overrideViewport={overrideViewport}
+                      />
+                    );
+                  })
+                ) : (
+                  <div className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
+                    {node.props.title || website.name || 'المتجر الإلكتروني'}
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Actions: Cart + Hamburger Menu */}
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Cart Button */}
+                {!hideCart && (
+                  <button
+                    onClick={(e) => {
+                      if (isInteractivePreview) {
+                        e.stopPropagation();
+                        setIsCartOpen(true);
+                      }
+                    }}
+                    title="سلة التسوق"
+                    className="relative p-2 rounded-xl bg-slate-100/90 hover:bg-slate-200 text-slate-800 transition-colors flex items-center justify-center cursor-pointer active:scale-95"
+                  >
+                    {cartIconType === 'ShoppingCart' ? (
+                      <ShoppingCart className="w-4 h-4 text-blue-600" />
+                    ) : cartIconType === 'Package' ? (
+                      <Package className="w-4 h-4 text-blue-600" />
+                    ) : cartIconType === 'Store' ? (
+                      <Store className="w-4 h-4 text-blue-600" />
+                    ) : cartIconType === 'CreditCard' ? (
+                      <CreditCard className="w-4 h-4 text-blue-600" />
+                    ) : (
+                      <ShoppingBag className="w-4 h-4 text-blue-600" />
+                    )}
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-600 text-white rounded-full text-[9px] font-black flex items-center justify-center shadow-xs">
+                        {cartCount}
+                      </span>
+                    )}
+                  </button>
+                )}
+
+                {/* Mobile Menu Hamburger Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMobileMenuDrawerOpen(true);
+                  }}
+                  title="القائمة الرئيسية"
+                  className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors flex items-center justify-center cursor-pointer active:scale-95"
+                >
+                  <Menu className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Mobile Slide-Over Drawer */}
+              {isMobileMenuDrawerOpen && (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMobileMenuDrawerOpen(false);
+                  }}
+                  className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex justify-end animate-in fade-in duration-200"
+                >
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-4/5 max-w-xs h-full bg-white text-slate-900 shadow-2xl flex flex-col justify-between p-5 animate-in slide-in-from-right duration-300 overflow-y-auto text-right"
+                  >
+                    <div className="space-y-6">
+                      {/* Drawer Header */}
+                      <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                            {website.name ? website.name[0] : '⚡'}
+                          </div>
+                          <span className="font-black text-sm text-slate-900 truncate max-w-[140px]">
+                            {website.name || 'المتجر'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setIsMobileMenuDrawerOpen(false)}
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Navigation Links */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                          صفحات الموقع
+                        </span>
+                        {website.pages.map((p) => {
+                          const isActive = p.id === activePage.id;
+                          return (
+                            <button
+                              key={p.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                switchPage(p.id);
+                                setIsMobileMenuDrawerOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all text-right cursor-pointer ${
+                                isActive
+                                  ? 'bg-blue-600 text-white shadow-xs'
+                                  : 'text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              <span>{p.name}</span>
+                              <ArrowRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'} rtl:rotate-180`} />
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Quick Contact Actions */}
+                      <div className="pt-4 border-t border-slate-100 space-y-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          تواصل سريع
+                        </span>
+                        <a
+                          href="https://wa.me/201000000000"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-xs transition-colors"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          <span>تواصل عبر واتساب</span>
+                        </a>
+
+                        <a
+                          href="tel:01000000000"
+                          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
+                        >
+                          <Phone className="w-4 h-4" />
+                          <span>اتصال مباشر</span>
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Drawer Footer Branding */}
+                    <div className="pt-6 border-t border-slate-100 text-center">
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        صنع بكل فخر عبر <strong className="text-blue-600 font-bold">نمّي أعمالك</strong> ⚡
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            renderChildren()
+          )}
+        </header>
+      );
+    }
+
     case 'custom-code': {
       return (
         <div
@@ -753,25 +1018,38 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       return (
         <div className="inline-flex items-center gap-2">
           {/* Header Cart Button if this is the header CTA */}
-          {isHeaderCta && (
-            <button
-              onClick={(e) => {
-                if (isInteractivePreview) {
-                  e.stopPropagation();
-                  setIsCartOpen(true);
-                }
-              }}
-              title="سلة المشتريات والحجوزات"
-              className="relative p-2.5 rounded-xl border border-slate-200/80 bg-white/80 hover:bg-white text-slate-700 hover:text-blue-600 shadow-xs transition-all flex items-center justify-center cursor-pointer active:scale-95"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-blue-600 text-white rounded-full text-[10px] font-black flex items-center justify-center shadow-xs">
-                  {cartCount}
-                </span>
-              )}
-            </button>
-          )}
+          {isHeaderCta && !website.components['comp_header']?.props?.hideCart && !(website.theme as any)?.hideCart && !node.props.hideCart && (() => {
+            const headerCartIcon = website.components['comp_header']?.props?.cartIcon || node.props.cartIcon || 'ShoppingBag';
+            return (
+              <button
+                onClick={(e) => {
+                  if (isInteractivePreview) {
+                    e.stopPropagation();
+                    setIsCartOpen(true);
+                  }
+                }}
+                title="سلة المشتريات والحجوزات"
+                className="relative p-2.5 rounded-xl border border-slate-200/80 bg-white/80 hover:bg-white text-slate-700 hover:text-blue-600 shadow-xs transition-all flex items-center justify-center cursor-pointer active:scale-95"
+              >
+                {headerCartIcon === 'ShoppingCart' ? (
+                  <ShoppingCart className="w-4 h-4" />
+                ) : headerCartIcon === 'Package' ? (
+                  <Package className="w-4 h-4" />
+                ) : headerCartIcon === 'Store' ? (
+                  <Store className="w-4 h-4" />
+                ) : headerCartIcon === 'CreditCard' ? (
+                  <CreditCard className="w-4 h-4" />
+                ) : (
+                  <ShoppingBag className="w-4 h-4" />
+                )}
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-blue-600 text-white rounded-full text-[10px] font-black flex items-center justify-center shadow-xs">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+            );
+          })()}
 
           <button
             id={node.id}
@@ -848,94 +1126,122 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             className={`cursor-pointer transition-all flex flex-col justify-between ${outlineClass}`}
           >
             {/* CAR PRODUCT CARD */}
-            {node.props.image && node.props.price && (
-              <div className="flex flex-col h-full">
-                <div className="h-48 w-full overflow-hidden bg-slate-100 rounded-t-xl">
-                  <img
-                    src={node.props.image}
-                    alt={node.props.title}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span
-                        style={{
-                          backgroundColor: `${website.theme.colors.primary}18`,
-                          color: website.theme.colors.primary,
+            {node.props.image && node.props.price && (() => {
+              const hoverImg = node.props.hoverImage || (Array.isArray(node.props.images) && node.props.images[1]) || (node.props.image.includes('1614162692292') ? 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=1000&auto=format&fit=crop&q=80' : undefined);
+              const buyBtnIcon = node.props.buyButtonIcon || 'ShoppingBag';
+              const buyBtnText = node.props.buyButtonText || 'إضافة للسلة';
+              const hideBuyBtn = Boolean(node.props.hideBuyButton);
+
+              return (
+                <div className="flex flex-col h-full group/pcard">
+                  <div className="h-48 w-full overflow-hidden bg-slate-100 rounded-t-xl relative group/cardimg">
+                    <img
+                      src={node.props.image}
+                      alt={node.props.title}
+                      className={`w-full h-full object-cover transition-all duration-500 ${
+                        hoverImg ? 'group-hover/cardimg:opacity-0 group-hover/cardimg:scale-105' : 'hover:scale-105'
+                      }`}
+                    />
+                    {hoverImg && (
+                      <img
+                        src={hoverImg}
+                        alt={`${node.props.title} - صورة ثانوية`}
+                        className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover/cardimg:opacity-100 group-hover/cardimg:scale-105 transition-all duration-500 pointer-events-none"
+                      />
+                    )}
+                  </div>
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span
+                          style={{
+                            backgroundColor: `${website.theme.colors.primary}18`,
+                            color: website.theme.colors.primary,
+                          }}
+                          className="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
+                        >
+                          {node.props.badge || 'حصري'}
+                        </span>
+                        <span
+                          style={{ color: website.theme.colors.primary }}
+                          className="text-base font-extrabold font-mono"
+                        >
+                          {node.props.price}
+                        </span>
+                      </div>
+                      <h3 className="text-base font-bold text-slate-900 leading-snug">
+                        {node.props.title}
+                      </h3>
+                    </div>
+
+                    {node.props.specs && (
+                      <div className="space-y-1 py-2 border-t border-slate-100 text-xs text-slate-600">
+                        {node.props.specs.map((s: string, idx: number) => (
+                          <div key={idx} className="flex items-center gap-1.5">
+                            <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            <span>{s}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2 pt-2">
+                      {!hideBuyBtn && (
+                        <button
+                          onClick={(e) => {
+                            if (isInteractivePreview) {
+                              e.stopPropagation();
+                              const rawPrice = typeof node.props.price === 'string'
+                                ? parseInt(node.props.price.replace(/[^0-9]/g, '')) || 750000
+                                : (node.props.price || 750000);
+
+                              addToCart({
+                                id: `cart_${node.id}`,
+                                title: node.props.title || 'منتج',
+                                price: rawPrice,
+                                priceFormatted: node.props.price || `${rawPrice.toLocaleString()} ج.م`,
+                                image: node.props.image || 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80',
+                                badge: node.props.badge || 'فئة أولى',
+                              });
+                            }
+                          }}
+                          className="py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                        >
+                          {buyBtnIcon === 'ShoppingCart' ? (
+                            <ShoppingCart className="w-3.5 h-3.5" />
+                          ) : buyBtnIcon === 'Zap' ? (
+                            <Zap className="w-3.5 h-3.5" />
+                          ) : buyBtnIcon === 'Sparkles' ? (
+                            <Sparkles className="w-3.5 h-3.5" />
+                          ) : buyBtnIcon === 'Tag' ? (
+                            <Tag className="w-3.5 h-3.5" />
+                          ) : (
+                            <ShoppingBag className="w-3.5 h-3.5" />
+                          )}
+                          <span>{buyBtnText}</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={(e) => {
+                          if (isInteractivePreview) {
+                            e.stopPropagation();
+                            handleInteraction(e, '/contact', 'page_contact', 'تواصل معنا');
+                          }
                         }}
-                        className="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: website.theme.colors.secondary || '#0f172a',
+                          borderRadius: website.theme.radius.lg || '10px',
+                        }}
+                        className={`py-2.5 px-3 text-white font-bold text-xs shadow-xs transition-all hover:opacity-90 cursor-pointer active:scale-98 text-center ${hideBuyBtn ? 'col-span-2' : ''}`}
                       >
-                        {node.props.badge || 'حصري'}
-                      </span>
-                      <span
-                        style={{ color: website.theme.colors.primary }}
-                        className="text-base font-extrabold font-mono"
-                      >
-                        {node.props.price}
-                      </span>
+                        {node.props.ctaText || 'طلب فحص'}
+                      </button>
                     </div>
-                    <h3 className="text-base font-bold text-slate-900 leading-snug">
-                      {node.props.title}
-                    </h3>
-                  </div>
-
-                  {node.props.specs && (
-                    <div className="space-y-1 py-2 border-t border-slate-100 text-xs text-slate-600">
-                      {node.props.specs.map((s: string, idx: number) => (
-                        <div key={idx} className="flex items-center gap-1.5">
-                          <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                          <span>{s}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    <button
-                      onClick={(e) => {
-                        if (isInteractivePreview) {
-                          e.stopPropagation();
-                          const rawPrice = typeof node.props.price === 'string'
-                            ? parseInt(node.props.price.replace(/[^0-9]/g, '')) || 750000
-                            : (node.props.price || 750000);
-
-                          addToCart({
-                            id: `cart_${node.id}`,
-                            title: node.props.title || 'سيارة فاخرة',
-                            price: rawPrice,
-                            priceFormatted: node.props.price || `${rawPrice.toLocaleString()} ج.م`,
-                            image: node.props.image || 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80',
-                            badge: node.props.badge || 'فئة أولى',
-                          });
-                        }
-                      }}
-                      className="py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
-                    >
-                      <ShoppingBag className="w-3.5 h-3.5" />
-                      <span>إضافة للسلة</span>
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        if (isInteractivePreview) {
-                          e.stopPropagation();
-                          handleInteraction(e, '/contact', 'page_contact', 'تواصل معنا');
-                        }
-                      }}
-                      style={{
-                        backgroundColor: website.theme.colors.secondary || '#0f172a',
-                        borderRadius: website.theme.radius.lg || '10px',
-                      }}
-                      className="py-2.5 px-3 text-white font-bold text-xs shadow-xs transition-all hover:opacity-90 cursor-pointer active:scale-98 text-center"
-                    >
-                      {node.props.ctaText || 'طلب فحص'}
-                    </button>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* BENTO FEATURE CARD */}
             {node.props.icon && (
@@ -1156,21 +1462,35 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                       className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
                     >
                       {/* Image & Badge */}
-                      {prod.image && (
-                        <div className="relative aspect-16/10 overflow-hidden bg-slate-100">
-                          <img
-                            src={prod.image}
-                            alt={prod.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            referrerPolicy="no-referrer"
-                          />
-                          {prod.badge && (
-                            <span className="absolute top-3 right-3 bg-slate-900/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-xs">
-                              {prod.badge}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      {prod.image && (() => {
+                        const prodHoverImg = prod.hoverImage || (Array.isArray(prod.images) && prod.images[1]) || (prod.image.includes('1614162692292') ? 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=1000&auto=format&fit=crop&q=80' : undefined);
+
+                        return (
+                          <div className="relative aspect-16/10 overflow-hidden bg-slate-100 group/prodimg">
+                            <img
+                              src={prod.image}
+                              alt={prod.title}
+                              className={`w-full h-full object-cover transition-all duration-500 ${
+                                prodHoverImg ? 'group-hover/prodimg:opacity-0 group-hover/prodimg:scale-105' : 'group-hover:scale-105'
+                              }`}
+                              referrerPolicy="no-referrer"
+                            />
+                            {prodHoverImg && (
+                              <img
+                                src={prodHoverImg}
+                                alt={`${prod.title} - صورة بديلة`}
+                                className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover/prodimg:opacity-100 group-hover/prodimg:scale-105 transition-all duration-500 pointer-events-none"
+                                referrerPolicy="no-referrer"
+                              />
+                            )}
+                            {prod.badge && (
+                              <span className="absolute top-3 right-3 bg-slate-900/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-xs z-10">
+                                {prod.badge}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Content */}
                       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
@@ -1447,7 +1767,820 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       );
     }
 
+    // Hero Section (For Activity Templates and Custom Hero Blocks)
+    case 'hero': {
+      const heroStats = node.props.stats || [];
+      const primaryColor = website.theme?.colors?.primary || '#2563eb';
+
+      return (
+        <section
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all ${outlineClass}`}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+              {/* Text Column */}
+              <div className="lg:col-span-7 space-y-4 sm:space-y-6 text-right">
+                {node.props.badge && (
+                  <span
+                    style={{
+                      backgroundColor: `${primaryColor}15`,
+                      color: primaryColor,
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{node.props.badge}</span>
+                  </span>
+                )}
+
+                <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-900 leading-tight">
+                  {node.props.title}
+                  {node.props.highlightTitle && (
+                    <span style={{ color: primaryColor }} className="block sm:inline sm:mr-2">
+                      {node.props.highlightTitle}
+                    </span>
+                  )}
+                </h1>
+
+                {node.props.description && (
+                  <p className="text-xs sm:text-base text-slate-600 leading-relaxed max-w-2xl">
+                    {node.props.description}
+                  </p>
+                )}
+
+                {/* Hero Action Buttons */}
+                <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 pt-2">
+                  {node.props.primaryCtaText && (
+                    <button
+                      onClick={(e) => {
+                        if (isInteractivePreview) {
+                          e.stopPropagation();
+                          handleInteraction(e, node.props.primaryCtaLink || '#items', undefined, node.props.primaryCtaText);
+                        }
+                      }}
+                      style={{
+                        backgroundColor: primaryColor,
+                        borderRadius: website.theme?.radius?.lg || '12px',
+                      }}
+                      className="px-5 sm:px-7 py-3 text-white font-bold text-xs sm:text-sm shadow-md hover:opacity-95 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0"
+                    >
+                      <span>{node.props.primaryCtaText}</span>
+                      <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                    </button>
+                  )}
+
+                  {node.props.secondaryCtaText && (
+                    <button
+                      onClick={(e) => {
+                        if (isInteractivePreview) {
+                          e.stopPropagation();
+                          handleInteraction(e, node.props.secondaryCtaLink || '#contact', 'page_contact', node.props.secondaryCtaText);
+                        }
+                      }}
+                      className="px-4 sm:px-6 py-3 bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
+                    >
+                      <span>{node.props.secondaryCtaText}</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Stats Bar */}
+                {heroStats.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-6 border-t border-slate-200/80">
+                    {heroStats.map((stat: any, sIdx: number) => (
+                      <div key={sIdx} className="space-y-0.5">
+                        <div style={{ color: primaryColor }} className="text-base sm:text-2xl font-black font-mono">
+                          {stat.value}
+                        </div>
+                        <div className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                          {stat.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Image Column */}
+              {node.props.imageUrl && (
+                <div className="lg:col-span-5">
+                  <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-100 bg-slate-100 aspect-4/3 sm:aspect-16/10 lg:aspect-square">
+                    <img
+                      src={node.props.imageUrl}
+                      alt={node.props.title || 'صورة الواجهة'}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {renderChildren()}
+          </div>
+        </section>
+      );
+    }
+
+    // Grid Section (Products / Services / Catalog Grid)
+    case 'grid': {
+      const itemsList = node.props.items || [];
+      const primaryColor = website.theme?.colors?.primary || '#2563eb';
+
+      return (
+        <section
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all ${outlineClass}`}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
+            {(node.props.title || node.props.subtitle) && (
+              <div className="text-center mb-8 sm:mb-12 space-y-2 max-w-2xl mx-auto">
+                {node.props.badge && (
+                  <span
+                    style={{
+                      backgroundColor: `${primaryColor}15`,
+                      color: primaryColor,
+                    }}
+                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
+                  >
+                    {node.props.badge}
+                  </span>
+                )}
+                {node.props.title && (
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
+                    {node.props.title}
+                  </h2>
+                )}
+                {node.props.subtitle && (
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>
+                )}
+              </div>
+            )}
+
+            {itemsList.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {itemsList.map((item: any, idx: number) => {
+                  const rawPrice =
+                    typeof item.price === 'number'
+                      ? item.price
+                      : parseInt(String(item.price).replace(/[^0-9]/g, '')) || 350;
+                  const formattedPrice =
+                    typeof item.price === 'string'
+                      ? item.price
+                      : `${rawPrice.toLocaleString()} ج.م`;
+
+                  return (
+                    <div
+                      key={item.id || idx}
+                      className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group/card"
+                    >
+                      {item.image && (
+                        <div className="relative aspect-16/10 overflow-hidden bg-slate-100 group/img">
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className={`w-full h-full object-cover transition-all duration-500 ${
+                              item.hoverImage || item.secondaryImage || (item.images && item.images.length > 1)
+                                ? 'group-hover/img:scale-105 group-hover/img:opacity-0'
+                                : 'group-hover/img:scale-105'
+                            }`}
+                            loading="lazy"
+                          />
+                          {(item.hoverImage || item.secondaryImage || (item.images && item.images.length > 1)) && (
+                            <img
+                              src={item.hoverImage || item.secondaryImage || item.images?.[1]}
+                              alt={`${item.title} - صورة إضافية`}
+                              className="absolute inset-0 w-full h-full object-cover transition-all duration-500 opacity-0 scale-100 group-hover/img:opacity-100 group-hover/img:scale-105"
+                              loading="lazy"
+                            />
+                          )}
+                          {item.badge && (
+                            <span className="absolute top-2.5 right-2.5 bg-slate-900/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs z-10 shadow-xs">
+                              {item.badge}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
+                        <div className="space-y-1">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <h3 className="text-sm sm:text-base font-bold text-slate-900 line-clamp-1">
+                              {item.title}
+                            </h3>
+                            <span style={{ color: primaryColor }} className="text-sm sm:text-base font-extrabold font-mono shrink-0">
+                              {formattedPrice}
+                            </span>
+                          </div>
+                          {item.description && (
+                            <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                              {item.description}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                          <button
+                            onClick={(e) => {
+                              if (isInteractivePreview) {
+                                e.stopPropagation();
+                                addToCart({
+                                  id: `cart_${item.id || idx}`,
+                                  title: item.title,
+                                  price: rawPrice,
+                                  priceFormatted: formattedPrice,
+                                  image: item.image,
+                                  badge: item.badge,
+                                });
+                              }
+                            }}
+                            style={{
+                              backgroundColor: primaryColor,
+                              borderRadius: website.theme?.radius?.md || '8px',
+                            }}
+                            className="py-2 px-2.5 text-white font-bold text-xs shadow-xs hover:opacity-90 active:scale-98 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            {node.props.btnIcon === 'ShoppingCart' ? (
+                              <ShoppingCart className="w-3.5 h-3.5" />
+                            ) : node.props.btnIcon === 'Zap' ? (
+                              <Zap className="w-3.5 h-3.5" />
+                            ) : (
+                              <ShoppingBag className="w-3.5 h-3.5" />
+                            )}
+                            <span>{node.props.btnText || 'طلب الآن'}</span>
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              if (isInteractivePreview) {
+                                e.stopPropagation();
+                                handleInteraction(e, '#contact', 'page_contact', 'استفسار وحجز');
+                              }
+                            }}
+                            className="py-2 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all cursor-pointer text-center active:scale-98"
+                          >
+                            تفاصيل
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {renderChildren()}
+          </div>
+        </section>
+      );
+    }
+
+    // Form Section (Inquiry, Booking, and Lead Capture)
+    case 'form': {
+      const fieldsList = node.props.fields || [
+        { name: 'name', label: 'الاسم الكريم', type: 'text', placeholder: 'الاسم بالكامل' },
+        { name: 'phone', label: 'رقم الهاتف / واتساب', type: 'tel', placeholder: '05xxxxxxxx' },
+        { name: 'notes', label: 'ملاحظات أو تفاصيل الطلب', type: 'text', placeholder: 'اكتب رسالتك...' },
+      ];
+      const primaryColor = website.theme?.colors?.primary || '#2563eb';
+
+      const handleFormSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (isInteractivePreview) {
+          setFormSubmitted(true);
+        }
+      };
+
+      return (
+        <section
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all ${outlineClass}`}
+        >
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-lg space-y-6">
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
+                  {node.props.title || 'تواصل معنا واحجز موعدك'}
+                </h2>
+                {node.props.subtitle && (
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-xl mx-auto">
+                    {node.props.subtitle}
+                  </p>
+                )}
+              </div>
+
+              {isInteractivePreview && formSubmitted ? (
+                <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-3 animate-in zoom-in-95 duration-200">
+                  <div className="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-md">
+                    <Check className="w-6 h-6 stroke-[3]" />
+                  </div>
+                  <h3 className="text-lg font-bold text-emerald-900">تم إرسال طلبك بنجاح!</h3>
+                  <p className="text-xs sm:text-sm text-emerald-700 leading-relaxed">
+                    شكراً لتواصلك معنا. سيقوم فريق خدمة العملاء بالرد عليك وتأكيد حجزك في أقرب وقت.
+                  </p>
+                  <button
+                    onClick={() => setFormSubmitted(false)}
+                    className="text-xs font-bold text-emerald-800 underline hover:text-emerald-950 cursor-pointer pt-2"
+                  >
+                    إرسال طلب آخر
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleFormSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {fieldsList.map((f: any, fIdx: number) => (
+                      <div key={f.name || fIdx} className={fIdx === fieldsList.length - 1 && fieldsList.length % 2 !== 0 ? 'sm:col-span-2' : ''}>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5 text-right">
+                          {f.label} {f.required && <span className="text-red-500">*</span>}
+                        </label>
+                        <input
+                          type={f.type || 'text'}
+                          placeholder={f.placeholder || ''}
+                          required={f.required}
+                          value={inputValues[f.name] || ''}
+                          onChange={(e) => setInputValues({ ...inputValues, [f.name]: e.target.value })}
+                          className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:outline-none transition-colors text-right"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    type="submit"
+                    style={{
+                      backgroundColor: primaryColor,
+                      borderRadius: website.theme?.radius?.lg || '12px',
+                    }}
+                    className="w-full py-3 sm:py-3.5 text-white font-bold text-xs sm:text-sm shadow-md hover:opacity-95 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>{node.props.buttonText || 'تأكيد إرسال الطلب'}</span>
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {renderChildren()}
+          </div>
+        </section>
+      );
+    }
+
+    // Footer Section
+    case 'footer': {
+      const brandName = node.props.brandName || website.name || 'المتجر الإلكتروني';
+      const description = node.props.description || 'منصة متكاملة للتجارة والخدمات بأعلى معايير الجودة.';
+
+      return (
+        <footer
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all ${outlineClass}`}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 text-right">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 pb-8 border-b border-slate-800">
+              {/* Brand Col */}
+              <div className="space-y-2.5">
+                <h3 className="text-base sm:text-lg font-black text-white">{brandName}</h3>
+                <p className="text-xs text-slate-400 leading-relaxed max-w-sm">{description}</p>
+              </div>
+
+              {/* Contact Info Col */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">معلومات التواصل</h4>
+                <div className="space-y-1.5 text-xs text-slate-400">
+                  {node.props.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span dir="ltr">{node.props.phone}</span>
+                    </div>
+                  )}
+                  {node.props.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                      <span>{node.props.email}</span>
+                    </div>
+                  )}
+                  {node.props.address && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                      <span>{node.props.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Trust Col */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">ضمان واعتماد</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  جميع المعاملات والخدمات مشمولة بضمان معتمد وفريق دعم فني متواجد على مدار الساعة.
+                </p>
+              </div>
+            </div>
+
+            {/* Copyright & Powered by Badge */}
+            <div className="pt-6 pb-2 text-center flex flex-col sm:flex-row items-center justify-center gap-2 text-xs text-slate-400 select-none border-t border-slate-800/60 mt-6">
+              <span>{node.props.copyright || `جميع الحقوق محفوظة © ${new Date().getFullYear()} ${brandName}`}</span>
+              <span className="hidden sm:inline opacity-30">•</span>
+              <a
+                href="https://mnmknk.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white transition-all text-[11px] font-medium shadow-xs"
+              >
+                <span>صنع بكل فخر عبر</span>
+                <strong className="text-blue-400 font-extrabold flex items-center gap-1">
+                  <span>نمّي أعمالك</span>
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                </strong>
+              </a>
+            </div>
+
+            {renderChildren()}
+          </div>
+        </footer>
+      );
+    }
+
+    // ── Testimonials ──────────────────────────────────────────────────────────
+    case 'testimonials': {
+      const items: any[] = node.props.items || [
+        { name: 'أحمد محمد', role: 'عميل مميز', text: 'خدمة ممتازة وتوصيل سريع، أنصح الجميع بالتعامل معهم!', rating: 5 },
+        { name: 'فاطمة علي', role: 'عميلة دائمة', text: 'منتجات أصلية وجودة عالية، سعيدة جداً بتجربتي.', rating: 5 },
+        { name: 'محمود حسن', role: 'عميل جديد', text: 'سهولة الطلب والدفع عند الاستلام خلاني ما أتردد.', rating: 4 },
+      ];
+      return (
+        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
+          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}>
+          <div className="max-w-6xl mx-auto text-right">
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">{node.props.title || 'آراء عملائنا'}</h2>
+            <p className="text-sm text-slate-500 mb-8">{node.props.subtitle || 'ماذا قالوا عنّا'}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {items.map((t: any, i: number) => (
+                <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                  <div className="flex gap-0.5 mb-3">
+                    {Array.from({ length: t.rating || 5 }).map((_,s) => (
+                      <Star key={s} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                  <p className="text-sm text-slate-600 leading-relaxed mb-4">"{t.text}"</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+                      {(t.name || '؟')[0]}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-800">{t.name}</p>
+                      <p className="text-[10px] text-slate-400">{t.role}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {renderChildren()}
+        </section>
+      );
+    }
+
+    // ── Gallery ────────────────────────────────────────────────────────────────
+    case 'gallery': {
+      const images: any[] = node.props.images || [
+        { src: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=400', caption: '' },
+        { src: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400', caption: '' },
+        { src: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400', caption: '' },
+        { src: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400', caption: '' },
+      ];
+      return (
+        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
+          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-10 px-4 ${outlineClass}`}>
+          <div className="max-w-6xl mx-auto text-right">
+            {node.props.title && <h2 className="text-2xl font-extrabold text-slate-900 mb-6">{node.props.title}</h2>}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {images.map((img: any, i: number) => (
+                <div key={i} className="aspect-square rounded-xl overflow-hidden bg-slate-100">
+                  <img src={img.src || img} alt={img.caption || `صورة ${i+1}`}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                </div>
+              ))}
+            </div>
+          </div>
+          {renderChildren()}
+        </section>
+      );
+    }
+
+    // ── Team ───────────────────────────────────────────────────────────────────
+    case 'team': {
+      const members: any[] = node.props.members || [
+        { name: 'محمد أحمد', role: 'المدير التنفيذي', image: '' },
+        { name: 'سارة علي', role: 'مدير المبيعات', image: '' },
+        { name: 'خالد حسن', role: 'مدير العمليات', image: '' },
+      ];
+      return (
+        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
+          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}>
+          <div className="max-w-5xl mx-auto text-right">
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">{node.props.title || 'فريقنا'}</h2>
+            <p className="text-sm text-slate-500 mb-8">{node.props.subtitle || 'نخبة من الخبراء في خدمتك'}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {members.map((m: any, i: number) => (
+                <div key={i} className="text-center bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                  {m.image
+                    ? <img src={m.image} alt={m.name} className="w-20 h-20 rounded-full mx-auto mb-3 object-cover" />
+                    : <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 mx-auto mb-3 flex items-center justify-center text-white text-2xl font-black">{(m.name||'?')[0]}</div>
+                  }
+                  <p className="font-bold text-slate-800">{m.name}</p>
+                  <p className="text-xs text-slate-500 mt-1">{m.role}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          {renderChildren()}
+        </section>
+      );
+    }
+
+    // ── Stats ──────────────────────────────────────────────────────────────────
+    case 'stats': {
+      const items: any[] = node.props.items || [
+        { value: '+١٠٠٠', label: 'عميل راضٍ' },
+        { value: '+٥٠٠', label: 'طلب منجز' },
+        { value: '٩٨٪', label: 'نسبة رضا' },
+        { value: '+٢٠', label: 'سنة خبرة' },
+      ];
+      return (
+        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
+          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-10 px-4 bg-slate-50 ${outlineClass}`}>
+          <div className="max-w-5xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+              {items.map((s: any, i: number) => (
+                <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                  <div className="text-3xl font-black text-blue-600 mb-1">{s.value}</div>
+                  <div className="text-sm text-slate-500">{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {renderChildren()}
+        </section>
+      );
+    }
+
+    // ── FAQ ────────────────────────────────────────────────────────────────────
+    case 'faq': {
+      const items: any[] = node.props.items || [
+        { q: 'كيف أطلب؟', a: 'اختر منتجاتك وأضفها للسلة ثم أتم الطلب، سنتواصل معك لتأكيد التوصيل.' },
+        { q: 'هل الدفع آمن؟', a: 'نعم، ندعم الدفع عند الاستلام بدون أي رسوم إضافية.' },
+        { q: 'ما مدة التوصيل؟', a: 'من 2-5 أيام عمل حسب موقعك.' },
+      ];
+      return (
+        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
+          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}>
+          <div className="max-w-3xl mx-auto text-right">
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">{node.props.title || 'الأسئلة الشائعة'}</h2>
+            <p className="text-sm text-slate-500 mb-8">{node.props.subtitle || 'إجابات على أكثر الأسئلة شيوعاً'}</p>
+            <div className="space-y-3">
+              {items.map((f: any, i: number) => (
+                <div key={i} className="border border-slate-200 rounded-xl bg-white overflow-hidden">
+                  <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50"
+                    onClick={(e) => { e.stopPropagation(); }}>
+                    <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span className="font-semibold text-slate-800 text-sm flex-1 text-right pr-2">{f.q}</span>
+                  </div>
+                  <div className="px-4 pb-4 text-sm text-slate-600 leading-relaxed">{f.a}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {renderChildren()}
+        </section>
+      );
+    }
+
+    // ── Contact Section ────────────────────────────────────────────────────────
+    case 'contact-section':
+    case 'contact': {
+      return (
+        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
+          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-12 px-4 bg-slate-50 ${outlineClass}`}>
+          <div className="max-w-5xl mx-auto text-right">
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">{node.props.title || 'تواصل معنا'}</h2>
+            <p className="text-sm text-slate-500 mb-8">{node.props.subtitle || 'نحن هنا للمساعدة'}</p>
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                {(node.props.phone || node.props.whatsapp) && (
+                  <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
+                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center"><Phone className="w-5 h-5 text-green-600" /></div>
+                    <div><p className="text-xs text-slate-400">هاتف / واتساب</p><p className="font-bold text-slate-800" dir="ltr">{node.props.phone || node.props.whatsapp}</p></div>
+                  </div>
+                )}
+                {node.props.email && (
+                  <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center"><Mail className="w-5 h-5 text-blue-600" /></div>
+                    <div><p className="text-xs text-slate-400">البريد الإلكتروني</p><p className="font-bold text-slate-800">{node.props.email}</p></div>
+                  </div>
+                )}
+                {node.props.address && (
+                  <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
+                    <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center"><MapPin className="w-5 h-5 text-rose-600" /></div>
+                    <div><p className="text-xs text-slate-400">العنوان</p><p className="font-bold text-slate-800">{node.props.address}</p></div>
+                  </div>
+                )}
+              </div>
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-3">
+                <input type="text" placeholder="الاسم" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-right" readOnly />
+                <input type="tel" placeholder="رقم الهاتف" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-right" dir="ltr" readOnly />
+                <textarea placeholder="رسالتك..." rows={3} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-right resize-none" readOnly />
+                <button className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-bold">إرسال</button>
+              </div>
+            </div>
+          </div>
+          {renderChildren()}
+        </section>
+      );
+    }
+
+    // ── Services Grid ──────────────────────────────────────────────────────────
+    case 'services-grid':
+    case 'services': {
+      const items: any[] = node.props.items || [
+        { title: 'خدمة ١', description: 'وصف مختصر للخدمة الأولى وما تقدمه من قيمة.', icon: '✨' },
+        { title: 'خدمة ٢', description: 'وصف مختصر للخدمة الثانية وما تقدمه من قيمة.', icon: '🚀' },
+        { title: 'خدمة ٣', description: 'وصف مختصر للخدمة الثالثة وما تقدمه من قيمة.', icon: '💎' },
+      ];
+      return (
+        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
+          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}>
+          <div className="max-w-5xl mx-auto text-right">
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">{node.props.title || 'خدماتنا'}</h2>
+            <p className="text-sm text-slate-500 mb-8">{node.props.subtitle || 'نقدم لك أفضل الخدمات'}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {items.map((s: any, i: number) => (
+                <div key={i} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="text-3xl mb-3">{s.icon || '⚡'}</div>
+                  <h3 className="font-bold text-slate-800 mb-2">{s.title}</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">{s.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          {renderChildren()}
+        </section>
+      );
+    }
+
+    // ── Spacer ─────────────────────────────────────────────────────────────────
+    case 'spacer': {
+      const h = node.props.height || 60;
+      return (
+        <div id={node.id} style={{ height: h, ...getComputedStyles() }} onClick={handleClick}
+          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all w-full relative ${outlineClass}`}>
+          {!isInteractivePreview && (
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded">مسافة {h}px</span>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── Divider ────────────────────────────────────────────────────────────────
+    case 'divider': {
+      const style = node.props.style || 'solid';
+      const color = node.props.color || '#e2e8f0';
+      return (
+        <div id={node.id} style={getComputedStyles()} onClick={handleClick}
+          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all px-4 py-3 ${outlineClass}`}>
+          <hr style={{ borderStyle: style, borderColor: color, borderTopWidth: node.props.thickness || 1 }} className="w-full" />
+        </div>
+      );
+    }
+
+    // ── Trust Badges ───────────────────────────────────────────────────────────
+    case 'trust-badges':
+    case 'trust_badges': {
+      const badges = node.props.badges || [
+        { icon: '🚚', label: 'توصيل سريع' },
+        { icon: '💰', label: 'دفع عند الاستلام' },
+        { icon: '🔄', label: 'إرجاع مجاني' },
+        { icon: '🔒', label: 'تسوق آمن' },
+        { icon: '⭐', label: 'جودة مضمونة' },
+      ];
+      return (
+        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
+          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-6 px-4 bg-slate-50 border-y border-slate-100 ${outlineClass}`}>
+          <div className="max-w-5xl mx-auto">
+            <div className="flex flex-wrap justify-center gap-4 md:gap-8">
+              {badges.map((b: any, i: number) => (
+                <div key={i} className="flex items-center gap-2 text-slate-700">
+                  <span className="text-xl">{b.icon}</span>
+                  <span className="text-sm font-semibold">{b.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {renderChildren()}
+        </section>
+      );
+    }
+
+    // ── Before / After ─────────────────────────────────────────────────────────
+    case 'before-after':
+    case 'before_after': {
+      return (
+        <section id={node.id} style={getComputedStyles()} onClick={handleClick}
+          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-12 px-4 ${outlineClass}`}>
+          <div className="max-w-4xl mx-auto text-right">
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-2">{node.props.title || 'قبل وبعد'}</h2>
+            <p className="text-sm text-slate-500 mb-8">{node.props.subtitle || 'شاهد الفرق بنفسك'}</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="relative overflow-hidden rounded-2xl border-2 border-red-200 bg-red-50">
+                {node.props.beforeImage
+                  ? <img src={node.props.beforeImage} alt="قبل" className="w-full h-48 object-cover" />
+                  : <div className="h-48 bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center text-red-400 text-4xl">📷</div>
+                }
+                <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">قبل</div>
+              </div>
+              <div className="relative overflow-hidden rounded-2xl border-2 border-green-200 bg-green-50">
+                {node.props.afterImage
+                  ? <img src={node.props.afterImage} alt="بعد" className="w-full h-48 object-cover" />
+                  : <div className="h-48 bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center text-green-400 text-4xl">✨</div>
+                }
+                <div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">بعد</div>
+              </div>
+            </div>
+          </div>
+          {renderChildren()}
+        </section>
+      );
+    }
+
+    // ── Promo Banner / Announcement Bar ───────────────────────────────────────
+    case 'promo-banner':
+    case 'promo_banner':
+    case 'announcement-bar':
+    case 'announcement_bar': {
+      const bgColor = node.props.bgColor || '#1d4ed8';
+      const textColor = node.props.textColor || '#ffffff';
+      return (
+        <div id={node.id} style={{ backgroundColor: bgColor, color: textColor, ...getComputedStyles() }}
+          onClick={handleClick} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all py-2.5 px-4 text-center ${outlineClass}`}>
+          <p className="text-sm font-semibold">{node.props.text || '🎉 عرض خاص — خصم ١٠٪ على أول طلب! استخدم الكود: WELCOME10'}</p>
+          {renderChildren()}
+        </div>
+      );
+    }
+
+    // ── WhatsApp Float ─────────────────────────────────────────────────────────
+    case 'whatsapp-float':
+    case 'whatsapp_button': {
+      return (
+        <div id={node.id} style={getComputedStyles()} onClick={handleClick}
+          onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all ${outlineClass}`}>
+          {/* Canvas preview — fixed position only on published site */}
+          <div className="flex items-center gap-2 bg-[#25D366] text-white rounded-full px-4 py-2 shadow-lg w-fit">
+            <MessageCircle className="w-5 h-5" />
+            <span className="text-sm font-bold">{node.props.label || 'تواصل عبر واتساب'}</span>
+          </div>
+          <p className="text-[10px] text-slate-400 mt-1 text-right">(سيظهر عائماً في الزاوية على الموقع المنشور)</p>
+          {renderChildren()}
+        </div>
+      );
+    }
+
     // Default container / sections / flex / grid
+
     default: {
       return (
         <div

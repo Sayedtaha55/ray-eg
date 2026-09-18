@@ -1,6 +1,7 @@
 ﻿import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import BreachNotice from '@ray-eg/shared/components/common/BreachNotice';
+import { PageViewTracker } from '@/components/PageViewTracker';
 
 export const metadata: Metadata = {
   title: {
@@ -42,6 +43,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/fonts/fonts.css" />
       </head>
       <body className="bg-white text-slate-900">
+        <PageViewTracker />
         <BreachNotice />
         {children}
       </body>

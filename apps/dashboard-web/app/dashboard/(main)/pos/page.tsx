@@ -56,6 +56,7 @@ import {
   Eye,
   EyeOff,
   WifiOff,
+  ChevronLeft,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest, useAuth } from '@/lib/auth';
@@ -240,6 +241,13 @@ const POSSystemPage: React.FC = () => {
   // Active shift / cashier name (shift owner printed on the invoice)
   const [activeShift, setActiveShift] = useState<any>(null);
 
+  // 30s tick so the in-POS shift card keeps its elapsed time live
+  const [shiftTick, setShiftTick] = useState(0);
+  useEffect(() => {
+    const i = setInterval(() => setShiftTick((t) => t + 1), 30000);
+    return () => clearInterval(i);
+  }, []);
+
   // Current POS cashier identity (set when a shift is opened from the shifts page)
   const [posCashier, setPosCashier] = useState<{ id: string; name: string } | null>(null);
   useEffect(() => {
@@ -411,10 +419,11 @@ const POSSystemPage: React.FC = () => {
     typeof window !== 'undefined' ? localStorage.getItem('pos_cashier_id') || 'cashier' : 'cashier';
   const { user } = useAuth();
 
-  // Shift owner name shown on the invoice: prefer the active shift's owner,
-  // then the logged-in user, then the stored cashier id.
+  // Shift owner name shown on the invoice: prefer the current session cashier
+  // (from the gate login), then the active shift's owner, then the logged-in user.
   const shiftOwnerName: string = useMemo(() => {
     const candidates = [
+      posCashier?.name,
       activeShift?.userName,
       activeShift?.user?.name,
       activeShift?.cashierName,
@@ -425,7 +434,32 @@ const POSSystemPage: React.FC = () => {
     ];
     const found = candidates.map((c) => String(c || '').trim()).find((c) => c && c !== 'cashier');
     return found || cashierId;
-  }, [activeShift, user, cashierId]);
+  }, [posCashier, activeShift, user, cashierId]);
+
+  // ─── Live shift strip (rendered under the header quick actions) ─────────
+  const shiftStrip = useMemo(() => {
+    if (!activeShift) return null;
+    const status = String(activeShift?.status || '').toUpperCase();
+    if (!activeShift?.id && status !== 'OPEN') return null;
+    // recompute on the 30s tick so elapsed time stays live
+    void shiftTick;
+    const openedMs = activeShift?.openedAt || activeShift?.opened_at;
+    const elapsedMins = openedMs
+      ? Math.max(0, Math.floor((Date.now() - new Date(openedMs).getTime()) / 60000))
+      : 0;
+    const totalSales = Number(activeShift?.totalSales ?? activeShift?.total_sales ?? 0) || 0;
+    const ordersCount = Number(activeShift?.ordersCount ?? activeShift?.orders_count ?? 0) || 0;
+    const openingAmount =
+      Number(activeShift?.openingAmount ?? activeShift?.opening_amount ?? 0) || 0;
+    const money = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : '0.00');
+    return {
+      hours: Math.floor(elapsedMins / 60),
+      minutes: elapsedMins % 60,
+      totalSales: money(totalSales),
+      ordersCount,
+      expectedDrawer: money(openingAmount + totalSales),
+    };
+  }, [activeShift, shiftTick]);
 
   // Load the active shift once (for the invoice + reports + gate).
   useEffect(() => {
@@ -446,19 +480,35 @@ const POSSystemPage: React.FC = () => {
 
   // Gate submit: verify PIN against settings, open the shift (in 'open' mode)
   // and store the cashier identity (with permissions) in localStorage.
+  const ADMIN_GATE_ID = '__admin__';
   const submitGate = async () => {
     if (!shopId || gateSubmitting) return;
     setGateError('');
-    const selected: PosCashier | undefined = gateCashiers.find((c) => c.id === gateCashierId);
-    if (gateMode === 'resume' && !selected) {
-      setGateError('اختار الكاشير الأول');
-      return;
+    const isAdminLogin = gateCashierId === ADMIN_GATE_ID;
+    const selected: PosCashier | undefined = isAdminLogin
+      ? undefined
+      : gateCashiers.find((c) => c.id === gateCashierId);
+    const adminPin = loadPosSettings(shop).adminPin;
+    if (!isAdminLogin) {
+      if (gateMode === 'resume' && !selected) {
+        setGateError('اختار الكاشير الأول');
+        return;
+      }
+      if (gateMode === 'open' && gateCashiers.length > 0 && !selected) {
+        setGateError('اختار الكاشير الأول');
+        return;
+      }
     }
-    if (gateMode === 'open' && gateCashiers.length > 0 && !selected) {
-      setGateError('اختار الكاشير الأول');
-      return;
-    }
-    if (selected && gatePin !== selected.pin) {
+    if (isAdminLogin) {
+      if (!adminPin) {
+        setGateError('مفيش رمز إدارة — اعمله من إعدادات الكاشير الأول');
+        return;
+      }
+      if (gatePin !== adminPin) {
+        setGateError('الرقم السري غير صحيح');
+        return;
+      }
+    } else if (selected && gatePin !== selected.pin) {
       setGateError('الرقم السري غير صحيح');
       return;
     }
@@ -472,7 +522,14 @@ const POSSystemPage: React.FC = () => {
         const shift = resp?.data ?? resp ?? null;
         setActiveShift(shift && (shift.id || shift.status) ? shift : { ...shift, status: 'OPEN' });
       }
-      if (selected) {
+      if (isAdminLogin) {
+        // صاحب المحل: كل الصلاحيات
+        writeCurrentCashier({
+          id: 'admin',
+          name: 'الإدارة',
+          permissions: ['open_shift', 'close_shift', 'returns', 'discount', 'reports'],
+        });
+      } else if (selected) {
         // belt & suspenders: permissions stored alongside id/name
         writeCurrentCashier({
           id: selected.id,
@@ -579,13 +636,21 @@ const POSSystemPage: React.FC = () => {
       let flushed = 0;
       while (queue.length > 0) {
         const next = queue[0];
-        await apiRequest(`/shops/${shopId}/orders`, {
+        const resp = await apiRequest(`/shops/${shopId}/orders`, {
           method: 'POST',
           body: JSON.stringify(next.payload),
         });
         queue.shift();
         writePendingOrders(shopId, queue);
         flushed += 1;
+        // auto-confirm queued orders too (fire-and-forget, never blocks the flush)
+        const newOrderId = resp?.data?.id ?? resp?.id;
+        if (newOrderId && loadPosSettings(shop).autoConfirmOrders === true) {
+          apiRequest(`/shops/${shopId}/orders/${newOrderId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: 'CONFIRMED' }),
+          }).catch(() => {});
+        }
       }
       if (flushed > 0) {
         setPendingCount(readPendingOrders(shopId).length);
@@ -598,7 +663,7 @@ const POSSystemPage: React.FC = () => {
     } finally {
       flushingRef.current = false;
     }
-  }, [shopId]);
+  }, [shopId, shop]);
 
   useEffect(() => {
     flushPendingOrdersRef.current = () => {
@@ -1144,7 +1209,7 @@ const POSSystemPage: React.FC = () => {
     activeShift,
   ]);
 
-  const processPayment = async () => {
+  const processPayment = async (opts?: { print?: boolean }) => {
     if (cart.length === 0) return;
     setIsProcessing(true);
     let orderPayload: Record<string, unknown> | null = null;
@@ -1154,15 +1219,21 @@ const POSSystemPage: React.FC = () => {
 
       if (trimmedPhone) {
         try {
-          await apiRequest(`/shops/${shopId}/customers`, {
+          // العميل الموحد: الباك اند بيدور بالهاتف — لو موجود يرجّع سجله (created:false)
+          const custRes = await apiRequest(`/shops/${shopId}/customers`, {
             method: 'POST',
             body: JSON.stringify({
               name: trimmedName,
               phone: trimmedPhone,
               email: receiptEmail || '',
-              firstPurchaseAmount: total,
+              source: 'pos',
             }),
           });
+          if (custRes && custRes.created === false) {
+            try {
+              window.dispatchEvent(new CustomEvent('pos-toast', { detail: { message: `العميل موجود مسبقًا — تم استخدام سجل ${custRes.data?.name || ''} في النظام كله` } }));
+            } catch {}
+          }
         } catch {}
       }
 
@@ -1236,16 +1307,27 @@ const POSSystemPage: React.FC = () => {
         total,
         paymentMethod: paymentMethodValue,
         source: 'pos',
+        posShiftId: activeShift?.id || activeShift?.shiftId || undefined,
         customerName: trimmedName,
         customerPhone: trimmedPhone,
         notes: notesParts.length > 0 ? notesParts.join('|') : undefined,
         ...(selectedTableId ? { tableId: selectedTableId } : {}),
       };
 
-      await apiRequest(`/shops/${shopId}/orders`, {
+      const createdOrder = await apiRequest(`/shops/${shopId}/orders`, {
         method: 'POST',
         body: JSON.stringify(orderPayload),
       });
+
+      // Auto-confirm POS orders when enabled in cashier settings
+      // (fire-and-forget — never blocks or fails the sale).
+      const newOrderId = createdOrder?.data?.id ?? createdOrder?.id;
+      if (newOrderId && loadPosSettings(shop).autoConfirmOrders === true) {
+        apiRequest(`/shops/${shopId}/orders/${newOrderId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'CONFIRMED' }),
+        }).catch(() => {});
+      }
 
       // Audit + broadcast
       logAudit(shopId, {
@@ -1276,6 +1358,11 @@ const POSSystemPage: React.FC = () => {
       try {
         playCashRegisterSound();
       } catch {}
+      if (opts?.print) {
+        try {
+          handlePrintReceipt();
+        } catch {}
+      }
       setCart([]);
       setGiftCardApplied(null);
       setGiftCardCode('');
@@ -2763,19 +2850,11 @@ const POSSystemPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 md:gap-3">
+        <div className="space-y-2 md:space-y-3">
           <button
             type="button"
             disabled={!canCheckout}
-            onClick={handlePrintReceipt}
-            className="w-full py-4 md:py-6 bg-white border border-slate-200 text-slate-900 rounded-2xl md:rounded-3xl font-black text-sm md:text-lg shadow-sm hover:bg-slate-50 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            <Printer size={18} className="md:w-5 md:h-5" /> {isArabic ? 'طباعة' : 'Print'}
-          </button>
-          <button
-            type="button"
-            disabled={!canCheckout}
-            onClick={processPayment}
+            onClick={() => processPayment({ print: true })}
             className="w-full py-4 md:py-6 bg-gradient-to-l from-[#BD00FF] to-[#8A00C2] text-white rounded-2xl md:rounded-3xl font-black text-base md:text-xl shadow-lg shadow-[#BD00FF]/25 hover:from-[#8A00C2] hover:to-[#BD00FF] transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
           >
             {isProcessing
@@ -2783,9 +2862,27 @@ const POSSystemPage: React.FC = () => {
                 ? 'جاري...'
                 : 'Processing...'
               : isArabic
-                ? 'دفع الآن'
-                : 'Checkout'}
+                ? 'دفع وطباعة'
+                : 'Pay & Print'}
           </button>
+          <div className="grid grid-cols-2 gap-2 md:gap-3">
+            <button
+              type="button"
+              disabled={!canCheckout}
+              onClick={() => processPayment()}
+              className="w-full py-3 md:py-4 bg-slate-900 text-white rounded-2xl md:rounded-3xl font-black text-sm md:text-base shadow-sm hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isArabic ? 'دفع فقط' : 'Pay Only'}
+            </button>
+            <button
+              type="button"
+              disabled={!canCheckout}
+              onClick={handlePrintReceipt}
+              className="w-full py-3 md:py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl md:rounded-3xl font-black text-sm md:text-base shadow-sm hover:bg-slate-50 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <Printer size={16} className="md:w-5 md:h-5" /> {isArabic ? 'طباعة فقط' : 'Print Only'}
+            </button>
+          </div>
         </div>
       </div>
     </>
@@ -2985,6 +3082,15 @@ const POSSystemPage: React.FC = () => {
               <Link
                 href="/dashboard/sales"
                 className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
+                title={isArabic ? 'الفواتير' : 'Invoices'}
+              >
+                <Receipt size={16} className="md:hidden" />
+                <Receipt size={18} className="hidden md:block" />
+                <span className="hidden md:inline">{isArabic ? 'الفواتير' : 'Invoices'}</span>
+              </Link>
+              <Link
+                href="/dashboard/sales"
+                className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
                 title={isArabic ? 'مرتجع من الطلبات' : 'Return from Orders'}
               >
                 <RotateCcw size={16} className="md:hidden" />
@@ -3012,6 +3118,47 @@ const POSSystemPage: React.FC = () => {
                 <span className="hidden md:inline">{isArabic ? 'تقرير' : 'Report'}</span>
               </Link>
             </div>
+          )}
+
+          {/* Live shift strip — hidden while the gate is up or no active shift */}
+          {!isGated && shiftStrip && (
+            <Link
+              href="/dashboard/pos/shifts"
+              className="w-full flex items-center justify-between gap-2 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2 text-[11px] font-black text-emerald-700 hover:bg-emerald-100/60 transition-all"
+              title={isArabic ? 'فتح صفحة الورديات' : 'Open shifts'}
+            >
+              <span className="flex items-center gap-1.5 flex-wrap min-w-0">
+                <span>{isArabic ? 'الوردية مفتوحة' : 'Shift open'}</span>
+                <span className="text-emerald-300">•</span>
+                <span>
+                  {isArabic
+                    ? `الكاشير: ${shiftOwnerName}`
+                    : `Cashier: ${shiftOwnerName}`}
+                </span>
+                <span className="text-emerald-300">•</span>
+                <span dir="ltr">
+                  ⏱{' '}
+                  {isArabic
+                    ? `${shiftStrip.hours}س ${shiftStrip.minutes}د`
+                    : `${shiftStrip.hours}h ${shiftStrip.minutes}m`}
+                </span>
+                <span className="text-emerald-300">•</span>
+                <span>
+                  {isArabic
+                    ? `مبيعات: ج.م ${shiftStrip.totalSales}`
+                    : `Sales: EGP ${shiftStrip.totalSales}`}
+                </span>
+                <span className="text-emerald-300">•</span>
+                <span>{isArabic ? `${shiftStrip.ordersCount} طلب` : `${shiftStrip.ordersCount} orders`}</span>
+                <span className="text-emerald-300">•</span>
+                <span>
+                  {isArabic
+                    ? `المتوقع في الدرج: ج.م ${shiftStrip.expectedDrawer}`
+                    : `Expected in drawer: EGP ${shiftStrip.expectedDrawer}`}
+                </span>
+              </span>
+              <ChevronLeft size={14} className="shrink-0" />
+            </Link>
           )}
         </header>
 
@@ -3118,7 +3265,7 @@ const POSSystemPage: React.FC = () => {
                           </h3>
                           <div className="flex items-center justify-between flex-row-reverse">
                             <span className="text-[#00E5FF] font-black text-[9px] md:text-sm">
-                              ج.م {getProductEffectivePrice(p).toFixed(0)}
+                              ج.م {getProductEffectivePrice(p).toFixed(2)}
                             </span>
                             {stock !== Infinity && (
                               <span
@@ -5306,7 +5453,7 @@ const POSSystemPage: React.FC = () => {
                 </div>
               )}
 
-              {gateCashiers.length > 0 && (
+              {(gateCashiers.length > 0 || Boolean(loadPosSettings(shop).adminPin)) && (
                 <>
                   <div className="space-y-2">
                     <label className="text-xs font-black text-slate-500">اسم الكاشير</label>
@@ -5316,6 +5463,7 @@ const POSSystemPage: React.FC = () => {
                       className="w-full bg-slate-50 border rounded-xl py-3 px-4 outline-none text-sm font-black text-right focus:ring-2 focus:ring-[#BD00FF]"
                     >
                       <option value="">اختار الكاشير...</option>
+                      <option value="__admin__">الإدارة (صاحب المحل)</option>
                       {gateCashiers.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}

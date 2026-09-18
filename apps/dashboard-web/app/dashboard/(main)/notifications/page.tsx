@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   Bell, CheckCheck, BellOff, ShoppingBag, Store,
   Volume2, VolumeX, RefreshCw, AlertTriangle, Info,
-  Trash2, Search, X, Gift,
+  Trash2, Search, X, Gift, CalendarDays,
 } from 'lucide-react';
 import { useOrderBell } from '@/hooks/useOrderBell';
 import { apiRequest } from '@/lib/auth';
@@ -69,6 +69,9 @@ function timeAgo(iso: string): string {
 function iconFor(n: Notif) {
   if (n.source === 'pos') return { el: <Store size={15} />, cls: 'bg-amber-50 text-amber-600 border-amber-100' };
   if (n.source === 'website') return { el: <ShoppingBag size={15} />, cls: 'bg-cyan-50 text-cyan-700 border-cyan-100' };
+  if (n.type === 'NEW_BOOKING' || n.type === 'BOOKING_STATUS') {
+    return { el: <CalendarDays size={15} />, cls: 'bg-emerald-50 text-emerald-600 border-emerald-100' };
+  }
   if (n.type === 'PROMOTION') return { el: <Gift size={15} />, cls: 'bg-violet-50 text-violet-600 border-violet-100' };
   if (n.priority === 'URGENT' || n.priority === 'HIGH') return { el: <AlertTriangle size={15} />, cls: 'bg-orange-50 text-orange-600 border-orange-100' };
   return { el: <Info size={15} />, cls: 'bg-slate-50 text-slate-500 border-slate-100' };
@@ -77,6 +80,8 @@ function iconFor(n: Notif) {
 const TYPE_LABELS: Record<string, string> = {
   NEW_ORDER: 'طلب جديد',
   ORDER_STATUS: 'تحديث طلب',
+  NEW_BOOKING: 'حجز جديد',
+  BOOKING_STATUS: 'تحديث حجز',
   PROMOTION: 'عرض',
   SYSTEM: 'نظام',
 };

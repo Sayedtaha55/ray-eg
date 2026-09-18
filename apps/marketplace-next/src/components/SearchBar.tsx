@@ -14,7 +14,12 @@ interface SearchResult {
   subtitle?: string;
 }
 
-export function SearchBar() {
+interface SearchBarProps {
+  /** Renders the input at full width (used inside the header menu drawer). */
+  fullWidth?: boolean;
+}
+
+export function SearchBar({ fullWidth = false }: SearchBarProps = {}) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -90,7 +95,11 @@ export function SearchBar() {
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           placeholder="بحث..."
-          className="w-36 md:w-48 bg-slate-100 dark:bg-slate-800/80 border border-transparent focus:border-brand-cyan rounded-lg pr-9 pl-3 py-2 text-sm font-semibold outline-none transition-all focus:w-56 md:focus:w-64"
+          className={`bg-slate-100 dark:bg-slate-800/80 border border-transparent focus:border-brand-cyan rounded-lg pr-9 pl-3 py-2 text-sm font-semibold outline-none transition-all ${
+            fullWidth
+              ? 'w-full'
+              : 'w-36 md:w-48 focus:w-56 md:focus:w-64'
+          }`}
         />
         {query && (
           <button onClick={() => { setQuery(''); setResults([]); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-slate-400 hover:text-slate-600">

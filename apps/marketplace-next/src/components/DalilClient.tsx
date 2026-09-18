@@ -102,9 +102,11 @@ export function DalilClient({ shops }: DalilClientProps) {
                 <button
                   key={a.id}
                   onClick={() => setActivity(a.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${activity === a.id ? 'bg-brand-black text-white' : 'bg-white dark:bg-slate-700 hover:bg-slate-100'}`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${activity === a.id ? 'bg-brand-black text-white' : 'bg-white dark:bg-slate-700 hover:bg-slate-100'}`}
                 >
-                  {a.icon} {a.label.ar}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={a.image} alt="" width={16} height={16} className="w-4 h-4 rounded object-cover" loading="lazy" />
+                  {a.label.ar}
                 </button>
               ))}
             </div>

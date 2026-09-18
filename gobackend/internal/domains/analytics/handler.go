@@ -45,8 +45,88 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 	analytics.Get("/shop/:shopId/traffic", middleware.RequireAuth(h.config), h.GetTraffic)
 	analytics.Get("/shop/:shopId/customer-insights", middleware.RequireAuth(h.config), h.GetCustomerInsights)
 
+	// Frontend compatibility: sales-performance metric cards
+	analytics.Get("/sales-performance/shop/:shopId", middleware.RequireAuth(h.config), h.GetSalesPerformance)
+
 	// User analytics routes
 	analytics.Get("/user/:userId", middleware.RequireAuth(h.config), h.GetUserAnalytics)
+
+	// Page-visit tracking: public ingestion + admin-only reporting.
+	// POST /analytics/visits is called by the public storefronts on every page
+	// load (see pagevisits.go); the GET endpoints feed the admin dashboard.
+	analytics.Post("/visits", h.RecordVisit)
+	analytics.Get("/visits", middleware.RequireAuth(h.config), RequireVisitAdmin(), h.ListVisits)
+	analytics.Get("/visits/stats", middleware.RequireAuth(h.config), RequireVisitAdmin(), h.GetVisitStats)
+}
+
+// GetSalesPerformance handles the dashboard metric cards: current vs previous
+// half-window comparisons computed from the real sales trend.
+func (h *Handler) GetSalesPerformance(c *fiber.Ctx) error {
+	filter, err := h.parseShopReportRequest(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "error": err.Error()})
+	}
+
+	shopID := *filter.ShopID
+	report, err := h.service.GetSalesReport(c.Context(), shopID, filter)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "error": "Failed to retrieve sales performance"})
+	}
+
+	trend := report.Trend
+	half := len(trend) / 2
+	if half <= 0 {
+		return c.JSON(fiber.Map{"success": true, "data": []fiber.Map{}})
+	}
+
+	var curRev, prevRev float64
+	var curOrd, prevOrd int64
+	for i, p := range trend {
+		if i < half {
+			prevRev += p.Revenue
+			prevOrd += p.Orders
+		} else {
+			curRev += p.Revenue
+			curOrd += p.Orders
+		}
+	}
+
+	trendOf := func(cur, prev float64) string {
+		switch {
+		case cur > prev:
+			return "up"
+		case cur < prev:
+			return "down"
+		default:
+			return "stable"
+		}
+	}
+	avg := func(rev float64, orders int64) float64 {
+		if orders <= 0 {
+			return 0
+		}
+		return rev / float64(orders)
+	}
+
+	metrics := []fiber.Map{
+		{
+			"id": "m-1", "name": "إجمالي الإيرادات", "category": "revenue",
+			"value": curRev, "previousValue": prevRev, "unit": "ج.م",
+			"trend": trendOf(curRev, prevRev),
+		},
+		{
+			"id": "m-2", "name": "عدد الطلبات", "category": "orders",
+			"value": curOrd, "previousValue": prevOrd, "unit": "طلب",
+			"trend": trendOf(float64(curOrd), float64(prevOrd)),
+		},
+		{
+			"id": "m-3", "name": "متوسط قيمة الطلب", "category": "orders",
+			"value": avg(curRev, curOrd), "previousValue": avg(prevRev, prevOrd), "unit": "ج.م",
+			"trend": trendOf(avg(curRev, curOrd), avg(prevRev, prevOrd)),
+		},
+	}
+
+	return c.JSON(fiber.Map{"success": true, "data": metrics})
 }
 
 // GetSystemAnalytics handles system analytics request

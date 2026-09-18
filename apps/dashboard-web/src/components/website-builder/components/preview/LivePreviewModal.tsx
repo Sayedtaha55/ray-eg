@@ -5,7 +5,6 @@ import {
   Tablet,
   Smartphone,
   ExternalLink,
-  Zap,
   Globe,
   Languages,
   CheckCircle,
@@ -24,6 +23,7 @@ export const LivePreviewModal: React.FC = () => {
     currentTenant,
     isRtl,
     setIsRtl,
+    liveWebsiteUrl,
   } = useBuilder();
 
   const [previewViewport, setPreviewViewport] = useState<ViewportBreakpoint>('desktop');
@@ -100,12 +100,20 @@ export const LivePreviewModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Right: Core Web Vitals & Close */}
+        {/* Right: Live link & Close */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-          <div className="hidden lg:flex items-center gap-2 bg-emerald-950/70 border border-emerald-800 px-3 py-1 rounded-full text-xs font-mono text-emerald-400">
-            <Zap className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
-            <span>Next.js 15 RSC | 98/100 Core Vitals</span>
-          </div>
+          {liveWebsiteUrl && (
+            <a
+              href={liveWebsiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="فتح الموقع في علامة تبويب مستقلة"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
+              <span className="hidden md:inline">علامة تبويب جديدة</span>
+            </a>
+          )}
 
           <button
             onClick={() => setIsRtl(!isRtl)}

@@ -15,7 +15,7 @@ export default function MarketingAnalyticsPage() {
       bullets={['أداء الحملات', 'استخدام الكوبونات', 'قنوات الترافيك', 'معدل التحويل التسويقي']}
       related={[
         { label: 'الحملات', href: '/dashboard/marketing/campaigns' },
-        { label: 'الكوبونات', href: '/dashboard/marketing/coupons' },
+        { label: 'الكوبونات', href: '/dashboard/marketing/offers?tab=coupons' },
         { label: 'التحويلات', href: '/dashboard/analytics/conversions' },
       ]}
     />
