@@ -18,6 +18,13 @@ import {
   TrendingUp,
   Loader2,
   Save,
+  Package,
+  MapPin,
+  Calculator,
+  Users,
+  Headset,
+  UserCog,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useToast } from './ToastProvider';
@@ -36,6 +43,13 @@ import ReceiptThemeTab from './tabs/ReceiptThemeTab';
 import PaymentsTab from './tabs/PaymentsTab';
 import SocialMediaTab from './tabs/SocialMediaTab';
 import NotificationsTab from './tabs/NotificationsTab';
+import InventorySettingsTab from './tabs/InventorySettingsTab';
+import BranchesSettingsTab from './tabs/BranchesSettingsTab';
+import AccountingSettingsTab from './tabs/AccountingSettingsTab';
+import CustomersSettingsTab from './tabs/CustomersSettingsTab';
+import CrmSettingsTab from './tabs/CrmSettingsTab';
+import HrSettingsTab from './tabs/HrSettingsTab';
+import AnalyticsSettingsTab from './tabs/AnalyticsSettingsTab';
 import { ShoppingCart, Printer, CalendarDays } from 'lucide-react';
 
 type SettingsTab =
@@ -51,7 +65,14 @@ type SettingsTab =
   | 'booking_settings'
   | 'orders_settings'
   | 'pos_settings'
-  | 'social_media';
+  | 'social_media'
+  | 'inventory_settings'
+  | 'branches_settings'
+  | 'accounting_settings'
+  | 'customers_settings'
+  | 'crm_settings'
+  | 'hr_settings'
+  | 'analytics_settings';
 
 type SaveHandler = () => Promise<boolean>;
 
@@ -94,6 +115,21 @@ export default function SettingsShell({ shop, onSaved }: SettingsShellProps) {
     const list: Array<{ id: SettingsTab; icon: React.ReactNode; label: string; badge?: string }> = [
       { id: 'overview', icon: <Home className="w-4 h-4" />, label: 'النظرة العامة' },
       { id: 'store', icon: <Store className="w-4 h-4" />, label: 'بيانات المتجر والنشاط' },
+      { id: 'inventory_settings', icon: <Package className="w-4 h-4" />, label: 'إعدادات المخزون' },
+      { id: 'branches_settings', icon: <MapPin className="w-4 h-4" />, label: 'إعدادات الفروع' },
+      {
+        id: 'accounting_settings',
+        icon: <Calculator className="w-4 h-4" />,
+        label: 'إعدادات المحاسبة',
+      },
+      { id: 'customers_settings', icon: <Users className="w-4 h-4" />, label: 'إعدادات العملاء' },
+      { id: 'crm_settings', icon: <Headset className="w-4 h-4" />, label: 'إعدادات خدمة العملاء' },
+      { id: 'hr_settings', icon: <UserCog className="w-4 h-4" />, label: 'إعدادات الفريق' },
+      {
+        id: 'analytics_settings',
+        icon: <BarChart3 className="w-4 h-4" />,
+        label: 'إعدادات التحليلات',
+      },
       {
         id: 'booking_settings',
         icon: <CalendarDays className="w-4 h-4" />,
@@ -242,6 +278,20 @@ export default function SettingsShell({ shop, onSaved }: SettingsShellProps) {
         return <OrdersSettingsTab shop={shop} onSaved={onSaved} />;
       case 'pos_settings':
         return <PosSettingsTab shop={shop} onSaved={onSaved} />;
+      case 'inventory_settings':
+        return <InventorySettingsTab shop={shop} onSaved={onSaved} />;
+      case 'branches_settings':
+        return <BranchesSettingsTab shop={shop} onSaved={onSaved} />;
+      case 'accounting_settings':
+        return <AccountingSettingsTab shop={shop} onSaved={onSaved} />;
+      case 'customers_settings':
+        return <CustomersSettingsTab shop={shop} onSaved={onSaved} />;
+      case 'crm_settings':
+        return <CrmSettingsTab shop={shop} onSaved={onSaved} />;
+      case 'hr_settings':
+        return <HrSettingsTab shop={shop} onSaved={onSaved} />;
+      case 'analytics_settings':
+        return <AnalyticsSettingsTab shop={shop} onSaved={onSaved} />;
       case 'modules':
         return <ModulesTab shop={shop} onSaved={onSaved} />;
       case 'apps':

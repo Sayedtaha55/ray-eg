@@ -9,6 +9,7 @@ import { Menu, Bell, Search, LogOut, User, ChevronDown, PanelLeft, LayoutGrid } 
 import type { SidebarSection } from '@/config/sidebar';
 import { SECTION_COLORS } from '@/config/sidebar';
 import { useAuth } from '@/lib/auth';
+import { sectionSettingsHref } from '@/lib/sectionSettings';
 import { useOrderBell } from '@/hooks/useOrderBell';
 import useVisibleSections from '@/hooks/useVisibleSections';
 
@@ -367,7 +368,7 @@ export default function TopNav({ onMenuClick, onSwitchNav }: TopNavProps) {
                   <button
                     onClick={() => {
                       setDropdownOpen(false);
-                      router.push('/dashboard/settings');
+                      router.push(sectionSettingsHref(pathname));
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
                   >
