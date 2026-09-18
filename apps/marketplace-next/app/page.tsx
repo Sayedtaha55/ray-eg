@@ -29,7 +29,9 @@ export default async function HomePage() {
   const featuredShops = shops.slice(0, 8);
   const trendingShops = shops.slice(8, 16);
   const featuredOffers = offers.slice(0, 8);
-  const activeSeasonal = seasonalOffers.filter(s => s.status === 'active' || new Date(s.endDate) >= new Date()).slice(0, 3);
+  const activeSeasonal = seasonalOffers
+    .filter((s) => s.status === 'active' || new Date(s.endDate) >= new Date())
+    .slice(0, 3);
 
   const websiteJsonLd = {
     '@context': 'https://schema.org',
@@ -53,15 +55,19 @@ export default async function HomePage() {
     url: siteConfig.url,
     logo: `${siteConfig.url}/brand/logo.png`,
     description: siteConfig.description,
-    sameAs: [
-      'https://www.facebook.com/MNMKNK',
-    ],
+    sameAs: ['https://www.facebook.com/MNMKNK'],
   };
 
   return (
     <div className="overflow-hidden">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+      />
 
       {/* Welcome toast after login/signup */}
       <WelcomeToast />
@@ -69,7 +75,10 @@ export default async function HomePage() {
       {/* Hero Section */}
       <section className="relative w-full">
         {/* Hero search — the header turns solid as soon as this reaches the top */}
-        <div id="hero-search" className="max-w-[1400px] mx-auto px-4 md:px-6 pt-1 md:pt-2 pb-4 md:pb-6">
+        <div
+          id="hero-search"
+          className="max-w-[1400px] mx-auto px-4 md:px-6 pt-1 md:pt-2 pb-4 md:pb-6"
+        >
           <HeroSearch />
         </div>
 
@@ -97,12 +106,16 @@ export default async function HomePage() {
                 href={`/activity/${a.id}`}
                 className="group flex flex-col items-center gap-1.5 shrink-0 w-[74px]"
               >
-                <span
-                  className="w-14 h-14 rounded-2xl overflow-hidden transition-transform group-hover:scale-105"
-                >
+                <span className="w-14 h-14 rounded-2xl overflow-hidden transition-transform group-hover:scale-105">
                   {/* صورة القسم — استبدل الملف في public/images/activities/ لتغييرها */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={a.image} alt={a.label.ar} width={56} height={56} className="w-full h-full object-cover" loading="lazy" />
+                  <img
+                    src={a.image}
+                    alt={a.label.ar}
+                    width={56}
+                    height={56}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
                 </span>
                 <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 text-center leading-tight">
                   {a.label.ar}
@@ -118,10 +131,17 @@ export default async function HomePage() {
         <div className="max-w-[1400px] mx-auto px-4 md:px-6">
           <div className="flex items-end justify-between mb-6 md:mb-12">
             <div className="text-right">
-              <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight">متاجر مميزة</h2>
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight">
+                متاجر مميزة
+              </h2>
             </div>
-            <Link href="/dalil" className="group flex items-center gap-2 md:gap-3 text-brand-cyan font-semibold text-xs md:text-sm">
-              <span className="border-b-2 border-brand-cyan/0 group-hover:border-brand-cyan transition-all">عرض جميع المتاجر</span>
+            <Link
+              href="/dalil"
+              className="group flex items-center gap-2 md:gap-3 text-brand-cyan font-semibold text-xs md:text-sm"
+            >
+              <span className="border-b-2 border-brand-cyan/0 group-hover:border-brand-cyan transition-all">
+                عرض جميع المتاجر
+              </span>
               <ArrowLeft className="w-4 h-4 rotate-180 transition-transform group-hover:translate-x-2" />
             </Link>
           </div>
@@ -134,7 +154,9 @@ export default async function HomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-              {Array.from({ length: 8 }).map((_, i) => <ShopCardSkeleton key={i} />)}
+              {Array.from({ length: 8 }).map((_, i) => (
+                <ShopCardSkeleton key={i} />
+              ))}
             </div>
           )}
         </div>
@@ -150,7 +172,9 @@ export default async function HomePage() {
                   <Sparkles className="w-5 h-5 text-amber-400" />
                   <span className="text-xs font-semibold text-amber-400">عروض موسمية</span>
                 </div>
-                <h2 className="text-3xl md:text-5xl font-bold tracking-tight">عروض خاصة لا تفوتها</h2>
+                <h2 className="text-3xl md:text-5xl font-bold tracking-tight">
+                  عروض خاصة لا تفوتها
+                </h2>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
@@ -169,11 +193,17 @@ export default async function HomePage() {
                       {offer.occasion}
                     </span>
                     <h3 className="text-white font-black text-xl md:text-2xl mb-2">{offer.name}</h3>
-                    {offer.description && <p className="text-white/70 text-sm font-semibold line-clamp-2">{offer.description}</p>}
+                    {offer.description && (
+                      <p className="text-white/70 text-sm font-semibold line-clamp-2">
+                        {offer.description}
+                      </p>
+                    )}
                   </div>
                   <div className="relative z-10 flex items-center justify-between mt-4">
                     <span className="text-white font-black text-2xl">
-                      {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `${offer.discountValue} ج.م`}
+                      {offer.discountType === 'percentage'
+                        ? `${offer.discountValue}%`
+                        : `${offer.discountValue} ج.م`}
                     </span>
                     <span className="text-white/60 text-xs font-semibold">
                       حتى {new Date(offer.endDate).toLocaleDateString('ar-EG')}
@@ -198,8 +228,13 @@ export default async function HomePage() {
                 </div>
                 <h2 className="text-4xl md:text-6xl font-bold tracking-tight">أحدث العروض</h2>
               </div>
-              <Link href="/offers" className="group flex items-center gap-3 text-amber-400 font-semibold text-sm">
-                <span className="border-b-2 border-amber-400/0 group-hover:border-amber-400 transition-all">عرض جميع العروض</span>
+              <Link
+                href="/offers"
+                className="group flex items-center gap-3 text-amber-400 font-semibold text-sm"
+              >
+                <span className="border-b-2 border-amber-400/0 group-hover:border-amber-400 transition-all">
+                  عرض جميع العروض
+                </span>
                 <ArrowLeft className="w-4 h-4 rotate-180 transition-transform group-hover:translate-x-2" />
               </Link>
             </div>
@@ -224,7 +259,10 @@ export default async function HomePage() {
                 </div>
                 <h2 className="text-4xl md:text-6xl font-bold tracking-tight">متاجر رائجة</h2>
               </div>
-              <Link href="/dalil" className="group flex items-center gap-3 text-brand-purple font-semibold text-sm">
+              <Link
+                href="/dalil"
+                className="group flex items-center gap-3 text-brand-purple font-semibold text-sm"
+              >
                 <span>عرض الكل</span>
                 <ArrowLeft className="w-4 h-4 rotate-180 transition-transform group-hover:translate-x-2" />
               </Link>
@@ -241,7 +279,6 @@ export default async function HomePage() {
 
       {/* App Download Banner */}
       <AppDownloadBanner />
-
     </div>
   );
 }

@@ -9,8 +9,17 @@ export const metadata: Metadata = {
   title: 'دليل المتاجر',
   description: 'دليل المتاجر والأنشطة التجارية على منصة من مكانك',
   alternates: { canonical: '/dalil' },
-  openGraph: { title: 'دليل المتاجر - من مكانك', description: 'دليل المتاجر والأنشطة التجارية على منصة من مكانك', url: '/dalil', type: 'website' },
-  twitter: { card: 'summary_large_image', title: 'دليل المتاجر - من مكانك', description: 'دليل المتاجر والأنشطة التجارية على منصة من مكانك' },
+  openGraph: {
+    title: 'دليل المتاجر - من مكانك',
+    description: 'دليل المتاجر والأنشطة التجارية على منصة من مكانك',
+    url: '/dalil',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'دليل المتاجر - من مكانك',
+    description: 'دليل المتاجر والأنشطة التجارية على منصة من مكانك',
+  },
 };
 
 export const revalidate = 300;
@@ -29,24 +38,44 @@ export default async function DalilPage() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-12 md:py-16">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(dalilLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(dalilLd) }}
+      />
       <div className="flex items-center gap-4 mb-10">
         <div className="w-14 h-14 bg-brand-purple/10 rounded-xl flex items-center justify-center">
           <Store className="w-7 h-7 text-brand-purple" />
         </div>
         <div>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight">دليل المتاجر</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm md:text-base mt-1">استكشف جميع المتاجر المسجلة</p>
+          <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm md:text-base mt-1">
+            استكشف جميع المتاجر المسجلة
+          </p>
         </div>
       </div>
 
       {/* Activities quick links */}
       <div className="flex flex-wrap gap-2 mb-8">
-        <Link href="/dalil" className="px-4 py-2 rounded-lg text-xs font-semibold bg-brand-black text-white">الكل</Link>
+        <Link
+          href="/dalil"
+          className="px-4 py-2 rounded-lg text-xs font-semibold bg-brand-black text-white"
+        >
+          الكل
+        </Link>
         {activities.map((a) => (
-          <Link key={a.id} href={`/activity/${a.id}`} className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={a.image} alt="" width={16} height={16} className="w-4 h-4 rounded object-cover" loading="lazy" />
+          <Link
+            key={a.id}
+            href={`/activity/${a.id}`}
+            className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5"
+          >
+            <img
+              src={a.image}
+              alt=""
+              width={16}
+              height={16}
+              className="w-4 h-4 rounded object-cover"
+              loading="lazy"
+            />
             {a.label.ar}
           </Link>
         ))}

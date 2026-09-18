@@ -14,6 +14,8 @@ export default tseslint.config(
       '**/*.min.*',
       '**/sw.js',
       '**/certs/**',
+      // Wails auto-generated bindings — never hand-edited.
+      'apps/cashier-desktop/frontend/wailsjs/**',
     ],
   },
   ...tseslint.configs.recommended.map((config) => ({

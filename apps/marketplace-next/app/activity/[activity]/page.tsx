@@ -7,7 +7,9 @@ import { activities } from '@/lib/config';
 
 export const revalidate = 300;
 
-interface Props { params: Promise<{ activity: string }> }
+interface Props {
+  params: Promise<{ activity: string }>;
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { activity } = await params;
@@ -35,31 +37,48 @@ export default async function ActivityPage({ params }: Props) {
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-12 md:py-16">
-      <Link href="/" className="flex items-center gap-2 text-brand-cyan font-semibold text-sm mb-6 hover:gap-3 transition-all">
+      <Link
+        href="/"
+        className="flex items-center gap-2 text-brand-cyan font-semibold text-sm mb-6 hover:gap-3 transition-all"
+      >
         <ArrowLeft className="w-4 h-4" />
         العودة للرئيسية
       </Link>
 
       <div className="flex items-center gap-4 mb-10">
         <div className="w-16 h-16 rounded-xl overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={config?.image || '/images/activities/cars.svg'} alt={config?.label.ar || 'نشاط'} width={64} height={64} className="w-full h-full object-cover" />
+          <img
+            src={config?.image || '/images/activities/cars.svg'}
+            alt={config?.label.ar || 'نشاط'}
+            width={64}
+            height={64}
+            className="w-full h-full object-cover"
+          />
         </div>
         <div>
-          <h1 className="text-3xl md:text-5xl font-bold tracking-tight">{config?.label.ar || 'نشاط'}</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm md:text-base mt-1">متاجر في قطاع {config?.label.ar}</p>
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
+            {config?.label.ar || 'نشاط'}
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm md:text-base mt-1">
+            متاجر في قطاع {config?.label.ar}
+          </p>
         </div>
       </div>
 
       {filtered.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-          {filtered.map((shop) => <ShopCard key={shop.id} shop={shop} />)}
+          {filtered.map((shop) => (
+            <ShopCard key={shop.id} shop={shop} />
+          ))}
         </div>
       ) : (
         <div className="text-center py-20">
           <Store className="w-16 h-16 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
           <p className="text-slate-500 font-semibold text-lg">لا توجد متاجر في هذا القطاع حالياً</p>
-          <Link href="/dalil" className="inline-flex items-center gap-2 mt-4 text-brand-cyan font-semibold text-sm hover:underline">
+          <Link
+            href="/dalil"
+            className="inline-flex items-center gap-2 mt-4 text-brand-cyan font-semibold text-sm hover:underline"
+          >
             تصفح كل المتاجر
           </Link>
         </div>

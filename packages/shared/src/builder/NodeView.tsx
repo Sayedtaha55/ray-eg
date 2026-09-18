@@ -56,10 +56,7 @@ export interface NodeViewContext {
 // Helpers (ported from the canvas renderer)
 // ---------------------------------------------------------------------------
 
-function findPage(
-  website: Website,
-  matcher: (p: BuilderPage) => boolean
-): BuilderPage | undefined {
+function findPage(website: Website, matcher: (p: BuilderPage) => boolean): BuilderPage | undefined {
   return website.pages.find(matcher);
 }
 
@@ -67,11 +64,7 @@ function findPage(
  * Resolve a click on a link/button node to a page navigation, anchor scroll,
  * or external URL — same resolution order as the editor's interactive preview.
  */
-function handleInteraction(
-  e: React.MouseEvent,
-  node: ComponentNode,
-  ctx: NodeViewContext
-) {
+function handleInteraction(e: React.MouseEvent, node: ComponentNode, ctx: NodeViewContext) {
   const { website, activePage, onNavigatePage } = ctx;
 
   const url = (node.props.url ?? node.props.href ?? node.props.link ?? '').trim();
@@ -116,7 +109,10 @@ function handleInteraction(
       return;
     }
 
-    const cleanSlug = url.replace(/^[#/]+/, '').toLowerCase().trim();
+    const cleanSlug = url
+      .replace(/^[#/]+/, '')
+      .toLowerCase()
+      .trim();
     const pageBySlug = findPage(
       website,
       (p) =>
@@ -145,13 +141,37 @@ function handleInteraction(
 
     const lower = text.toLowerCase();
     const keywordMap: Array<[RegExp, (p: BuilderPage) => boolean]> = [
-      [/رئيسية|المجد/, (p) => p.slug === 'home' || p.id === 'page_home' || !!p.metadata?.isHomePage],
-      [/أسطول|سيارات|معرض|موديل/, (p) => p.slug === 'fleet' || p.id.includes('fleet') || p.name.includes('أسطول')],
-      [/من نحن|قصتنا|رؤيتنا|عن الشركة/, (p) => p.slug === 'about' || p.id === 'page_about' || p.name.includes('من نحن')],
-      [/فريق|القيادة|الخبراء/, (p) => p.slug === 'team' || p.id === 'page_team' || p.name.includes('فريق')],
-      [/فروع|صالات|الموقع/, (p) => p.slug === 'branches' || p.id === 'page_branches' || p.name.includes('فروع')],
-      [/اعتماد|جوائز|شهادات|جودة/, (p) => p.slug === 'certifications' || p.id === 'page_certifications' || p.name.includes('اعتمادات')],
-      [/تواصل|حجز|اتصل|تجربة|فحص/, (p) => p.slug === 'contact' || p.id.includes('contact') || p.name.includes('تواصل')],
+      [
+        /رئيسية|المجد/,
+        (p) => p.slug === 'home' || p.id === 'page_home' || !!p.metadata?.isHomePage,
+      ],
+      [
+        /أسطول|سيارات|معرض|موديل/,
+        (p) => p.slug === 'fleet' || p.id.includes('fleet') || p.name.includes('أسطول'),
+      ],
+      [
+        /من نحن|قصتنا|رؤيتنا|عن الشركة/,
+        (p) => p.slug === 'about' || p.id === 'page_about' || p.name.includes('من نحن'),
+      ],
+      [
+        /فريق|القيادة|الخبراء/,
+        (p) => p.slug === 'team' || p.id === 'page_team' || p.name.includes('فريق'),
+      ],
+      [
+        /فروع|صالات|الموقع/,
+        (p) => p.slug === 'branches' || p.id === 'page_branches' || p.name.includes('فروع'),
+      ],
+      [
+        /اعتماد|جوائز|شهادات|جودة/,
+        (p) =>
+          p.slug === 'certifications' ||
+          p.id === 'page_certifications' ||
+          p.name.includes('اعتمادات'),
+      ],
+      [
+        /تواصل|حجز|اتصل|تجربة|فحص/,
+        (p) => p.slug === 'contact' || p.id.includes('contact') || p.name.includes('تواصل'),
+      ],
     ];
     for (const [re, match] of keywordMap) {
       if (re.test(lower)) {
@@ -184,7 +204,10 @@ const FaqItem: React.FC<{
         <span className="text-sm font-bold text-slate-900 flex-1">{question}</span>
         <span
           className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-all"
-          style={{ backgroundColor: open ? theme.colors.primary : '#f1f5f9', color: open ? '#fff' : '#64748b' }}
+          style={{
+            backgroundColor: open ? theme.colors.primary : '#f1f5f9',
+            color: open ? '#fff' : '#64748b',
+          }}
         >
           {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </span>
@@ -202,19 +225,13 @@ const FaqItem: React.FC<{
 // NodeView — recursive public renderer
 // ---------------------------------------------------------------------------
 
-export const NodeView: React.FC<{ nodeId: string; ctx: NodeViewContext }> = ({
-  nodeId,
-  ctx,
-}) => {
+export const NodeView: React.FC<{ nodeId: string; ctx: NodeViewContext }> = ({ nodeId, ctx }) => {
   const node = ctx.website.components[nodeId];
   if (!node || node.isHidden) return null;
   return <NodeViewInner node={node} ctx={ctx} />;
 };
 
-const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = ({
-  node,
-  ctx,
-}) => {
+const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = ({ node, ctx }) => {
   const { website, viewport, activePage, theme, shop, realProducts, onNavigatePage, waLink } = ctx;
 
   // Local interactive state (each node instance owns its own state — mirrors
@@ -332,7 +349,11 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
         if (!m.fontSize && d.fontSize && parseInt(d.fontSize) > 20) {
           css.fontSize = `${Math.max(15, Math.round(parseInt(d.fontSize) * 0.72))}px`;
         }
-        if (node.parentId?.includes('header') || node.id?.includes('brand') || node.id?.includes('logo')) {
+        if (
+          node.parentId?.includes('header') ||
+          node.id?.includes('brand') ||
+          node.id?.includes('logo')
+        ) {
           css.whiteSpace = 'nowrap';
           css.fontSize = m.fontSize || '14px';
           css.flexShrink = 0;
@@ -341,8 +362,12 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
 
       if (
         (typeof node.props.text === 'string' &&
-          (node.props.text.includes('•') || node.props.text.includes('|') || node.props.text.includes('▾'))) ||
-        ((node.parentId?.includes('header') || node.parentId?.includes('sec_') || node.id?.includes('nav')) &&
+          (node.props.text.includes('•') ||
+            node.props.text.includes('|') ||
+            node.props.text.includes('▾'))) ||
+        ((node.parentId?.includes('header') ||
+          node.parentId?.includes('sec_') ||
+          node.id?.includes('nav')) &&
           (node.type === 'paragraph' || node.id?.includes('nav') || node.category === 'navigation'))
       ) {
         css.display = 'none';
@@ -358,7 +383,12 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
         }
       }
 
-      if (merged.display === 'flex' && merged.flexDirection === 'row' && !m.flexWrap && !merged.flexWrap) {
+      if (
+        merged.display === 'flex' &&
+        merged.flexDirection === 'row' &&
+        !m.flexWrap &&
+        !merged.flexWrap
+      ) {
         if (!node.parentId?.includes('header')) {
           css.flexWrap = 'wrap';
         }
@@ -376,9 +406,7 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
 
   const renderChildren = () => {
     if (!node.childrenIds || node.childrenIds.length === 0) return null;
-    return node.childrenIds.map((childId) => (
-      <NodeView key={childId} nodeId={childId} ctx={ctx} />
-    ));
+    return node.childrenIds.map((childId) => <NodeView key={childId} nodeId={childId} ctx={ctx} />);
   };
 
   // Detect nav link nodes targeting the active page (for the active style).
@@ -390,14 +418,16 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
 
   const isActiveLink = Boolean(
     isNavNode &&
-      ((node.props.pageId && node.props.pageId === activePage.id) ||
-        (node.props.url &&
-          (node.props.url === `/${activePage.slug}` ||
-            node.props.url === `#${activePage.slug}` ||
-            node.props.url === activePage.slug ||
-            (activePage.slug === 'home' &&
-              (node.props.url === '/' || node.props.url === '#home' || node.props.url === '/home')))) ||
-        (node.props.text && node.props.text.trim() === activePage.name.trim()))
+    ((node.props.pageId && node.props.pageId === activePage.id) ||
+      (node.props.url &&
+        (node.props.url === `/${activePage.slug}` ||
+          node.props.url === `#${activePage.slug}` ||
+          node.props.url === activePage.slug ||
+          (activePage.slug === 'home' &&
+            (node.props.url === '/' ||
+              node.props.url === '#home' ||
+              node.props.url === '/home')))) ||
+      (node.props.text && node.props.text.trim() === activePage.name.trim()))
   );
 
   // Which product list should this section render? Prefer the shop's real
@@ -413,19 +443,24 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
           {isMobile ? (
             <div className="w-full flex items-center justify-between gap-3 px-3 py-2.5">
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                {node.childrenIds && node.childrenIds.length > 0
-                  ? node.childrenIds.map((cId) => {
-                      const child = website.components[cId];
-                      if (!child) return null;
-                      if (child.id.includes('nav') || child.type === 'paragraph' || child.category === 'navigation') return null;
-                      if (child.type === 'button' || child.id.includes('cta')) return null;
-                      return <NodeView key={cId} nodeId={cId} ctx={ctx} />;
-                    })
-                  : (
-                      <div className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
-                        {node.props.title || website.name || 'المتجر الإلكتروني'}
-                      </div>
-                    )}
+                {node.childrenIds && node.childrenIds.length > 0 ? (
+                  node.childrenIds.map((cId) => {
+                    const child = website.components[cId];
+                    if (!child) return null;
+                    if (
+                      child.id.includes('nav') ||
+                      child.type === 'paragraph' ||
+                      child.category === 'navigation'
+                    )
+                      return null;
+                    if (child.type === 'button' || child.id.includes('cta')) return null;
+                    return <NodeView key={cId} nodeId={cId} ctx={ctx} />;
+                  })
+                ) : (
+                  <div className="font-extrabold text-sm sm:text-base text-slate-900 truncate">
+                    {node.props.title || website.name || 'المتجر الإلكتروني'}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
@@ -467,15 +502,23 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                     <div className="space-y-6">
                       <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-xl text-white flex items-center justify-center font-bold text-sm shadow-xs" style={{ backgroundColor: theme.colors.primary }}>
+                          <div
+                            className="w-8 h-8 rounded-xl text-white flex items-center justify-center font-bold text-sm shadow-xs"
+                            style={{ backgroundColor: theme.colors.primary }}
+                          >
                             {shop.logoUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={shop.logoUrl} alt={shop.name} className="w-8 h-8 rounded-xl object-cover" />
+                              <img
+                                src={shop.logoUrl}
+                                alt={shop.name}
+                                className="w-8 h-8 rounded-xl object-cover"
+                              />
                             ) : (
                               (shop.name || 'م')[0]
                             )}
                           </div>
-                          <span className="font-black text-sm text-slate-900 truncate max-w-[140px]">{shop.name || 'المتجر'}</span>
+                          <span className="font-black text-sm text-slate-900 truncate max-w-[140px]">
+                            {shop.name || 'المتجر'}
+                          </span>
                         </div>
                         <button
                           onClick={() => setIsMobileMenuDrawerOpen(false)}
@@ -486,7 +529,9 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                       </div>
 
                       <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">صفحات الموقع</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                          صفحات الموقع
+                        </span>
                         {website.pages.map((p) => {
                           const isActive = p.id === activePage.id;
                           return (
@@ -498,19 +543,27 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                                 setIsMobileMenuDrawerOpen(false);
                               }}
                               className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all text-right ${
-                                isActive ? 'text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'
+                                isActive
+                                  ? 'text-white shadow-xs'
+                                  : 'text-slate-700 hover:bg-slate-100'
                               }`}
-                              style={isActive ? { backgroundColor: theme.colors.primary } : undefined}
+                              style={
+                                isActive ? { backgroundColor: theme.colors.primary } : undefined
+                              }
                             >
                               <span>{p.name}</span>
-                              <ArrowRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'} rtl:rotate-180`} />
+                              <ArrowRight
+                                className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'} rtl:rotate-180`}
+                              />
                             </button>
                           );
                         })}
                       </div>
 
                       <div className="pt-4 border-t border-slate-100 space-y-2">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">تواصل سريع</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          تواصل سريع
+                        </span>
                         {shop.phone && waLink(`مرحبًا، أريد الاستفسار عن منتجات ${shop.name}`) && (
                           <a
                             href={waLink(`مرحبًا، أريد الاستفسار عن منتجات ${shop.name}`) || '#'}
@@ -536,7 +589,8 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
 
                     <div className="pt-6 border-t border-slate-100 text-center">
                       <span className="text-[10px] font-semibold text-slate-400">
-                        صنع بكل فخر عبر <strong className="text-blue-600 font-bold">نمّي أعمالك</strong> ⚡
+                        صنع بكل فخر عبر{' '}
+                        <strong className="text-blue-600 font-bold">نمّي أعمالك</strong> ⚡
                       </span>
                     </div>
                   </div>
@@ -572,7 +626,10 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
           {text}
           {node.props.badgeText && (
             <span
-              style={{ backgroundColor: withAlpha(theme.colors.primary, '20'), color: theme.colors.primary }}
+              style={{
+                backgroundColor: withAlpha(theme.colors.primary, '20'),
+                color: theme.colors.primary,
+              }}
               className="mr-2 text-xs font-bold px-2 py-0.5 rounded-full inline-block align-middle"
             >
               {node.props.badgeText}
@@ -667,8 +724,14 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                       className="p-2.5 rounded-xl hover:bg-blue-50 transition-colors cursor-pointer group flex items-start justify-between gap-2"
                     >
                       <div>
-                        <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{item.title}</span>
-                        {item.description && <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{item.description}</p>}
+                        <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                          {item.title}
+                        </span>
+                        {item.description && (
+                          <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                            {item.description}
+                          </p>
+                        )}
                       </div>
                       {item.badge && (
                         <span className="text-[10px] font-bold bg-slate-100 group-hover:bg-blue-600 group-hover:text-white text-slate-600 px-2 py-0.5 rounded-full shrink-0 transition-colors">
@@ -685,9 +748,7 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
       }
 
       if (node.id === 'fleet_filter_tabs' || node.props.isFilterTabs) {
-        const filterPills = node.props.filterPills || [
-          { id: 'all', label: 'الكل' },
-        ];
+        const filterPills = node.props.filterPills || [{ id: 'all', label: 'الكل' }];
         return (
           <div
             id={node.id}
@@ -722,11 +783,16 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
         const delimiter = text.includes(' • ') ? ' • ' : ' | ';
         const items: string[] = text.split(delimiter);
         return (
-          <p id={node.id} style={computed} className="transition-all flex flex-wrap items-center gap-2">
+          <p
+            id={node.id}
+            style={computed}
+            className="transition-all flex flex-wrap items-center gap-2"
+          >
             {items.map((item: string, index: number) => {
               const trimmed = item.trim();
               const isItemActive =
-                activePage.name.trim() === trimmed || (trimmed === 'الرئيسية' && activePage.slug === 'home');
+                activePage.name.trim() === trimmed ||
+                (trimmed === 'الرئيسية' && activePage.slug === 'home');
               return (
                 <React.Fragment key={index}>
                   <span
@@ -762,7 +828,9 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
     // ----------------------------------------------------------------- button
     case 'button': {
       const btnText = node.props.text || 'زر الإجراء';
-      const waHref = waLink(btnText ? `مرحبًا، بخصوص: ${btnText}` : `مرحبًا، أريد الاستفسار عن منتجات ${shop.name}`);
+      const waHref = waLink(
+        btnText ? `مرحبًا، بخصوص: ${btnText}` : `مرحبًا، أريد الاستفسار عن منتجات ${shop.name}`
+      );
 
       return (
         <div className="inline-flex items-center gap-2">
@@ -772,7 +840,12 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             onClick={(e) => {
               e.stopPropagation();
               // If the button has no resolvable page target, fall back to WhatsApp.
-              const hasTarget = node.props.url || node.props.href || node.props.link || node.props.pageId || node.props.targetPage;
+              const hasTarget =
+                node.props.url ||
+                node.props.href ||
+                node.props.link ||
+                node.props.pageId ||
+                node.props.targetPage;
               if (hasTarget) {
                 handleInteraction(e, node, ctx);
               } else if (waHref) {
@@ -796,9 +869,11 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
     case 'image': {
       return (
         <div id={node.id} style={getComputedStyles()} className="overflow-hidden transition-all">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={node.props.src || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="800" height="500"%3E%3Crect fill="%23e2e8f0" width="800" height="500"/%3E%3C/svg%3E'}
+            src={
+              node.props.src ||
+              'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="800" height="500"%3E%3Crect fill="%23e2e8f0" width="800" height="500"/%3E%3C/svg%3E'
+            }
             alt={node.props.alt || 'صورة المكون'}
             className="w-full h-full object-cover"
             loading="lazy"
@@ -810,7 +885,11 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
     // ------------------------------------------------------------------ badge
     case 'badge': {
       return (
-        <div id={node.id} style={getComputedStyles()} className="inline-flex items-center transition-all">
+        <div
+          id={node.id}
+          style={getComputedStyles()}
+          className="inline-flex items-center transition-all"
+        >
           {node.props.text || 'شارة مميزة'}
         </div>
       );
@@ -833,109 +912,121 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             className="transition-all flex flex-col justify-between"
           >
             {/* PRODUCT CARD (image + price + specs) */}
-            {node.props.image && node.props.price && (() => {
-              const hoverImg =
-                node.props.hoverImage ||
-                (Array.isArray(node.props.images) && node.props.images[1]) ||
-                undefined;
-              const buyBtnIcon = node.props.buyButtonIcon || 'ShoppingBag';
-              const buyBtnText = node.props.buyButtonText || 'إضافة للسلة';
-              const hideBuyBtn = Boolean(node.props.hideBuyButton);
-              const orderHref =
-                waLink(`مرحبًا، أريد طلب: ${node.props.title || 'منتج'}${node.props.price ? ` (${node.props.price})` : ''}`) || '#';
+            {node.props.image &&
+              node.props.price &&
+              (() => {
+                const hoverImg =
+                  node.props.hoverImage ||
+                  (Array.isArray(node.props.images) && node.props.images[1]) ||
+                  undefined;
+                const buyBtnIcon = node.props.buyButtonIcon || 'ShoppingBag';
+                const buyBtnText = node.props.buyButtonText || 'إضافة للسلة';
+                const hideBuyBtn = Boolean(node.props.hideBuyButton);
+                const orderHref =
+                  waLink(
+                    `مرحبًا، أريد طلب: ${node.props.title || 'منتج'}${node.props.price ? ` (${node.props.price})` : ''}`
+                  ) || '#';
 
-              return (
-                <div className="flex flex-col h-full group/pcard">
-                  <div className="h-48 w-full overflow-hidden bg-slate-100 rounded-t-xl relative group/cardimg">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={node.props.image}
-                      alt={node.props.title}
-                      className={`w-full h-full object-cover transition-all duration-500 ${
-                        hoverImg ? 'group-hover/cardimg:opacity-0 group-hover/cardimg:scale-105' : 'hover:scale-105'
-                      }`}
-                      loading="lazy"
-                    />
-                    {hoverImg && (
-                      /* eslint-disable-next-line @next/next/no-img-element */
+                return (
+                  <div className="flex flex-col h-full group/pcard">
+                    <div className="h-48 w-full overflow-hidden bg-slate-100 rounded-t-xl relative group/cardimg">
                       <img
-                        src={hoverImg}
-                        alt={`${node.props.title} - صورة ثانوية`}
-                        className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover/cardimg:opacity-100 group-hover/cardimg:scale-105 transition-all duration-500 pointer-events-none"
+                        src={node.props.image}
+                        alt={node.props.title}
+                        className={`w-full h-full object-cover transition-all duration-500 ${
+                          hoverImg
+                            ? 'group-hover/cardimg:opacity-0 group-hover/cardimg:scale-105'
+                            : 'hover:scale-105'
+                        }`}
                         loading="lazy"
                       />
-                    )}
-                  </div>
-                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span
-                          style={{ backgroundColor: withAlpha(theme.colors.primary, '18'), color: theme.colors.primary }}
-                          className="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
-                        >
-                          {node.props.badge || 'حصري'}
-                        </span>
-                        <span style={{ color: theme.colors.primary }} className="text-base font-extrabold font-mono">
-                          {node.props.price}
-                        </span>
-                      </div>
-                      <h3 className="text-base font-bold text-slate-900 leading-snug">{node.props.title}</h3>
+                      {hoverImg && (
+                        <img
+                          src={hoverImg}
+                          alt={`${node.props.title} - صورة ثانوية`}
+                          className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover/cardimg:opacity-100 group-hover/cardimg:scale-105 transition-all duration-500 pointer-events-none"
+                          loading="lazy"
+                        />
+                      )}
                     </div>
-
-                    {node.props.specs && (
-                      <div className="space-y-1 py-2 border-t border-slate-100 text-xs text-slate-600">
-                        {node.props.specs.map((s: string, idx: number) => (
-                          <div key={idx} className="flex items-center gap-1.5">
-                            <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                            <span>{s}</span>
-                          </div>
-                        ))}
+                    <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span
+                            style={{
+                              backgroundColor: withAlpha(theme.colors.primary, '18'),
+                              color: theme.colors.primary,
+                            }}
+                            className="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
+                          >
+                            {node.props.badge || 'حصري'}
+                          </span>
+                          <span
+                            style={{ color: theme.colors.primary }}
+                            className="text-base font-extrabold font-mono"
+                          >
+                            {node.props.price}
+                          </span>
+                        </div>
+                        <h3 className="text-base font-bold text-slate-900 leading-snug">
+                          {node.props.title}
+                        </h3>
                       </div>
-                    )}
 
-                    <div className="grid grid-cols-2 gap-2 pt-2">
-                      {!hideBuyBtn && (
+                      {node.props.specs && (
+                        <div className="space-y-1 py-2 border-t border-slate-100 text-xs text-slate-600">
+                          {node.props.specs.map((s: string, idx: number) => (
+                            <div key={idx} className="flex items-center gap-1.5">
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              <span>{s}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-2 pt-2">
+                        {!hideBuyBtn && (
+                          <a
+                            href={orderHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="py-2.5 px-3 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 active:scale-98"
+                            style={{ backgroundColor: theme.colors.primary }}
+                          >
+                            {buyBtnIcon === 'ShoppingCart' ? (
+                              <ShoppingCart className="w-3.5 h-3.5" />
+                            ) : buyBtnIcon === 'Zap' ? (
+                              <Zap className="w-3.5 h-3.5" />
+                            ) : buyBtnIcon === 'Sparkles' ? (
+                              <Sparkles className="w-3.5 h-3.5" />
+                            ) : buyBtnIcon === 'Tag' ? (
+                              <Tag className="w-3.5 h-3.5" />
+                            ) : (
+                              <ShoppingBag className="w-3.5 h-3.5" />
+                            )}
+                            <span>{buyBtnText}</span>
+                          </a>
+                        )}
+
                         <a
-                          href={orderHref}
+                          href={waLink('مرحبًا، أريد الاستفسار والحجز') || '#'}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="py-2.5 px-3 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 active:scale-98"
-                          style={{ backgroundColor: theme.colors.primary }}
+                          style={{
+                            backgroundColor: theme.colors.secondary || '#0f172a',
+                            borderRadius: theme.radius.lg || '10px',
+                          }}
+                          className={`py-2.5 px-3 text-white font-bold text-xs shadow-xs transition-all hover:opacity-90 active:scale-98 text-center ${hideBuyBtn ? 'col-span-2' : ''}`}
                         >
-                          {buyBtnIcon === 'ShoppingCart' ? (
-                            <ShoppingCart className="w-3.5 h-3.5" />
-                          ) : buyBtnIcon === 'Zap' ? (
-                            <Zap className="w-3.5 h-3.5" />
-                          ) : buyBtnIcon === 'Sparkles' ? (
-                            <Sparkles className="w-3.5 h-3.5" />
-                          ) : buyBtnIcon === 'Tag' ? (
-                            <Tag className="w-3.5 h-3.5" />
-                          ) : (
-                            <ShoppingBag className="w-3.5 h-3.5" />
-                          )}
-                          <span>{buyBtnText}</span>
+                          {node.props.ctaText || 'طلب فحص'}
                         </a>
-                      )}
-
-                      <a
-                        href={waLink('مرحبًا، أريد الاستفسار والحجز') || '#'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                          backgroundColor: theme.colors.secondary || '#0f172a',
-                          borderRadius: theme.radius.lg || '10px',
-                        }}
-                        className={`py-2.5 px-3 text-white font-bold text-xs shadow-xs transition-all hover:opacity-90 active:scale-98 text-center ${hideBuyBtn ? 'col-span-2' : ''}`}
-                      >
-                        {node.props.ctaText || 'طلب فحص'}
-                      </a>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
 
             {/* BENTO FEATURE CARD */}
             {node.props.icon && (
@@ -955,7 +1046,10 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                 <h3 className="text-lg font-bold text-slate-900">{node.props.title}</h3>
                 <p className="text-sm text-slate-600 leading-relaxed">{node.props.description}</p>
                 {node.props.tag && (
-                  <span style={{ color: theme.colors.primary }} className="inline-block text-[11px] font-semibold">
+                  <span
+                    style={{ color: theme.colors.primary }}
+                    className="inline-block text-[11px] font-semibold"
+                  >
                     {node.props.tag} &larr;
                   </span>
                 )}
@@ -970,7 +1064,9 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                     <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
-                <p className="text-sm text-slate-700 leading-relaxed italic">"{node.props.quote}"</p>
+                <p className="text-sm text-slate-700 leading-relaxed italic">
+                  "{node.props.quote}"
+                </p>
                 <div className="pt-2 border-t border-slate-200/60">
                   <h4 className="text-xs font-bold text-slate-900">{node.props.author}</h4>
                   <span className="text-[11px] text-slate-500">{node.props.role}</span>
@@ -989,9 +1085,17 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
               >
                 <div className="flex items-center justify-between gap-2">
                   <h4 className="text-sm font-bold text-slate-900">{node.props.question}</h4>
-                  <span className="text-slate-400 p-1">{faqOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</span>
+                  <span className="text-slate-400 p-1">
+                    {faqOpen ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </span>
                 </div>
-                {faqOpen && <p className="text-xs text-slate-600 leading-relaxed">{node.props.answer}</p>}
+                {faqOpen && (
+                  <p className="text-xs text-slate-600 leading-relaxed">{node.props.answer}</p>
+                )}
               </div>
             )}
 
@@ -1000,14 +1104,20 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
               <div className="space-y-4">
                 {node.props.badge && (
                   <span
-                    style={{ backgroundColor: theme.colors.primary, borderRadius: theme.radius.full || '9999px' }}
+                    style={{
+                      backgroundColor: theme.colors.primary,
+                      borderRadius: theme.radius.full || '9999px',
+                    }}
                     className="inline-block text-[11px] font-bold text-white px-2.5 py-0.5"
                   >
                     {node.props.badge}
                   </span>
                 )}
                 <h3 className="text-lg font-bold">{node.props.title}</h3>
-                <div style={{ color: theme.colors.primary }} className="text-2xl font-extrabold font-mono">
+                <div
+                  style={{ color: theme.colors.primary }}
+                  className="text-2xl font-extrabold font-mono"
+                >
                   {node.props.price}
                 </div>
                 <div className="space-y-2 py-3 border-t border-slate-200/30 text-xs">
@@ -1023,7 +1133,10 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  style={{ backgroundColor: theme.colors.primary, borderRadius: theme.radius.lg || '10px' }}
+                  style={{
+                    backgroundColor: theme.colors.primary,
+                    borderRadius: theme.radius.lg || '10px',
+                  }}
                   className="block w-full py-2.5 text-white font-bold text-xs transition-all hover:opacity-90 active:scale-98 text-center"
                 >
                   {node.props.ctaText || 'اختيار الباقة'}
@@ -1053,16 +1166,23 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
               <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
                 {node.props.badge && (
                   <span
-                    style={{ backgroundColor: withAlpha(theme.colors.primary, '18'), color: theme.colors.primary }}
+                    style={{
+                      backgroundColor: withAlpha(theme.colors.primary, '18'),
+                      color: theme.colors.primary,
+                    }}
                     className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
                   >
                     {node.props.badge}
                   </span>
                 )}
                 {node.props.title && (
-                  <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">{node.props.title}</h2>
+                  <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">
+                    {node.props.title}
+                  </h2>
                 )}
-                {node.props.subtitle && <p className="text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>}
+                {node.props.subtitle && (
+                  <p className="text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>
+                )}
               </div>
             )}
 
@@ -1071,60 +1191,73 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                 {productsList.map((prod, idx) => {
                   const formattedPrice = formatPrice(prod.price);
                   const orderHref =
-                    waLink(`مرحبًا، أريد طلب: ${prod.title}${formattedPrice ? ` (${formattedPrice})` : ''}`) || '#';
+                    waLink(
+                      `مرحبًا، أريد طلب: ${prod.title}${formattedPrice ? ` (${formattedPrice})` : ''}`
+                    ) || '#';
 
                   return (
                     <div
                       key={prod.id || idx}
                       className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
                     >
-                      {prod.image && (() => {
-                        return (
-                          <div className="relative aspect-16/10 overflow-hidden bg-slate-100 group/prodimg">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={prod.image}
-                              alt={prod.title}
-                              className={`w-full h-full object-cover transition-all duration-500 ${
-                                prod.hoverImage ? 'group-hover/prodimg:opacity-0 group-hover/prodimg:scale-105' : 'group-hover:scale-105'
-                              }`}
-                              loading="lazy"
-                            />
-                            {prod.hoverImage && (
-                              /* eslint-disable-next-line @next/next/no-img-element */
+                      {prod.image &&
+                        (() => {
+                          return (
+                            <div className="relative aspect-16/10 overflow-hidden bg-slate-100 group/prodimg">
                               <img
-                                src={prod.hoverImage}
-                                alt={`${prod.title} - صورة بديلة`}
-                                className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover/prodimg:opacity-100 group-hover/prodimg:scale-105 transition-all duration-500 pointer-events-none"
+                                src={prod.image}
+                                alt={prod.title}
+                                className={`w-full h-full object-cover transition-all duration-500 ${
+                                  prod.hoverImage
+                                    ? 'group-hover/prodimg:opacity-0 group-hover/prodimg:scale-105'
+                                    : 'group-hover:scale-105'
+                                }`}
                                 loading="lazy"
                               />
-                            )}
-                            {prod.badge && (
-                              <span className="absolute top-3 right-3 bg-slate-900/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-xs z-10">
-                                {prod.badge}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })()}
+                              {prod.hoverImage && (
+                                <img
+                                  src={prod.hoverImage}
+                                  alt={`${prod.title} - صورة بديلة`}
+                                  className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover/prodimg:opacity-100 group-hover/prodimg:scale-105 transition-all duration-500 pointer-events-none"
+                                  loading="lazy"
+                                />
+                              )}
+                              {prod.badge && (
+                                <span className="absolute top-3 right-3 bg-slate-900/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-xs z-10">
+                                  {prod.badge}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                         <div className="space-y-1.5">
                           <div className="flex items-baseline justify-between gap-2">
-                            <h3 className="text-base font-bold text-slate-900 line-clamp-1">{prod.title}</h3>
-                            <span style={{ color: theme.colors.primary }} className="text-base font-extrabold font-mono shrink-0">
+                            <h3 className="text-base font-bold text-slate-900 line-clamp-1">
+                              {prod.title}
+                            </h3>
+                            <span
+                              style={{ color: theme.colors.primary }}
+                              className="text-base font-extrabold font-mono shrink-0"
+                            >
                               {formattedPrice}
                             </span>
                           </div>
                           {prod.description && (
-                            <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{prod.description}</p>
+                            <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                              {prod.description}
+                            </p>
                           )}
                         </div>
 
                         {prod.specs && prod.specs.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 py-2 border-t border-slate-100">
                             {prod.specs.map((spec, sIdx) => (
-                              <span key={sIdx} className="text-[10px] bg-slate-50 text-slate-600 px-2 py-0.5 rounded-md font-medium border border-slate-100">
+                              <span
+                                key={sIdx}
+                                className="text-[10px] bg-slate-50 text-slate-600 px-2 py-0.5 rounded-md font-medium border border-slate-100"
+                              >
                                 {spec}
                               </span>
                             ))}
@@ -1136,7 +1269,10 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                             href={orderHref}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{ backgroundColor: theme.colors.primary, borderRadius: theme.radius.lg || '10px' }}
+                            style={{
+                              backgroundColor: theme.colors.primary,
+                              borderRadius: theme.radius.lg || '10px',
+                            }}
                             className="py-2.5 px-3 text-white font-bold text-xs shadow-xs transition-all hover:opacity-95 flex items-center justify-center gap-1.5 active:scale-98"
                           >
                             <ShoppingBag className="w-3.5 h-3.5" />
@@ -1160,7 +1296,9 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             )}
 
             {productsList.length === 0 && (
-              <div className="text-center py-14 text-slate-400 font-bold">لا توجد منتجات متاحة حالياً</div>
+              <div className="text-center py-14 text-slate-400 font-bold">
+                لا توجد منتجات متاحة حالياً
+              </div>
             )}
 
             {renderChildren()}
@@ -1179,16 +1317,23 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
               <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
                 {node.props.badge && (
                   <span
-                    style={{ backgroundColor: withAlpha(theme.colors.primary, '18'), color: theme.colors.primary }}
+                    style={{
+                      backgroundColor: withAlpha(theme.colors.primary, '18'),
+                      color: theme.colors.primary,
+                    }}
                     className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
                   >
                     {node.props.badge}
                   </span>
                 )}
                 {node.props.title && (
-                  <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">{node.props.title}</h2>
+                  <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">
+                    {node.props.title}
+                  </h2>
                 )}
-                {node.props.subtitle && <p className="text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>}
+                {node.props.subtitle && (
+                  <p className="text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>
+                )}
               </div>
             )}
 
@@ -1200,11 +1345,16 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                     <div
                       key={tier.id || idx}
                       className={`bg-white rounded-2xl border p-6 flex flex-col justify-between relative transition-all duration-300 ${
-                        isPopular
-                          ? 'shadow-xl z-10'
-                          : 'border-slate-200 shadow-sm hover:shadow-md'
+                        isPopular ? 'shadow-xl z-10' : 'border-slate-200 shadow-sm hover:shadow-md'
                       }`}
-                      style={isPopular ? { borderColor: theme.colors.primary, boxShadow: `0 0 0 2px ${withAlpha(theme.colors.primary, '30')}` } : undefined}
+                      style={
+                        isPopular
+                          ? {
+                              borderColor: theme.colors.primary,
+                              boxShadow: `0 0 0 2px ${withAlpha(theme.colors.primary, '30')}`,
+                            }
+                          : undefined
+                      }
                     >
                       {tier.badge && (
                         <span
@@ -1218,14 +1368,23 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                       <div className="space-y-4">
                         <div>
                           <h3 className="text-lg font-bold text-slate-900">{tier.title}</h3>
-                          {tier.description && <p className="text-xs text-slate-500 mt-1">{tier.description}</p>}
+                          {tier.description && (
+                            <p className="text-xs text-slate-500 mt-1">{tier.description}</p>
+                          )}
                         </div>
 
                         <div className="flex items-baseline gap-1 py-2">
-                          <span style={{ color: theme.colors.primary }} className="text-3xl font-black font-mono">
+                          <span
+                            style={{ color: theme.colors.primary }}
+                            className="text-3xl font-black font-mono"
+                          >
                             {tier.price}
                           </span>
-                          {tier.period && <span className="text-xs text-slate-500 font-medium">/{tier.period}</span>}
+                          {tier.period && (
+                            <span className="text-xs text-slate-500 font-medium">
+                              /{tier.period}
+                            </span>
+                          )}
                         </div>
 
                         {tier.features && (
@@ -1274,16 +1433,23 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
               <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
                 {node.props.badge && (
                   <span
-                    style={{ backgroundColor: withAlpha(theme.colors.primary, '18'), color: theme.colors.primary }}
+                    style={{
+                      backgroundColor: withAlpha(theme.colors.primary, '18'),
+                      color: theme.colors.primary,
+                    }}
                     className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
                   >
                     {node.props.badge}
                   </span>
                 )}
                 {node.props.title && (
-                  <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">{node.props.title}</h2>
+                  <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">
+                    {node.props.title}
+                  </h2>
                 )}
-                {node.props.subtitle && <p className="text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>}
+                {node.props.subtitle && (
+                  <p className="text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>
+                )}
               </div>
             )}
 
@@ -1295,14 +1461,19 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                     className="p-6 bg-white rounded-2xl border border-slate-200 hover:shadow-lg transition-all duration-300 space-y-3 flex flex-col justify-between"
                   >
                     <div
-                      style={{ backgroundColor: withAlpha(theme.colors.primary, '15'), color: theme.colors.primary }}
+                      style={{
+                        backgroundColor: withAlpha(theme.colors.primary, '15'),
+                        color: theme.colors.primary,
+                      }}
                       className="w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0"
                     >
                       {feat.icon ? <ShieldCheck className="w-6 h-6" /> : <span>⭐</span>}
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-slate-900">{feat.title}</h3>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">{feat.description}</p>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        {feat.description}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -1345,7 +1516,9 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                 </h1>
 
                 {node.props.description && (
-                  <p className="text-xs sm:text-base text-slate-600 leading-relaxed max-w-2xl">{node.props.description}</p>
+                  <p className="text-xs sm:text-base text-slate-600 leading-relaxed max-w-2xl">
+                    {node.props.description}
+                  </p>
                 )}
 
                 <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 pt-2">
@@ -1355,11 +1528,17 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                         e.stopPropagation();
                         handleInteraction(
                           e,
-                          { ...node, props: { ...node.props, url: node.props.primaryCtaLink || '#items' } },
+                          {
+                            ...node,
+                            props: { ...node.props, url: node.props.primaryCtaLink || '#items' },
+                          },
                           ctx
                         );
                       }}
-                      style={{ backgroundColor: primaryColor, borderRadius: theme.radius.lg || '12px' }}
+                      style={{
+                        backgroundColor: primaryColor,
+                        borderRadius: theme.radius.lg || '12px',
+                      }}
                       className="px-5 sm:px-7 py-3 text-white font-bold text-xs sm:text-sm shadow-md hover:opacity-95 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0"
                     >
                       <span>{node.props.primaryCtaText}</span>
@@ -1395,10 +1574,15 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                   <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-6 border-t border-slate-200/80">
                     {heroStats.map((stat: any, sIdx: number) => (
                       <div key={sIdx} className="space-y-0.5">
-                        <div style={{ color: primaryColor }} className="text-base sm:text-2xl font-black font-mono">
+                        <div
+                          style={{ color: primaryColor }}
+                          className="text-base sm:text-2xl font-black font-mono"
+                        >
                           {stat.value}
                         </div>
-                        <div className="text-[11px] sm:text-xs text-slate-500 font-medium">{stat.label}</div>
+                        <div className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                          {stat.label}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1408,7 +1592,6 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
               {node.props.imageUrl && (
                 <div className="lg:col-span-5">
                   <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-100 bg-slate-100 aspect-4/3 sm:aspect-16/10 lg:aspect-square">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={node.props.imageUrl}
                       alt={node.props.title || 'صورة الواجهة'}
@@ -1446,10 +1629,14 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                   </span>
                 )}
                 {node.props.title && (
-                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">{node.props.title}</h2>
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
+                    {node.props.title}
+                  </h2>
                 )}
                 {node.props.subtitle && (
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    {node.props.subtitle}
+                  </p>
                 )}
               </div>
             )}
@@ -1459,7 +1646,9 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                 {itemsList.map((item, idx) => {
                   const formattedPrice = formatPrice(item.price);
                   const orderHref =
-                    waLink(`مرحبًا، أريد طلب: ${item.title}${formattedPrice ? ` (${formattedPrice})` : ''}`) || '#';
+                    waLink(
+                      `مرحبًا، أريد طلب: ${item.title}${formattedPrice ? ` (${formattedPrice})` : ''}`
+                    ) || '#';
 
                   return (
                     <div
@@ -1468,17 +1657,17 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                     >
                       {item.image && (
                         <div className="relative aspect-16/10 overflow-hidden bg-slate-100 group/img">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={item.image}
                             alt={item.title}
                             className={`w-full h-full object-cover transition-all duration-500 ${
-                              item.hoverImage ? 'group-hover/img:scale-105 group-hover/img:opacity-0' : 'group-hover/img:scale-105'
+                              item.hoverImage
+                                ? 'group-hover/img:scale-105 group-hover/img:opacity-0'
+                                : 'group-hover/img:scale-105'
                             }`}
                             loading="lazy"
                           />
                           {item.hoverImage && (
-                            /* eslint-disable-next-line @next/next/no-img-element */
                             <img
                               src={item.hoverImage}
                               alt={`${item.title} - صورة إضافية`}
@@ -1497,13 +1686,20 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                       <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
                         <div className="space-y-1">
                           <div className="flex items-baseline justify-between gap-2">
-                            <h3 className="text-sm sm:text-base font-bold text-slate-900 line-clamp-1">{item.title}</h3>
-                            <span style={{ color: primaryColor }} className="text-sm sm:text-base font-extrabold font-mono shrink-0">
+                            <h3 className="text-sm sm:text-base font-bold text-slate-900 line-clamp-1">
+                              {item.title}
+                            </h3>
+                            <span
+                              style={{ color: primaryColor }}
+                              className="text-sm sm:text-base font-extrabold font-mono shrink-0"
+                            >
                               {formattedPrice}
                             </span>
                           </div>
                           {item.description && (
-                            <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{item.description}</p>
+                            <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                              {item.description}
+                            </p>
                           )}
                         </div>
 
@@ -1512,7 +1708,10 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                             href={orderHref}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{ backgroundColor: primaryColor, borderRadius: theme.radius.md || '8px' }}
+                            style={{
+                              backgroundColor: primaryColor,
+                              borderRadius: theme.radius.md || '8px',
+                            }}
                             className="py-2 px-2.5 text-white font-bold text-xs shadow-xs hover:opacity-90 active:scale-98 transition-all flex items-center justify-center gap-1"
                           >
                             {node.props.btnIcon === 'ShoppingCart' ? (
@@ -1574,7 +1773,9 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                   {node.props.title || 'تواصل معنا واحجز موعدك'}
                 </h2>
                 {node.props.subtitle && (
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-xl mx-auto">{node.props.subtitle}</p>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-xl mx-auto">
+                    {node.props.subtitle}
+                  </p>
                 )}
               </div>
 
@@ -1585,7 +1786,8 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                   </div>
                   <h3 className="text-lg font-bold text-emerald-900">تم استلام طلبك!</h3>
                   <p className="text-xs sm:text-sm text-emerald-700 leading-relaxed">
-                    شكراً لتواصلك معنا. سنقوم بالرد عليك في أقرب وقت — أو أكمل إرسال التفاصيل عبر واتساب ليصلك رد أسرع.
+                    شكراً لتواصلك معنا. سنقوم بالرد عليك في أقرب وقت — أو أكمل إرسال التفاصيل عبر
+                    واتساب ليصلك رد أسرع.
                   </p>
                   <button
                     onClick={() => setFormSubmitted(false)}
@@ -1606,7 +1808,11 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                     {fieldsList.map((f: any, fIdx: number) => (
                       <div
                         key={f.name || fIdx}
-                        className={fIdx === fieldsList.length - 1 && fieldsList.length % 2 !== 0 ? 'sm:col-span-2' : ''}
+                        className={
+                          fIdx === fieldsList.length - 1 && fieldsList.length % 2 !== 0
+                            ? 'sm:col-span-2'
+                            : ''
+                        }
                       >
                         <label className="block text-xs font-bold text-slate-700 mb-1.5 text-right">
                           {f.label} {f.required && <span className="text-red-500">*</span>}
@@ -1616,7 +1822,9 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                           placeholder={f.placeholder || ''}
                           required={f.required}
                           value={inputValues[f.name] || ''}
-                          onChange={(e) => setInputValues({ ...inputValues, [f.name]: e.target.value })}
+                          onChange={(e) =>
+                            setInputValues({ ...inputValues, [f.name]: e.target.value })
+                          }
                           className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none transition-colors text-right"
                           style={{ borderRadius: theme.radius.md || '10px' }}
                         />
@@ -1626,7 +1834,10 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
 
                   <button
                     type="submit"
-                    style={{ backgroundColor: primaryColor, borderRadius: theme.radius.lg || '12px' }}
+                    style={{
+                      backgroundColor: primaryColor,
+                      borderRadius: theme.radius.lg || '12px',
+                    }}
                     className="w-full py-3 sm:py-3.5 text-white font-bold text-xs sm:text-sm shadow-md hover:opacity-95 active:scale-98 transition-all flex items-center justify-center gap-2"
                   >
                     <MessageCircle className="w-4 h-4" />
@@ -1645,7 +1856,8 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
     // ----------------------------------------------------------------- footer
     case 'footer': {
       const brandName = node.props.brandName || shop.name || website.name || 'المتجر الإلكتروني';
-      const description = node.props.description || 'منصة متكاملة للتجارة والخدمات بأعلى معايير الجودة.';
+      const description =
+        node.props.description || 'منصة متكاملة للتجارة والخدمات بأعلى معايير الجودة.';
 
       return (
         <footer id={node.id} style={getComputedStyles()} className="transition-all">
@@ -1657,7 +1869,9 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
               </div>
 
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">معلومات التواصل</h4>
+                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  معلومات التواصل
+                </h4>
                 <div className="space-y-1.5 text-xs text-slate-400">
                   {node.props.phone && (
                     <div className="flex items-center gap-2">
@@ -1681,7 +1895,9 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
               </div>
 
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">ضمان واعتماد</h4>
+                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  ضمان واعتماد
+                </h4>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   جميع المعاملات والخدمات مشمولة بضمان معتمد وفريق دعم فني متواجد على مدار الساعة.
                 </p>
@@ -1689,7 +1905,10 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             </div>
 
             <div className="pt-6 pb-2 text-center flex flex-col sm:flex-row items-center justify-center gap-2 text-xs text-slate-400 select-none border-t border-slate-800/60 mt-6">
-              <span>{node.props.copyright || `جميع الحقوق محفوظة © ${new Date().getFullYear()} ${brandName}`}</span>
+              <span>
+                {node.props.copyright ||
+                  `جميع الحقوق محفوظة © ${new Date().getFullYear()} ${brandName}`}
+              </span>
               <span className="hidden sm:inline opacity-30">•</span>
               <a
                 href="https://mnmknk.com"
@@ -1720,39 +1939,65 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             {(node.props.title || node.props.badge) && (
               <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
                 {node.props.badge && (
-                  <span style={{ backgroundColor: withAlpha(theme.colors.primary, '18'), color: theme.colors.primary }}
-                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block">
+                  <span
+                    style={{
+                      backgroundColor: withAlpha(theme.colors.primary, '18'),
+                      color: theme.colors.primary,
+                    }}
+                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
+                  >
                     {node.props.badge}
                   </span>
                 )}
-                {node.props.title && <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">{node.props.title}</h2>}
-                {node.props.subtitle && <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>}
+                {node.props.title && (
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
+                    {node.props.title}
+                  </h2>
+                )}
+                {node.props.subtitle && (
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    {node.props.subtitle}
+                  </p>
+                )}
               </div>
             )}
             {reviews.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {reviews.map((r: any, idx: number) => (
-                  <div key={r.id || idx} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all space-y-3 flex flex-col justify-between">
+                  <div
+                    key={r.id || idx}
+                    className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all space-y-3 flex flex-col justify-between"
+                  >
                     <div className="space-y-2">
                       <div className="flex gap-0.5 text-amber-400">
                         {[...Array(r.rating || 5)].map((_, i) => (
                           <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                         ))}
                       </div>
-                      <p className="text-sm text-slate-700 leading-relaxed italic">"{r.quote || r.text || r.comment}"</p>
+                      <p className="text-sm text-slate-700 leading-relaxed italic">
+                        "{r.quote || r.text || r.comment}"
+                      </p>
                     </div>
                     <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5">
                       {r.avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={r.avatar} alt={r.author} className="w-8 h-8 rounded-full object-cover shrink-0" loading="lazy" />
+                        <img
+                          src={r.avatar}
+                          alt={r.author}
+                          className="w-8 h-8 rounded-full object-cover shrink-0"
+                          loading="lazy"
+                        />
                       ) : (
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0"
-                          style={{ backgroundColor: theme.colors.primary }}>
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0"
+                          style={{ backgroundColor: theme.colors.primary }}
+                        >
                           {(r.author || 'ع')[0]}
                         </div>
                       )}
                       <div>
-                        <div className="text-xs font-bold text-slate-900">{r.author || 'عميل كريم'}</div>
+                        <div className="text-xs font-bold text-slate-900">
+                          {r.author || 'عميل كريم'}
+                        </div>
                         {r.role && <div className="text-[11px] text-slate-500">{r.role}</div>}
                       </div>
                     </div>
@@ -1777,23 +2022,42 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             {(node.props.title || node.props.badge) && (
               <div className="text-center mb-8 space-y-2 max-w-2xl mx-auto">
                 {node.props.badge && (
-                  <span style={{ backgroundColor: withAlpha(theme.colors.primary, '18'), color: theme.colors.primary }}
-                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block">
+                  <span
+                    style={{
+                      backgroundColor: withAlpha(theme.colors.primary, '18'),
+                      color: theme.colors.primary,
+                    }}
+                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
+                  >
                     {node.props.badge}
                   </span>
                 )}
-                {node.props.title && <h2 className="text-2xl sm:text-3xl font-black text-slate-900">{node.props.title}</h2>}
+                {node.props.title && (
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                    {node.props.title}
+                  </h2>
+                )}
               </div>
             )}
             {images.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                 {images.map((img: any, idx: number) => {
-                  const src = typeof img === 'string' ? img : (img.src || img.url || img.image);
-                  const alt = typeof img === 'string' ? `صورة ${idx + 1}` : (img.alt || img.title || `صورة ${idx + 1}`);
+                  const src = typeof img === 'string' ? img : img.src || img.url || img.image;
+                  const alt =
+                    typeof img === 'string'
+                      ? `صورة ${idx + 1}`
+                      : img.alt || img.title || `صورة ${idx + 1}`;
                   return (
-                    <div key={idx} className="aspect-square overflow-hidden rounded-xl bg-slate-100 group shadow-sm hover:shadow-lg transition-all">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={src} alt={alt} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                    <div
+                      key={idx}
+                      className="aspect-square overflow-hidden rounded-xl bg-slate-100 group shadow-sm hover:shadow-lg transition-all"
+                    >
+                      <img
+                        src={src}
+                        alt={alt}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
                     </div>
                   );
                 })}
@@ -1816,25 +2080,48 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             {(node.props.title || node.props.badge) && (
               <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
                 {node.props.badge && (
-                  <span style={{ backgroundColor: withAlpha(theme.colors.primary, '18'), color: theme.colors.primary }}
-                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block">
+                  <span
+                    style={{
+                      backgroundColor: withAlpha(theme.colors.primary, '18'),
+                      color: theme.colors.primary,
+                    }}
+                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
+                  >
                     {node.props.badge}
                   </span>
                 )}
-                {node.props.title && <h2 className="text-2xl sm:text-3xl font-black text-slate-900">{node.props.title}</h2>}
-                {node.props.subtitle && <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>}
+                {node.props.title && (
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                    {node.props.title}
+                  </h2>
+                )}
+                {node.props.subtitle && (
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    {node.props.subtitle}
+                  </p>
+                )}
               </div>
             )}
             {members.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
                 {members.map((m: any, idx: number) => (
-                  <div key={m.id || idx} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all text-center space-y-3">
+                  <div
+                    key={m.id || idx}
+                    className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all text-center space-y-3"
+                  >
                     {m.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={m.image} alt={m.name} className="w-20 h-20 rounded-full object-cover mx-auto shadow-md border-2" style={{ borderColor: withAlpha(theme.colors.primary, '40') }} loading="lazy" />
+                      <img
+                        src={m.image}
+                        alt={m.name}
+                        className="w-20 h-20 rounded-full object-cover mx-auto shadow-md border-2"
+                        style={{ borderColor: withAlpha(theme.colors.primary, '40') }}
+                        loading="lazy"
+                      />
                     ) : (
-                      <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center font-bold text-2xl text-white shadow-md"
-                        style={{ backgroundColor: theme.colors.primary }}>
+                      <div
+                        className="w-20 h-20 rounded-full mx-auto flex items-center justify-center font-bold text-2xl text-white shadow-md"
+                        style={{ backgroundColor: theme.colors.primary }}
+                      >
                         {(m.name || 'م')[0]}
                       </div>
                     )}
@@ -1861,30 +2148,58 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             {(node.props.title || node.props.badge) && (
               <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
                 {node.props.badge && (
-                  <span style={{ backgroundColor: withAlpha(theme.colors.primary, '18'), color: theme.colors.primary }}
-                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block">
+                  <span
+                    style={{
+                      backgroundColor: withAlpha(theme.colors.primary, '18'),
+                      color: theme.colors.primary,
+                    }}
+                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
+                  >
                     {node.props.badge}
                   </span>
                 )}
-                {node.props.title && <h2 className="text-2xl sm:text-3xl font-black text-slate-900">{node.props.title}</h2>}
-                {node.props.subtitle && <p className="text-xs sm:text-sm text-slate-600">{node.props.subtitle}</p>}
+                {node.props.title && (
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                    {node.props.title}
+                  </h2>
+                )}
+                {node.props.subtitle && (
+                  <p className="text-xs sm:text-sm text-slate-600">{node.props.subtitle}</p>
+                )}
               </div>
             )}
             {statItems.length > 0 && (
-              <div className={`grid gap-6 ${statItems.length <= 2 ? 'grid-cols-2' : statItems.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+              <div
+                className={`grid gap-6 ${statItems.length <= 2 ? 'grid-cols-2' : statItems.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}
+              >
                 {statItems.map((stat: any, idx: number) => (
-                  <div key={stat.id || idx} className="text-center space-y-1.5 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all">
+                  <div
+                    key={stat.id || idx}
+                    className="text-center space-y-1.5 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all"
+                  >
                     {stat.icon && (
-                      <div className="w-10 h-10 mx-auto rounded-xl flex items-center justify-center mb-2"
-                        style={{ backgroundColor: withAlpha(theme.colors.primary, '15'), color: theme.colors.primary }}>
+                      <div
+                        className="w-10 h-10 mx-auto rounded-xl flex items-center justify-center mb-2"
+                        style={{
+                          backgroundColor: withAlpha(theme.colors.primary, '15'),
+                          color: theme.colors.primary,
+                        }}
+                      >
                         <Sparkles className="w-5 h-5" />
                       </div>
                     )}
-                    <div className="text-2xl sm:text-4xl font-black font-mono" style={{ color: theme.colors.primary }}>
+                    <div
+                      className="text-2xl sm:text-4xl font-black font-mono"
+                      style={{ color: theme.colors.primary }}
+                    >
                       {stat.value}
                     </div>
-                    <div className="text-xs sm:text-sm text-slate-600 font-medium leading-snug">{stat.label}</div>
-                    {stat.description && <p className="text-[11px] text-slate-400">{stat.description}</p>}
+                    <div className="text-xs sm:text-sm text-slate-600 font-medium leading-snug">
+                      {stat.label}
+                    </div>
+                    {stat.description && (
+                      <p className="text-[11px] text-slate-400">{stat.description}</p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1904,19 +2219,39 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             {(node.props.title || node.props.badge) && (
               <div className="text-center mb-10 space-y-2">
                 {node.props.badge && (
-                  <span style={{ backgroundColor: withAlpha(theme.colors.primary, '18'), color: theme.colors.primary }}
-                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block">
+                  <span
+                    style={{
+                      backgroundColor: withAlpha(theme.colors.primary, '18'),
+                      color: theme.colors.primary,
+                    }}
+                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
+                  >
                     {node.props.badge}
                   </span>
                 )}
-                {node.props.title && <h2 className="text-2xl sm:text-3xl font-black text-slate-900">{node.props.title}</h2>}
-                {node.props.subtitle && <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>}
+                {node.props.title && (
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                    {node.props.title}
+                  </h2>
+                )}
+                {node.props.subtitle && (
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    {node.props.subtitle}
+                  </p>
+                )}
               </div>
             )}
             <div className="space-y-3">
-              {faqItems.length > 0 ? faqItems.map((item: any, idx: number) => (
-                <FaqItem key={item.id || idx} question={item.question} answer={item.answer} theme={theme} />
-              )) : null}
+              {faqItems.length > 0
+                ? faqItems.map((item: any, idx: number) => (
+                    <FaqItem
+                      key={item.id || idx}
+                      question={item.question}
+                      answer={item.answer}
+                      theme={theme}
+                    />
+                  ))
+                : null}
             </div>
             {renderChildren()}
           </div>
@@ -1937,47 +2272,86 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             {(node.props.title || node.props.badge) && (
               <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
                 {node.props.badge && (
-                  <span style={{ backgroundColor: withAlpha(theme.colors.primary, '18'), color: theme.colors.primary }}
-                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block">
+                  <span
+                    style={{
+                      backgroundColor: withAlpha(theme.colors.primary, '18'),
+                      color: theme.colors.primary,
+                    }}
+                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
+                  >
                     {node.props.badge}
                   </span>
                 )}
-                {node.props.title && <h2 className="text-2xl sm:text-3xl font-black text-slate-900">{node.props.title}</h2>}
-                {node.props.subtitle && <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>}
+                {node.props.title && (
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                    {node.props.title}
+                  </h2>
+                )}
+                {node.props.subtitle && (
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    {node.props.subtitle}
+                  </p>
+                )}
               </div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {phone && (
-                <a href={`tel:${phone}`} className="flex flex-col items-center gap-2 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-center group">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform"
-                    style={{ backgroundColor: withAlpha(theme.colors.primary, '15'), color: theme.colors.primary }}>
+                <a
+                  href={`tel:${phone}`}
+                  className="flex flex-col items-center gap-2 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-center group"
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform"
+                    style={{
+                      backgroundColor: withAlpha(theme.colors.primary, '15'),
+                      color: theme.colors.primary,
+                    }}
+                  >
                     <Phone className="w-5 h-5" />
                   </div>
-                  <div className="text-xs font-bold text-slate-700">{node.props.phoneLabel || 'اتصل بنا'}</div>
-                  <div className="text-sm font-extrabold text-slate-900" dir="ltr">{phone}</div>
+                  <div className="text-xs font-bold text-slate-700">
+                    {node.props.phoneLabel || 'اتصل بنا'}
+                  </div>
+                  <div className="text-sm font-extrabold text-slate-900" dir="ltr">
+                    {phone}
+                  </div>
                 </a>
               )}
               {whatsappHref && (
-                <a href={whatsappHref} target="_blank" rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-2 p-5 bg-emerald-50 rounded-2xl border border-emerald-200 shadow-sm hover:shadow-md transition-all text-center group">
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 p-5 bg-emerald-50 rounded-2xl border border-emerald-200 shadow-sm hover:shadow-md transition-all text-center group"
+                >
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform bg-emerald-100 text-emerald-600">
                     <MessageCircle className="w-5 h-5" />
                   </div>
-                  <div className="text-xs font-bold text-emerald-700">{node.props.whatsappLabel || 'واتساب'}</div>
-                  <div className="text-sm font-extrabold text-emerald-900" dir="ltr">{phone}</div>
+                  <div className="text-xs font-bold text-emerald-700">
+                    {node.props.whatsappLabel || 'واتساب'}
+                  </div>
+                  <div className="text-sm font-extrabold text-emerald-900" dir="ltr">
+                    {phone}
+                  </div>
                 </a>
               )}
               {(email || address) && (
                 <div className="flex flex-col gap-3">
                   {email && (
-                    <a href={`mailto:${email}`} className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
+                    <a
+                      href={`mailto:${email}`}
+                      className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all"
+                    >
                       <Mail className="w-4 h-4 shrink-0" style={{ color: theme.colors.primary }} />
                       <span className="text-xs text-slate-700 truncate">{email}</span>
                     </a>
                   )}
                   {address && (
                     <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-                      <MapPin className="w-4 h-4 shrink-0" style={{ color: theme.colors.primary }} />
+                      <MapPin
+                        className="w-4 h-4 shrink-0"
+                        style={{ color: theme.colors.primary }}
+                      />
                       <span className="text-xs text-slate-700">{address}</span>
                     </div>
                   )}
@@ -2000,13 +2374,26 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             {(node.props.title || node.props.badge) && (
               <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
                 {node.props.badge && (
-                  <span style={{ backgroundColor: withAlpha(theme.colors.primary, '18'), color: theme.colors.primary }}
-                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block">
+                  <span
+                    style={{
+                      backgroundColor: withAlpha(theme.colors.primary, '18'),
+                      color: theme.colors.primary,
+                    }}
+                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
+                  >
                     {node.props.badge}
                   </span>
                 )}
-                {node.props.title && <h2 className="text-2xl sm:text-3xl font-black text-slate-900">{node.props.title}</h2>}
-                {node.props.subtitle && <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>}
+                {node.props.title && (
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                    {node.props.title}
+                  </h2>
+                )}
+                {node.props.subtitle && (
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    {node.props.subtitle}
+                  </p>
+                )}
               </div>
             )}
             {servicesList.length > 0 && (
@@ -2014,24 +2401,54 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                 {servicesList.map((svc: any, idx: number) => {
                   const href = waLink(`مرحبًا، أريد الاستفسار عن خدمة: ${svc.title || ''}`) || '#';
                   return (
-                    <div key={svc.id || idx} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all space-y-4 flex flex-col group">
+                    <div
+                      key={svc.id || idx}
+                      className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all space-y-4 flex flex-col group"
+                    >
                       {svc.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={svc.image} alt={svc.title} className="w-full h-36 object-cover rounded-xl" loading="lazy" />
+                        <img
+                          src={svc.image}
+                          alt={svc.title}
+                          className="w-full h-36 object-cover rounded-xl"
+                          loading="lazy"
+                        />
                       ) : (
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center"
-                          style={{ backgroundColor: withAlpha(theme.colors.primary, '15'), color: theme.colors.primary }}>
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center"
+                          style={{
+                            backgroundColor: withAlpha(theme.colors.primary, '15'),
+                            color: theme.colors.primary,
+                          }}
+                        >
                           <Sparkles className="w-6 h-6" />
                         </div>
                       )}
                       <div className="flex-1">
                         <h3 className="text-base font-bold text-slate-900 mb-1">{svc.title}</h3>
-                        {svc.description && <p className="text-xs text-slate-500 leading-relaxed">{svc.description}</p>}
-                        {svc.price && <div className="mt-2 font-extrabold text-sm font-mono" style={{ color: theme.colors.primary }}>{svc.price}</div>}
+                        {svc.description && (
+                          <p className="text-xs text-slate-500 leading-relaxed">
+                            {svc.description}
+                          </p>
+                        )}
+                        {svc.price && (
+                          <div
+                            className="mt-2 font-extrabold text-sm font-mono"
+                            style={{ color: theme.colors.primary }}
+                          >
+                            {svc.price}
+                          </div>
+                        )}
                       </div>
-                      <a href={href} target="_blank" rel="noopener noreferrer"
-                        style={{ backgroundColor: theme.colors.primary, borderRadius: theme.radius.lg }}
-                        className="block w-full py-2.5 text-white font-bold text-xs text-center hover:opacity-90 active:scale-98 transition-all">
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          backgroundColor: theme.colors.primary,
+                          borderRadius: theme.radius.lg,
+                        }}
+                        className="block w-full py-2.5 text-white font-bold text-xs text-center hover:opacity-90 active:scale-98 transition-all"
+                      >
                         {svc.ctaText || 'احجز الآن'}
                       </a>
                     </div>
@@ -2059,7 +2476,10 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
           ) : dividerStyle === 'wave' ? (
             <div className="py-4 text-center text-slate-200 text-xl select-none">〰〰〰</div>
           ) : (
-            <hr className="border-slate-200" style={{ borderColor: node.props.color || undefined }} />
+            <hr
+              className="border-slate-200"
+              style={{ borderColor: node.props.color || undefined }}
+            />
           )}
         </div>
       );
@@ -2072,7 +2492,9 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
     // ----------------------------------------------------- whatsapp-float button
     case 'whatsapp-float':
     case 'whatsapp_button': {
-      const waFloatHref = waLink(node.props.message || `مرحبًا، أريد التواصل مع ${shop.name || 'المتجر'}`);
+      const waFloatHref = waLink(
+        node.props.message || `مرحبًا، أريد التواصل مع ${shop.name || 'المتجر'}`
+      );
       if (!waFloatHref) return null;
       return (
         <a
@@ -2092,26 +2514,39 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
     // ------------------------------------------------------------ trust-badges
     case 'trust-badges':
     case 'trust_badges': {
-      const badges = node.props.badges || node.props.items || [
-        { icon: 'Truck', label: 'توصيل سريع', sub: 'لجميع المحافظات' },
-        { icon: 'CreditCard', label: 'دفع عند الاستلام', sub: 'بدون دفع مسبق' },
-        { icon: 'ShieldCheck', label: 'ضمان الجودة', sub: 'استرداد مضمون' },
-        { icon: 'Star', label: 'تقييم ممتاز', sub: '+1000 عميل سعيد' },
-      ];
+      const badges = node.props.badges ||
+        node.props.items || [
+          { icon: 'Truck', label: 'توصيل سريع', sub: 'لجميع المحافظات' },
+          { icon: 'CreditCard', label: 'دفع عند الاستلام', sub: 'بدون دفع مسبق' },
+          { icon: 'ShieldCheck', label: 'ضمان الجودة', sub: 'استرداد مضمون' },
+          { icon: 'Star', label: 'تقييم ممتاز', sub: '+1000 عميل سعيد' },
+        ];
       return (
         <section id={node.id} style={getComputedStyles()} className="transition-all">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-            <div className={`grid gap-4 ${badges.length <= 2 ? 'grid-cols-2' : badges.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+            <div
+              className={`grid gap-4 ${badges.length <= 2 ? 'grid-cols-2' : badges.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}
+            >
               {badges.map((b: any, idx: number) => (
-                <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-xl border border-slate-200 shadow-xs hover:shadow-sm transition-all text-center sm:text-right">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shrink-0 flex items-center justify-center"
-                    style={{ backgroundColor: withAlpha(theme.colors.primary, '15'), color: theme.colors.primary }}>
+                <div
+                  key={idx}
+                  className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-xl border border-slate-200 shadow-xs hover:shadow-sm transition-all text-center sm:text-right"
+                >
+                  <div
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shrink-0 flex items-center justify-center"
+                    style={{
+                      backgroundColor: withAlpha(theme.colors.primary, '15'),
+                      color: theme.colors.primary,
+                    }}
+                  >
                     {b.icon === 'Truck' && <Truck className="w-5 h-5" />}
                     {b.icon === 'CreditCard' && <CreditCard className="w-5 h-5" />}
                     {b.icon === 'ShieldCheck' && <ShieldCheck className="w-5 h-5" />}
                     {b.icon === 'Star' && <Star className="w-5 h-5" />}
                     {b.icon === 'Package' && <Package className="w-5 h-5" />}
-                    {!['Truck', 'CreditCard', 'ShieldCheck', 'Star', 'Package'].includes(b.icon) && <CheckCircle className="w-5 h-5" />}
+                    {!['Truck', 'CreditCard', 'ShieldCheck', 'Star', 'Package'].includes(
+                      b.icon
+                    ) && <CheckCircle className="w-5 h-5" />}
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-900">{b.label}</div>
@@ -2136,20 +2571,33 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             {(node.props.title || node.props.badge) && (
               <div className="text-center mb-8 space-y-2 max-w-2xl mx-auto">
                 {node.props.badge && (
-                  <span style={{ backgroundColor: withAlpha(theme.colors.primary, '18'), color: theme.colors.primary }}
-                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block">
+                  <span
+                    style={{
+                      backgroundColor: withAlpha(theme.colors.primary, '18'),
+                      color: theme.colors.primary,
+                    }}
+                    className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
+                  >
                     {node.props.badge}
                   </span>
                 )}
-                {node.props.title && <h2 className="text-2xl sm:text-3xl font-black text-slate-900">{node.props.title}</h2>}
+                {node.props.title && (
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                    {node.props.title}
+                  </h2>
+                )}
               </div>
             )}
             <div className="grid grid-cols-2 gap-3 sm:gap-5">
               {beforeImg && (
                 <div className="space-y-2">
                   <div className="relative rounded-2xl overflow-hidden aspect-square bg-slate-100 shadow-md">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={beforeImg} alt="قبل" className="w-full h-full object-cover" loading="lazy" />
+                    <img
+                      src={beforeImg}
+                      alt="قبل"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
                     <div className="absolute top-3 right-3 bg-slate-900/80 text-white text-xs font-bold px-3 py-1 rounded-full backdrop-blur-xs">
                       {node.props.beforeLabel || 'قبل'}
                     </div>
@@ -2159,10 +2607,16 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
               {afterImg && (
                 <div className="space-y-2">
                   <div className="relative rounded-2xl overflow-hidden aspect-square bg-slate-100 shadow-md">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={afterImg} alt="بعد" className="w-full h-full object-cover" loading="lazy" />
-                    <div className="absolute top-3 right-3 text-white text-xs font-bold px-3 py-1 rounded-full"
-                      style={{ backgroundColor: theme.colors.primary }}>
+                    <img
+                      src={afterImg}
+                      alt="بعد"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <div
+                      className="absolute top-3 right-3 text-white text-xs font-bold px-3 py-1 rounded-full"
+                      style={{ backgroundColor: theme.colors.primary }}
+                    >
                       {node.props.afterLabel || 'بعد'}
                     </div>
                   </div>
@@ -2193,7 +2647,12 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
           {node.props.emoji && <span className="mr-1.5">{node.props.emoji}</span>}
           {node.props.text || node.props.title || '🎉 عرض خاص! احجز الآن واحصل على خصم'}
           {node.props.link && (
-            <a href={node.props.link} className="underline mr-2 hover:opacity-80 transition" target="_blank" rel="noopener noreferrer">
+            <a
+              href={node.props.link}
+              className="underline mr-2 hover:opacity-80 transition"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               {node.props.linkText || 'تفاصيل'}
             </a>
           )}
@@ -2210,12 +2669,19 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
               <span
                 className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"
-                style={{ backgroundColor: withAlpha(theme.colors.primary, '12'), color: theme.colors.primary }}
+                style={{
+                  backgroundColor: withAlpha(theme.colors.primary, '12'),
+                  color: theme.colors.primary,
+                }}
               >
                 {node.props.badge}
               </span>
-              <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">{node.props.title}</h2>
-              {node.props.subtitle && <p className="text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>}
+              <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">
+                {node.props.title}
+              </h2>
+              {node.props.subtitle && (
+                <p className="text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>
+              )}
             </div>
           )}
 
@@ -2226,11 +2692,15 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
             </div>
           )}
 
-          {node.props.copyright && <div className="w-full text-center text-xs text-slate-500">{node.props.copyright}</div>}
+          {node.props.copyright && (
+            <div className="w-full text-center text-xs text-slate-500">{node.props.copyright}</div>
+          )}
 
           {node.props.heading && node.props.links && (
             <div className="space-y-2.5">
-              <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">{node.props.heading}</h4>
+              <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                {node.props.heading}
+              </h4>
               <div className="flex flex-col gap-1.5 text-xs text-slate-400">
                 {node.props.links.map((link: string, i: number) => (
                   <span
@@ -2250,7 +2720,9 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
 
           {node.props.heading && node.props.info && (
             <div className="space-y-2.5">
-              <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">{node.props.heading}</h4>
+              <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                {node.props.heading}
+              </h4>
               <div className="flex flex-col gap-1.5 text-xs text-slate-400">
                 {node.props.info.map((inf: string, i: number) => (
                   <span key={i}>{inf}</span>

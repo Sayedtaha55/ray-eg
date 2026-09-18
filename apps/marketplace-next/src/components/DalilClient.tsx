@@ -49,11 +49,16 @@ export function DalilClient({ shops }: DalilClientProps) {
           <Filter className="w-4 h-4" />
           فلترة
           {activeFilters > 0 && (
-            <span className="w-5 h-5 rounded-full bg-brand-cyan text-white text-[10px] flex items-center justify-center">{activeFilters}</span>
+            <span className="w-5 h-5 rounded-full bg-brand-cyan text-white text-[10px] flex items-center justify-center">
+              {activeFilters}
+            </span>
           )}
         </button>
         {activeFilters > 0 && (
-          <button onClick={clearFilters} className="flex items-center gap-1 text-xs font-bold text-red-400 hover:text-red-500">
+          <button
+            onClick={clearFilters}
+            className="flex items-center gap-1 text-xs font-bold text-red-400 hover:text-red-500"
+          >
             <X className="w-3 h-3" />
             مسح الفلاتر
           </button>
@@ -104,8 +109,14 @@ export function DalilClient({ shops }: DalilClientProps) {
                   onClick={() => setActivity(a.id)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${activity === a.id ? 'bg-brand-black text-white' : 'bg-white dark:bg-slate-700 hover:bg-slate-100'}`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={a.image} alt="" width={16} height={16} className="w-4 h-4 rounded object-cover" loading="lazy" />
+                  <img
+                    src={a.image}
+                    alt=""
+                    width={16}
+                    height={16}
+                    className="w-4 h-4 rounded object-cover"
+                    loading="lazy"
+                  />
                   {a.label.ar}
                 </button>
               ))}
@@ -122,7 +133,9 @@ export function DalilClient({ shops }: DalilClientProps) {
                   onClick={() => setMinRating(r)}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${minRating === r ? 'bg-brand-black text-white' : 'bg-white dark:bg-slate-700 hover:bg-slate-100'}`}
                 >
-                  {r === 0 ? 'الكل' : (
+                  {r === 0 ? (
+                    'الكل'
+                  ) : (
                     <>
                       <Star className="w-3 h-3 fill-current text-yellow-400" />
                       {r}+
@@ -138,14 +151,19 @@ export function DalilClient({ shops }: DalilClientProps) {
       {/* Results */}
       {filtered.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-          {filtered.map((shop) => <ShopCard key={shop.id} shop={shop} />)}
+          {filtered.map((shop) => (
+            <ShopCard key={shop.id} shop={shop} />
+          ))}
         </div>
       ) : (
         <div className="text-center py-20">
           <Store className="w-16 h-16 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
           <p className="text-slate-400 font-black text-lg">لا توجد متاجر مطابقة</p>
           {activeFilters > 0 && (
-            <button onClick={clearFilters} className="mt-4 text-brand-cyan font-black text-sm hover:underline">
+            <button
+              onClick={clearFilters}
+              className="mt-4 text-brand-cyan font-black text-sm hover:underline"
+            >
               مسح الفلاتر
             </button>
           )}

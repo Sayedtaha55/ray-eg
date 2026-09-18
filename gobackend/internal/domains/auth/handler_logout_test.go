@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -32,5 +33,7 @@ func TestLogoutClearsCookieAndReturnsSuccess(t *testing.T) {
 
 	setCookie := resp.Header.Get("Set-Cookie")
 	assert.Contains(t, setCookie, "ray_session=")
-	assert.Contains(t, setCookie, "Expires=Thu, 01 Jan 1970")
+	// Fiber serializes the expiry attribute with a lowercase key ("expires=");
+	// compare case-insensitively so the assertion matches either casing.
+	assert.Contains(t, strings.ToLower(setCookie), "expires=thu, 01 jan 1970")
 }
