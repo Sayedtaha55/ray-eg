@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ChevronRight, Hammer, HelpCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, Hammer, HelpCircle, RefreshCw } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 /* ============================================================
@@ -29,17 +29,53 @@ export default function AnalyticsPlaceholder({
   related = [],
 }: AnalyticsPlaceholderProps) {
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-[1400px] mx-auto">
-      {/* ===== Header ===== */}
-      <div className="flex items-center gap-4">
-        <div
-          className={`w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 ${accent}`}
-        >
-          <Icon size={24} />
+    <div
+      className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-[1400px] mx-auto"
+      style={{ fontFamily: "'Cairo','Tajawal',system-ui,sans-serif" }}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 ${accent}`}
+          >
+            <Icon size={20} />
+          </div>
+          <div>
+            <h1 className="text-xl font-black text-slate-900">{title}</h1>
+            <p className="text-xs text-slate-400 mt-1 font-semibold">{description}</p>
+          </div>
         </div>
-        <div className="text-right">
-          <h1 className="text-xl font-black text-slate-900">{title}</h1>
-          <p className="text-xs text-slate-400 mt-1 font-semibold">{description}</p>
+        <div className="flex gap-2">
+          <button className="h-9 px-3 rounded-full border border-slate-200 bg-white text-slate-600 text-xs font-bold flex items-center gap-1.5 hover:bg-slate-50">
+            <RefreshCw size={14} /> تحديث
+          </button>
+          <button className="h-9 px-3 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center gap-1.5">
+            <Download size={14} /> تصدير
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div className="px-3 py-2 flex flex-col sm:flex-row gap-2 sm:items-center justify-between border-b border-slate-100">
+          <div className="flex gap-1 overflow-x-auto">
+            <span className="h-8 px-3 rounded-full bg-slate-900 text-white text-[12px] font-bold flex items-center">
+              نظرة عامة
+            </span>
+            <span className="h-8 px-3 rounded-full text-slate-500 text-[12px] font-bold flex items-center">
+              التفاصيل
+            </span>
+          </div>
+          <button className="h-8 px-3 rounded-full border border-slate-200 text-slate-600 text-[12px] font-bold flex items-center gap-1.5">
+            آخر 30 يومًا <ChevronDown size={14} />
+          </button>
+        </div>
+        <div className="p-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {['المؤشر الرئيسي', 'مقارنة الفترة', 'الحالة'].map((label) => (
+            <div key={label} className="rounded-xl border border-slate-100 p-4">
+              <span className="text-[11px] font-bold text-slate-400">{label}</span>
+              <div className="mt-3 h-6 w-20 rounded bg-slate-100 animate-pulse" />
+            </div>
+          ))}
         </div>
       </div>
 

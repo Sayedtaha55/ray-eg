@@ -28,6 +28,7 @@ import {
   Laptop,
 } from 'lucide-react';
 import { all85ActivitiesMeta } from '@/components/website-builder/data/allBusinessCatalog';
+import { apiRequest } from '@/lib/auth';
 
 export interface ThemeItem {
   id: string;
@@ -87,7 +88,6 @@ const SITE_TO_PRESET_MAP: Record<string, string> = {
   site_saudi_modern: 'saudiModern',
 };
 
-
 const FLAGSHIP_THEMES: ThemeItem[] = [
   {
     id: 'site_restaurant_cafe',
@@ -116,7 +116,8 @@ const FLAGSHIP_THEMES: ThemeItem[] = [
     category: 'الأزياء والملابس',
     categoryNameAr: 'متاجر وأزياء',
     sectorId: 'retail',
-    descriptionAr: 'واجهة فاخرة للأزياء والملابس، فلاتر حسب المقاس واللون، وعرض صور عالية الدقة مع شراء سريع.',
+    descriptionAr:
+      'واجهة فاخرة للأزياء والملابس، فلاتر حسب المقاس واللون، وعرض صور عالية الدقة مع شراء سريع.',
     badge: 'الأكثر مبيعاً',
     badgeColor: 'bg-rose-100 text-rose-800 border-rose-200',
     primaryColor: '#E11D48',
@@ -136,7 +137,8 @@ const FLAGSHIP_THEMES: ThemeItem[] = [
     category: 'العيادات والمراكز الطبية',
     categoryNameAr: 'عيادات ومراكز طبية',
     sectorId: 'clinic',
-    descriptionAr: 'مخصص للعيادات والمراكز الصحية، حجز كشوفات واستشارات، تعريف بالأطباء ومواعيد العمل.',
+    descriptionAr:
+      'مخصص للعيادات والمراكز الصحية، حجز كشوفات واستشارات، تعريف بالأطباء ومواعيد العمل.',
     badge: 'متوافق مع الحجوزات',
     badgeColor: 'bg-teal-100 text-teal-800 border-teal-200',
     primaryColor: '#0D9488',
@@ -144,7 +146,12 @@ const FLAGSHIP_THEMES: ThemeItem[] = [
     accentColor: '#14B8A6',
     supportsBooking: true,
     supportsCatalog: false,
-    features: ['تقويم حجز كشوفات', 'دليل الأطباء والفريق', 'مواعيد العمل والعنوان', 'استشارات فورية'],
+    features: [
+      'تقويم حجز كشوفات',
+      'دليل الأطباء والفريق',
+      'مواعيد العمل والعنوان',
+      'استشارات فورية',
+    ],
     previewGradient: 'from-teal-600 via-cyan-600 to-teal-900',
     icon: '🩺',
     isFlagship: true,
@@ -156,7 +163,8 @@ const FLAGSHIP_THEMES: ThemeItem[] = [
     category: 'الصالونات والتجميل',
     categoryNameAr: 'صالونات وتجميل',
     sectorId: 'beauty',
-    descriptionAr: 'تصميم أنيق لصالونات التجميل والعناية، حجز باقات العرائس وجلسات السبا، ومعرض قبل وبعد.',
+    descriptionAr:
+      'تصميم أنيق لصالونات التجميل والعناية، حجز باقات العرائس وجلسات السبا، ومعرض قبل وبعد.',
     badge: 'تصميم ناعم',
     badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
     primaryColor: '#9333EA',
@@ -176,7 +184,8 @@ const FLAGSHIP_THEMES: ThemeItem[] = [
     category: 'الإلكترونيات والتقنية',
     categoryNameAr: 'إلكترونيات وتقنية',
     sectorId: 'retail',
-    descriptionAr: 'قالب إلكترونيات وأجهزة ذكية متطور، مقارنة المواصفات الفنية، وبنرات عروض وخصومات محدودة.',
+    descriptionAr:
+      'قالب إلكترونيات وأجهزة ذكية متطور، مقارنة المواصفات الفنية، وبنرات عروض وخصومات محدودة.',
     badge: 'عصري وداكن',
     badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
     primaryColor: '#0284C7',
@@ -216,7 +225,8 @@ const FLAGSHIP_THEMES: ThemeItem[] = [
     category: 'المحاماة والاستشارات',
     categoryNameAr: 'خدمات واستشارات',
     sectorId: 'services',
-    descriptionAr: 'قالب رسمي للشركات والمكاتب الاستشارية، طلب استشارة، استعراض فريق الخبراء والإنجازات.',
+    descriptionAr:
+      'قالب رسمي للشركات والمكاتب الاستشارية، طلب استشارة، استعراض فريق الخبراء والإنجازات.',
     badge: 'رسمي واحترافي',
     badgeColor: 'bg-slate-100 text-slate-800 border-slate-200',
     primaryColor: '#334155',
@@ -234,25 +244,105 @@ const FLAGSHIP_THEMES: ThemeItem[] = [
 // 2. Classify Sector from Category and Name
 function classifySector(category: string, name: string): { sectorId: string; sectorLabel: string } {
   const text = `${category} ${name}`.toLowerCase();
-  if (text.includes('مطعم') || text.includes('كافيه') || text.includes('مقهى') || text.includes('حلويات') || text.includes('مخبز') || text.includes('شاورما') || text.includes('برجر') || text.includes('عصائر') || text.includes('أغذية')) {
+  if (
+    text.includes('مطعم') ||
+    text.includes('كافيه') ||
+    text.includes('مقهى') ||
+    text.includes('حلويات') ||
+    text.includes('مخبز') ||
+    text.includes('شاورما') ||
+    text.includes('برجر') ||
+    text.includes('عصائر') ||
+    text.includes('أغذية')
+  ) {
     return { sectorId: 'food', sectorLabel: 'مطاعم ومقاهي' };
   }
-  if (text.includes('عياد') || text.includes('طب') || text.includes('أسنان') || text.includes('صيدل') || text.includes('مستشفى') || text.includes('علاج') || text.includes('بصريات') || text.includes('مختبر') || text.includes('جلدية')) {
+  if (
+    text.includes('عياد') ||
+    text.includes('طب') ||
+    text.includes('أسنان') ||
+    text.includes('صيدل') ||
+    text.includes('مستشفى') ||
+    text.includes('علاج') ||
+    text.includes('بصريات') ||
+    text.includes('مختبر') ||
+    text.includes('جلدية')
+  ) {
     return { sectorId: 'clinic', sectorLabel: 'عيادات وصحة' };
   }
-  if (text.includes('تجميل') || text.includes('صالون') || text.includes('سبا') || text.includes('حلاق') || text.includes('عناية') || text.includes('مكياج') || text.includes('أظافر')) {
+  if (
+    text.includes('تجميل') ||
+    text.includes('صالون') ||
+    text.includes('سبا') ||
+    text.includes('حلاق') ||
+    text.includes('عناية') ||
+    text.includes('مكياج') ||
+    text.includes('أظافر')
+  ) {
     return { sectorId: 'beauty', sectorLabel: 'صالونات وتجميل' };
   }
-  if (text.includes('عقار') || text.includes('مقاولات') || text.includes('بناء') || text.includes('سيراميك') || text.includes('ديكور') || text.includes('أثاث') || text.includes('مطابخ') || text.includes('إنارة') || text.includes('رخام') || text.includes('دهانات') || text.includes('ستائر') || text.includes('تكييف') || text.includes('مصاعد') || text.includes('أبواب') || text.includes('حدائق') || text.includes('عوازل')) {
+  if (
+    text.includes('عقار') ||
+    text.includes('مقاولات') ||
+    text.includes('بناء') ||
+    text.includes('سيراميك') ||
+    text.includes('ديكور') ||
+    text.includes('أثاث') ||
+    text.includes('مطابخ') ||
+    text.includes('إنارة') ||
+    text.includes('رخام') ||
+    text.includes('دهانات') ||
+    text.includes('ستائر') ||
+    text.includes('تكييف') ||
+    text.includes('مصاعد') ||
+    text.includes('أبواب') ||
+    text.includes('حدائق') ||
+    text.includes('عوازل')
+  ) {
     return { sectorId: 'realestate', sectorLabel: 'عقارات ومقاولات وديكور' };
   }
-  if (text.includes('سيار') || text.includes('مركب') || text.includes('تأجير') || text.includes('صيانة سيارات') || text.includes('قطع غيار') || text.includes('إطارات') || text.includes('غسيل سيارات') || text.includes('سطحة') || text.includes('دراجات') || text.includes('معدات')) {
+  if (
+    text.includes('سيار') ||
+    text.includes('مركب') ||
+    text.includes('تأجير') ||
+    text.includes('صيانة سيارات') ||
+    text.includes('قطع غيار') ||
+    text.includes('إطارات') ||
+    text.includes('غسيل سيارات') ||
+    text.includes('سطحة') ||
+    text.includes('دراجات') ||
+    text.includes('معدات')
+  ) {
     return { sectorId: 'auto', sectorLabel: 'سيارات وصيانة ونقل' };
   }
-  if (text.includes('فندق') || text.includes('إقام') || text.includes('شقق مفروشة') || text.includes('سياح') || text.includes('سفر') || text.includes('منتجع') || text.includes('شاليه') || text.includes('طيران') || text.includes('حفلات') || text.includes('مناسبات')) {
+  if (
+    text.includes('فندق') ||
+    text.includes('إقام') ||
+    text.includes('شقق مفروشة') ||
+    text.includes('سياح') ||
+    text.includes('سفر') ||
+    text.includes('منتجع') ||
+    text.includes('شاليه') ||
+    text.includes('طيران') ||
+    text.includes('حفلات') ||
+    text.includes('مناسبات')
+  ) {
     return { sectorId: 'hotel', sectorLabel: 'فنادق وسياحة وفعاليات' };
   }
-  if (text.includes('محام') || text.includes('قانون') || text.includes('محاسب') || text.includes('استشار') || text.includes('تعليم') || text.includes('تدريب') || text.includes('ترجم') || text.includes('أمن') || text.includes('تنظيف') || text.includes('صيانة منزلية') || text.includes('لوجست') || text.includes('شحن')) {
+  if (
+    text.includes('محام') ||
+    text.includes('قانون') ||
+    text.includes('محاسب') ||
+    text.includes('استشار') ||
+    text.includes('تعليم') ||
+    text.includes('تدريب') ||
+    text.includes('ترجم') ||
+    text.includes('أمن') ||
+    text.includes('تنظيف') ||
+    text.includes('صيانة منزلية') ||
+    text.includes('لوجست') ||
+    text.includes('شحن')
+  ) {
     return { sectorId: 'services', sectorLabel: 'خدمات مهنية واستشارات' };
   }
   return { sectorId: 'retail', sectorLabel: 'متاجر وتجزئة' };
@@ -270,11 +360,15 @@ function getGradientByColor(color?: string, sectorId?: string): string {
 
   if (!color) return 'from-slate-800 via-slate-900 to-black';
   const c = color.toLowerCase();
-  if (c.includes('059669') || c.includes('15803d') || c.includes('16a34a')) return 'from-emerald-700 via-teal-800 to-slate-900';
-  if (c.includes('ea580c') || c.includes('c2410c') || c.includes('d97706')) return 'from-amber-600 via-orange-700 to-stone-900';
+  if (c.includes('059669') || c.includes('15803d') || c.includes('16a34a'))
+    return 'from-emerald-700 via-teal-800 to-slate-900';
+  if (c.includes('ea580c') || c.includes('c2410c') || c.includes('d97706'))
+    return 'from-amber-600 via-orange-700 to-stone-900';
   if (c.includes('dc2626') || c.includes('e11d48')) return 'from-rose-700 via-red-800 to-slate-900';
-  if (c.includes('2563eb') || c.includes('1d4ed8') || c.includes('0284c7')) return 'from-blue-700 via-indigo-900 to-slate-900';
-  if (c.includes('7c3aed') || c.includes('9333ea') || c.includes('db2777')) return 'from-purple-700 via-fuchsia-800 to-slate-900';
+  if (c.includes('2563eb') || c.includes('1d4ed8') || c.includes('0284c7'))
+    return 'from-blue-700 via-indigo-900 to-slate-900';
+  if (c.includes('7c3aed') || c.includes('9333ea') || c.includes('db2777'))
+    return 'from-purple-700 via-fuchsia-800 to-slate-900';
   return 'from-slate-800 via-slate-900 to-black';
 }
 
@@ -289,10 +383,32 @@ const ALL_CATALOG_THEMES: ThemeItem[] = (() => {
     const { sectorId, sectorLabel } = classifySector(meta.category, meta.name);
     const text = `${meta.category} ${meta.name} ${meta.description}`.toLowerCase();
     const supportsBooking = Boolean(
-      text.includes('حجز') || text.includes('استشارة') || text.includes('مواعيد') || text.includes('طاولات') || text.includes('فندق') || text.includes('عياد') || text.includes('صالون') || text.includes('صيانة') || text.includes('تأجير') || text.includes('جولة')
+      text.includes('حجز') ||
+      text.includes('استشارة') ||
+      text.includes('مواعيد') ||
+      text.includes('طاولات') ||
+      text.includes('فندق') ||
+      text.includes('عياد') ||
+      text.includes('صالون') ||
+      text.includes('صيانة') ||
+      text.includes('تأجير') ||
+      text.includes('جولة')
     );
     const supportsCatalog = Boolean(
-      text.includes('متجر') || text.includes('شراء') || text.includes('سلة') || text.includes('منتجات') || text.includes('مبيعات') || text.includes('كتالوج') || text.includes('أزياء') || text.includes('ذهب') || text.includes('إلكترونيات') || text.includes('أثاث') || text.includes('سيراميك') || text.includes('مطعم') || text.includes('منيو') || text.includes('قطع غيار')
+      text.includes('متجر') ||
+      text.includes('شراء') ||
+      text.includes('سلة') ||
+      text.includes('منتجات') ||
+      text.includes('مبيعات') ||
+      text.includes('كتالوج') ||
+      text.includes('أزياء') ||
+      text.includes('ذهب') ||
+      text.includes('إلكترونيات') ||
+      text.includes('أثاث') ||
+      text.includes('سيراميك') ||
+      text.includes('مطعم') ||
+      text.includes('منيو') ||
+      text.includes('قطع غيار')
     );
 
     list.push({
@@ -310,7 +426,11 @@ const ALL_CATALOG_THEMES: ThemeItem[] = (() => {
       accentColor: meta.primaryColor || '#00E5FF',
       supportsBooking,
       supportsCatalog,
-      features: meta.tags?.slice(0, 4) || ['متجاوب بالكامل', 'لوحة تحكم مباشرة', 'تهيئة محركات البحث'],
+      features: meta.tags?.slice(0, 4) || [
+        'متجاوب بالكامل',
+        'لوحة تحكم مباشرة',
+        'تهيئة محركات البحث',
+      ],
       previewGradient: getGradientByColor(meta.primaryColor, sectorId),
       isFlagship: false,
     });
@@ -337,6 +457,7 @@ export default function ThemesGalleryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [applyingThemeId, setApplyingThemeId] = useState<string | null>(null);
   const [previewTheme, setPreviewTheme] = useState<ThemeItem | null>(null);
+  const [applyError, setApplyError] = useState('');
 
   // Filtered Themes based on Sector and Search query
   const filteredThemes = useMemo(() => {
@@ -348,7 +469,8 @@ export default function ThemesGalleryPage() {
       }
       // Search filter
       if (!q) return true;
-      const haystack = `${theme.nameAr} ${theme.nameEn || ''} ${theme.category} ${theme.categoryNameAr} ${theme.descriptionAr} ${theme.features.join(' ')}`.toLowerCase();
+      const haystack =
+        `${theme.nameAr} ${theme.nameEn || ''} ${theme.category} ${theme.categoryNameAr} ${theme.descriptionAr} ${theme.features.join(' ')}`.toLowerCase();
       return haystack.includes(q);
     });
   }, [selectedSector, searchQuery]);
@@ -362,13 +484,16 @@ export default function ThemesGalleryPage() {
     return counts;
   }, []);
 
-  const handleApplyTheme = (themeId: string) => {
+  const handleApplyTheme = async (themeId: string) => {
+    const theme = ALL_CATALOG_THEMES.find((item) => item.id === themeId);
+    if (!theme) return;
     setApplyingThemeId(themeId);
+    setApplyError('');
+    const presetKey = theme.presetKey || SITE_TO_PRESET_MAP[themeId] || '';
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('ray_builder_selected_template', themeId);
         // Also persist the colour/typography preset so the builder applies it immediately
-        const presetKey = SITE_TO_PRESET_MAP[themeId];
         if (presetKey) {
           localStorage.setItem('ray_builder_selected_preset', presetKey);
         } else {
@@ -376,17 +501,51 @@ export default function ThemesGalleryPage() {
         }
       } catch {}
     }
-    router.push(`/dashboard/website?template=${themeId}`);
+    try {
+      // Keep the chosen theme on the shop as well as in the browser so it is
+      // available after refresh, on another device, and to the publishing flow.
+      await apiRequest('/shops/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          layoutConfig: {
+            selectedWebsiteTemplate: themeId,
+            selectedWebsitePreset: presetKey || null,
+          },
+        }),
+      });
+      router.push(
+        `/dashboard/website?template=${encodeURIComponent(themeId)}${presetKey ? `&preset=${encodeURIComponent(presetKey)}` : ''}`
+      );
+    } catch (error: any) {
+      setApplyError(error?.message || 'تعذر حفظ اختيار الثيم. تحقق من الاتصال ثم أعد المحاولة.');
+    } finally {
+      setApplyingThemeId(null);
+    }
   };
 
-
-  const handleSkipBlank = () => {
+  const handleSkipBlank = async () => {
+    setApplyingThemeId('blank');
+    setApplyError('');
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('ray_builder_selected_template', 'blank');
       } catch {}
     }
-    router.push('/dashboard/website?template=blank');
+    try {
+      await apiRequest('/shops/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          layoutConfig: { selectedWebsiteTemplate: 'blank', selectedWebsitePreset: null },
+        }),
+      });
+      router.push('/dashboard/website?template=blank');
+    } catch (error: any) {
+      setApplyError(
+        error?.message || 'تعذر حفظ اختيار القالب الفارغ. تحقق من الاتصال ثم أعد المحاولة.'
+      );
+    } finally {
+      setApplyingThemeId(null);
+    }
   };
 
   return (
@@ -395,9 +554,13 @@ export default function ThemesGalleryPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-slate-400 mb-1.5">
-            <Link href="/dashboard" className="hover:text-slate-700 transition-colors">الرئيسية</Link>
+            <Link href="/dashboard" className="hover:text-slate-700 transition-colors">
+              الرئيسية
+            </Link>
             <span>/</span>
-            <Link href="/dashboard/website" className="hover:text-slate-700 transition-colors">الموقع الإلكتروني</Link>
+            <Link href="/dashboard/website" className="hover:text-slate-700 transition-colors">
+              الموقع الإلكتروني
+            </Link>
             <span>/</span>
             <span className="text-slate-600">قوالب وثيمات الأنشطة الجاهزة</span>
           </div>
@@ -411,7 +574,8 @@ export default function ThemesGalleryPage() {
             </span>
           </h1>
           <p className="text-sm font-semibold text-slate-500 mt-2 max-w-2xl leading-relaxed">
-            اختر ثيم نشاطك التجاري ليتم تطبيق الهيكل المناسب (الصفحات، القائمة، الأقسام، نماذج الحجز، والكتالوج) فوراً مع تجربة متجاوبة عالمية على الهواتف والشاشات.
+            اختر ثيم نشاطك التجاري ليتم تطبيق الهيكل المناسب (الصفحات، القائمة، الأقسام، نماذج
+            الحجز، والكتالوج) فوراً مع تجربة متجاوبة عالمية على الهواتف والشاشات.
           </p>
         </div>
 
@@ -420,10 +584,13 @@ export default function ThemesGalleryPage() {
           <button
             type="button"
             onClick={handleSkipBlank}
+            disabled={applyingThemeId === 'blank'}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs cursor-pointer"
           >
             <PlusCircle size={16} className="text-blue-600" />
-            <span>تخطي والبدء من الصفر (قالب فارغ)</span>
+            <span>
+              {applyingThemeId === 'blank' ? 'جاري الحفظ…' : 'تخطي والبدء من الصفر (قالب فارغ)'}
+            </span>
           </button>
           <Link
             href="/dashboard/website"
@@ -437,9 +604,20 @@ export default function ThemesGalleryPage() {
 
       {/* Search & Filter Toolbar */}
       <div className="space-y-4">
+        {applyError && (
+          <div
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700"
+          >
+            {applyError}
+          </div>
+        )}
         {/* Search Bar */}
         <div className="relative max-w-2xl">
-          <Search size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Search
+            size={18}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+          />
           <input
             type="text"
             value={searchQuery}
@@ -497,14 +675,20 @@ export default function ThemesGalleryPage() {
           <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
             <Search size={22} />
           </div>
-          <h3 className="font-extrabold text-slate-800 text-sm">لم يتم العثور على نشاط مطابق لبحثك</h3>
+          <h3 className="font-extrabold text-slate-800 text-sm">
+            لم يتم العثور على نشاط مطابق لبحثك
+          </h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto">
-            جرّب البحث بكلمات أخرى أو اختر تصنيفاً من الأقسام بالأعلى، أو ابدأ بصفحة فارغة لتصنع قالبك الخاص.
+            جرّب البحث بكلمات أخرى أو اختر تصنيفاً من الأقسام بالأعلى، أو ابدأ بصفحة فارغة لتصنع
+            قالبك الخاص.
           </p>
           <div className="pt-2">
             <button
               type="button"
-              onClick={() => { setSearchQuery(''); setSelectedSector('all'); }}
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedSector('all');
+              }}
               className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors"
             >
               إعادة تعيين الفلاتر
@@ -530,7 +714,9 @@ export default function ThemesGalleryPage() {
 
                   {/* Top Badge & Category */}
                   <div className="flex items-center justify-between z-10">
-                    <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold border backdrop-blur-sm ${theme.badgeColor || 'bg-white/20 text-white border-white/20'}`}>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold border backdrop-blur-sm ${theme.badgeColor || 'bg-white/20 text-white border-white/20'}`}
+                    >
                       {theme.badge || theme.category}
                     </span>
                     <div className="flex items-center gap-1 bg-black/30 backdrop-blur-sm px-2 py-0.5 rounded-md text-[10px] font-mono">
@@ -564,7 +750,10 @@ export default function ThemesGalleryPage() {
                   {/* Bottom Color Swatch & Category */}
                   <div className="flex items-center justify-between z-10 text-[10px]">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-3.5 h-3.5 rounded-full border border-white/40 shadow-xs" style={{ backgroundColor: theme.primaryColor }} />
+                      <span
+                        className="w-3.5 h-3.5 rounded-full border border-white/40 shadow-xs"
+                        style={{ backgroundColor: theme.primaryColor }}
+                      />
                       <span className="text-white/80 font-semibold">{theme.category}</span>
                     </div>
                     {theme.isFlagship && (
@@ -579,7 +768,9 @@ export default function ThemesGalleryPage() {
                 <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-extrabold text-slate-900 text-sm leading-snug">{theme.nameAr}</h3>
+                      <h3 className="font-extrabold text-slate-900 text-sm leading-snug">
+                        {theme.nameAr}
+                      </h3>
                       <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md shrink-0">
                         {theme.categoryNameAr}
                       </span>
@@ -634,10 +825,15 @@ export default function ThemesGalleryPage() {
 
       {/* Modal: Live Theme Preview & Details */}
       {previewTheme && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150" dir="rtl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+          dir="rtl"
+        >
           <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-150 flex flex-col">
             {/* Modal Header Visual */}
-            <div className={`h-40 bg-gradient-to-tr ${previewTheme.previewGradient} p-5 relative flex flex-col justify-between text-white`}>
+            <div
+              className={`h-40 bg-gradient-to-tr ${previewTheme.previewGradient} p-5 relative flex flex-col justify-between text-white`}
+            >
               <div className="flex items-center justify-between">
                 <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white/20 text-white backdrop-blur-sm border border-white/25">
                   {previewTheme.badge || previewTheme.category}
@@ -666,14 +862,19 @@ export default function ThemesGalleryPage() {
             <div className="p-6 space-y-4 text-slate-700 text-right">
               <div>
                 <h4 className="text-xs font-bold text-slate-400 mb-1">وصف النشاط والقالب</h4>
-                <p className="text-xs leading-relaxed font-medium text-slate-700">{previewTheme.descriptionAr}</p>
+                <p className="text-xs leading-relaxed font-medium text-slate-700">
+                  {previewTheme.descriptionAr}
+                </p>
               </div>
 
               <div>
                 <h4 className="text-xs font-bold text-slate-400 mb-2">الميزات والأقسام المتضمنة</h4>
                 <div className="grid grid-cols-2 gap-2">
                   {previewTheme.features.map((feat, i) => (
-                    <div key={i} className="flex items-center gap-1.5 text-xs font-semibold bg-slate-50 p-2 rounded-xl border border-slate-100">
+                    <div
+                      key={i}
+                      className="flex items-center gap-1.5 text-xs font-semibold bg-slate-50 p-2 rounded-xl border border-slate-100"
+                    >
                       <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
                       <span className="truncate">{feat}</span>
                     </div>
@@ -684,7 +885,10 @@ export default function ThemesGalleryPage() {
               <div className="pt-2 flex items-center justify-between border-t border-slate-100">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-slate-500">اللون الأساسي:</span>
-                  <span className="w-4 h-4 rounded-full border border-slate-200" style={{ backgroundColor: previewTheme.primaryColor }} />
+                  <span
+                    className="w-4 h-4 rounded-full border border-slate-200"
+                    style={{ backgroundColor: previewTheme.primaryColor }}
+                  />
                 </div>
                 <div className="flex items-center gap-1 text-[11px] text-slate-400 font-bold">
                   <Smartphone size={13} />
@@ -727,16 +931,20 @@ export default function ThemesGalleryPage() {
             <span>هل تفضّل بناء موقعك بلمستك الخاصة من الصفر؟</span>
           </h4>
           <p className="text-xs text-slate-300 max-w-xl">
-            يمكنك تخطي اختيار الثيم والبدء بصفحة بيضاء فارغة، وإضافة الأقسام والبنرات والمنتجات خطوة بخطوة بحرية كاملة.
+            يمكنك تخطي اختيار الثيم والبدء بصفحة بيضاء فارغة، وإضافة الأقسام والبنرات والمنتجات خطوة
+            بخطوة بحرية كاملة.
           </p>
         </div>
         <button
           type="button"
           onClick={handleSkipBlank}
+          disabled={applyingThemeId === 'blank'}
           className="px-6 py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-900 text-xs font-black transition-all shrink-0 flex items-center gap-2 shadow-sm cursor-pointer"
         >
           <PlusCircle size={16} className="text-blue-600" />
-          <span>تخطي والبدء من الصفر (قالب فارغ)</span>
+          <span>
+            {applyingThemeId === 'blank' ? 'جاري الحفظ…' : 'تخطي والبدء من الصفر (قالب فارغ)'}
+          </span>
         </button>
       </div>
     </div>
