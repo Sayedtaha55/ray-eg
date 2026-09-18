@@ -197,6 +197,70 @@ interface BuilderContextType {
 
 const BuilderContext = createContext<BuilderContextType | null>(null);
 
+/**
+ * Section-library entries are authored as desktop-first compositions.  Store a
+ * sensible mobile override at insertion time so every ready-made section is
+ * usable on a real phone and remains editable from the responsive inspector.
+ * Explicit mobile values authored by a template always take precedence.
+ */
+const createTemplateMobileStyles = (node: ComponentNode): Partial<StyleProperties> => {
+  const desktop = node.styles.desktop || {};
+  const mobile: Partial<StyleProperties> = {};
+  const pixelValue = (value?: string) => {
+    const parsed = Number.parseFloat(value || '');
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+  const capHorizontalPadding = (value?: string) => {
+    const parsed = pixelValue(value);
+    return parsed && parsed > 16 ? '16px' : undefined;
+  };
+
+  if (desktop.display === 'grid' || desktop.gridColumns) {
+    mobile.gridColumns = 'minmax(0, 1fr)';
+    mobile.gap =
+      pixelValue(desktop.gap) && pixelValue(desktop.gap)! > 16 ? '16px' : desktop.gap || '12px';
+  }
+
+  // Keep navigation headers compact; other desktop rows stack safely on phones.
+  if (desktop.display === 'flex' && desktop.flexDirection !== 'column' && node.type !== 'header') {
+    mobile.flexDirection = 'column';
+    mobile.alignItems = 'stretch';
+    mobile.flexWrap = 'nowrap';
+    mobile.gap = mobile.gap || '12px';
+  }
+
+  if (
+    node.category === 'section' ||
+    node.type === 'container' ||
+    node.type === 'flex' ||
+    node.type === 'grid'
+  ) {
+    mobile.width = '100%';
+    mobile.minWidth = '0';
+    mobile.maxWidth = '100%';
+    mobile.paddingLeft = capHorizontalPadding(desktop.paddingLeft);
+    mobile.paddingRight = capHorizontalPadding(desktop.paddingRight);
+  }
+
+  if (node.type === 'heading') {
+    const size = pixelValue(desktop.fontSize);
+    if (size && size > 24) mobile.fontSize = `${Math.max(22, Math.round(size * 0.72))}px`;
+    mobile.lineHeight = desktop.lineHeight || '1.3';
+  }
+
+  if (node.type === 'image') {
+    mobile.width = '100%';
+    mobile.maxWidth = '100%';
+    mobile.height = 'auto';
+  }
+
+  if (node.type === 'card' || node.type === 'button') {
+    mobile.maxWidth = '100%';
+  }
+
+  return { ...mobile, ...(node.styles.mobile || {}) };
+};
+
 // Synchronously resolve initial website to eliminate any flash/flicker of default themes
 const BLANK_WEBSITE: Website = {
   id: 'site_blank_initial',
@@ -885,6 +949,10 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
           id: newId,
           parentId: newParentId,
           childrenIds: newChildrenIds,
+          styles: {
+            ...node.styles,
+            mobile: createTemplateMobileStyles(node),
+          },
         };
       });
 

@@ -81,15 +81,41 @@ const PreviewNodeRenderer: React.FC<{
     boxShadow: merged.boxShadow,
   };
 
+  // Library templates are desktop-first. Mirror the insertion-time responsive
+  // defaults here so the phone preview shows the exact safe layout users get.
+  if (viewport === 'mobile') {
+    const desktopGap = Number.parseFloat(d.gap || '');
+    if ((d.display === 'grid' || d.gridColumns) && !m.gridColumns) {
+      css.gridTemplateColumns = 'minmax(0, 1fr)';
+      css.gap = Number.isFinite(desktopGap) && desktopGap > 16 ? '16px' : d.gap || '12px';
+    }
+    if (
+      d.display === 'flex' &&
+      d.flexDirection !== 'column' &&
+      node.type !== 'header' &&
+      !m.flexDirection
+    ) {
+      css.flexDirection = 'column';
+      css.alignItems = 'stretch';
+      css.flexWrap = 'nowrap';
+      css.gap = css.gap || '12px';
+    }
+    if (node.category === 'section' || ['container', 'flex', 'grid'].includes(node.type)) {
+      css.width = '100%';
+      css.minWidth = 0;
+      css.maxWidth = '100%';
+    }
+    if (node.type === 'image') {
+      css.width = '100%';
+      css.maxWidth = '100%';
+      css.height = 'auto';
+    }
+  }
+
   const renderChildren = () => {
     if (!node.childrenIds || node.childrenIds.length === 0) return null;
     return node.childrenIds.map((cId) => (
-      <PreviewNodeRenderer
-        key={cId}
-        nodeId={cId}
-        nodes={nodes}
-        viewport={viewport}
-      />
+      <PreviewNodeRenderer key={cId} nodeId={cId} nodes={nodes} viewport={viewport} />
     ));
   };
 
@@ -106,7 +132,10 @@ const PreviewNodeRenderer: React.FC<{
       return <p style={css}>{node.props.text || 'نص توضيحي'}</p>;
     case 'button':
       return (
-        <button style={css} className="cursor-default pointer-events-none flex items-center justify-center gap-2">
+        <button
+          style={css}
+          className="cursor-default pointer-events-none flex items-center justify-center gap-2"
+        >
           {node.props.iconName === 'Sparkles' && <Sparkles className="w-4 h-4" />}
           <span>{node.props.text || 'زر الإجراء'}</span>
         </button>
@@ -115,7 +144,10 @@ const PreviewNodeRenderer: React.FC<{
       return (
         <div style={css} className="overflow-hidden">
           <img
-            src={node.props.src || 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80'}
+            src={
+              node.props.src ||
+              'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80'
+            }
             alt={node.props.alt || 'صورة'}
             className="w-full h-full object-cover"
           />
@@ -144,12 +176,22 @@ const PreviewNodeRenderer: React.FC<{
         <div style={css} className="transition-all hover:shadow-md">
           {node.props.image && (
             <div className="w-full h-44 overflow-hidden rounded-t-xl mb-3">
-              <img src={node.props.image} alt={node.props.title || 'بطاقة'} className="w-full h-full object-cover" />
+              <img
+                src={node.props.image}
+                alt={node.props.title || 'بطاقة'}
+                className="w-full h-full object-cover"
+              />
             </div>
           )}
-          {node.props.title && <h4 className="font-bold text-slate-900 text-sm mb-1">{node.props.title}</h4>}
-          {node.props.description && <p className="text-xs text-slate-500 mb-2">{node.props.description}</p>}
-          {node.props.price && <div className="text-blue-600 font-bold text-sm mb-2">{node.props.price}</div>}
+          {node.props.title && (
+            <h4 className="font-bold text-slate-900 text-sm mb-1">{node.props.title}</h4>
+          )}
+          {node.props.description && (
+            <p className="text-xs text-slate-500 mb-2">{node.props.description}</p>
+          )}
+          {node.props.price && (
+            <div className="text-blue-600 font-bold text-sm mb-2">{node.props.price}</div>
+          )}
           {renderChildren()}
         </div>
       );
@@ -158,11 +200,7 @@ const PreviewNodeRenderer: React.FC<{
   }
 };
 
-export const LiveTemplatePreviewModal: React.FC<Props> = ({
-  template,
-  onClose,
-  onInsert,
-}) => {
+export const LiveTemplatePreviewModal: React.FC<Props> = ({ template, onClose, onInsert }) => {
   const [viewport, setViewport] = useState<ViewportBreakpoint>('desktop');
   const [justInserted, setJustInserted] = useState(false);
 
@@ -204,9 +242,7 @@ export const LiveTemplatePreviewModal: React.FC<Props> = ({
                   {template.name}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-                {template.descriptionAr}
-              </p>
+              <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{template.descriptionAr}</p>
             </div>
           </div>
 
