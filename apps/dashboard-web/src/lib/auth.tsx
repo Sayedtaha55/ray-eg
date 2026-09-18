@@ -80,7 +80,11 @@ async function refreshAccessToken(): Promise<string | null> {
   return refreshInFlight;
 }
 
-async function apiRequest(path: string, options: RequestInit = {}, _retried = false) {
+async function apiRequest<T = any>(
+  path: string,
+  options: RequestInit = {},
+  _retried = false
+): Promise<T> {
   const token = getStoredToken();
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers = new Headers(options.headers);
@@ -104,7 +108,7 @@ async function apiRequest(path: string, options: RequestInit = {}, _retried = fa
     if (res.status === 401 && !_retried && /expired|invalid token|invalid_token/i.test(msg)) {
       const newToken = await refreshAccessToken();
       if (newToken) {
-        return apiRequest(path, options, true);
+        return apiRequest<T>(path, options, true);
       }
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('ray-session-expired'));
@@ -171,7 +175,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const stored = typeof window !== 'undefined' ? localStorage.getItem(USER_KEY) : null;
         if (stored) setUser(JSON.parse(stored));
-      } catch { /* keep current user */ }
+      } catch {
+        /* keep current user */
+      }
     };
     window.addEventListener('ray-session-expired', onSessionExpired);
     window.addEventListener('ray-user-refreshed', onUserRefreshed);
@@ -186,12 +192,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
-    const user = data?.user || data?.data?.user || {
-      id: data?.id,
-      email: data?.email,
-      name: data?.name,
-      role: data?.role,
-    };
+    const user = data?.user ||
+      data?.data?.user || {
+        id: data?.id,
+        email: data?.email,
+        name: data?.name,
+        role: data?.role,
+      };
     const token =
       data?.token?.accessToken ||
       data?.access_token ||
