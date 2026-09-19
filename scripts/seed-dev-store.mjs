@@ -108,6 +108,17 @@ async function main() {
     }
     shop = created.json.data;
     console.log(`✓ Shop created: ${shop.name} (slug: ${shop.slug}, id: ${shop.id})`);
+
+    // Shop creation links users.shop_id on the backend — the token minted at
+    // signup predates the link, so re-login to get one carrying the shop id.
+    const refreshed = await api('/auth/login', {
+      method: 'POST',
+      body: { email: EMAIL, password: PASSWORD },
+    });
+    if (refreshed.ok && refreshed.json?.data?.token?.accessToken) {
+      token = refreshed.json.data.token.accessToken;
+      console.log('✓ Token refreshed with shop context');
+    }
   }
 
   // 3) products: top up to the sample set
