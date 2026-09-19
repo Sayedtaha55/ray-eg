@@ -25,6 +25,7 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	g.Get("/pins", h.GetPins)
 
 	ml := r.Group("/map-listings")
+	ml.Post("/public/submit", h.SubmitListing) // must be before /:id routes
 	ml.Get("/pending", h.ListPendingListings)
 	ml.Get("/", h.ListPendingListings)
 	ml.Post("/:id/approve", h.ApproveListing)
@@ -116,4 +117,44 @@ func (h *Handler) RejectListing(c *fiber.Ctx) error {
 		})
 	}
 	return c.JSON(fiber.Map{"success": true, "message": "تم رفض الموقع"})
+}
+
+// SubmitListing handles POST /map-listings/public/submit
+// Allows unauthenticated visitors (e.g. the business app's add-listing page)
+// to submit a new map listing for admin review.
+func (h *Handler) SubmitListing(c *fiber.Ctx) error {
+	var req SubmitListingRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(SubmitListingResponse{
+			Success: false,
+			Error:   "بيانات الطلب غير صالحة",
+		})
+	}
+
+	if req.Title == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(SubmitListingResponse{
+			Success: false,
+			Error:   "العنوان مطلوب",
+		})
+	}
+	if req.Branch.Latitude == 0 || req.Branch.Longitude == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(SubmitListingResponse{
+			Success: false,
+			Error:   "إحداثيات الموقع مطلوبة",
+		})
+	}
+
+	listingID, err := h.service.SubmitListing(c.Context(), req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(SubmitListingResponse{
+			Success: false,
+			Error:   "فشل إنشاء الموقع",
+		})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(SubmitListingResponse{
+		Success:   true,
+		Message:   "تم إرسال موقعك للمراجعة بنجاح",
+		ListingId: listingID,
+	})
 }

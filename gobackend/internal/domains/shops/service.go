@@ -9,6 +9,7 @@ import (
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/auth"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/notification"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/errors"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/logger"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/mailer"
@@ -21,14 +22,16 @@ type Service struct {
 	cfg    *config.Config
 	repo   *Repository
 	mailer mailer.Mailer
+	notif  *notification.Service
 }
 
-// NewService creates a new shop service.
-func NewService(cfg *config.Config, repo *Repository, m mailer.Mailer) *Service {
+// NewService creates a new shop service. notifSvc is optional — when present,
+// platform admins get an in-app notification for every newly registered shop.
+func NewService(cfg *config.Config, repo *Repository, m mailer.Mailer, notifSvc *notification.Service) *Service {
 	if m == nil {
 		m = mailer.NoOpMailer{}
 	}
-	return &Service{cfg: cfg, repo: repo, mailer: m}
+	return &Service{cfg: cfg, repo: repo, mailer: m, notif: notifSvc}
 }
 
 // CreateShop creates a new shop for an owner.
@@ -110,6 +113,20 @@ func (s *Service) CreateShop(ctx context.Context, ownerID string, req CreateShop
 	// step the approval flow used to perform).
 	if err := s.repo.SetOwnerActive(ctx, ownerID, created.ID); err != nil {
 		logger.Global().Warn("failed to activate owner after signup", zap.Error(err))
+	}
+
+	// Fire-and-forget: let platform admins know a new shop joined.
+	if s.notif != nil {
+		notifSvc := s.notif
+		shopID := created.ID
+		shopName := created.Name
+		go func() {
+			notifCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if err := notifSvc.NotifyAdminsNewShop(notifCtx, shopID, shopName, ownerID); err != nil {
+				logger.Global().Warn("notify admins new shop failed", zap.Error(err))
+			}
+		}()
 	}
 
 	logger.Global().Info("shop created", zap.String("shop_id", created.ID), zap.String("owner_id", ownerID))

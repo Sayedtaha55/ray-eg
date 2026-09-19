@@ -9,9 +9,12 @@ import { CartDrawer } from '@/components/CartDrawer';
 
 export function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isShop = pathname&&pathname.startsWith('/shop/');
+  // Merchant sites are fully independent: /shop/[slug] pages and published
+  // /site/[slug] builder sites render their own header/footer — no market chrome.
+  const isMerchantSite =
+    !!pathname && (pathname.startsWith('/shop/') || pathname.startsWith('/site/'));
 
-  if (isShop) {
+  if (isMerchantSite) {
     return (
       <>
         <main className="min-h-screen">{children}</main>

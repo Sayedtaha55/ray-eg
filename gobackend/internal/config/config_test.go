@@ -112,3 +112,31 @@ func TestLoadRejectsInvalidCompressionDimensions(t *testing.T) {
 		t.Fatal("expected validation error for invalid compression width")
 	}
 }
+
+func TestLoadRejectsInvalidQueryExecMode(t *testing.T) {
+	setMinimalValidEnv(t)
+	_ = os.Setenv("DB_QUERY_EXEC_MODE", "definitely-not-a-mode")
+	defer os.Clearenv()
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected validation error for invalid DB_QUERY_EXEC_MODE")
+	}
+}
+
+func TestLoadAcceptsSupabaseQueryExecModes(t *testing.T) {
+	// Every value db.parseQueryExecMode understands must survive config
+	// validation, otherwise the documented Supabase pooler workaround
+	// (DB_QUERY_EXEC_MODE=simple) would be rejected at boot.
+	for _, mode := range []string{"auto", "simple", "simple_protocol", "exec", "describe", "cache_statement", "cache_describe"} {
+		t.Run(mode, func(t *testing.T) {
+			setMinimalValidEnv(t)
+			_ = os.Setenv("DB_QUERY_EXEC_MODE", mode)
+			defer os.Clearenv()
+
+			if _, err := Load(); err != nil {
+				t.Fatalf("expected %q to be accepted, got %v", mode, err)
+			}
+		})
+	}
+}

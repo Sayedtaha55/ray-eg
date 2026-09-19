@@ -76,7 +76,10 @@ export default async function ProductPage({ params }: Props) {
       '@type': 'Offer',
       price: product.price,
       priceCurrency: product.currency || 'EGP',
-      availability: product.isAvailable !== false ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      availability:
+        product.isAvailable !== false
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
       seller: shop ? { '@type': 'Organization', name: shop.name } : undefined,
       url: `${siteConfig.url}/product/${product.id}`,
     },
@@ -94,32 +97,58 @@ export default async function ProductPage({ params }: Props) {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: siteConfig.url },
-      ...(shop ? [{ '@type': 'ListItem', position: 2, name: shop.name, item: `${siteConfig.url}/shop/${shop.slug}` }] : []),
-      { '@type': 'ListItem', position: shop ? 3 : 2, name: product.name, item: `${siteConfig.url}/product/${product.id}` },
+      ...(shop
+        ? [
+            {
+              '@type': 'ListItem',
+              position: 2,
+              name: shop.name,
+              item: `${siteConfig.url}/shop/${shop.slug}`,
+            },
+          ]
+        : []),
+      {
+        '@type': 'ListItem',
+        position: shop ? 3 : 2,
+        name: product.name,
+        item: `${siteConfig.url}/product/${product.id}`,
+      },
     ],
   };
 
   // Apply builder config product page styling if available.
   const builderConfig = (shop?.builderConfig || shop?.pageDesign || {}) as Record<string, any>;
-  const pageBg = builderConfig.productPageBackgroundColor || builderConfig.pageBackgroundColor || undefined;
+  const pageBg =
+    builderConfig.productPageBackgroundColor || builderConfig.pageBackgroundColor || undefined;
   const pageText = builderConfig.productPageTextColor || undefined;
   const priceColor = builderConfig.productPagePriceColor || builderConfig.primaryColor || undefined;
-  const buttonColor = builderConfig.productPageButtonColor || builderConfig.primaryColor || undefined;
+  const buttonColor =
+    builderConfig.productPageButtonColor || builderConfig.primaryColor || undefined;
 
   return (
     <div
       className="max-w-[1400px] mx-auto px-4 md:px-6 py-8 md:py-12"
       style={{ backgroundColor: pageBg, color: pageText }}
     >
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-6">
-        <Link href="/" className="hover:text-brand-cyan transition-colors">الرئيسية</Link>
+        <Link href="/" className="hover:text-brand-cyan transition-colors">
+          الرئيسية
+        </Link>
         <span>/</span>
         {shop && (
           <>
-            <Link href={`/shop/${shop.slug}`} className="hover:text-brand-cyan transition-colors">{shop.name}</Link>
+            <Link href={`/shop/${shop.slug}`} className="hover:text-brand-cyan transition-colors">
+              {shop.name}
+            </Link>
             <span>/</span>
           </>
         )}
@@ -150,7 +179,13 @@ export default async function ProductPage({ params }: Props) {
             <Link href={`/shop/${shop.slug}`} className="flex items-center gap-2 mb-4 group">
               <div className="w-10 h-10 rounded-lg bg-brand-black flex items-center justify-center overflow-hidden">
                 {shop.logo ? (
-                  <Image src={shop.logo} alt={shop.name || 'متجر'} width={40} height={40} className="object-cover" />
+                  <Image
+                    src={shop.logo}
+                    alt={shop.name || 'متجر'}
+                    width={40}
+                    height={40}
+                    className="object-cover"
+                  />
                 ) : (
                   <Store className="w-5 h-5 text-brand-cyan" />
                 )}
@@ -173,7 +208,9 @@ export default async function ProductPage({ params }: Props) {
                   />
                 ))}
               </div>
-              <span className="text-sm font-semibold text-slate-500">{product.rating!.toFixed(1)}</span>
+              <span className="text-sm font-semibold text-slate-500">
+                {product.rating!.toFixed(1)}
+              </span>
             </div>
           )}
 
@@ -204,7 +241,10 @@ export default async function ProductPage({ params }: Props) {
           {product.tags && product.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-6">
               {product.tags.map((tag) => (
-                <span key={tag} className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                <span
+                  key={tag}
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400"
+                >
                   <Tag className="w-3 h-3 inline ml-1" />
                   {tag}
                 </span>
@@ -227,9 +267,14 @@ export default async function ProductPage({ params }: Props) {
           </div>
 
           {/* Actions */}
-          <div className="flex flex-wrap gap-3 mt-auto">
+          <div className="flex flex-wrap items-center gap-3 mt-auto">
             {product.isAvailable !== false && (
-              <AddToCartButton product={product} size="lg" color={buttonColor} />
+              <AddToCartButton
+                product={product}
+                size="lg"
+                color={buttonColor}
+                showQuantityStepper={true}
+              />
             )}
             {shop?.whatsapp && (
               <a
@@ -272,7 +317,10 @@ export default async function ProductPage({ params }: Props) {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl md:text-2xl font-bold">منتجات ذات صلة</h2>
             {shop && (
-              <Link href={`/shop/${shop.slug}`} className="text-sm font-bold text-brand-cyan hover:underline flex items-center gap-1">
+              <Link
+                href={`/shop/${shop.slug}`}
+                className="text-sm font-bold text-brand-cyan hover:underline flex items-center gap-1"
+              >
                 عرض الكل
                 <ArrowLeft className="w-4 h-4" />
               </Link>

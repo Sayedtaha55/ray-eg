@@ -24,8 +24,11 @@
 2. احتفظ بـ **Database Password**
 3. روح: Project Settings → Database → Connection String → URI
 4. انسخ الـ URI وحطه في `.env.production` كـ `DATABASE_URL`
-   - تأكد إنه بيستخدم port **5432** (Session mode)
-   - أضف `?sslmode=require` في الآخر
+   - استخدم **Session mode** (port **5432**، المضيف `db.<ref>.supabase.co`)
+   - الـ Backend بيضيف `?sslmode=require` تلقائيًا للمضيفات البعيدة، فمش لازم تكتبها
+   - لو المزود أعطاك رابط فيه `schema=public` أو `connection_limit=` (صيغة Prisma)، فالـ Backend بيشيلها تلقائيًا — انسخه زي ما هو
+5. **مهم:** على أول Deploy قاعدة البيانات فاضية تمامًا، فلازم `DB_MIGRATE_ON_BOOT=true`
+   - لو نسيته: السيرفر يقوم و`/monitoring/ready` يقول `schema: incomplete` وكل طلب يرجّع `internal app error`
 
 ### 2. شغل الـ Migrations على Supabase
 
@@ -100,6 +103,66 @@ curl https://your-api-domain.com/metrics
 ```
 
 الأخطاء تأتي بصيغة موحدة: `{success:false, error, message}`.
+
+---
+
+## حل المشاكل الشائعة بعد التحويل لـ Supabase
+
+### 1. `internal app error` متكرر في اللوج مع إن `/monitoring/ready` أخضر
+
+السبب الأشهر: قاعدة بيانات Supabase **جديدة وفاضية بدون Migrations**.
+الاتصال ناجح، فـ Ping شغال، لكن الجداول مش موجودة فكل استعلام يفشل.
+
+- تأكد من نقطة الجاهزية: `curl https://your-api/monitoring/ready`
+  - `"schema": "ok"` → كل الجداول موجودة
+  - `"schema": "incomplete"` → الـ Migrations لم تُشغَّل
+- الحل: `DB_MIGRATE_ON_BOOT=true` وأعد النشر، أو شغّل يدويًا:
+  ```bash
+  cd gobackend
+  go run scripts/migrate.go up
+  go run scripts/migrate.go version   # للتأكد من الرقم الحالي
+  ```
+- من الآن أي `internal app error` في اللوج بيطبع `root_cause` فيه رسالة Postgres
+  الحقيقية (مثل `relation "users" does not exist` أو `column ... does not exist`)
+  مع `method` و`path` و`code` — اقرأها قبل أي حاجة تانية.
+
+### 2. `prepared statement "stmtcache_..." does not exist`
+
+معناها إنك متصل بـ Supabase **Transaction pooler**. الباك بيكتشف ده تلقائيًا من
+المنفذ `6543` ومن `pgbouncer=true` ويطفي الـ prepared statements. لو لسه بتظهر:
+
+- تأكد إن `DB_QUERY_EXEC_MODE=auto` (أو `simple`)
+- الأفضل: استخدم **Session mode** (منفذ `5432`) بدل الـ pooler
+
+### 3. `FATAL: unrecognized configuration parameter "schema"`
+
+رابط فيه `?schema=public` (صيغة Prisma). الباك بيشيل `schema` و`connection_limit`
+و`pool_timeout` و`socket_timeout` تلقائيًا، فلو لسه بتظهر تأكد إنك بتستخدم نسخة
+حديثة من الكود.
+
+### 4. `pgxpool: MinConns must be <= MaxConns` أو رفض اتصالات من Supabase
+
+قلّل حجم الـ pool:
+```
+DB_MAX_OPEN_CONNS=10
+DB_MAX_IDLE_CONNS=3
+```
+
+### 5. `Application not found` من الرابط العام
+
+لو الدومين يرجّع `{"status":"error","code":404,"message":"Application not found"}`
+مع هيدر `x-railway-fallback: true`، فده **رد منصة الاستضافة نفسها** ومعناه إن مفيش
+Service مربوط بالدومين ده — مش مشكلة في الكود. اربط الدومين بالـ Service أو استخدم
+الدومين الافتراضي اللي المنصة بتديه.
+
+### 6. إنذار "DNS Resolving problem" على دومين `.eg`
+
+لو `nslookup` على سيرفرات نطاق `.eg` الرسمية رجّع `Non-existent domain`، فالدومين
+غير مُفوَّض (not delegated) في الـ TLD نفسه — مش مشكلة انتشار DNS. تحقق بـ:
+```powershell
+nslookup -type=NS ray.eg 193.227.1.1   # سيرفر نطاق .eg المصري
+```
+لازم ترجع NS records. لو رجّعت NXDOMAIN، خلّص تسجيل الدومين وربطه عند المسجّل.
 
 ---
 

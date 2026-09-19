@@ -8,6 +8,7 @@ import (
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/auth"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/errors"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/password"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -92,11 +93,26 @@ func (s *Service) UpdateMe(ctx context.Context, userID string, req UpdateMeReque
 		}
 	}
 
-	if name == "__UNSET__" && phone == "__UNSET__" {
+	if name == "__UNSET__" && phone == "__UNSET__" && req.ExtraPhones == nil {
 		return nil, errors.Validation("no_update_data", "لا توجد بيانات للتحديث")
 	}
 
-	updated, err := s.repo.UpdateMe(ctx, userID, name, phone)
+	var extraPhones *[]string
+	if req.ExtraPhones != nil {
+		normalized, err := s.normalizeExtraPhones(ctx, userID, phone, *req.ExtraPhones)
+		if err != nil {
+			return nil, err
+		}
+		extraPhones = &normalized
+	}
+
+	// The "__UNSET__" sentinel means "field not provided" — translate it to
+	// the repo's empty-string skip contract so it never lands in the DB.
+	nameArg := name
+	if nameArg == "__UNSET__" {
+		nameArg = ""
+	}
+	updated, err := s.repo.UpdateMe(ctx, userID, nameArg, phone, extraPhones)
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +120,116 @@ func (s *Service) UpdateMe(ctx context.Context, userID string, req UpdateMeReque
 		return nil, errors.NotFound("user", userID)
 	}
 	return toProfile(updated), nil
+}
+
+// GetMe returns the authenticated user's profile.
+func (s *Service) GetMe(ctx context.Context, userID string) (*UserProfile, error) {
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return nil, errors.Unauthorized("unauthenticated", "غير مصرح")
+	}
+	user, err := s.repo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, errors.NotFound("user", userID)
+	}
+	return toProfile(user), nil
+}
+
+// ReplaceMyAddresses overwrites the user's saved delivery address book.
+// Add / edit / delete all arrive as the new full list; the server normalizes
+// and re-issues IDs so the stored shape stays canonical.
+func (s *Service) ReplaceMyAddresses(ctx context.Context, userID string, in []auth.DeliveryAddress) ([]auth.DeliveryAddress, error) {
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return nil, errors.Unauthorized("unauthenticated", "غير مصرح")
+	}
+	if len(in) > 10 {
+		return nil, errors.Validation("too_many_addresses", "الحد الأقصى 10 عناوين")
+	}
+
+	out := make([]auth.DeliveryAddress, 0, len(in))
+	hasDefault := false
+	for i, a := range in {
+		a.Label = strings.TrimSpace(a.Label)
+		a.Governorate = strings.TrimSpace(a.Governorate)
+		a.City = strings.TrimSpace(a.City)
+		a.Street = strings.TrimSpace(a.Street)
+		a.Building = strings.TrimSpace(a.Building)
+		a.Notes = strings.TrimSpace(a.Notes)
+		if a.Governorate == "" || a.City == "" {
+			return nil, errors.Validation("address_fields_required", "المحافظة والمدينة مطلوبتان لكل عنوان")
+		}
+		if len(a.Label) > 40 || len(a.Street) > 200 || len(a.Building) > 100 || len(a.Notes) > 200 {
+			return nil, errors.Validation("address_too_long", "أحد الحقول طويل جداً")
+		}
+		if a.Phone != "" {
+			normalized := normalizePhone(a.Phone)
+			if err := validatePhone(normalized); err != nil {
+				return nil, err
+			}
+			a.Phone = normalized
+		}
+		if strings.TrimSpace(a.ID) == "" {
+			a.ID = uuid.New().String()
+		}
+		if a.IsDefault && !hasDefault {
+			hasDefault = true
+		} else {
+			a.IsDefault = false
+		}
+		out = append(out, a)
+		_ = i
+	}
+	if len(out) > 0 && !hasDefault {
+		out[0].IsDefault = true
+	}
+
+	updated, err := s.repo.ReplaceDeliveryAddresses(ctx, userID, out)
+	if err != nil {
+		return nil, err
+	}
+	if updated == nil {
+		return nil, errors.NotFound("user", userID)
+	}
+	return updated.DeliveryAddresses, nil
+}
+
+// normalizeExtraPhones validates the extra phone list: normalized Egyptian
+// numbers, at most 3, no duplicates, none equal to the primary phone.
+func (s *Service) normalizeExtraPhones(ctx context.Context, userID, primaryPhone string, raw []string) ([]string, error) {
+	if len(raw) > 3 {
+		return nil, errors.Validation("too_many_phones", "الحد الأقصى 3 أرقام إضافية")
+	}
+	seen := map[string]bool{}
+	out := make([]string, 0, len(raw))
+	for _, p := range raw {
+		normalized := normalizePhone(p)
+		if normalized == "" {
+			continue
+		}
+		if err := validatePhone(normalized); err != nil {
+			return nil, err
+		}
+		if normalized == primaryPhone {
+			return nil, errors.Validation("duplicate_phone", "الرقم الإضافي مكرر مع الرقم الأساسي")
+		}
+		if seen[normalized] {
+			continue
+		}
+		existing, err := s.repo.FindByPhone(ctx, normalized)
+		if err != nil {
+			return nil, err
+		}
+		if existing != nil && existing.ID != userID {
+			return nil, errors.Conflict("phone_exists", "رقم الهاتف مستخدم بالفعل في نظامنا")
+		}
+		seen[normalized] = true
+		out = append(out, normalized)
+	}
+	return out, nil
 }
 
 // ListCouriers lists courier users with pagination and optional search.
@@ -306,14 +432,16 @@ func (s *Service) SetCourierActiveStatus(ctx context.Context, id string, isActiv
 
 func toProfile(u *auth.User) *UserProfile {
 	return &UserProfile{
-		ID:        u.ID,
-		Name:      u.Name,
-		Email:     u.Email,
-		Phone:     u.Phone,
-		Role:      u.Role,
-		IsActive:  u.IsActive,
-		CreatedAt: u.CreatedAt,
-		LastLogin: u.LastLogin,
+		ID:                u.ID,
+		Name:              u.Name,
+		Email:             u.Email,
+		Phone:             u.Phone,
+		ExtraPhones:       u.ExtraPhones,
+		DeliveryAddresses: u.DeliveryAddresses,
+		Role:              u.Role,
+		IsActive:          u.IsActive,
+		CreatedAt:         u.CreatedAt,
+		LastLogin:         u.LastLogin,
 	}
 }
 

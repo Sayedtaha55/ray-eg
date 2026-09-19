@@ -5,7 +5,18 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Menu, X, Sun, Moon, Globe, LogIn, User, UserPlus, ShoppingBag, Bell, Heart, LogOut,
+  Menu,
+  X,
+  Sun,
+  Moon,
+  Globe,
+  LogIn,
+  User,
+  UserPlus,
+  ShoppingBag,
+  Bell,
+  Heart,
+  LogOut,
 } from 'lucide-react';
 import { useApp } from './AppProvider';
 import { useCart } from '@/lib/cart';
@@ -115,7 +126,13 @@ export function Navbar() {
           <Link href="/" className="flex items-center gap-2 md:gap-3 shrink-0">
             <div className="w-9 h-9 md:w-11 md:h-11 bg-brand-black rounded-lg flex items-center justify-center shadow-lg relative group overflow-hidden">
               <div className="absolute inset-0 bg-brand-gradient opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <Image src="/brand/logo.png" alt="MNMKNK" width={28} height={28} className="relative z-10 w-6 h-6 md:w-7 md:h-7 object-contain" />
+              <Image
+                src="/brand/logo.png"
+                alt="MNMKNK"
+                width={28}
+                height={28}
+                className="relative z-10 w-6 h-6 md:w-7 md:h-7 object-contain"
+              />
             </div>
             <span
               className={cn(
@@ -133,6 +150,42 @@ export function Navbar() {
 
           <div className="flex-1" />
 
+          {/* Desktop nav links — the hamburger is a mobile-only pattern */}
+          <nav className="hidden lg:flex items-center gap-1 mr-2">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  'px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors',
+                  isActive(link.href)
+                    ? 'text-brand-cyan bg-brand-cyan/10'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-brand-cyan hover:bg-slate-100 dark:hover:bg-slate-800'
+                )}
+              >
+                {link.label[lang]}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Cart — desktop; on mobile the fixed footer bar carries it */}
+          <button
+            type="button"
+            onClick={openCart}
+            aria-label={lang === 'ar' ? 'السلة' : 'Cart'}
+            className="hidden lg:flex relative w-10 h-10 rounded-full items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+          >
+            <ShoppingBag className="w-5 h-5" />
+            {totalItems > 0 && (
+              <span
+                key={totalItems}
+                className="absolute -top-0.5 -left-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-cyan text-black text-[10px] font-black flex items-center justify-center animate-cart-pop"
+              >
+                {totalItems > 9 ? '9+' : totalItems}
+              </span>
+            )}
+          </button>
+
           {/* Notifications */}
           <Link
             href="/notifications"
@@ -147,13 +200,13 @@ export function Navbar() {
             )}
           </Link>
 
-          {/* Menu */}
+          {/* Menu — mobile only; desktop shows the inline links above */}
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
             aria-label={lang === 'ar' ? 'القائمة' : 'Menu'}
             aria-expanded={menuOpen}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+            className="lg:hidden w-10 h-10 rounded-full flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -261,7 +314,9 @@ export function Navbar() {
                       aria-pressed={lang === 'ar'}
                       className={cn(
                         'px-3 py-1.5 text-xs font-bold transition-colors',
-                        lang === 'ar' ? 'bg-brand-cyan text-black' : 'bg-white dark:bg-slate-900 text-slate-500'
+                        lang === 'ar'
+                          ? 'bg-brand-cyan text-black'
+                          : 'bg-white dark:bg-slate-900 text-slate-500'
                       )}
                     >
                       العربية
@@ -272,7 +327,9 @@ export function Navbar() {
                       aria-pressed={lang === 'en'}
                       className={cn(
                         'px-3 py-1.5 text-xs font-bold transition-colors',
-                        lang === 'en' ? 'bg-brand-cyan text-black' : 'bg-white dark:bg-slate-900 text-slate-500'
+                        lang === 'en'
+                          ? 'bg-brand-cyan text-black'
+                          : 'bg-white dark:bg-slate-900 text-slate-500'
                       )}
                     >
                       English
@@ -293,7 +350,9 @@ export function Navbar() {
                     onClick={toggleTheme}
                     className={cn(
                       'flex w-12 h-6 rounded-full p-0.5 transition-colors',
-                      theme === 'dark' ? 'bg-brand-cyan justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'
+                      theme === 'dark'
+                        ? 'bg-brand-cyan justify-end'
+                        : 'bg-slate-300 dark:bg-slate-700 justify-start'
                     )}
                   >
                     <span className="w-5 h-5 rounded-full bg-white shadow" />

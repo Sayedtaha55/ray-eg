@@ -134,6 +134,21 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, meta RequestMeta)
 		return nil, errors.Forbidden("account_inactive", "الحساب معطل. تواصل مع الدعم.")
 	}
 
+	// Scheduled-deletion handling: logging back in before the purge date
+	// cancels the deletion; after it the account is gone for good.
+	if user.DeactivatedAt != nil {
+		if user.ScheduledPurgeAt != nil && user.ScheduledPurgeAt.Before(time.Now()) {
+			s.recordAuthEvent(ctx, user, "login", "failed", meta, "reason", "account_purged")
+			return nil, errors.Forbidden("account_deleted", "تم حذف هذا الحساب نهائياً")
+		}
+		if err := s.repo.CancelScheduledDeletion(ctx, user.ID); err != nil {
+			logger.Global().Warn("cancel scheduled deletion failed", zap.Error(err))
+		} else {
+			user.DeactivatedAt = nil
+			user.ScheduledPurgeAt = nil
+		}
+	}
+
 	valid, err := password.Verify(req.Password, user.Password)
 	if err != nil || !valid {
 		count, _ := s.lockout.RecordFailure(ctx, email)

@@ -26,7 +26,9 @@ func NewHandler(service *Service, cfg *config.Config) *Handler {
 func (h *Handler) RegisterRoutes(r fiber.Router) {
 	g := r.Group("/users")
 
+	g.Get("/me", middleware.RequireAuth(h.cfg), h.GetMe)
 	g.Patch("/me", middleware.RequireAuth(h.cfg), h.UpdateMe)
+	g.Put("/me/addresses", middleware.RequireAuth(h.cfg), h.ReplaceMyAddresses)
 
 	admin := g.Group("", middleware.RequireAuth(h.cfg), requireRoleMiddleware(auth.RoleAdmin))
 	admin.Get("/", h.ListUsers)
@@ -54,6 +56,20 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	cGroup.Patch("/:id/status", h.SetCourierStatus)
 }
 
+// GetMe returns the authenticated user's profile (including extra phones).
+func (h *Handler) GetMe(c *fiber.Ctx) error {
+	user, ok := middleware.AuthUserFromContext(c)
+	if !ok {
+		return errors.Unauthorized("unauthenticated", "يجب تسجيل الدخول")
+	}
+
+	profile, err := h.service.GetMe(c.UserContext(), user.ID)
+	if err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{"success": true, "data": profile})
+}
+
 func (h *Handler) UpdateMe(c *fiber.Ctx) error {
 	user, ok := middleware.AuthUserFromContext(c)
 	if !ok {
@@ -73,6 +89,28 @@ func (h *Handler) UpdateMe(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(fiber.Map{"success": true, "data": updated})
+}
+
+// ReplaceMyAddresses overwrites the saved address book with the posted list.
+func (h *Handler) ReplaceMyAddresses(c *fiber.Ctx) error {
+	user, ok := middleware.AuthUserFromContext(c)
+	if !ok {
+		return errors.Unauthorized("unauthenticated", "يجب تسجيل الدخول")
+	}
+
+	var req ReplaceAddressesRequest
+	if err := c.BodyParser(&req); err != nil {
+		return errors.Validation("invalid_body", "تعذر قراءة بيانات الطلب")
+	}
+	if err := validate.Struct(req); err != nil {
+		return err
+	}
+
+	addresses, err := h.service.ReplaceMyAddresses(c.UserContext(), user.ID, req.Addresses)
+	if err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{"success": true, "data": addresses})
 }
 
 func (h *Handler) ListCouriers(c *fiber.Ctx) error {

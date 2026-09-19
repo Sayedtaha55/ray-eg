@@ -5,6 +5,21 @@ import "time"
 // Role mirrors the Prisma UserRole enum.
 type Role string
 
+// DeliveryAddress is one saved shipping address in the user's address book.
+type DeliveryAddress struct {
+	ID          string   `json:"id"`
+	Label       string   `json:"label"`
+	Phone       string   `json:"phone,omitempty"`
+	Governorate string   `json:"governorate"`
+	City        string   `json:"city"`
+	Street      string   `json:"street,omitempty"`
+	Building    string   `json:"building,omitempty"`
+	Notes       string   `json:"notes,omitempty"`
+	Lat         *float64 `json:"lat,omitempty"`
+	Lng         *float64 `json:"lng,omitempty"`
+	IsDefault   bool     `json:"isDefault,omitempty"`
+}
+
 const (
 	RoleCustomer Role = "CUSTOMER"
 	RoleMerchant Role = "MERCHANT"
@@ -19,6 +34,8 @@ type User struct {
 	Email                   string     `json:"email"`
 	Name                    string     `json:"name"`
 	Phone                   *string    `json:"phone,omitempty"`
+	ExtraPhones             []string   `json:"extraPhones,omitempty"`
+	DeliveryAddresses       []DeliveryAddress `json:"deliveryAddresses,omitempty"`
 	Password                string     `json:"-"`
 	Role                    Role       `json:"role"`
 	ShopID                  *string    `json:"shopId,omitempty"`
@@ -27,8 +44,13 @@ type User struct {
 	EmailVerificationSentAt *time.Time `json:"emailVerificationSentAt,omitempty"`
 	LastLogin               *time.Time `json:"lastLogin,omitempty"`
 	TFASecret               string     `json:"-"` // 2FA secret, never exposed
-	CreatedAt               time.Time  `json:"createdAt"`
-	UpdatedAt               time.Time  `json:"updatedAt"`
+	// Scheduled account deletion (POST /auth/deactivate) — soft-deactivated
+	// immediately, purgeable after ScheduledPurgeAt. Login before that date
+	// cancels the deletion.
+	DeactivatedAt   *time.Time `json:"-"`
+	ScheduledPurgeAt *time.Time `json:"-"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
 }
 
 // SignupRequest represents the customer/merchant registration payload.

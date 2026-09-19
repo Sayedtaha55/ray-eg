@@ -28,7 +28,7 @@ func (r *Repository) FindByEmail(ctx context.Context, email string) (*User, erro
 	query := `
 		SELECT id, email, name, phone, password, role, shop_id, is_active,
 		       email_verified_at, email_verification_sent_at, last_login, tfa_secret,
-		       created_at, updated_at
+		       deactivated_at, scheduled_purge_at, created_at, updated_at
 		FROM users
 		WHERE email = $1
 		LIMIT 1
@@ -42,7 +42,7 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*User, error) {
 	query := `
 		SELECT id, email, name, phone, password, role, shop_id, is_active,
 		       email_verified_at, email_verification_sent_at, last_login, tfa_secret,
-		       created_at, updated_at
+		       deactivated_at, scheduled_purge_at, created_at, updated_at
 		FROM users
 		WHERE id = $1
 		LIMIT 1
@@ -56,7 +56,7 @@ func (r *Repository) FindFirstAdmin(ctx context.Context) (*User, error) {
 	query := `
 		SELECT id, email, name, phone, password, role, shop_id, is_active,
 		       email_verified_at, email_verification_sent_at, last_login, tfa_secret,
-		       created_at, updated_at
+		       deactivated_at, scheduled_purge_at, created_at, updated_at
 		FROM users
 		WHERE role = 'ADMIN'
 		LIMIT 1
@@ -103,7 +103,7 @@ func (r *Repository) Create(ctx context.Context, u *User) (*User, error) {
 		VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, '', NOW(), NOW())
 		RETURNING id, email, name, phone, password, role, shop_id, is_active,
 		          email_verified_at, email_verification_sent_at, last_login, tfa_secret,
-		          created_at, updated_at
+		          deactivated_at, scheduled_purge_at, created_at, updated_at
 	`
 	row := r.pool.QueryRow(ctx, query, u.Email, u.Name, u.Phone, u.Password, u.Role, u.ShopID, u.IsActive)
 	return scanUser(row)
@@ -126,7 +126,7 @@ func (r *Repository) UpdateAdmin(ctx context.Context, id, name, hashedPassword s
 		WHERE id = $1
 		RETURNING id, email, name, phone, password, role, shop_id, is_active,
 		          email_verified_at, email_verification_sent_at, last_login, tfa_secret,
-		          created_at, updated_at
+		          deactivated_at, scheduled_purge_at, created_at, updated_at
 	`
 	row := r.pool.QueryRow(ctx, query, id, name, hashedPassword)
 	return scanUser(row)
@@ -154,6 +154,16 @@ func (r *Repository) SetEmailVerificationSent(ctx context.Context, id string) er
 func (r *Repository) UpdateLastLogin(ctx context.Context, id string) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE users SET last_login = NOW(), updated_at = NOW() WHERE id = $1`,
+		id,
+	)
+	return err
+}
+
+// CancelScheduledDeletion clears a pending account-deletion schedule (the
+// user logged back in before the purge date).
+func (r *Repository) CancelScheduledDeletion(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE users SET deactivated_at = NULL, scheduled_purge_at = NULL, updated_at = NOW() WHERE id = $1`,
 		id,
 	)
 	return err
@@ -195,11 +205,11 @@ func (r *Repository) RecordAuthEvent(ctx context.Context, userID, email, action,
 func scanUser(row pgx.Row) (*User, error) {
 	u := &User{}
 	var phone, shopID, tfaSecret sql.NullString
-	var verifiedAt, sentAt, lastLogin pgtype.Timestamp
+	var verifiedAt, sentAt, lastLogin, deactivatedAt, scheduledPurgeAt pgtype.Timestamp
 	err := row.Scan(
 		&u.ID, &u.Email, &u.Name, &phone, &u.Password, &u.Role, &shopID,
 		&u.IsActive, &verifiedAt, &sentAt, &lastLogin, &tfaSecret,
-		&u.CreatedAt, &u.UpdatedAt,
+		&deactivatedAt, &scheduledPurgeAt, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -219,6 +229,8 @@ func scanUser(row pgx.Row) (*User, error) {
 	u.EmailVerifiedAt = timestampPtr(verifiedAt)
 	u.EmailVerificationSentAt = timestampPtr(sentAt)
 	u.LastLogin = timestampPtr(lastLogin)
+	u.DeactivatedAt = timestampPtr(deactivatedAt)
+	u.ScheduledPurgeAt = timestampPtr(scheduledPurgeAt)
 	return u, nil
 }
 

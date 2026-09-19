@@ -9,14 +9,20 @@ interface LocationPickerProps {
   initialCoords?: { lat: number; lng: number } | null;
 }
 
-export function LocationPicker({ onLocationSelect, onAddressResolved, initialCoords }: LocationPickerProps) {
+export function LocationPicker({
+  onLocationSelect,
+  onAddressResolved,
+  initialCoords,
+}: LocationPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const leafletRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [locating, setLocating] = useState(false);
-  const [selected, setSelected] = useState<{ lat: number; lng: number } | null>(initialCoords || null);
+  const [selected, setSelected] = useState<{ lat: number; lng: number } | null>(
+    initialCoords || null
+  );
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -94,11 +100,13 @@ export function LocationPicker({ onLocationSelect, onAddressResolved, initialCoo
     setSelected({ lat, lng });
     onLocationSelect(lat, lng);
 
-    // Reverse geocode using Nominatim
+    // Reverse geocode using Nominatim (note: the param is `lon`, not `lng`)
     if (onAddressResolved) {
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lng=${lng}&accept-language=ar`)
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
+      fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ar`
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
           if (!data?.address) return;
           const addr = data.address;
           const city = addr.city || addr.town || addr.village || addr.state || addr.county || '';
@@ -144,12 +152,19 @@ export function LocationPicker({ onLocationSelect, onAddressResolved, initialCoo
           disabled={locating || loading}
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-cyan/10 text-brand-cyan text-xs font-bold hover:bg-brand-cyan/20 transition-colors disabled:opacity-60"
         >
-          {locating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Locate className="w-3.5 h-3.5" />}
+          {locating ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Locate className="w-3.5 h-3.5" />
+          )}
           {locating ? 'جاري التحديد...' : 'حدد موقعي تلقائياً'}
         </button>
       </div>
 
-      <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700" style={{ height: '280px' }}>
+      <div
+        className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700"
+        style={{ height: '280px' }}
+      >
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 z-10">
             <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
@@ -158,9 +173,7 @@ export function LocationPicker({ onLocationSelect, onAddressResolved, initialCoo
         <div ref={containerRef} className="w-full h-full" />
       </div>
 
-      {error && (
-        <p className="text-xs font-bold text-red-500">{error}</p>
-      )}
+      {error && <p className="text-xs font-bold text-red-500">{error}</p>}
 
       {selected && (
         <div className="flex items-center gap-2 text-xs font-bold text-green-500">

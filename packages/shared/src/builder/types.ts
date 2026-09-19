@@ -57,6 +57,7 @@ export type ComponentType =
   | 'input'
   | 'custom-code'
   | 'whatsapp-float'
+  | 'mobile_footer'
   | 'whatsapp_button'
   | 'trust-badges'
   | 'trust_badges'
@@ -66,7 +67,6 @@ export type ComponentType =
   | 'promo_banner'
   | 'announcement-bar'
   | 'announcement_bar';
-
 
 export type BusinessActivity =
   | 'automotive'
@@ -95,7 +95,8 @@ export interface StyleProperties {
   // Layout
   display?: 'block' | 'flex' | 'grid' | 'inline-block' | 'none';
   flexDirection?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
-  justifyContent?: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly';
+  justifyContent?:
+    'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly';
   alignItems?: 'flex-start' | 'center' | 'flex-end' | 'stretch' | 'baseline';
   flexWrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
   flex?: string;
@@ -184,7 +185,8 @@ export interface AnimationConfig {
 }
 
 export interface InteractionConfig {
-  onClickAction?: 'none' | 'navigate' | 'scroll-to' | 'open-modal' | 'toggle-element' | 'custom-script';
+  onClickAction?:
+    'none' | 'navigate' | 'scroll-to' | 'open-modal' | 'toggle-element' | 'custom-script';
   targetUrl?: string;
   targetElementId?: string;
   openInNewTab?: boolean;
@@ -237,10 +239,7 @@ export interface ComponentNode {
 }
 
 export type PagePlacementMode =
-  | 'header_direct'
-  | 'header_dropdown'
-  | 'standalone'
-  | 'header_and_footer';
+  'header_direct' | 'header_dropdown' | 'standalone' | 'header_and_footer';
 
 export interface PageMetadata {
   title: string;
@@ -322,7 +321,8 @@ export interface AddPageOptions {
   dropdownDescription?: string;
   dropdownBadge?: string;
   includeHeaderFooter?: boolean;
-  pageTemplate?: 'blank' | 'hero_services' | 'catalog_grid' | 'contact_form' | 'landing_page';
+  pageTemplate?:
+    'blank' | 'hero_services' | 'catalog_grid' | 'contact_form' | 'landing_page' | 'product_page';
 }
 
 export interface Tenant {
@@ -369,7 +369,14 @@ export interface HistoryAction {
 }
 
 export interface PublishingPipelineStatus {
-  status: 'idle' | 'validating' | 'building_nextjs' | 'generating_metadata' | 'purging_cache' | 'published' | 'failed';
+  status:
+    | 'idle'
+    | 'validating'
+    | 'building_nextjs'
+    | 'generating_metadata'
+    | 'purging_cache'
+    | 'published'
+    | 'failed';
   currentStep: number;
   totalSteps: number;
   stepMessage: string;
@@ -464,5 +471,11 @@ export interface SiteProduct {
   hoverImage?: string;
   badge?: string;
   specs?: string[];
+  /** Hide the order/buy CTA on this product card (e.g. catalog-only cards). */
+  hideBuyBtn?: boolean;
   slug?: string;
+  isActive?: boolean;
+  isAvailable?: boolean;
+  shopId?: string;
+  shopSlug?: string;
 }

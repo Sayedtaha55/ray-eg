@@ -21,6 +21,25 @@ func NewRepository(pool *db.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
+// GetActiveAdminIDs returns the IDs of all active admin users.
+func (r *Repository) GetActiveAdminIDs(ctx context.Context) ([]string, error) {
+	rows, err := r.pool.Query(ctx, `SELECT id FROM users WHERE role = 'ADMIN' AND is_active = true`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ids := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 // CreateNotification creates a new notification
 func (r *Repository) CreateNotification(ctx context.Context, data *NotificationData) (*Notification, error) {
 	id := uuid.New().String()

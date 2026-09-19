@@ -71,11 +71,15 @@ export function mapSiteProduct(p: any): SiteProduct {
     title: p?.title || p?.name || 'منتج',
     description: p?.description || undefined,
     price: typeof p?.price === 'number' ? p.price : Number(p?.price) || (p?.price as string),
-    image: images[0] || p?.image || p?.image_url,
+    image: images[0] || p?.image || p?.image_url || p?.imageUrl,
     hoverImage: images[1],
     badge: p?.badge,
     specs: Array.isArray(p?.specs) ? p.specs : undefined,
     slug: p?.slug,
+    isActive: p?.isActive !== false && p?.is_active !== false,
+    isAvailable: p?.isAvailable !== false && p?.is_available !== false,
+    shopId: p?.shopId || p?.shop_id,
+    shopSlug: p?.shopSlug || p?.shop_slug,
   };
 }
 

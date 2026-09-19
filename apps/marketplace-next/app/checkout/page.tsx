@@ -1,9 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingBag, MapPin, CreditCard, Loader2, CheckCircle, Store, Truck, Banknote } from 'lucide-react';
+import {
+  ArrowLeft,
+  ShoppingBag,
+  MapPin,
+  CreditCard,
+  Loader2,
+  CheckCircle,
+  Store,
+  Truck,
+  Banknote,
+  UserRound,
+} from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { formatPrice } from '@/lib/utils';
 import { getStoredAuthToken, jsonRequest } from '@/lib/api';
@@ -16,6 +27,12 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState<any>(null);
+  /** Phone stored on the logged-in account — offered as one-tap picks. */
+  const [accountProfile, setAccountProfile] = useState<{
+    name?: string;
+    phone?: string;
+    extraPhones?: string[];
+  } | null>(null);
 
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
@@ -28,6 +45,25 @@ export default function CheckoutPage() {
 
   const shopGroups = itemsByShop();
 
+  // Prefill name/phone from the logged-in account so returning customers
+  // don't retype them — the chips below the phone field restore them too.
+  useEffect(() => {
+    if (!getStoredAuthToken()) return;
+    jsonRequest<any>('/users/me')
+      .then((body) => {
+        const user = body?.data || body?.user || body;
+        const profile = {
+          name: user?.name || undefined,
+          phone: user?.phone || undefined,
+          extraPhones: Array.isArray(user?.extraPhones) ? user.extraPhones : [],
+        };
+        if (!profile.name && !profile.phone) return;
+        setAccountProfile(profile);
+        setCustomerName((prev) => prev || profile.name || '');
+        setPhone((prev) => prev || profile.phone || '');
+      })
+      .catch(() => {});
+  }, []);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,8 +89,19 @@ export default function CheckoutPage() {
               productId: i.productId,
               quantity: i.quantity,
             })),
+            customer: {
+              name: customerName || undefined,
+              phone: phone || undefined,
+              city: city || undefined,
+              district: district || undefined,
+              address: address || undefined,
+              notes: notes || undefined,
+              lat: coords?.lat,
+              lng: coords?.lng,
+            },
             customerPhone: phone || undefined,
-            deliveryAddressManual: [city, district, address].filter(Boolean).join('، ') || undefined,
+            deliveryAddressManual:
+              [city, district, address].filter(Boolean).join('، ') || undefined,
             deliveryLat: coords?.lat,
             deliveryLng: coords?.lng,
             deliveryNote: notes || undefined,
@@ -100,7 +147,12 @@ export default function CheckoutPage() {
               <div className="flex items-center gap-3">
                 <Store className="w-5 h-5 text-brand-purple" />
                 <div className="text-right">
-                  <div className="font-bold text-sm">طلب #{String(o?.id || o?.orderNumber || '').slice(0, 8).toUpperCase()}</div>
+                  <div className="font-bold text-sm">
+                    طلب #
+                    {String(o?.id || o?.orderNumber || '')
+                      .slice(0, 8)
+                      .toUpperCase()}
+                  </div>
                   <div className="text-xs text-slate-500">{o?.shopName || o?.shop?.name || ''}</div>
                 </div>
               </div>
@@ -137,7 +189,10 @@ export default function CheckoutPage() {
         <ShoppingBag className="w-16 h-16 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
         <h1 className="text-2xl font-bold mb-2">سلتك فارغة</h1>
         <p className="text-slate-500 font-semibold mb-6">أضف منتجات قبل إتمام الطلب</p>
-        <Link href="/dalil" className="px-6 py-3 rounded-xl bg-brand-gradient text-white font-bold text-sm">
+        <Link
+          href="/dalil"
+          className="px-6 py-3 rounded-xl bg-brand-gradient text-white font-bold text-sm"
+        >
           تصفح المتاجر
         </Link>
       </div>
@@ -148,7 +203,9 @@ export default function CheckoutPage() {
     <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-8 md:py-12">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-6">
-        <Link href="/" className="hover:text-brand-cyan">الرئيسية</Link>
+        <Link href="/" className="hover:text-brand-cyan">
+          الرئيسية
+        </Link>
         <span>/</span>
         <span className="text-slate-600 dark:text-slate-300">إتمام الطلب</span>
       </nav>
@@ -166,7 +223,9 @@ export default function CheckoutPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-2">الاسم الكامل *</label>
+                <label className="block text-xs font-bold text-slate-500 mb-2">
+                  الاسم الكامل *
+                </label>
                 <input
                   required
                   value={customerName}
@@ -185,6 +244,32 @@ export default function CheckoutPage() {
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 font-semibold text-sm outline-none focus:border-brand-cyan transition-colors"
                   placeholder="01xxxxxxxxx"
                 />
+                {(() => {
+                  const savedPhones = [
+                    ...(accountProfile?.phone ? [accountProfile.phone] : []),
+                    ...(accountProfile?.extraPhones || []),
+                  ].filter((p) => p && p !== phone);
+                  if (savedPhones.length === 0) return null;
+                  return (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {savedPhones.map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => {
+                            setPhone(p);
+                            if (accountProfile?.name)
+                              setCustomerName((prev) => prev || accountProfile.name!);
+                          }}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-brand-cyan/40 bg-brand-cyan/5 text-[11px] font-bold text-brand-cyan hover:bg-brand-cyan/10 transition-colors"
+                        >
+                          <UserRound className="w-3 h-3" />
+                          <span dir="ltr">{p}</span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-2">المدينة *</label>
@@ -206,7 +291,9 @@ export default function CheckoutPage() {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-500 mb-2">العنوان بالتفصيل *</label>
+                <label className="block text-xs font-bold text-slate-500 mb-2">
+                  العنوان بالتفصيل *
+                </label>
                 <textarea
                   required
                   value={address}
@@ -227,7 +314,9 @@ export default function CheckoutPage() {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-500 mb-2">ملاحظات (اختياري)</label>
+                <label className="block text-xs font-bold text-slate-500 mb-2">
+                  ملاحظات (اختياري)
+                </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -253,10 +342,14 @@ export default function CheckoutPage() {
                   </div>
                   <div>
                     <span className="font-bold text-sm block">الدفع عند الاستلام (COD)</span>
-                    <span className="text-xs text-slate-500">ادفع نقداً للمندوب عند استلام طلبك ومطابقته</span>
+                    <span className="text-xs text-slate-500">
+                      ادفع نقداً للمندوب عند استلام طلبك ومطابقته
+                    </span>
                   </div>
                 </div>
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-brand-cyan/20 text-brand-cyan">مفعل</span>
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-brand-cyan/20 text-brand-cyan">
+                  مفعل
+                </span>
               </div>
 
               <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-800 opacity-60 bg-slate-50 dark:bg-slate-800/40 cursor-not-allowed">
@@ -265,11 +358,17 @@ export default function CheckoutPage() {
                     <CreditCard className="w-5 h-5 text-slate-400" />
                   </div>
                   <div>
-                    <span className="font-bold text-sm block text-slate-500">البطاقات البنكية والدفع الإلكتروني</span>
-                    <span className="text-xs text-slate-400">فيزا / ماستركارد / ميزة / محافظ إلكترونية</span>
+                    <span className="font-bold text-sm block text-slate-500">
+                      البطاقات البنكية والدفع الإلكتروني
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      فيزا / ماستركارد / ميزة / محافظ إلكترونية
+                    </span>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500">قريباً</span>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500">
+                  قريباً
+                </span>
               </div>
             </div>
           </section>
@@ -286,19 +385,30 @@ export default function CheckoutPage() {
                 <div key={shopId}>
                   <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-100 dark:border-slate-800">
                     <Store className="w-4 h-4 text-brand-purple" />
-                    <span className="font-bold text-xs text-slate-600 dark:text-slate-400">{shopItems[0].shopName}</span>
+                    <span className="font-bold text-xs text-slate-600 dark:text-slate-400">
+                      {shopItems[0].shopName}
+                    </span>
                   </div>
                   <div className="space-y-2">
                     {shopItems.map((item) => (
                       <div key={item.id} className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
-                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-xs line-clamp-1">{item.name}</p>
-                          <p className="text-xs text-slate-500">{item.quantity} × {formatPrice(item.price)}</p>
+                          <p className="text-xs text-slate-500">
+                            {item.quantity} × {formatPrice(item.price)}
+                          </p>
                         </div>
-                        <span className="font-bold text-xs">{formatPrice(item.price * item.quantity)}</span>
+                        <span className="font-bold text-xs">
+                          {formatPrice(item.price * item.quantity)}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -333,7 +443,11 @@ export default function CheckoutPage() {
               disabled={loading}
               className="w-full mt-5 py-4 bg-brand-gradient text-white rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <CheckCircle className="w-5 h-5" />
+              )}
               {loading ? 'جاري إنشاء الطلب...' : 'تأكيد الطلب'}
             </button>
 

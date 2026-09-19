@@ -55,7 +55,17 @@ func handleAppError(c *fiber.Ctx, appErr *errors.AppError) error {
 
 	if appErr.Kind == errors.KindInternal || appErr.Kind == errors.KindUnknown {
 		log := logger.WithRequestID(c.UserContext())
-		log.Error("internal app error", zap.Error(appErr))
+		// Log enough context to debug production issues from the platform log
+		// viewer alone: the route, the domain error code and the unwrapped
+		// driver error (e.g. Postgres reporting a missing relation/column).
+		log.Error("internal app error",
+			zap.String("method", c.Method()),
+			zap.String("path", c.Path()),
+			zap.String("kind", string(appErr.Kind)),
+			zap.String("code", appErr.Code),
+			zap.String("root_cause", rootCause(appErr)),
+			zap.String("error", appErr.Error()),
+		)
 		return respond(c, code, "internal server error")
 	}
 
@@ -77,4 +87,15 @@ func respond(c *fiber.Ctx, code int, message string) error {
 		"error":   fmt.Sprintf("http_%d", code),
 		"message": message,
 	})
+}
+
+// rootCause unwraps an application error down to the wrapped cause so logs show
+// the underlying driver/database message (for example
+// `pq: relation "users" does not exist`) instead of only the generic message.
+func rootCause(err error) string {
+	cause := stderrors.Unwrap(err)
+	if cause == nil {
+		return ""
+	}
+	return cause.Error()
 }

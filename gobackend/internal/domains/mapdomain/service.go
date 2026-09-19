@@ -26,3 +26,8 @@ func (s *Service) ListPendingListings(ctx context.Context, limit int) ([]map[str
 func (s *Service) SetListingStatus(ctx context.Context, id, status, note, adminID string) error {
 	return s.repo.SetListingStatus(ctx, id, status, note, adminID)
 }
+
+// SubmitListing creates a new pending map listing with its primary branch.
+func (s *Service) SubmitListing(ctx context.Context, req SubmitListingRequest) (string, error) {
+	return s.repo.CreateListing(ctx, req)
+}

@@ -8,20 +8,29 @@ import (
 
 // UserProfile is the public representation of a user.
 type UserProfile struct {
-	ID        string     `json:"id"`
-	Name      string     `json:"name"`
-	Email     string     `json:"email"`
-	Phone     *string    `json:"phone,omitempty"`
-	Role      auth.Role  `json:"role"`
-	IsActive  bool       `json:"isActive"`
-	CreatedAt time.Time  `json:"createdAt"`
-	LastLogin *time.Time `json:"lastLogin,omitempty"`
+	ID                string            `json:"id"`
+	Name              string            `json:"name"`
+	Email             string            `json:"email"`
+	Phone             *string           `json:"phone,omitempty"`
+	ExtraPhones       []string          `json:"extraPhones,omitempty"`
+	DeliveryAddresses []auth.DeliveryAddress `json:"deliveryAddresses,omitempty"`
+	Role              auth.Role         `json:"role"`
+	IsActive          bool              `json:"isActive"`
+	CreatedAt         time.Time         `json:"createdAt"`
+	LastLogin         *time.Time        `json:"lastLogin,omitempty"`
 }
 
 // UpdateMeRequest represents a profile update payload.
 type UpdateMeRequest struct {
-	Name  string  `json:"name,omitempty" validate:"omitempty,min=1,max=80"`
-	Phone *string `json:"phone,omitempty" validate:"omitempty"`
+	Name        string    `json:"name,omitempty" validate:"omitempty,min=1,max=80"`
+	Phone       *string   `json:"phone,omitempty" validate:"omitempty"`
+	ExtraPhones *[]string `json:"extraPhones,omitempty"`
+}
+
+// ReplaceAddressesRequest replaces the whole saved address book in one call —
+// add/edit/delete are all expressed as a new list.
+type ReplaceAddressesRequest struct {
+	Addresses []auth.DeliveryAddress `json:"addresses" validate:"required,max=10,dive"`
 }
 
 // CourierListRequest represents the query parameters for listing couriers.

@@ -59,7 +59,10 @@ export function MobileFooter() {
         >
           <ShoppingBag className="w-6 h-6 text-white" />
           {totalItems > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+            <span
+              key={totalItems}
+              className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center animate-cart-pop"
+            >
               {totalItems > 9 ? '9+' : totalItems}
             </span>
           )}

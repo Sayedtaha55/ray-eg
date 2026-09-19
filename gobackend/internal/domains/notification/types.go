@@ -7,6 +7,7 @@ const (
 	// Shop notifications (for merchants)
 	NotificationTypeNewFollower        NotificationType = "NEW_FOLLOWER"
 	NotificationTypeNewOrder           NotificationType = "NEW_ORDER"
+	NotificationTypeNewShop            NotificationType = "NEW_SHOP"
 	NotificationTypeOrderStatusChanged NotificationType = "ORDER_STATUS_CHANGED"
 	NotificationTypeNewMessage         NotificationType = "NEW_MESSAGE"
 	NotificationTypeShopVisit          NotificationType = "SHOP_VISIT"

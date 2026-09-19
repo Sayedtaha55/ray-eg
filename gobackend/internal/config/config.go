@@ -54,6 +54,12 @@ type DBConfig struct {
 	ConnMaxIdleTime time.Duration `env:"DB_CONN_MAX_IDLE_TIME" envDefault:"10m"`
 	MigrationsPath  string        `env:"DB_MIGRATIONS_PATH" envDefault:"./migrations"`
 	MigrateOnBoot   bool          `env:"DB_MIGRATE_ON_BOOT" envDefault:"false"`
+	// QueryExecMode overrides pgx's query protocol. Values: auto, simple,
+	// cache_statement, cache_describe, describe, exec. "auto" (the default)
+	// inspects DATABASE_URL and disables prepared statements when a
+	// transaction-mode pooler is detected — Supabase's Supavisor on port 6543
+	// cannot keep prepared statements across transactions.
+	QueryExecMode string `env:"DB_QUERY_EXEC_MODE" envDefault:"auto"`
 }
 
 // Redis holds Redis settings used for cache, sessions, queues and rate limiting.
@@ -223,6 +229,9 @@ func (c *Config) validate() error {
 	if err := validatePositiveDuration("DB_CONN_MAX_IDLE_TIME", c.DB.ConnMaxIdleTime); err != nil {
 		return err
 	}
+	if err := validateQueryExecMode(c.DB.QueryExecMode); err != nil {
+		return err
+	}
 	if c.Redis.Port < 1 || c.Redis.Port > 65535 {
 		return fmt.Errorf("REDIS_PORT must be between 1 and 65535")
 	}
@@ -317,6 +326,29 @@ func validatePositiveDuration(name string, value time.Duration) error {
 		return fmt.Errorf("%s must be greater than 0", name)
 	}
 	return nil
+}
+
+// validQueryExecModes mirrors the values accepted by db.parseQueryExecMode.
+var validQueryExecModes = []string{
+	"auto", "simple", "simple_protocol", "exec",
+	"describe", "describe_exec",
+	"cache", "cache_statement", "cache_statement_exec",
+	"cache_describe", "cache_describe_exec",
+}
+
+// validateQueryExecMode rejects typos in DB_QUERY_EXEC_MODE at startup instead of
+// silently falling back to a working-but-slower protocol.
+func validateQueryExecMode(mode string) error {
+	normalized := strings.ToLower(strings.TrimSpace(mode))
+	if normalized == "" {
+		return nil
+	}
+	for _, valid := range validQueryExecModes {
+		if normalized == valid {
+			return nil
+		}
+	}
+	return fmt.Errorf("DB_QUERY_EXEC_MODE must be one of %s", strings.Join(validQueryExecModes, ", "))
 }
 
 func validateHTTPURL(name, raw string) error {

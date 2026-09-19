@@ -4,8 +4,22 @@ import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  Menu, X, Search, ShoppingBag, Home, Info, Image as ImageIcon,
-  Users, Phone, Mail, MapPin, Instagram, Twitter, Facebook, MessageCircle, Share2,
+  Menu,
+  X,
+  Search,
+  ShoppingBag,
+  Home,
+  Info,
+  Image as ImageIcon,
+  Users,
+  Phone,
+  Mail,
+  MapPin,
+  Instagram,
+  Twitter,
+  Facebook,
+  MessageCircle,
+  Share2,
 } from 'lucide-react';
 import type { Shop, Product } from '@/lib/services';
 import { ProductCard } from '@/components/ProductCard';
@@ -74,6 +88,23 @@ function LegacyShopView({
   const [activeTab, setActiveTab] = useState<'home' | 'products' | 'gallery' | 'info'>('home');
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/shop/${shop.slug}`;
+    const data = { title: shop.name || 'المتجر', text: shop.bio || 'زور المتجر على من مكانك', url };
+    try {
+      if (navigator.share) {
+        await navigator.share(data);
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      /* user cancelled the share sheet */
+    }
+  };
 
   const elementsVisibility: Record<string, boolean> = config.elementsVisibility || {};
   const isVisible = (key: string, fallback = true) =>
@@ -90,15 +121,14 @@ function LegacyShopView({
   const footerOpacity = config.footerOpacity ?? 90;
 
   const bannerHeight =
-    config.bannerSize === 'large' ? '450px' :
-    config.bannerSize === 'medium' ? '350px' : '250px';
+    config.bannerSize === 'large' ? '450px' : config.bannerSize === 'medium' ? '350px' : '250px';
 
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;
     const q = searchQuery.toLowerCase();
-    return products.filter((p) =>
-      (p.name || '').toLowerCase().includes(q) ||
-      (p.description || '').toLowerCase().includes(q)
+    return products.filter(
+      (p) =>
+        (p.name || '').toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q)
     );
   }, [products, searchQuery]);
 
@@ -188,7 +218,10 @@ function LegacyShopView({
           <div className="flex items-center gap-3">
             {isVisible('headerSearch', true) && (
               <div className="relative hidden md:block">
-                <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 opacity-50" />
+                <Search
+                  size={18}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 opacity-50"
+                />
                 <input
                   type="text"
                   placeholder="بحث..."
@@ -200,8 +233,18 @@ function LegacyShopView({
               </div>
             )}
             {isVisible('headerShareButton', true) && (
-              <button className="p-2 hover:bg-black/5 rounded-lg transition-all">
+              <button
+                onClick={handleShare}
+                aria-label="مشاركة المتجر"
+                title={shareCopied ? 'تم نسخ رابط المتجر' : 'مشاركة المتجر'}
+                className={`p-2 hover:bg-black/5 rounded-lg transition-all relative ${shareCopied ? 'text-green-600' : ''}`}
+              >
                 <Share2 size={18} />
+                {shareCopied && (
+                  <span className="absolute -bottom-1 right-1/2 translate-x-1/2 translate-y-full whitespace-nowrap text-[10px] font-bold bg-slate-900 text-white px-2 py-0.5 rounded-full">
+                    تم نسخ الرابط
+                  </span>
+                )}
               </button>
             )}
             <button
@@ -219,13 +262,32 @@ function LegacyShopView({
               {(['home', 'products', 'gallery', 'info'] as const).map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => { setActiveTab(tab); setIsHeaderMenuOpen(false); }}
+                  onClick={() => {
+                    setActiveTab(tab);
+                    setIsHeaderMenuOpen(false);
+                  }}
                   className={`text-sm font-bold text-right p-2 rounded-lg transition-all ${activeTab === tab ? 'bg-black/5' : ''}`}
                 >
-                  {tab === 'home' && <><Home size={16} className="inline ml-2" /> الرئيسية</>}
-                  {tab === 'products' && <><ShoppingBag size={16} className="inline ml-2" /> المنتجات</>}
-                  {tab === 'gallery' && <><ImageIcon size={16} className="inline ml-2" /> المعرض</>}
-                  {tab === 'info' && <><Info size={16} className="inline ml-2" /> معلومات</>}
+                  {tab === 'home' && (
+                    <>
+                      <Home size={16} className="inline ml-2" /> الرئيسية
+                    </>
+                  )}
+                  {tab === 'products' && (
+                    <>
+                      <ShoppingBag size={16} className="inline ml-2" /> المنتجات
+                    </>
+                  )}
+                  {tab === 'gallery' && (
+                    <>
+                      <ImageIcon size={16} className="inline ml-2" /> المعرض
+                    </>
+                  )}
+                  {tab === 'info' && (
+                    <>
+                      <Info size={16} className="inline ml-2" /> معلومات
+                    </>
+                  )}
                 </button>
               ))}
             </nav>
@@ -248,7 +310,9 @@ function LegacyShopView({
           {config.bannerTitle && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/40">
               <div className="text-center text-white">
-                <h1 className={`font-black ${config.headingSize || 'text-2xl'} mb-2`}>{config.bannerTitle}</h1>
+                <h1 className={`font-black ${config.headingSize || 'text-2xl'} mb-2`}>
+                  {config.bannerTitle}
+                </h1>
                 {config.bannerSubtitle && <p className="font-bold">{config.bannerSubtitle}</p>}
               </div>
             </div>
@@ -265,13 +329,19 @@ function LegacyShopView({
               <div className="overflow-hidden bg-white/40 backdrop-blur-sm border border-slate-100 rounded-2xl py-3">
                 <div className="flex gap-12 whitespace-nowrap flex-row-reverse px-4">
                   {config.homeRightAdTitle && (
-                    <span className="text-xs font-black flex items-center gap-1.5">🚚 {config.homeRightAdTitle}</span>
+                    <span className="text-xs font-black flex items-center gap-1.5">
+                      🚚 {config.homeRightAdTitle}
+                    </span>
                   )}
                   {config.homeLeftAdTitle && (
-                    <span className="text-xs font-black flex items-center gap-1.5">🔥 {config.homeLeftAdTitle}</span>
+                    <span className="text-xs font-black flex items-center gap-1.5">
+                      🔥 {config.homeLeftAdTitle}
+                    </span>
                   )}
                   {config.homeStoryText && (
-                    <span className="text-xs font-black flex items-center gap-1.5">⭐ {config.homeStoryText}</span>
+                    <span className="text-xs font-black flex items-center gap-1.5">
+                      ⭐ {config.homeStoryText}
+                    </span>
                   )}
                 </div>
               </div>
@@ -280,7 +350,9 @@ function LegacyShopView({
             {config.homeIntroText && (
               <div className="bg-white/90 backdrop-blur-sm border border-slate-100 rounded-2xl p-6 md:p-8">
                 <h3 className="text-lg md:text-2xl font-black mb-4">من نحن</h3>
-                <p className="text-sm text-slate-500 font-bold leading-relaxed">{config.homeIntroText}</p>
+                <p className="text-sm text-slate-500 font-bold leading-relaxed">
+                  {config.homeIntroText}
+                </p>
               </div>
             )}
 
@@ -348,13 +420,19 @@ function LegacyShopView({
               <h3 className="font-black text-lg mb-4">تواصل معنا</h3>
               <div className="space-y-4">
                 {shop.phone && (
-                  <a href={`tel:${shop.phone}`} className="flex items-center gap-3 hover:opacity-70 transition-opacity">
+                  <a
+                    href={`tel:${shop.phone}`}
+                    className="flex items-center gap-3 hover:opacity-70 transition-opacity"
+                  >
                     <Phone size={18} style={{ color: colors.primary }} />
                     <span className="font-bold text-sm">{shop.phone}</span>
                   </a>
                 )}
                 {shop.email && (
-                  <a href={`mailto:${shop.email}`} className="flex items-center gap-3 hover:opacity-70 transition-opacity">
+                  <a
+                    href={`mailto:${shop.email}`}
+                    className="flex items-center gap-3 hover:opacity-70 transition-opacity"
+                  >
                     <Mail size={18} style={{ color: colors.primary }} />
                     <span className="font-bold text-sm">{shop.email}</span>
                   </a>
@@ -362,11 +440,15 @@ function LegacyShopView({
                 <div className="flex items-center gap-3">
                   <MapPin size={18} style={{ color: colors.primary }} />
                   <span className="font-bold text-sm">
-                    {shop.city || ''}{shop.district ? ` - ${shop.district}` : ''}{shop.address ? `، ${shop.address}` : ''}
+                    {shop.city || ''}
+                    {shop.district ? ` - ${shop.district}` : ''}
+                    {shop.address ? `، ${shop.address}` : ''}
                   </span>
                 </div>
                 {shop.bio && (
-                  <p className="text-sm text-slate-500 font-bold leading-relaxed pt-2">{shop.bio}</p>
+                  <p className="text-sm text-slate-500 font-bold leading-relaxed pt-2">
+                    {shop.bio}
+                  </p>
                 )}
               </div>
             </div>
@@ -419,10 +501,38 @@ function LegacyShopView({
                 <div className="text-center md:text-right space-y-4">
                   <h5 className="font-black">روابط سريعة</h5>
                   <ul className="space-y-2 font-bold opacity-70 text-sm">
-                    <li><button onClick={() => setActiveTab('home')} className="hover:opacity-100 transition-opacity">الرئيسية</button></li>
-                    <li><button onClick={() => setActiveTab('products')} className="hover:opacity-100 transition-opacity">المنتجات</button></li>
-                    <li><button onClick={() => setActiveTab('gallery')} className="hover:opacity-100 transition-opacity">المعرض</button></li>
-                    <li><button onClick={() => setActiveTab('info')} className="hover:opacity-100 transition-opacity">اتصل بنا</button></li>
+                    <li>
+                      <button
+                        onClick={() => setActiveTab('home')}
+                        className="hover:opacity-100 transition-opacity"
+                      >
+                        الرئيسية
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => setActiveTab('products')}
+                        className="hover:opacity-100 transition-opacity"
+                      >
+                        المنتجات
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => setActiveTab('gallery')}
+                        className="hover:opacity-100 transition-opacity"
+                      >
+                        المعرض
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => setActiveTab('info')}
+                        className="hover:opacity-100 transition-opacity"
+                      >
+                        اتصل بنا
+                      </button>
+                    </li>
                   </ul>
                 </div>
               )}
@@ -432,22 +542,42 @@ function LegacyShopView({
                   <h5 className="font-black">تواصل اجتماعي</h5>
                   <div className="flex justify-center md:justify-start gap-3">
                     {shop.socialLinks.instagram && (
-                      <a href={shop.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="bg-black/5 p-2 rounded-xl hover:bg-black/10 transition-all">
+                      <a
+                        href={shop.socialLinks.instagram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-black/5 p-2 rounded-xl hover:bg-black/10 transition-all"
+                      >
                         <Instagram size={18} />
                       </a>
                     )}
                     {shop.socialLinks.twitter && (
-                      <a href={shop.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="bg-black/5 p-2 rounded-xl hover:bg-black/10 transition-all">
+                      <a
+                        href={shop.socialLinks.twitter}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-black/5 p-2 rounded-xl hover:bg-black/10 transition-all"
+                      >
                         <Twitter size={18} />
                       </a>
                     )}
                     {shop.socialLinks.facebook && (
-                      <a href={shop.socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="bg-black/5 p-2 rounded-xl hover:bg-black/10 transition-all">
+                      <a
+                        href={shop.socialLinks.facebook}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-black/5 p-2 rounded-xl hover:bg-black/10 transition-all"
+                      >
                         <Facebook size={18} />
                       </a>
                     )}
                     {shop.whatsapp && (
-                      <a href={`https://wa.me/${shop.whatsapp}`} target="_blank" rel="noopener noreferrer" className="bg-black/5 p-2 rounded-xl hover:bg-black/10 transition-all">
+                      <a
+                        href={`https://wa.me/${shop.whatsapp}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-black/5 p-2 rounded-xl hover:bg-black/10 transition-all"
+                      >
                         <MessageCircle size={18} />
                       </a>
                     )}

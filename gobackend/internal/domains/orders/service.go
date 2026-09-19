@@ -217,10 +217,26 @@ func (s *Service) createOrderCore(ctx context.Context, req CreateOrderRequest, u
 			if err := notifSvc.NotifyNewOrder(notifCtx, shopID, orderID, orderID, orderSource, orderTotal); err != nil {
 				logger.Global().Warn("notify new order failed", zap.Error(err))
 			}
+			// Admins also get an in-app row so the platform side sees every order.
+			shopName := s.shopName(context.Background(), shopID)
+			adminCtx, adminCancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer adminCancel()
+			if err := notifSvc.NotifyAdminsNewOrder(adminCtx, shopName, orderID, orderID, orderTotal); err != nil {
+				logger.Global().Warn("notify admins new order failed", zap.Error(err))
+			}
 		}()
 	}
 
 	return created, nil
+}
+
+// shopName resolves a shop display name for notification copy (best-effort).
+func (s *Service) shopName(ctx context.Context, shopID string) string {
+	var name string
+	if err := s.repo.Pool().QueryRow(ctx, `SELECT name FROM shops WHERE id = $1`, shopID).Scan(&name); err != nil {
+		return ""
+	}
+	return name
 }
 
 // GetByID returns an order by ID with ownership verification to prevent IDOR.
@@ -397,6 +413,23 @@ func (s *Service) UpdateOrder(ctx context.Context, id string, req UpdateOrderReq
 	if updated == nil {
 		updated = order
 	}
+
+	// Fire-and-forget: tell the customer their order moved (in-app + push).
+	// Only for logged-in orders — guest orders have no user to notify.
+	if s.notif != nil && req.Status != nil && order.UserID != "" {
+		notifSvc := s.notif
+		orderID := updated.ID
+		userID := order.UserID
+		newStatus := string(updated.Status)
+		go func() {
+			notifCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if err := notifSvc.NotifyOrderStatusChanged(notifCtx, userID, orderID, orderID, newStatus); err != nil {
+				logger.Global().Warn("notify order status changed failed", zap.Error(err))
+			}
+		}()
+	}
+
 	return updated, nil
 }
 

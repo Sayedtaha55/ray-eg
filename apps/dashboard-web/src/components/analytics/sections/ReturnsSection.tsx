@@ -1,20 +1,37 @@
 'use client';
 
+/**
+ * تاب المرتجعات — مؤشرات ورسوم من مرتجعات المتجر الفعلية
+ * (الموقع والكاشير والفواتير) مع فلترة بالفترة واتجاه مقارن بالفترة السابقة.
+ */
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  RefreshCw,
-  Undo2,
-  AlertTriangle,
-  PackageSearch,
-  Store,
-  ScanBarcode,
-  FileText,
-  Search,
-} from 'lucide-react';
+  BarChart as RBarChart,
+  Bar as RBar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RTooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import { Undo2, PackageSearch } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useShop } from '@/hooks/useShop';
-
-/* تقارير المرتجعات — كل مرتجعات المتجر من الموقع والكاشير والفواتير */
+import {
+  KpiCard,
+  ChartCard,
+  SectionSkeleton,
+  ChartEmpty,
+  Donut,
+  downloadCSV,
+  egp,
+  periodRange,
+  prevPeriodRange,
+  inPeriod,
+  buildBuckets,
+  bucketKeyOf,
+  type PeriodKey,
+} from './financeShared';
 
 type ReturnRow = {
   orderId: string;
@@ -52,26 +69,26 @@ const sourceLabel = (source?: string) => {
   return 'الموقع';
 };
 
-export default function ReturnsReportsPage() {
+export default function ReturnsSection({
+  period,
+  refreshKey,
+  registerExport,
+  searchQuery = '',
+}: {
+  period: PeriodKey;
+  refreshKey: number;
+  registerExport: (fn: (() => void) | null) => void;
+  searchQuery?: string;
+}) {
   const { shop } = useShop();
   const [rows, setRows] = useState<ReturnRow[]>([]);
   const [totalOrders, setTotalOrders] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-
-  // بحث مُؤجَّل (debounce) على رقم الطلب
-  useEffect(() => {
-    const t = setTimeout(() => setSearch(searchInput.trim().toLowerCase()), 300);
-    return () => clearTimeout(t);
-  }, [searchInput]);
 
   const load = useCallback(async () => {
     const shopId = shop?.id;
     if (!shopId) return;
-    setRefreshing(true);
     setError('');
     try {
       const res = await apiRequest(`/shops/${shopId}/orders`);
@@ -109,7 +126,6 @@ export default function ReturnsReportsPage() {
         } catch {
           /* مفيش سجلات مرتجع للطلب — نرجّع بصف احتياطي */
         }
-        // مرتجع كامل (تحديث الحالة) بدون سجل مرتجع تفصيلي
         out.push({
           orderId,
           orderShortId: orderId.slice(0, 8).toUpperCase(),
@@ -132,134 +148,145 @@ export default function ReturnsReportsPage() {
       setRows([]);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, [shop?.id]);
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, refreshKey]);
+
+  const range = periodRange(period);
+
+  /** مرتجعات الفترة المختارة فقط */
+  const periodRows = useMemo(
+    () => rows.filter((r) => inPeriod(r.returnCreatedAt as string | undefined, range)),
+    [rows, range]
+  );
 
   const filtered = useMemo(() => {
-    if (!search) return rows;
-    return rows.filter(
-      (r) =>
-        r.orderId.toLowerCase().includes(search) || r.orderShortId.toLowerCase().includes(search)
+    if (!searchQuery.trim()) return periodRows;
+    const q = searchQuery.trim().toLowerCase();
+    return periodRows.filter(
+      (r) => r.orderId.toLowerCase().includes(q) || r.orderShortId.toLowerCase().includes(q)
     );
-  }, [rows, search]);
+  }, [periodRows, searchQuery]);
 
   const stats = useMemo(() => {
-    const count = rows.length;
-    const totalReturnedAmount = rows.reduce((s, r) => s + Number(r.totalAmount || 0), 0);
-    const rate = totalOrders > 0 ? (count / totalOrders) * 100 : 0;
+    const count = periodRows.length;
+    const totalReturnedAmount = periodRows.reduce((s, r) => s + Number(r.totalAmount || 0), 0);
+    const ordersInRange = totalOrders; // القائمة الحالية هي مرجع النسبة
+    const rate = ordersInRange > 0 ? (count / ordersInRange) * 100 : 0;
     return { count, totalReturnedAmount, rate };
-  }, [rows, totalOrders]);
+  }, [periodRows, totalOrders]);
 
-  const sourceBreakdown = useMemo(() => {
-    const buildFor = (match: (s: string) => boolean) => {
-      const items = rows.filter((r) => match(r.source));
-      return {
-        count: items.length,
-        total: items.reduce((s, r) => s + Number(r.totalAmount || 0), 0),
-      };
-    };
-    return [
-      {
-        key: 'website',
-        label: 'الموقع',
-        icon: <Store size={14} />,
-        ...buildFor((s) => s !== 'pos' && s !== 'manual'),
-      },
-      {
-        key: 'pos',
-        label: 'الكاشير',
-        icon: <ScanBarcode size={14} />,
-        ...buildFor((s) => s === 'pos'),
-      },
-      {
-        key: 'manual',
-        label: 'فاتورة يدوية',
-        icon: <FileText size={14} />,
-        ...buildFor((s) => s === 'manual'),
-      },
+  /** اتجاه عدد المرتجعات مقابل الفترة السابقة */
+  const trendPct = useMemo(() => {
+    const prev = prevPeriodRange(period);
+    const prevCount = rows.filter((r) =>
+      inPeriod(r.returnCreatedAt as string | undefined, prev)
+    ).length;
+    if (prevCount === 0) return null;
+    return ((stats.count - prevCount) / prevCount) * 100;
+  }, [rows, period, stats.count]);
+
+  /** مرتجعات عبر الفترة — تجميع حقيقي بالحاويات الزمنية */
+  const timeline = useMemo(() => {
+    const buckets = buildBuckets(period, range);
+    for (const r of periodRows) {
+      const k = bucketKeyOf(r.returnCreatedAt as string | undefined, period);
+      if (!k) continue;
+      const b = buckets.find((x) => x.key === k);
+      if (b) b.revenue = Number(b.revenue || 0) + 1;
+    }
+    return buckets.map((b) => ({ label: b.label, returns: Number(b.revenue || 0) }));
+  }, [periodRows, period, range]);
+
+  const sourceDonut = useMemo(() => {
+    const groups = [
+      { name: 'الموقع', match: (s: string) => s !== 'pos' && s !== 'manual' },
+      { name: 'الكاشير', match: (s: string) => s === 'pos' },
+      { name: 'فاتورة يدوية', match: (s: string) => s === 'manual' },
     ];
-  }, [rows]);
+    return groups
+      .map((g) => ({
+        name: g.name,
+        value: periodRows.filter((r) => g.match(r.source)).length,
+      }))
+      .filter((d) => d.value > 0);
+  }, [periodRows]);
 
-  const kpis = [
-    { label: 'عدد المرتجعات', value: fmtNum(stats.count) },
-    { label: 'إجمالي المبالغ المسترجعة (ج.م)', value: fmtMoney(stats.totalReturnedAmount) },
-    { label: 'نسبة المرتجعات', value: `${fmtNum(Math.round(stats.rate * 10) / 10)}%` },
-  ];
+  useEffect(() => {
+    if (loading || filtered.length === 0) {
+      registerExport(null);
+      return;
+    }
+    registerExport(() =>
+      downloadCSV(
+        'returns.csv',
+        ['Order', 'Source', 'Date', 'Items', 'Refunded Amount', 'Reason'],
+        filtered.map((r) => [
+          `#${r.orderShortId}`,
+          sourceLabel(r.source),
+          fmtDate(r.returnCreatedAt),
+          r.itemCount,
+          Number(r.totalAmount || 0).toFixed(2),
+          r.reason || '-',
+        ])
+      )
+    );
+    return () => registerExport(null);
+  }, [filtered, loading, registerExport]);
+
+  if (loading) return <SectionSkeleton />;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-[1400px] mx-auto">
-      {/* ===== Header ===== */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">تقارير المرتجعات</h1>
-          <p className="text-xs text-slate-400 mt-1">
-            كل مرتجعات المتجر من الموقع والكاشير والفواتير في تقرير واحد
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={load}
-          disabled={refreshing || !shop?.id}
-          className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50"
-          title="تحديث"
-        >
-          <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-        </button>
-      </div>
-
+    <div className="space-y-4">
       {error && (
         <div className="p-3 rounded-lg border border-red-200 bg-red-50 text-xs font-semibold text-red-800">
           {error}
         </div>
       )}
 
-      {/* ===== KPIs ===== */}
-      <div className="grid grid-cols-3 gap-3">
-        {kpis.map((k) => (
-          <div key={k.label} className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5">
-            <div className="flex items-center gap-1.5 mb-1 text-orange-600">
-              <Undo2 size={14} />
-              <span className="text-[11px] font-semibold text-slate-400">{k.label}</span>
-            </div>
-            {loading ? (
-              <div className="h-7 w-16 bg-slate-100 rounded-md animate-pulse" />
-            ) : (
-              <div className="text-[22px] font-extrabold text-slate-900 tabular-nums">
-                {k.value}
-              </div>
-            )}
-          </div>
-        ))}
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiCard
+          icon={Undo2}
+          label="عدد المرتجعات"
+          value={fmtNum(stats.count)}
+          trendPct={trendPct ?? undefined}
+        />
+        <KpiCard
+          icon={Undo2}
+          label="إجمالي المسترجع"
+          value={egp(stats.totalReturnedAmount)}
+          valueClass="text-orange-600"
+        />
+        <KpiCard
+          icon={Undo2}
+          label="نسبة المرتجعات"
+          value={`${fmtNum(Math.round(stats.rate * 10) / 10)}%`}
+        />
       </div>
 
-      {/* ===== Breakdown by source ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {sourceBreakdown.map((s) => (
-          <div key={s.key} className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="flex items-center gap-1.5 text-slate-500">
-              {s.icon}
-              <span className="text-[11px] font-bold">{s.label}</span>
-              <span className="mr-auto text-[10px] font-semibold text-slate-400 bg-slate-50 border border-slate-100 rounded px-2 py-0.5 tabular-nums">
-                {fmtNum(s.count)} مرتجع
-              </span>
-            </div>
-            {loading ? (
-              <div className="mt-2 h-6 w-20 bg-slate-100 rounded-md animate-pulse" />
-            ) : (
-              <div className="mt-2 text-lg font-extrabold text-slate-900 tabular-nums">
-                ج.م {fmtMoney(s.total)}
-              </div>
-            )}
-          </div>
-        ))}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* مرتجعات عبر الفترة */}
+        <div className="lg:col-span-2">
+          <ChartCard title="المرتجعات عبر الفترة" sub="حسب تاريخ المرتجع">
+            {periodRows.length > 0 ? <ReturnsBars data={timeline} /> : <ChartEmpty />}
+          </ChartCard>
+        </div>
+
+        {/* حسب المصدر */}
+        <ChartCard title="المرتجعات حسب المصدر">
+          {sourceDonut.length > 0 ? (
+            <Donut data={sourceDonut} centerValue={fmtNum(stats.count)} centerLabel="مرتجع" />
+          ) : (
+            <ChartEmpty />
+          )}
+        </ChartCard>
       </div>
 
-      {/* ===== Table ===== */}
+      {/* سجل المرتجعات */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
           <PackageSearch size={15} className="text-orange-600" />
@@ -268,35 +295,12 @@ export default function ReturnsReportsPage() {
             {fmtNum(filtered.length)}
           </span>
         </div>
-
-        {!loading && rows.length > 0 && (
-          <div className="px-4 pt-3 pb-1">
-            <div className="relative max-w-xs">
-              <Search
-                size={14}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                type="text"
-                placeholder="بحث برقم الطلب…"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full h-9 pr-9 pl-3 rounded-full border border-slate-200 text-xs font-semibold outline-none focus:border-slate-400"
-              />
-            </div>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="p-5 space-y-2">
-            <div className="h-9 bg-slate-100 rounded-lg animate-pulse" />
-            <div className="h-9 bg-slate-100 rounded-lg animate-pulse" />
-            <div className="h-9 bg-slate-100 rounded-lg animate-pulse" />
-          </div>
-        ) : rows.length === 0 ? (
+        {periodRows.length === 0 ? (
           <div className="py-14 text-center">
             <Undo2 size={26} className="mx-auto mb-2 text-emerald-300" />
-            <p className="text-sm font-bold text-emerald-700">مفيش مرتجعات — كده كويس 👍</p>
+            <p className="text-sm font-bold text-emerald-700">
+              مفيش مرتجعات في الفترة دي — كده كويس 👍
+            </p>
             <p className="text-xs text-slate-400 mt-1">
               كل الطلبات ماشية تمام، أول ما يحصل مرتجع هيظهر هنا فورًا
             </p>
@@ -353,6 +357,66 @@ export default function ReturnsReportsPage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/* أعمدة المرتجعات — نفس ستايل رسوم المشروع */
+
+const AXIS_STYLE = { fontSize: 10, fill: '#94A3B8', fontWeight: 600 };
+const compact = (v: number) => String(Math.round(Number(v || 0)));
+
+function ReturnsBars({ data }: { data: Array<{ label: string; returns: number }> }) {
+  if (!data.length) return <ChartEmpty />;
+  return (
+    <div style={{ height: 240 }} dir="ltr" className="w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <RBarChart data={data} margin={{ top: 10, right: 8, bottom: 0, left: 8 }}>
+          <CartesianGrid stroke="#EEF1F6" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={AXIS_STYLE}
+            axisLine={false}
+            tickLine={false}
+            interval="preserveStartEnd"
+            minTickGap={16}
+            reversed
+          />
+          <YAxis
+            tick={AXIS_STYLE}
+            axisLine={false}
+            tickLine={false}
+            width={40}
+            orientation="right"
+            tickFormatter={compact}
+            allowDecimals={false}
+          />
+          <RTooltip
+            content={({ active, payload, label }: any) => {
+              if (!active || !payload?.length) return null;
+              return (
+                <div
+                  className="rounded-lg bg-slate-900 text-white px-2.5 py-1.5 shadow-lg text-[11px] font-bold whitespace-nowrap"
+                  dir="rtl"
+                >
+                  <span className="text-slate-400 font-semibold">{label} — </span>
+                  <span dir="ltr" className="tabular-nums">
+                    {payload[0].value} مرتجع
+                  </span>
+                </div>
+              );
+            }}
+            cursor={{ fill: '#F1F5F9' }}
+          />
+          <RBar
+            dataKey="returns"
+            name="مرتجعات"
+            fill="#F59E0B"
+            radius={[4, 4, 0, 0]}
+            animationDuration={450}
+          />
+        </RBarChart>
+      </ResponsiveContainer>
     </div>
   );
 }

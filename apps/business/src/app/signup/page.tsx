@@ -5,19 +5,44 @@ export const dynamic = 'force-dynamic';
 import { useMemo, useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  AlertTriangle, ChevronLeft, Search, Home, ArrowRight, Sparkles,
-  User, Store, Mail, Lock, Phone, Loader2, Eye, EyeOff, Check, CheckCircle2,
-  LayoutDashboard, SkipForward, Building2, HelpCircle,
+  AlertTriangle,
+  ChevronLeft,
+  Search,
+  Home,
+  ArrowRight,
+  Sparkles,
+  User,
+  Store,
+  Mail,
+  Lock,
+  Phone,
+  Loader2,
+  Eye,
+  EyeOff,
+  Check,
+  CheckCircle2,
+  LayoutDashboard,
+  SkipForward,
+  Building2,
+  HelpCircle,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { BUSINESS_ACTIVITIES, groupAccentColors, ActivityWithGroup } from '@/lib/activities';
 import {
-  BUSINESS_ACTIVITIES, groupAccentColors, ActivityWithGroup,
-} from '@/lib/activities';
-import { BOOKING_ACTIVITIES, MODULE_DEFINITIONS, resolveDependencies, type ModuleId } from '@/lib/moduleConfig';
+  BOOKING_ACTIVITIES,
+  MODULE_DEFINITIONS,
+  resolveDependencies,
+  type ModuleId,
+} from '@/lib/moduleConfig';
 import {
-  getQuestionsForActivity, modulesFromAnswers, specialtiesFromAnswers,
-  dashboardEnabledFeatures, getBaseModules, type ActivityQuestion,
+  getQuestionsForActivity,
+  modulesFromAnswers,
+  specialtiesFromAnswers,
+  dashboardEnabledFeatures,
+  getBaseModules,
+  type ActivityQuestion,
 } from '@/lib/activityQuestions';
+import { ShopLocationPicker, type ResolvedShopLocation } from '@/components/ShopLocationPicker';
 
 const MotionDiv = motion.div as any;
 
@@ -69,9 +94,10 @@ const ACTIVITIES: ActivityWithGroup[] = BUSINESS_ACTIVITIES;
 // In development, call same-origin /api/* and let the Next.js rewrite proxy
 // it to the backend — avoids CSP/CORS blocks on http://localhost:4000.
 // In production, call the API origin directly (https is CSP-safe).
-const API_BASE = process.env.NODE_ENV === 'development'
-  ? ''
-  : (process.env.NEXT_PUBLIC_API_URL || 'https://api.mnmknk.com');
+const API_BASE =
+  process.env.NODE_ENV === 'development'
+    ? ''
+    : process.env.NEXT_PUBLIC_API_URL || 'https://api.mnmknk.com';
 
 function SignupContent() {
   const router = useRouter();
@@ -89,15 +115,35 @@ function SignupContent() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    shopName: '', phone: '',
-    email: '', password: '',
-    governorate: '', city: '', shopPhone: '',
-    addressDetailed: '', shopDescription: '', openingHours: '',
+    shopName: '',
+    phone: '',
+    email: '',
+    password: '',
+    governorate: '',
+    city: '',
+    shopPhone: '',
+    addressDetailed: '',
+    shopDescription: '',
+    openingHours: '',
   });
+  /** Shop coordinates picked on the map — sent with the shop payload. */
+  const [shopCoords, setShopCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Map selection → the manual fields fill themselves so the merchant only
+  // reviews/edits what the geocoder produced.
+  const handleLocationResolved = (loc: ResolvedShopLocation) => {
+    setShopCoords({ lat: loc.lat, lng: loc.lng });
+    setFormData((prev) => ({
+      ...prev,
+      governorate: loc.governorate || prev.governorate,
+      city: loc.city || prev.city,
+      addressDetailed: loc.street ? prev.addressDetailed || loc.street : prev.addressDetailed,
+    }));
+  };
 
   const selectedActivity = useMemo(
     () => ACTIVITIES.find((a) => a.id === activityId) || null,
-    [activityId],
+    [activityId]
   );
 
   const getActivityLabel = (activity: ActivityWithGroup) => activity.title;
@@ -121,7 +167,10 @@ function SignupContent() {
 
   const questions: ActivityQuestion[] = useMemo(() => {
     if (!selectedActivity) return [];
-    return getQuestionsForActivity(selectedActivity.id, BOOKING_ACTIVITIES.has(selectedActivity.id));
+    return getQuestionsForActivity(
+      selectedActivity.id,
+      BOOKING_ACTIVITIES.has(selectedActivity.id)
+    );
   }, [selectedActivity]);
 
   const answeredCount = questions.filter((q) => (answers[q.id] || []).length > 0).length;
@@ -146,7 +195,12 @@ function SignupContent() {
     setAnswers((prev) => {
       const current = prev[q.id] || [];
       if (q.multi) {
-        return { ...prev, [q.id]: current.includes(optionId) ? current.filter((x) => x !== optionId) : [...current, optionId] };
+        return {
+          ...prev,
+          [q.id]: current.includes(optionId)
+            ? current.filter((x) => x !== optionId)
+            : [...current, optionId],
+        };
       }
       return { ...prev, [q.id]: current.includes(optionId) ? [] : [optionId] };
     });
@@ -168,9 +222,11 @@ function SignupContent() {
       // Step 1: Create user
       // Normalize Egyptian phone to E.164 format (+20...)
       const rawPhone = formData.phone.trim().replace(/\s+/g, '');
-      const e164Phone = rawPhone.startsWith('+') ? rawPhone
-        : rawPhone.startsWith('0') ? '+2' + rawPhone
-        : '+20' + rawPhone;
+      const e164Phone = rawPhone.startsWith('+')
+        ? rawPhone
+        : rawPhone.startsWith('0')
+          ? '+2' + rawPhone
+          : '+20' + rawPhone;
       const userPayload: any = {
         email: formData.email,
         password: formData.password,
@@ -193,10 +249,9 @@ function SignupContent() {
       }
 
       // Step 2: Create shop — the wizard answers define the real layout.
-      const finalSpecialties = skipped
-        ? []
-        : specialtiesFromAnswers(questions, answers);
-      const accessToken = data?.token?.accessToken || data?.data?.token?.accessToken || data?.session?.access_token;
+      const finalSpecialties = skipped ? [] : specialtiesFromAnswers(questions, answers);
+      const accessToken =
+        data?.token?.accessToken || data?.data?.token?.accessToken || data?.session?.access_token;
       const user = data?.user || data?.data?.user;
 
       const resolvedModules = Array.from(resolveDependencies(finalModules));
@@ -210,6 +265,10 @@ function SignupContent() {
         governorate: formData.governorate,
         city: formData.city,
         openingHours: formData.openingHours,
+        latitude: shopCoords?.lat,
+        longitude: shopCoords?.lng,
+        locationSource: shopCoords ? 'map' : undefined,
+        mapLabel: shopCoords ? 'موقع المتجر على الخريطة' : undefined,
         activityId: selectedActivity.id,
         activity: selectedActivity.title,
         enabledModules: resolvedModules,
@@ -220,23 +279,23 @@ function SignupContent() {
           enabledFeatures: dashboardEnabledFeatures(resolvedModules),
           onboarding: { skipped, answers },
         },
-        moduleFeatures: MODULE_DEFINITIONS.filter((m) =>
-          resolvedModules.includes(m.id),
-        ).map((m) => ({
-          moduleId: m.id,
-          features: m.features.map((f) => ({
-            id: f.id,
-            label: f.label,
-            enabled: f.defaultEnabled !== false,
-          })),
-        })),
+        moduleFeatures: MODULE_DEFINITIONS.filter((m) => resolvedModules.includes(m.id)).map(
+          (m) => ({
+            moduleId: m.id,
+            features: m.features.map((f) => ({
+              id: f.id,
+              label: f.label,
+              enabled: f.defaultEnabled !== false,
+            })),
+          })
+        ),
       };
 
       const shopRes = await fetch(`${API_BASE}/api/v1/shops`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify(shopPayload),
       });
@@ -270,12 +329,21 @@ function SignupContent() {
       return;
     }
     if (step === 'activity') {
-      if (!selectedActivity) { setError('اختر نشاطك أولاً'); return; }
+      if (!selectedActivity) {
+        setError('اختر نشاطك أولاً');
+        return;
+      }
       setStep('questions');
       return;
     }
-    if (step === 'questions') { setStep('data'); return; }
-    if (step === 'data') { submitSignup(); return; }
+    if (step === 'questions') {
+      setStep('data');
+      return;
+    }
+    if (step === 'data') {
+      submitSignup();
+      return;
+    }
   };
 
   const goBack = () => {
@@ -310,12 +378,15 @@ function SignupContent() {
       { key: 'questions', label: 'أسئلة سريعة', num: 3 },
       { key: 'data', label: 'التسجيل', num: 4 },
     ];
-    const activeNum = step === 'account' ? 1 : step === 'activity' ? 2 : step === 'questions' ? 3 : 4;
+    const activeNum =
+      step === 'account' ? 1 : step === 'activity' ? 2 : step === 'questions' ? 3 : 4;
     return (
       <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
         {steps.map((s, idx) => (
           <div key={s.key} className="flex items-center gap-2">
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-black transition-all ${s.num <= activeNum ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'}`}>
+            <div
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-black transition-all ${s.num <= activeNum ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'}`}
+            >
               <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">
                 {s.num < activeNum ? <Check className="w-3.5 h-3.5" /> : s.num}
               </span>
@@ -344,15 +415,21 @@ function SignupContent() {
             <Check className="w-4 h-4 text-black" strokeWidth={3} />
           </span>
         )}
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3 ${active ? 'bg-white/10' : 'bg-slate-50 border border-slate-100'}`}>
+        <div
+          className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3 ${active ? 'bg-white/10' : 'bg-slate-50 border border-slate-100'}`}
+        >
           {icon || (
-            <span className={`bg-gradient-to-br ${gradient} bg-clip-text text-transparent font-black text-xl`}>
+            <span
+              className={`bg-gradient-to-br ${gradient} bg-clip-text text-transparent font-black text-xl`}
+            >
               {getActivityLabel(activity).charAt(0)}
             </span>
           )}
         </div>
         <div className="font-black text-sm mb-1">{getActivityLabel(activity)}</div>
-        <p className={`text-[11px] font-bold leading-4 line-clamp-2 ${active ? 'text-white/60' : 'text-slate-400'}`}>
+        <p
+          className={`text-[11px] font-bold leading-4 line-clamp-2 ${active ? 'text-white/60' : 'text-slate-400'}`}
+        >
           {activity.description}
         </p>
       </button>
@@ -370,14 +447,18 @@ function SignupContent() {
           <Sparkles className="w-7 h-7 text-[#00E5FF]" />
         </div>
         <h2 className="text-2xl font-black text-slate-900 mb-1">أهلاً بيك 👋</h2>
-        <p className="text-slate-400 font-bold text-sm mb-7">عرفنا بمتجرك في 30 ثانية، وبعدها نظبط لوحك على نشاطك بالظبط</p>
+        <p className="text-slate-400 font-bold text-sm mb-7">
+          عرفنا بمتجرك في 30 ثانية، وبعدها نظبط لوحك على نشاطك بالظبط
+        </p>
         <div className="space-y-5">
           <div>
             <label className="flex items-center gap-2 text-xs font-black text-slate-600 mb-2">
-              <Store className="w-4 h-4 text-[#00E5FF]" /> اسم المتجر / المحل <span className="text-red-500">*</span>
+              <Store className="w-4 h-4 text-[#00E5FF]" /> اسم المتجر / المحل{' '}
+              <span className="text-red-500">*</span>
             </label>
             <input
-              type="text" value={formData.shopName}
+              type="text"
+              value={formData.shopName}
               onChange={(e) => setFormData((p) => ({ ...p, shopName: e.target.value }))}
               placeholder=""
               className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-5 font-black text-right text-slate-900 placeholder:text-slate-300 focus:bg-white focus:border-[#00E5FF] transition-all outline-none"
@@ -385,15 +466,20 @@ function SignupContent() {
           </div>
           <div>
             <label className="flex items-center gap-2 text-xs font-black text-slate-600 mb-2">
-              <Phone className="w-4 h-4 text-[#00E5FF]" /> رقم الموبايل <span className="text-red-500">*</span>
+              <Phone className="w-4 h-4 text-[#00E5FF]" /> رقم الموبايل{' '}
+              <span className="text-red-500">*</span>
             </label>
             <input
-              type="tel" value={formData.phone} dir="ltr"
+              type="tel"
+              value={formData.phone}
+              dir="ltr"
               onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
               placeholder="01xxxxxxxxx"
               className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-5 font-black text-left text-slate-900 placeholder:text-slate-300 focus:bg-white focus:border-[#00E5FF] transition-all outline-none"
             />
-            <p className="text-[10px] font-bold text-slate-400 mt-2">هنستخدم الرقم للتواصل معاك وتفعيل حسابك — مفيش رسائل مزعجة</p>
+            <p className="text-[10px] font-bold text-slate-400 mt-2">
+              هنستخدم الرقم للتواصل معاك وتفعيل حسابك — مفيش رسائل مزعجة
+            </p>
           </div>
         </div>
       </motion.div>
@@ -414,31 +500,46 @@ function SignupContent() {
       </div>
 
       {groupIds.length === 0 ? (
-        <div className="text-center py-10"><p className="text-slate-400 font-bold">لا توجد أنشطة مطابقة لبحثك.</p></div>
+        <div className="text-center py-10">
+          <p className="text-slate-400 font-bold">لا توجد أنشطة مطابقة لبحثك.</p>
+        </div>
       ) : (
         groupIds.map((groupId) => {
           const activities = groupedActivities[groupId];
-          const expanded = expandedGroups.has(groupId) || activitySearch.length > 0 || activityId !== '';
+          const expanded =
+            expandedGroups.has(groupId) || activitySearch.length > 0 || activityId !== '';
           const groupTitle = activities[0]?.groupTitle || groupId;
           const visible = expanded ? activities : activities.slice(0, 4);
           return (
             <div key={groupId} className="pt-1">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${groupAccentColors[groupId] || groupAccentColors.other} text-white flex items-center justify-center text-sm font-black`}>
+                  <div
+                    className={`w-8 h-8 rounded-xl bg-gradient-to-br ${groupAccentColors[groupId] || groupAccentColors.other} text-white flex items-center justify-center text-sm font-black`}
+                  >
                     {activities[0]?.icon || groupTitle.charAt(0)}
                   </div>
-                  <span className="font-black text-sm md:text-base text-slate-900">{groupTitle}</span>
-                  <span className="text-[11px] font-black text-slate-300">({activities.length})</span>
+                  <span className="font-black text-sm md:text-base text-slate-900">
+                    {groupTitle}
+                  </span>
+                  <span className="text-[11px] font-black text-slate-300">
+                    ({activities.length})
+                  </span>
                 </div>
                 {!activitySearch && activities.length > 4 && (
-                  <button type="button" onClick={() => toggleGroup(groupId)} className="text-xs font-black text-slate-500 hover:text-slate-900 transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(groupId)}
+                    className="text-xs font-black text-slate-500 hover:text-slate-900 transition-colors"
+                  >
                     {expanded ? 'عرض أقل' : `عرض كل ${activities.length}`}
                   </button>
                 )}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-3">
-                {visible.map((activity) => <ActivityCard key={activity.id} activity={activity} />)}
+                {visible.map((activity) => (
+                  <ActivityCard key={activity.id} activity={activity} />
+                ))}
               </div>
             </div>
           );
@@ -484,9 +585,12 @@ function SignupContent() {
             <span>{selectedActivity.icon || ACTIVITY_ICONS[selectedActivity.id] || '🏷️'}</span>
             {getActivityLabel(selectedActivity)}
           </div>
-          <h2 className="text-2xl font-black text-slate-900 mb-1.5">سؤالين سريعين ونظبطلك كل حاجة</h2>
+          <h2 className="text-2xl font-black text-slate-900 mb-1.5">
+            سؤالين سريعين ونظبطلك كل حاجة
+          </h2>
           <p className="text-slate-400 font-bold text-xs md:text-sm">
-            بناءً على إجاباتك هنفتح الأزرار اللي محتاجها فعلاً — والباقي كل هيتلاقي في الترقية لما تحتاجه
+            بناءً على إجاباتك هنفتح الأزرار اللي محتاجها فعلاً — والباقي كل هيتلاقي في الترقية لما
+            تحتاجه
           </p>
         </div>
 
@@ -504,7 +608,9 @@ function SignupContent() {
                 <HelpCircle className="w-4 h-4 text-[#00E5FF]" />
                 <h3 className="font-black text-slate-900 text-sm">{q.question}</h3>
                 {selected.length > 0 && (
-                  <span className="mr-auto text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">تم ✓</span>
+                  <span className="mr-auto text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    تم ✓
+                  </span>
                 )}
               </div>
               {q.hint && <p className="text-[11px] font-bold text-slate-400 mb-3">{q.hint}</p>}
@@ -541,7 +647,9 @@ function SignupContent() {
           className="bg-slate-900 rounded-[2rem] p-5 text-white sticky bottom-24"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">معاينة لوحتك</span>
+            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+              معاينة لوحتك
+            </span>
             <AnimatePresence mode="wait">
               <motion.span
                 key={finalModules.length}
@@ -557,7 +665,10 @@ function SignupContent() {
             {previewModules.base.map((m) => {
               const meta = MODULE_PREVIEW[String(m)];
               return (
-                <span key={String(m)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black text-white/80">
+                <span
+                  key={String(m)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black text-white/80"
+                >
                   <span>{meta?.icon || '📦'}</span> {meta?.label || String(m)}
                 </span>
               );
@@ -580,7 +691,8 @@ function SignupContent() {
             </AnimatePresence>
           </div>
           <p className="text-[10px] font-bold text-white/30 mt-3">
-            الأزرار السماوية هي اللي فتحناها من إجاباتك — والباقي كله متاح في «الترقية» من لوحتك في أي وقت
+            الأزرار السماوية هي اللي فتحناها من إجاباتك — والباقي كله متاح في «الترقية» من لوحتك في
+            أي وقت
           </p>
         </motion.div>
 
@@ -594,7 +706,9 @@ function SignupContent() {
             <SkipForward className="w-4 h-4" />
             تخطي وعمل يدوي — هندخل البيانات بنفسي والأزرار الأساسية بس
           </button>
-          <p className="text-[10px] font-bold text-slate-300 mt-2">أسئلة {answeredCount} من {questions.length} مُجابة · مش إجباري تجاوب على كله</p>
+          <p className="text-[10px] font-bold text-slate-300 mt-2">
+            أسئلة {answeredCount} من {questions.length} مُجابة · مش إجباري تجاوب على كله
+          </p>
         </div>
       </div>
     );
@@ -604,14 +718,20 @@ function SignupContent() {
     <div className="space-y-6 max-w-lg mx-auto">
       <div className="bg-white border border-slate-100 rounded-[2rem] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.15)] p-8">
         <h2 className="text-xl font-black text-slate-900 mb-1">آخر خطوة — حساب الدخول</h2>
-        <p className="text-slate-400 font-bold text-xs mb-6">الإيميل وكلمة السر اللي هتدخل بيهم للوحة التحكم</p>
+        <p className="text-slate-400 font-bold text-xs mb-6">
+          الإيميل وكلمة السر اللي هتدخل بيهم للوحة التحكم
+        </p>
         <div className="space-y-5">
           <div>
             <label className="flex items-center gap-2 text-xs font-black text-slate-600 mb-2">
-              <Mail className="w-4 h-4 text-[#00E5FF]" /> البريد الإلكتروني <span className="text-red-500">*</span>
+              <Mail className="w-4 h-4 text-[#00E5FF]" /> البريد الإلكتروني{' '}
+              <span className="text-red-500">*</span>
             </label>
             <input
-              type="email" value={formData.email} dir="ltr" autoFocus
+              type="email"
+              value={formData.email}
+              dir="ltr"
+              autoFocus
               onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
               placeholder="name@example.com"
               className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-5 font-black text-left text-slate-900 placeholder:text-slate-300 focus:bg-white focus:border-[#00E5FF] transition-all outline-none"
@@ -619,21 +739,38 @@ function SignupContent() {
           </div>
           <div>
             <label className="flex items-center gap-2 text-xs font-black text-slate-600 mb-2">
-              <Lock className="w-4 h-4 text-[#00E5FF]" /> كلمة المرور <span className="text-red-500">*</span>
+              <Lock className="w-4 h-4 text-[#00E5FF]" /> كلمة المرور{' '}
+              <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
-                type={showPassword ? 'text' : 'password'} value={formData.password} dir="ltr"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                dir="ltr"
                 onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))}
                 placeholder="••••••••"
                 className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-5 pl-12 font-black text-left text-slate-900 placeholder:text-slate-300 focus:bg-white focus:border-[#00E5FF] transition-all outline-none"
               />
-              <button type="button" onClick={() => setShowPassword((p) => !p)} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors">
+              <button
+                type="button"
+                onClick={() => setShowPassword((p) => !p)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors"
+              >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Shop location — map first, manual fields auto-fill from it */}
+      <div className="bg-white border border-slate-100 rounded-[2rem] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.15)] p-6 md:p-8">
+        <h2 className="text-lg font-black text-slate-900 mb-1">فين متجرك؟ 📍</h2>
+        <p className="text-slate-400 font-bold text-xs mb-5">
+          حدد مكان متجرك على الخريطة — والمحافظة والمدينة والعنوان هيتملوا تلقائياً، وتقدر تعدّلهم
+          بعدها
+        </p>
+        <ShopLocationPicker onResolve={handleLocationResolved} />
       </div>
 
       {/* Optional store details — the manual part */}
@@ -646,7 +783,9 @@ function SignupContent() {
           <Building2 className="w-4 h-4 text-slate-400" />
           بيانات المتجر التفصيلية (اختياري)
         </span>
-        <ChevronLeft className={`w-4 h-4 text-slate-400 transition-transform ${showDetails ? '-rotate-90' : ''}`} />
+        <ChevronLeft
+          className={`w-4 h-4 text-slate-400 transition-transform ${showDetails ? '-rotate-90' : ''}`}
+        />
       </button>
       <AnimatePresence>
         {showDetails && (
@@ -659,35 +798,73 @@ function SignupContent() {
             <div className="bg-white border border-slate-100 rounded-[2rem] p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 mb-1.5">المحافظة</label>
-                  <input value={formData.governorate} onChange={(e) => setFormData((p) => ({ ...p, governorate: e.target.value }))} placeholder="القاهرة"
-                    className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30" />
+                  <label className="block text-[10px] font-black text-slate-400 mb-1.5">
+                    المحافظة
+                  </label>
+                  <input
+                    value={formData.governorate}
+                    onChange={(e) => setFormData((p) => ({ ...p, governorate: e.target.value }))}
+                    placeholder="القاهرة"
+                    className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30"
+                  />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 mb-1.5">المدينة</label>
-                  <input value={formData.city} onChange={(e) => setFormData((p) => ({ ...p, city: e.target.value }))} placeholder="مدينة نصر"
-                    className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30" />
+                  <label className="block text-[10px] font-black text-slate-400 mb-1.5">
+                    المدينة
+                  </label>
+                  <input
+                    value={formData.city}
+                    onChange={(e) => setFormData((p) => ({ ...p, city: e.target.value }))}
+                    placeholder="مدينة نصر"
+                    className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30"
+                  />
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-black text-slate-400 mb-1.5">هاتف المتجر (لو مختلف)</label>
-                <input value={formData.shopPhone} onChange={(e) => setFormData((p) => ({ ...p, shopPhone: e.target.value }))} placeholder="02xxxxxxxx"
-                  className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30" />
+                <label className="block text-[10px] font-black text-slate-400 mb-1.5">
+                  هاتف المتجر (لو مختلف)
+                </label>
+                <input
+                  value={formData.shopPhone}
+                  onChange={(e) => setFormData((p) => ({ ...p, shopPhone: e.target.value }))}
+                  placeholder="02xxxxxxxx"
+                  className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30"
+                />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-slate-400 mb-1.5">مواعيد العمل</label>
-                <input value={formData.openingHours} onChange={(e) => setFormData((p) => ({ ...p, openingHours: e.target.value }))} placeholder="9 ص - 10 م"
-                  className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30" />
+                <label className="block text-[10px] font-black text-slate-400 mb-1.5">
+                  مواعيد العمل
+                </label>
+                <input
+                  value={formData.openingHours}
+                  onChange={(e) => setFormData((p) => ({ ...p, openingHours: e.target.value }))}
+                  placeholder="9 ص - 10 م"
+                  className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30"
+                />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-slate-400 mb-1.5">العنوان التفصيلي</label>
-                <textarea value={formData.addressDetailed} onChange={(e) => setFormData((p) => ({ ...p, addressDetailed: e.target.value }))} rows={2} placeholder="شارع ... عمارة ... دور ..."
-                  className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30 resize-none" />
+                <label className="block text-[10px] font-black text-slate-400 mb-1.5">
+                  العنوان التفصيلي
+                </label>
+                <textarea
+                  value={formData.addressDetailed}
+                  onChange={(e) => setFormData((p) => ({ ...p, addressDetailed: e.target.value }))}
+                  rows={2}
+                  placeholder="شارع ... عمارة ... دور ..."
+                  className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30 resize-none"
+                />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-slate-400 mb-1.5">وصف قصير للمتجر</label>
-                <textarea value={formData.shopDescription} onChange={(e) => setFormData((p) => ({ ...p, shopDescription: e.target.value }))} rows={2} placeholder="نبذة مختصرة عن نشاطك..."
-                  className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30 resize-none" />
+                <label className="block text-[10px] font-black text-slate-400 mb-1.5">
+                  وصف قصير للمتجر
+                </label>
+                <textarea
+                  value={formData.shopDescription}
+                  onChange={(e) => setFormData((p) => ({ ...p, shopDescription: e.target.value }))}
+                  rows={2}
+                  placeholder="نبذة مختصرة عن نشاطك..."
+                  className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30 resize-none"
+                />
               </div>
             </div>
           </motion.div>
@@ -696,11 +873,15 @@ function SignupContent() {
 
       {/* Summary card */}
       <div className="bg-slate-900 rounded-[2rem] p-6 text-white">
-        <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-3">ملخص حسابك</div>
+        <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-3">
+          ملخص حسابك
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <div className="text-[10px] font-bold text-white/40 mb-1">الموبايل</div>
-            <div className="text-sm font-black" dir="ltr">{formData.phone || '—'}</div>
+            <div className="text-sm font-black" dir="ltr">
+              {formData.phone || '—'}
+            </div>
           </div>
           <div>
             <div className="text-[10px] font-bold text-white/40 mb-1">المتجر</div>
@@ -708,11 +889,15 @@ function SignupContent() {
           </div>
           <div>
             <div className="text-[10px] font-bold text-white/40 mb-1">النشاط</div>
-            <div className="text-sm font-black">{selectedActivity ? getActivityLabel(selectedActivity) : '—'}</div>
+            <div className="text-sm font-black">
+              {selectedActivity ? getActivityLabel(selectedActivity) : '—'}
+            </div>
           </div>
           <div>
             <div className="text-[10px] font-bold text-white/40 mb-1">لوحة التحكم</div>
-            <div className="text-sm font-black text-[#00E5FF]">{finalModules.length} تطبيق · {skipped ? 'الأساسيات' : 'على مقاس نشاطك'}</div>
+            <div className="text-sm font-black text-[#00E5FF]">
+              {finalModules.length} تطبيق · {skipped ? 'الأساسيات' : 'على مقاس نشاطك'}
+            </div>
           </div>
         </div>
       </div>
@@ -729,13 +914,23 @@ function SignupContent() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white" dir="rtl">
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-5 md:py-8">
-        <MotionDiv initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="w-full mx-auto" style={{ maxWidth: step === 'activity' ? '90rem' : '60rem' }}>
+        <MotionDiv
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full mx-auto"
+          style={{ maxWidth: step === 'activity' ? '90rem' : '60rem' }}
+        >
           <div className="flex items-center justify-between mb-3">
-            <button type="button" onClick={goHome} className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 font-black text-sm transition-colors">
+            <button
+              type="button"
+              onClick={goHome}
+              className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 font-black text-sm transition-colors"
+            >
               <Home className="w-4 h-4" /> الرئيسية
             </button>
             <div className="text-xs font-black text-slate-300">
-              الخطوة {step === 'account' ? 1 : step === 'activity' ? 2 : step === 'questions' ? 3 : 4} من 4
+              الخطوة{' '}
+              {step === 'account' ? 1 : step === 'activity' ? 2 : step === 'questions' ? 3 : 4} من 4
             </div>
           </div>
 
@@ -744,7 +939,9 @@ function SignupContent() {
               <LayoutDashboard className="w-5 h-5 text-[#00E5FF]" />
               <span className="font-black text-slate-900">نمّي أعمالك</span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 mb-1.5">ابدأ مشروعك في دقيقتين</h1>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 mb-1.5">
+              ابدأ مشروعك في دقيقتين
+            </h1>
             <p className="text-slate-400 font-bold text-xs md:text-sm">{stepHint}</p>
           </div>
 
@@ -753,8 +950,12 @@ function SignupContent() {
           <div className="pt-4">
             <AnimatePresence>
               {error && (
-                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                  className="bg-amber-50 border-r-4 border-amber-500 p-4 mb-6 rounded-2xl flex items-center gap-3 flex-row-reverse text-slate-900 font-black text-sm">
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="bg-amber-50 border-r-4 border-amber-500 p-4 mb-6 rounded-2xl flex items-center gap-3 flex-row-reverse text-slate-900 font-black text-sm"
+                >
                   <AlertTriangle size={18} /> {error}
                 </motion.div>
               )}
@@ -771,14 +972,33 @@ function SignupContent() {
             <div className="max-w-[60rem] mx-auto px-4 md:px-6 pb-4 pt-8 bg-gradient-to-t from-white via-white/90 to-transparent">
               <div className="pointer-events-auto flex gap-3 rounded-3xl border border-slate-200 bg-white/95 backdrop-blur p-3 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.25)]">
                 {step !== 'account' && (
-                  <button type="button" disabled={loading} onClick={goBack}
-                    className="w-28 shrink-0 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={goBack}
+                    className="w-28 shrink-0 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
                     <ChevronLeft size={18} /> رجوع
                   </button>
                 )}
-                <button type="button" disabled={loading} onClick={goNext}
-                  className="flex-1 py-4 rounded-2xl bg-slate-900 text-white font-black hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-70">
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : step === 'data' ? <>إنشاء الحساب والدخول للوحة <CheckCircle2 size={18} className="text-[#00E5FF]" /></> : <>{'التالي'} <ArrowRight size={18} /></>}
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={goNext}
+                  className="flex-1 py-4 rounded-2xl bg-slate-900 text-white font-black hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                >
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : step === 'data' ? (
+                    <>
+                      إنشاء الحساب والدخول للوحة{' '}
+                      <CheckCircle2 size={18} className="text-[#00E5FF]" />
+                    </>
+                  ) : (
+                    <>
+                      {'التالي'} <ArrowRight size={18} />
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -793,7 +1013,13 @@ function SignupContent() {
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<div className="min-h-[80vh] flex items-center justify-center"><Loader2 className="animate-spin text-slate-400" size={32} /></div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-[80vh] flex items-center justify-center">
+          <Loader2 className="animate-spin text-slate-400" size={32} />
+        </div>
+      }
+    >
       <SignupContent />
     </Suspense>
   );

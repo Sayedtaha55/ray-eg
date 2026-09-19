@@ -1,6 +1,6 @@
 'use client';
 
-import { ShoppingBag, Check } from 'lucide-react';
+import { ShoppingBag, Check, Plus, Minus } from 'lucide-react';
 import { useState } from 'react';
 import { useCart } from '@/lib/cart';
 import type { Product } from '@/lib/services';
@@ -9,24 +9,47 @@ export function AddToCartButton({
   product,
   size = 'md',
   color,
+  initialQuantity = 1,
+  showQuantityStepper = false,
 }: {
   product: Product;
   size?: 'sm' | 'md' | 'lg';
   color?: string;
+  initialQuantity?: number;
+  showQuantityStepper?: boolean;
 }) {
-  const { addItem } = useCart();
+  const { addItem, updateQuantity, items } = useCart();
   const [added, setAdded] = useState(false);
+  const [qty, setQty] = useState(initialQuantity);
+
+  const cartItem = items.find((i) => i.productId === product.id);
+  const cartQty = cartItem ? cartItem.quantity : 0;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (product.isAvailable === false) return;
-    addItem(product, 1);
+    addItem(product, qty);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   };
 
-  const sizeCls = size === 'sm' ? 'px-3 py-2 text-xs' : size === 'lg' ? 'px-8 py-4 text-base' : 'px-4 py-2.5 text-sm';
+  const handleStep = (e: React.MouseEvent, delta: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (cartItem) {
+      updateQuantity(product.id, cartQty + delta);
+    } else {
+      setQty((prev) => Math.max(1, prev + delta));
+    }
+  };
+
+  const sizeCls =
+    size === 'sm'
+      ? 'px-3 py-2 text-xs'
+      : size === 'lg'
+        ? 'px-8 py-4 text-base'
+        : 'px-4 py-2.5 text-sm';
   const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : size === 'lg' ? 'w-5 h-5' : 'w-4 h-4';
 
   if (product.isAvailable === false) {
@@ -40,8 +63,44 @@ export function AddToCartButton({
     );
   }
 
-  // When a custom color is provided (from the shop's builder config), use it
-  // as the button background instead of the default brand gradient.
+  // إذا كان مطلوب عرض الـ Stepper أو إذا كان المنتج مضافاً بالفعل في السلة
+  if (showQuantityStepper || cartQty > 0) {
+    const currentCount = cartQty > 0 ? cartQty : qty;
+    return (
+      <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+        <button
+          onClick={(e) => handleStep(e, -1)}
+          className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition"
+          title="تقليل الكمية"
+        >
+          <Minus className="w-3.5 h-3.5" />
+        </button>
+
+        <span className="font-extrabold text-xs sm:text-sm px-2 text-slate-900 dark:text-white min-w-[24px] text-center font-mono">
+          {currentCount}
+        </span>
+
+        <button
+          onClick={(e) => handleStep(e, 1)}
+          className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-brand-cyan text-slate-950 font-bold flex items-center justify-center hover:opacity-90 active:scale-95 transition"
+          title="زيادة الكمية"
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+
+        {cartQty === 0 && (
+          <button
+            onClick={handleAdd}
+            className="mr-1 px-3 py-1.5 rounded-lg bg-brand-gradient text-white text-xs font-bold hover:opacity-90 transition flex items-center gap-1"
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>تأكيد</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
   const colorStyle = color ? { backgroundColor: color, color: '#0F172A' } : undefined;
   const colorCls = color ? '' : 'bg-brand-gradient text-white hover:shadow-glow-cyan';
 
@@ -49,7 +108,7 @@ export function AddToCartButton({
     <button
       onClick={handleAdd}
       style={colorStyle}
-      className={`${sizeCls} rounded-lg ${colorCls} font-bold flex items-center gap-2 transition-all ${
+      className={`${sizeCls} rounded-lg ${colorCls} font-bold flex items-center gap-2 transition-all active:scale-95 ${
         added ? '!bg-green-500 !text-white' : ''
       }`}
     >

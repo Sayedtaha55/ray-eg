@@ -22,6 +22,8 @@ import {
   X,
   ShoppingCart,
   Package,
+  Home,
+  LayoutGrid,
   Tag,
   Zap,
 } from 'lucide-react';
@@ -50,6 +52,12 @@ export interface NodeViewContext {
   onNavigatePage: (pageId: string) => void;
   /** Build an order/WhatsApp link for a product or general inquiry (null if no phone). */
   waLink: (text: string) => string | null;
+  /** Add a catalog product to the host app's unified cart (optional — sites without cart support fall back to WhatsApp ordering). */
+  onAddToCart?: (product: SiteProduct) => void;
+  /** Open the host app's cart drawer (optional). */
+  onOpenCart?: () => void;
+  /** Current unified-cart item count (for badges on mobile footer / cart buttons). */
+  cartCount?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -921,18 +929,44 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                   undefined;
                 const buyBtnIcon = node.props.buyButtonIcon || 'ShoppingBag';
                 const buyBtnText = node.props.buyButtonText || 'إضافة للسلة';
-                const hideBuyBtn = Boolean(node.props.hideBuyButton);
+                // إذا كان هناك منتجات حقيقية للمتجر، نقوم بربط الكارد بالمنتج الحقيقي المقابل
+                const cardIndexMatch = node.id.match(/\d+/);
+                const cardIndex = cardIndexMatch ? parseInt(cardIndexMatch[0], 10) - 1 : 0;
+                const matchedRealProduct =
+                  realProducts.length > 0
+                    ? realProducts[Math.min(Math.max(0, cardIndex), realProducts.length - 1)]
+                    : null;
+
+                const displayTitle = matchedRealProduct
+                  ? matchedRealProduct.title
+                  : node.props.title;
+                const displayPrice = matchedRealProduct
+                  ? formatPrice(matchedRealProduct.price)
+                  : node.props.price;
+                const displayImage = matchedRealProduct
+                  ? matchedRealProduct.image || node.props.image
+                  : node.props.image;
+                const displayBadge = matchedRealProduct?.badge || node.props.badge || 'حصري';
+                const cardProductId = matchedRealProduct
+                  ? matchedRealProduct.id
+                  : node.props.productId || node.props.id || '';
+                const cardProductHref = cardProductId ? `/product/${cardProductId}` : '#';
+                const hideBuyBtn = Boolean(node.props.hideBuyBtn);
+
                 const orderHref =
                   waLink(
-                    `مرحبًا، أريد طلب: ${node.props.title || 'منتج'}${node.props.price ? ` (${node.props.price})` : ''}`
+                    `مرحبًا، أريد طلب: ${displayTitle || 'منتج'}${displayPrice ? ` (${displayPrice})` : ''}`
                   ) || '#';
 
                 return (
                   <div className="flex flex-col h-full group/pcard">
-                    <div className="h-48 w-full overflow-hidden bg-slate-100 rounded-t-xl relative group/cardimg">
+                    <a
+                      href={cardProductHref}
+                      className="block h-48 w-full overflow-hidden bg-slate-100 rounded-t-xl relative group/cardimg cursor-pointer"
+                    >
                       <img
-                        src={node.props.image}
-                        alt={node.props.title}
+                        src={displayImage}
+                        alt={displayTitle}
                         className={`w-full h-full object-cover transition-all duration-500 ${
                           hoverImg
                             ? 'group-hover/cardimg:opacity-0 group-hover/cardimg:scale-105'
@@ -943,12 +977,12 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                       {hoverImg && (
                         <img
                           src={hoverImg}
-                          alt={`${node.props.title} - صورة ثانوية`}
+                          alt={`${displayTitle} - صورة ثانوية`}
                           className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover/cardimg:opacity-100 group-hover/cardimg:scale-105 transition-all duration-500 pointer-events-none"
                           loading="lazy"
                         />
                       )}
-                    </div>
+                    </a>
                     <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
@@ -959,18 +993,21 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                             }}
                             className="text-[11px] font-bold px-2.5 py-0.5 rounded-full"
                           >
-                            {node.props.badge || 'حصري'}
+                            {displayBadge}
                           </span>
                           <span
                             style={{ color: theme.colors.primary }}
                             className="text-base font-extrabold font-mono"
                           >
-                            {node.props.price}
+                            {displayPrice}
                           </span>
                         </div>
-                        <h3 className="text-base font-bold text-slate-900 leading-snug">
-                          {node.props.title}
-                        </h3>
+                        <a
+                          href={cardProductHref}
+                          className="text-base font-bold text-slate-900 leading-snug hover:text-blue-600 transition-colors block"
+                        >
+                          {displayTitle}
+                        </a>
                       </div>
 
                       {node.props.specs && (
@@ -985,7 +1022,20 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                       )}
 
                       <div className="grid grid-cols-2 gap-2 pt-2">
-                        {!hideBuyBtn && (
+                        {!hideBuyBtn && (matchedRealProduct && ctx.onAddToCart ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              ctx.onAddToCart?.(matchedRealProduct);
+                            }}
+                            className="py-2.5 px-3 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 active:scale-95"
+                            style={{ backgroundColor: theme.colors.primary }}
+                          >
+                            <ShoppingCart className="w-3.5 h-3.5" />
+                            <span>أضف للسلة</span>
+                          </button>
+                        ) : (
                           <a
                             href={orderHref}
                             target="_blank"
@@ -1007,20 +1057,24 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                             )}
                             <span>{buyBtnText}</span>
                           </a>
-                        )}
+                        ))}
 
                         <a
-                          href={waLink('مرحبًا، أريد الاستفسار والحجز') || '#'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
+                          href={
+                            cardProductId
+                              ? cardProductHref
+                              : waLink('مرحبًا، أريد الاستفسار والحجز') || '#'
+                          }
+                          onClick={(e) => {
+                            if (!cardProductId && !waLink('')) e.preventDefault();
+                          }}
                           style={{
                             backgroundColor: theme.colors.secondary || '#0f172a',
                             borderRadius: theme.radius.lg || '10px',
                           }}
-                          className={`py-2.5 px-3 text-white font-bold text-xs shadow-xs transition-all hover:opacity-90 active:scale-98 text-center ${hideBuyBtn ? 'col-span-2' : ''}`}
+                          className={`py-2.5 px-3 text-white font-bold text-xs shadow-xs transition-all hover:opacity-90 active:scale-98 text-center flex items-center justify-center ${hideBuyBtn ? 'col-span-2' : ''}`}
                         >
-                          {node.props.ctaText || 'طلب فحص'}
+                          {node.props.ctaText || 'تفاصيل المنتج'}
                         </a>
                       </div>
                     </div>
@@ -1265,19 +1319,34 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                         )}
 
                         <div className="grid grid-cols-2 gap-2 pt-2">
-                          <a
-                            href={orderHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              backgroundColor: theme.colors.primary,
-                              borderRadius: theme.radius.lg || '10px',
-                            }}
-                            className="py-2.5 px-3 text-white font-bold text-xs shadow-xs transition-all hover:opacity-95 flex items-center justify-center gap-1.5 active:scale-98"
-                          >
-                            <ShoppingBag className="w-3.5 h-3.5" />
-                            <span>طلب / شراء</span>
-                          </a>
+                          {ctx.onAddToCart ? (
+                            <button
+                              type="button"
+                              onClick={() => ctx.onAddToCart?.(prod)}
+                              style={{
+                                backgroundColor: theme.colors.primary,
+                                borderRadius: theme.radius.lg || '10px',
+                              }}
+                              className="py-2.5 px-3 text-white font-bold text-xs shadow-xs transition-all hover:opacity-95 flex items-center justify-center gap-1.5 active:scale-95"
+                            >
+                              <ShoppingCart className="w-3.5 h-3.5" />
+                              <span>أضف للسلة</span>
+                            </button>
+                          ) : (
+                            <a
+                              href={orderHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                backgroundColor: theme.colors.primary,
+                                borderRadius: theme.radius.lg || '10px',
+                              }}
+                              className="py-2.5 px-3 text-white font-bold text-xs shadow-xs transition-all hover:opacity-95 flex items-center justify-center gap-1.5 active:scale-98"
+                            >
+                              <ShoppingBag className="w-3.5 h-3.5" />
+                              <span>طلب / شراء</span>
+                            </a>
+                          )}
 
                           <a
                             href={waLink(`مرحبًا، أريد تفاصيل عن: ${prod.title}`) || '#'}
@@ -1650,13 +1719,23 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                       `مرحبًا، أريد طلب: ${item.title}${formattedPrice ? ` (${formattedPrice})` : ''}`
                     ) || '#';
 
+                  const productHref = item.id ? `/product/${item.id}` : '#';
+
                   return (
                     <div
                       key={item.id || idx}
                       className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group/card"
                     >
                       {item.image && (
-                        <div className="relative aspect-16/10 overflow-hidden bg-slate-100 group/img">
+                        <a
+                          href={productHref}
+                          onClick={(e) => {
+                            if (item.id) {
+                              // فتح صفحة تفاصيل المنتج
+                            }
+                          }}
+                          className="block relative aspect-16/10 overflow-hidden bg-slate-100 group/img cursor-pointer"
+                        >
                           <img
                             src={item.image}
                             alt={item.title}
@@ -1680,15 +1759,18 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                               {item.badge}
                             </span>
                           )}
-                        </div>
+                        </a>
                       )}
 
                       <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
                         <div className="space-y-1">
                           <div className="flex items-baseline justify-between gap-2">
-                            <h3 className="text-sm sm:text-base font-bold text-slate-900 line-clamp-1">
+                            <a
+                              href={productHref}
+                              className="text-sm sm:text-base font-bold text-slate-900 line-clamp-1 hover:text-blue-600 transition-colors"
+                            >
                               {item.title}
-                            </h3>
+                            </a>
                             <span
                               style={{ color: primaryColor }}
                               className="text-sm sm:text-base font-extrabold font-mono shrink-0"
@@ -1725,10 +1807,8 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                           </a>
 
                           <a
-                            href={waLink(`مرحبًا، أريد تفاصيل عن: ${item.title}`) || '#'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="py-2 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all text-center active:scale-98"
+                            href={productHref}
+                            className="py-2 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all text-center active:scale-98 flex items-center justify-center"
                           >
                             تفاصيل
                           </a>

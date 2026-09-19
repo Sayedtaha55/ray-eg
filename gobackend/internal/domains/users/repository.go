@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -42,8 +43,8 @@ func (r *Repository) FindByPhone(ctx context.Context, phone string) (*auth.User,
 	return scanUser(row)
 }
 
-// UpdateMe updates the current user's name and/or phone.
-func (r *Repository) UpdateMe(ctx context.Context, id string, name, phone string) (*auth.User, error) {
+// UpdateMe updates the current user's name, phone and/or extra phone numbers.
+func (r *Repository) UpdateMe(ctx context.Context, id string, name, phone string, extraPhones *[]string) (*auth.User, error) {
 	parts := []string{}
 	args := []any{}
 	argIdx := 1
@@ -61,6 +62,15 @@ func (r *Repository) UpdateMe(ctx context.Context, id string, name, phone string
 		}
 		argIdx++
 	}
+	if extraPhones != nil {
+		encoded, err := json.Marshal(*extraPhones)
+		if err != nil {
+			return nil, errors.Internal("encode_extra_phones_failed", err)
+		}
+		parts = append(parts, fmt.Sprintf("extra_phones = $%d::jsonb", argIdx))
+		args = append(args, string(encoded))
+		argIdx++
+	}
 	if len(parts) == 0 {
 		return r.FindByID(ctx, id)
 	}
@@ -68,6 +78,18 @@ func (r *Repository) UpdateMe(ctx context.Context, id string, name, phone string
 	query := "UPDATE users SET " + strings.Join(parts, ", ") + fmt.Sprintf(", updated_at = NOW() WHERE id = $%d RETURNING ", argIdx) + userColumns
 	args = append(args, id)
 	row := r.pool.QueryRow(ctx, query, args...)
+	return scanUser(row)
+}
+
+// ReplaceDeliveryAddresses overwrites the user's saved address book and
+// returns the refreshed user row.
+func (r *Repository) ReplaceDeliveryAddresses(ctx context.Context, id string, addresses []auth.DeliveryAddress) (*auth.User, error) {
+	encoded, err := json.Marshal(addresses)
+	if err != nil {
+		return nil, errors.Internal("encode_delivery_addresses_failed", err)
+	}
+	query := `UPDATE users SET delivery_addresses = $1::jsonb, updated_at = NOW() WHERE id = $2 RETURNING ` + userColumns
+	row := r.pool.QueryRow(ctx, query, string(encoded), id)
 	return scanUser(row)
 }
 
@@ -225,7 +247,9 @@ func (r *Repository) CourierState(ctx context.Context, courierID string) (map[st
 }
 
 const userColumns = `id, email, name, phone, password, role, shop_id, is_active,
- email_verified_at, email_verification_sent_at, last_login, created_at, updated_at`
+ email_verified_at, email_verification_sent_at, last_login, created_at, updated_at,
+ COALESCE(extra_phones, '[]'::jsonb) AS extra_phones,
+ COALESCE(delivery_addresses, '[]'::jsonb) AS delivery_addresses`
 
 const selectUser = `SELECT ` + userColumns + ` FROM users`
 
@@ -233,10 +257,11 @@ func scanUser(row pgx.Row) (*auth.User, error) {
 	u := &auth.User{}
 	var phone, shopID sql.NullString
 	var verifiedAt, sentAt, lastLogin pgtype.Timestamp
+	var extraPhones, deliveryAddresses []byte
 	err := row.Scan(
 		&u.ID, &u.Email, &u.Name, &phone, &u.Password, &u.Role, &shopID,
 		&u.IsActive, &verifiedAt, &sentAt, &lastLogin,
-		&u.CreatedAt, &u.UpdatedAt,
+		&u.CreatedAt, &u.UpdatedAt, &extraPhones, &deliveryAddresses,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -249,6 +274,12 @@ func scanUser(row pgx.Row) (*auth.User, error) {
 	}
 	if shopID.Valid {
 		u.ShopID = &shopID.String
+	}
+	if len(extraPhones) > 0 {
+		_ = json.Unmarshal(extraPhones, &u.ExtraPhones)
+	}
+	if len(deliveryAddresses) > 0 {
+		_ = json.Unmarshal(deliveryAddresses, &u.DeliveryAddresses)
 	}
 	u.EmailVerifiedAt = timestampPtr(verifiedAt)
 	u.EmailVerificationSentAt = timestampPtr(sentAt)

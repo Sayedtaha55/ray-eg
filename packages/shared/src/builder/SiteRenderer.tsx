@@ -9,6 +9,9 @@ interface SiteRendererProps {
   website: Website;
   shop: SiteShopContext;
   products: SiteProduct[];
+  /** Wire the published site into the host app's unified cart (optional). */
+  onAddToCart?: (product: SiteProduct) => void;
+  onOpenCart?: () => void;
 }
 
 /**
@@ -16,10 +19,19 @@ interface SiteRendererProps {
  * Renders the exact component tree built in the editor: pages, sections,
  * theme tokens — with client-side page navigation.
  */
-export const SiteRenderer: React.FC<SiteRendererProps> = ({ website, shop, products }) => {
+export const SiteRenderer: React.FC<SiteRendererProps> = ({
+  website,
+  shop,
+  products,
+  onAddToCart,
+  onOpenCart,
+}) => {
   const pages = website.pages || [];
   const homePage = useMemo(
-    () => pages.find((p) => p.metadata?.isHomePage) || pages.find((p) => p.id === 'page_home') || pages[0],
+    () =>
+      pages.find((p) => p.metadata?.isHomePage) ||
+      pages.find((p) => p.id === 'page_home') ||
+      pages[0],
     [pages]
   );
 
@@ -53,7 +65,11 @@ export const SiteRenderer: React.FC<SiteRendererProps> = ({ website, shop, produ
     setTimeout(() => {
       setActivePageId(pageId);
       setPageChanging(false);
-      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { window.scrollTo(0, 0); }
+      try {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch {
+        window.scrollTo(0, 0);
+      }
     }, 120);
   };
 
@@ -61,7 +77,10 @@ export const SiteRenderer: React.FC<SiteRendererProps> = ({ website, shop, produ
 
   if (!activePage) {
     return (
-      <div dir={website.defaultDirection || 'rtl'} className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-bold">
+      <div
+        dir={website.defaultDirection || 'rtl'}
+        className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500 font-bold"
+      >
         لا يوجد محتوى منشور بعد
       </div>
     );
@@ -70,8 +89,11 @@ export const SiteRenderer: React.FC<SiteRendererProps> = ({ website, shop, produ
   // Skeleton shown before hydration to prevent layout shift
   if (!hydrated) {
     return (
-      <div dir={website.defaultDirection || 'rtl'} className="pub-site min-h-screen animate-pulse"
-        style={{ backgroundColor: theme.colors.background }}>
+      <div
+        dir={website.defaultDirection || 'rtl'}
+        className="pub-site min-h-screen animate-pulse"
+        style={{ backgroundColor: theme.colors.background }}
+      >
         <div className="h-16 bg-slate-200/60 w-full" />
         <div className="h-[60vh] bg-slate-100/80 w-full" />
         <div className="h-32 bg-slate-200/40 w-full mt-4" />
@@ -88,6 +110,8 @@ export const SiteRenderer: React.FC<SiteRendererProps> = ({ website, shop, produ
     realProducts: products || [],
     onNavigatePage: navigateToPage,
     waLink,
+    onAddToCart,
+    onOpenCart,
   };
 
   return (

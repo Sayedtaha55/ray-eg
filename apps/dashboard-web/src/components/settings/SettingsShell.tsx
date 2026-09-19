@@ -1,34 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  Settings as SettingsIcon,
-  User,
-  Shield,
-  Store,
-  CreditCard,
-  Home,
-  Bell,
-  FileText,
-  Puzzle,
-  LayoutGrid,
-  Clock,
-  Share2,
-  TrendingUp,
-  Loader2,
-  Save,
-  Package,
-  MapPin,
-  Calculator,
-  Users,
-  Headset,
-  UserCog,
-  BarChart3,
-} from 'lucide-react';
-import { cn } from '@/lib/cn';
+import { Settings as SettingsIcon, Loader2, Save } from 'lucide-react';
 import { useToast } from './ToastProvider';
-import { apiRequest } from '@/lib/auth';
 
 import OverviewTab from './tabs/OverviewTab';
 import AccountTab from './tabs/AccountTab';
@@ -50,7 +25,6 @@ import CustomersSettingsTab from './tabs/CustomersSettingsTab';
 import CrmSettingsTab from './tabs/CrmSettingsTab';
 import HrSettingsTab from './tabs/HrSettingsTab';
 import AnalyticsSettingsTab from './tabs/AnalyticsSettingsTab';
-import { ShoppingCart, Printer, CalendarDays } from 'lucide-react';
 
 type SettingsTab =
   | 'overview'
@@ -94,6 +68,29 @@ const SETTINGS_CONTEXT: Record<string, string> = {
   ai: 'إعدادات التطبيقات والذكاء الاصطناعي',
 };
 
+const ALLOWED_TABS = new Set<SettingsTab>([
+  'overview',
+  'store',
+  'inventory_settings',
+  'branches_settings',
+  'accounting_settings',
+  'customers_settings',
+  'crm_settings',
+  'hr_settings',
+  'analytics_settings',
+  'booking_settings',
+  'orders_settings',
+  'pos_settings',
+  'payments',
+  'receipt_theme',
+  'account',
+  'security',
+  'notifications',
+  'social_media',
+  'modules',
+  'apps',
+]);
+
 interface SettingsShellProps {
   shop: any;
   onSaved: () => void;
@@ -104,60 +101,10 @@ export default function SettingsShell({ shop, onSaved }: SettingsShellProps) {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  // Determine if shop is a booking activity
-  const isBooking = (() => {
-    const category = String(shop?.category || '').toUpperCase();
-    return category === 'SERVICE' || category === 'BOOKING';
-  })();
-
-  // Build the list of available tabs in general settings
-  const settingsTabs = React.useMemo(() => {
-    const list: Array<{ id: SettingsTab; icon: React.ReactNode; label: string; badge?: string }> = [
-      { id: 'overview', icon: <Home className="w-4 h-4" />, label: 'النظرة العامة' },
-      { id: 'store', icon: <Store className="w-4 h-4" />, label: 'بيانات المتجر والنشاط' },
-      { id: 'inventory_settings', icon: <Package className="w-4 h-4" />, label: 'إعدادات المخزون' },
-      { id: 'branches_settings', icon: <MapPin className="w-4 h-4" />, label: 'إعدادات الفروع' },
-      {
-        id: 'accounting_settings',
-        icon: <Calculator className="w-4 h-4" />,
-        label: 'إعدادات المحاسبة',
-      },
-      { id: 'customers_settings', icon: <Users className="w-4 h-4" />, label: 'إعدادات العملاء' },
-      { id: 'crm_settings', icon: <Headset className="w-4 h-4" />, label: 'إعدادات خدمة العملاء' },
-      { id: 'hr_settings', icon: <UserCog className="w-4 h-4" />, label: 'إعدادات الفريق' },
-      {
-        id: 'analytics_settings',
-        icon: <BarChart3 className="w-4 h-4" />,
-        label: 'إعدادات التحليلات',
-      },
-      {
-        id: 'booking_settings',
-        icon: <CalendarDays className="w-4 h-4" />,
-        label: 'إعدادات الحجوزات',
-      },
-      {
-        id: 'orders_settings',
-        icon: <ShoppingCart className="w-4 h-4" />,
-        label: 'إعدادات الطلبات',
-      },
-      { id: 'pos_settings', icon: <Printer className="w-4 h-4" />, label: 'إعدادات الكاشير (POS)' },
-      { id: 'payments', icon: <CreditCard className="w-4 h-4" />, label: 'المدفوعات' },
-      { id: 'receipt_theme', icon: <FileText className="w-4 h-4" />, label: 'تصميم الإيصال' },
-      { id: 'account', icon: <User className="w-4 h-4" />, label: 'الحساب' },
-      { id: 'security', icon: <Shield className="w-4 h-4" />, label: 'الأمان' },
-      { id: 'notifications', icon: <Bell className="w-4 h-4" />, label: 'الإشعارات' },
-      { id: 'social_media', icon: <Share2 className="w-4 h-4" />, label: 'السوشيال ميديا' },
-      { id: 'modules', icon: <Puzzle className="w-4 h-4" />, label: 'الوحدات' },
-      { id: 'apps', icon: <LayoutGrid className="w-4 h-4" />, label: 'التطبيقات' },
-    ];
-    return list;
-  }, []);
-
-  const allowedTabs = new Set(settingsTabs.map((t) => t.id));
   const requestedTab = String(searchParams?.get('tab') || '')
     .trim()
     .toLowerCase() as SettingsTab;
-  const activeTab: SettingsTab = allowedTabs.has(requestedTab) ? requestedTab : 'overview';
+  const activeTab: SettingsTab = ALLOWED_TABS.has(requestedTab) ? requestedTab : 'overview';
   const settingsContext =
     SETTINGS_CONTEXT[
       String(searchParams?.get('from') || '')
@@ -350,8 +297,8 @@ export default function SettingsShell({ shop, onSaved }: SettingsShellProps) {
         </button>
       </div>
 
-      {/* Tab content - full width without internal sidebar */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
+      {/* Tab content */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs">
         {renderTabContent(activeTab)}
       </div>
     </div>

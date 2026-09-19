@@ -38,7 +38,7 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
   const [dropdownBadge, setDropdownBadge] = useState('');
   const [includeHeaderFooter, setIncludeHeaderFooter] = useState(true);
   const [pageTemplate, setPageTemplate] = useState<
-    'blank' | 'hero_services' | 'catalog_grid' | 'contact_form' | 'landing_page'
+    'blank' | 'hero_services' | 'catalog_grid' | 'contact_form' | 'landing_page' | 'product_page'
   >('catalog_grid');
 
   const availableDropdowns = getHeaderDropdownNavItems();
@@ -64,7 +64,8 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
       slug: slug.trim() || name.trim().toLowerCase().replace(/\s+/g, '-'),
       placement,
       headerTitle: headerTitle.trim() || name.trim(),
-      parentNavId: placement === 'header_dropdown' ? (parentNavId || availableDropdowns[0]?.id) : undefined,
+      parentNavId:
+        placement === 'header_dropdown' ? parentNavId || availableDropdowns[0]?.id : undefined,
       dropdownDescription: dropdownDescription.trim(),
       dropdownBadge: dropdownBadge.trim(),
       includeHeaderFooter,
@@ -115,7 +116,9 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <span className="text-[11px] font-bold text-slate-600 block mb-1">اسم الصفحة *</span>
+                <span className="text-[11px] font-bold text-slate-600 block mb-1">
+                  اسم الصفحة *
+                </span>
                 <input
                   type="text"
                   placeholder="مثال: عروض 2025 الحصرية، باقات الصيانة"
@@ -126,7 +129,9 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
                 />
               </div>
               <div>
-                <span className="text-[11px] font-bold text-slate-600 block mb-1">المسار الرابط (Slug) *</span>
+                <span className="text-[11px] font-bold text-slate-600 block mb-1">
+                  المسار الرابط (Slug) *
+                </span>
                 <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus-within:border-blue-500 focus-within:bg-white transition-colors">
                   <span className="text-slate-400 font-mono text-[11px] select-none ml-1">/</span>
                   <input
@@ -162,7 +167,9 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
                 <div className="flex items-start gap-2.5">
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                      placement === 'header_direct' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'
+                      placement === 'header_direct'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-200 text-slate-600'
                     }`}
                   >
                     <Navigation className="w-3.5 h-3.5" />
@@ -170,7 +177,9 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
                   <div>
                     <div className="flex items-center gap-1.5 font-bold text-xs">
                       <span>رابط مباشر في شريط الهيدر</span>
-                      {placement === 'header_direct' && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                      {placement === 'header_direct' && (
+                        <Check className="w-3.5 h-3.5 text-blue-600" />
+                      )}
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                       يظهر كزر/رابط رئيسي علوي مباشر بجانب روابط القائمة
@@ -191,7 +200,9 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
                 <div className="flex items-start gap-2.5">
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                      placement === 'header_dropdown' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'
+                      placement === 'header_dropdown'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-200 text-slate-600'
                     }`}
                   >
                     <FolderTree className="w-3.5 h-3.5" />
@@ -199,7 +210,9 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
                   <div>
                     <div className="flex items-center gap-1.5 font-bold text-xs">
                       <span>داخل قائمة منسدلة لقسم في الهيدر</span>
-                      {placement === 'header_dropdown' && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                      {placement === 'header_dropdown' && (
+                        <Check className="w-3.5 h-3.5 text-blue-600" />
+                      )}
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                       يضاف كعنصر فرعي أنيق داخل إحدى قوائم الأقسام المنسدلة
@@ -220,7 +233,9 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
                 <div className="flex items-start gap-2.5">
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                      placement === 'standalone' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'
+                      placement === 'standalone'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-200 text-slate-600'
                     }`}
                   >
                     <EyeOff className="w-3.5 h-3.5" />
@@ -228,7 +243,9 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
                   <div>
                     <div className="flex items-center gap-1.5 font-bold text-xs">
                       <span>صفحة مستقلة فقط (بدون رابط بالهيدر)</span>
-                      {placement === 'standalone' && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                      {placement === 'standalone' && (
+                        <Check className="w-3.5 h-3.5 text-blue-600" />
+                      )}
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                       صفحة هبوط أو صفحة ترويجية خاصة يتم التوجيه لها برابط مباشر
@@ -249,7 +266,9 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
                 <div className="flex items-start gap-2.5">
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                      placement === 'header_and_footer' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'
+                      placement === 'header_and_footer'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-200 text-slate-600'
                     }`}
                   >
                     <Globe className="w-3.5 h-3.5" />
@@ -257,7 +276,9 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
                   <div>
                     <div className="flex items-center gap-1.5 font-bold text-xs">
                       <span>في الهيدر والفوتر معاً</span>
-                      {placement === 'header_and_footer' && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                      {placement === 'header_and_footer' && (
+                        <Check className="w-3.5 h-3.5 text-blue-600" />
+                      )}
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                       تظهر في شريط التنقل العلوي وأسفل الموقع في روابط الفوتر
@@ -270,7 +291,9 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
             {/* Sub-options for Selected Placement */}
             {(placement === 'header_direct' || placement === 'header_and_footer') && (
               <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-xl space-y-2 animate-in fade-in">
-                <span className="text-[11px] font-bold text-blue-900 block">النص الظاهر في شريط الهيدر</span>
+                <span className="text-[11px] font-bold text-blue-900 block">
+                  النص الظاهر في شريط الهيدر
+                </span>
                 <input
                   type="text"
                   placeholder="مثال: العروض الخاصة"
@@ -284,9 +307,11 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
             {placement === 'header_dropdown' && (
               <div className="p-3.5 bg-blue-50/50 border border-blue-200 rounded-xl space-y-3 animate-in fade-in">
                 <div>
-                  <span className="text-[11px] font-bold text-blue-900 block mb-1">اختر قسم الهيدر الأب:</span>
+                  <span className="text-[11px] font-bold text-blue-900 block mb-1">
+                    اختر قسم الهيدر الأب:
+                  </span>
                   <select
-                    value={parentNavId || (availableDropdowns[0]?.id || 'nav_link_2')}
+                    value={parentNavId || availableDropdowns[0]?.id || 'nav_link_2'}
                     onChange={(e) => setParentNavId(e.target.value)}
                     className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-xs font-medium outline-hidden focus:border-blue-500"
                   >
@@ -312,7 +337,9 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
                     />
                   </div>
                   <div>
-                    <span className="text-[11px] font-bold text-blue-900 block mb-1">شارة مميزة (Badge - اختياري):</span>
+                    <span className="text-[11px] font-bold text-blue-900 block mb-1">
+                      شارة مميزة (Badge - اختياري):
+                    </span>
                     <input
                       type="text"
                       placeholder="مثال: جديد، خصم 20%، حصري"
@@ -371,6 +398,18 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
               </div>
 
               <div
+                onClick={() => setPageTemplate('product_page')}
+                className={`p-2.5 rounded-xl border text-center cursor-pointer transition-all ${
+                  pageTemplate === 'product_page'
+                    ? 'bg-blue-50 border-blue-500 text-blue-950 font-bold ring-1 ring-blue-500/20'
+                    : 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700'
+                }`}
+              >
+                <Tag className="w-5 h-5 mx-auto mb-1 text-blue-600" />
+                <span className="text-[11px] block">صفحة منتج وتفاصيل</span>
+              </div>
+
+              <div
                 onClick={() => setPageTemplate('blank')}
                 className={`p-2.5 rounded-xl border text-center cursor-pointer transition-all ${
                   pageTemplate === 'blank'
@@ -389,7 +428,9 @@ export const AddPageModal: React.FC<AddPageModalProps> = ({ isOpen, onClose }) =
             <div className="flex items-center gap-2">
               <Globe className="w-4 h-4 text-slate-500" />
               <div>
-                <span className="text-xs font-bold text-slate-800 block">تضمين الهيدر والفوتر العامين</span>
+                <span className="text-xs font-bold text-slate-800 block">
+                  تضمين الهيدر والفوتر العامين
+                </span>
                 <span className="text-[10px] text-slate-500">
                   إبقاء شريط الهيدر وشريط الفوتر متصلين وموحدين في هذه الصفحة
                 </span>

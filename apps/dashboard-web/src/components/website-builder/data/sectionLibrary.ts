@@ -3,6 +3,7 @@ import { BusinessActivity, ComponentNode } from '../types/builder';
 export type SectionCategory =
   | 'navbar'
   | 'hero'
+  | 'product_detail'
   | 'about'
   | 'features'
   | 'stats'
@@ -28,6 +29,7 @@ export interface SectionCategoryDef {
 export const sectionCategoriesList: SectionCategoryDef[] = [
   { id: 'navbar', nameAr: 'شريط التنقل', nameEn: 'Navigation Bar' },
   { id: 'hero', nameAr: 'هيرو والواجهة الرئيسية', nameEn: 'Hero' },
+  { id: 'product_detail', nameAr: 'صفحة وتفاصيل المنتج', nameEn: 'Product Details' },
   { id: 'about', nameAr: 'من نحن وقصة الشركة', nameEn: 'About Us' },
   { id: 'features', nameAr: 'المميزات والخدمات', nameEn: 'Features' },
   { id: 'stats', nameAr: 'إحصائيات وأرقام', nameEn: 'Stats & Metrics' },
@@ -62,8 +64,117 @@ export interface SectionTemplate {
 
 export const sectionTemplates: SectionTemplate[] = [
   // ==========================================
-  // 1. NAVBAR TEMPLATES (شريط التنقل)
+  // 0. PRODUCT DETAIL TEMPLATES (صفحة وتفاصيل المنتج)
   // ==========================================
+  {
+    id: 'product-detail-showcase',
+    name: 'product-detail-showcase',
+    nameAr: 'استعراض المنتج والشراء الفوري (Product Showcase)',
+    category: 'product_detail',
+    activity: 'general',
+    style: 'modern',
+    wireframeType: 'product-detail-showcase',
+    descriptionAr:
+      'معرض صور، تفاصيل السعر، خيارات المنتج، عداد الكمية وأزرار الإضافة للسلة والطلب عبر واتساب.',
+    tags: ['product', 'منتج', 'تفاصيل', 'شراء', 'سلة', 'عرض'],
+    rootNodeId: 'tmpl_pdetail_root',
+    nodes: {
+      tmpl_pdetail_root: {
+        id: 'tmpl_pdetail_root',
+        name: 'قسم تفاصيل المنتج الرئيسي',
+        type: 'container',
+        category: 'section',
+        parentId: null,
+        childrenIds: ['tmpl_pdetail_box'],
+        props: {},
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            paddingTop: '60px',
+            paddingBottom: '60px',
+            borderBottomWidth: '1px',
+            borderColor: '#f1f5f9',
+          },
+        },
+      },
+      tmpl_pdetail_box: {
+        id: 'tmpl_pdetail_box',
+        name: 'حاوية تفاصيل المنتج',
+        type: 'card',
+        category: 'commerce',
+        parentId: 'tmpl_pdetail_root',
+        childrenIds: [],
+        props: {
+          title: 'اسم المنتج المميز والفاخر',
+          price: '450 ج.م',
+          badge: 'الأكثر مبيعاً',
+          image:
+            'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80',
+          hoverImage:
+            'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80',
+          specs: [
+            'خامات فائقة الجودة وضمان حقيقي',
+            'توصيل فوري حتى باب البيت',
+            'إمكانية المعاينة قبل الاستلام',
+          ],
+          buyButtonText: 'أضف للسلة الآن',
+          ctaText: 'استفسار عبر واتساب',
+        },
+        styles: {
+          desktop: {
+            display: 'block',
+            maxWidth: '1100px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            backgroundColor: '#ffffff',
+            borderRadius: '20px',
+            borderWidth: '1px',
+            borderColor: '#e2e8f0',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)',
+          },
+        },
+      },
+    },
+  },
+  {
+    id: 'product-specs-table',
+    name: 'product-specs-table',
+    nameAr: 'جدول المواصفات والضمان',
+    category: 'product_detail',
+    activity: 'general',
+    style: 'clean',
+    wireframeType: 'product-specs-table',
+    descriptionAr: 'قائمة بالمواصفات الفنية، الأبعاد، شروط الضمان وتفاصيل الشحن والاسترجاع.',
+    tags: ['specs', 'مواصفات', 'ضمان', 'جدول', 'تفاصيل'],
+    rootNodeId: 'tmpl_pspecs_root',
+    nodes: {
+      tmpl_pspecs_root: {
+        id: 'tmpl_pspecs_root',
+        name: 'قسم جدول المواصفات',
+        type: 'bento',
+        category: 'section',
+        parentId: null,
+        childrenIds: [],
+        props: {
+          title: 'المواصفات الفنية والمزايا',
+          subtitle: 'كل ما تحتاج معرفته عن جودة وتفاصيل المنتج قبل إتمام الطلب.',
+          icon: 'ShieldCheck',
+          badge: 'الجودة والضمان',
+        },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#f8fafc',
+            paddingTop: '50px',
+            paddingBottom: '50px',
+          },
+        },
+      },
+    },
+  },
   {
     id: 'navbar-composition',
     name: 'navbar-composition',
@@ -76,7 +187,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['navbar', 'header', 'تنقل', 'رئيسية'],
     rootNodeId: 'tmpl_nav_comp_root',
     nodes: {
-      'tmpl_nav_comp_root': {
+      tmpl_nav_comp_root: {
         id: 'tmpl_nav_comp_root',
         name: 'شريط التنقل Composition',
         type: 'header',
@@ -97,7 +208,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_nav_comp_box': {
+      tmpl_nav_comp_box: {
         id: 'tmpl_nav_comp_box',
         name: 'حاوية شريط التنقل',
         type: 'flex',
@@ -118,7 +229,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_nav_cta_c': {
+      tmpl_nav_cta_c: {
         id: 'tmpl_nav_cta_c',
         name: 'زر التواصل',
         type: 'button',
@@ -140,7 +251,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_nav_links_c': {
+      tmpl_nav_links_c: {
         id: 'tmpl_nav_links_c',
         name: 'روابط التنقل',
         type: 'paragraph',
@@ -150,7 +261,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'الرئيسية    •    من نحن    •    الخدمات    •    الأسعار' },
         styles: { desktop: { fontSize: '14px', fontWeight: '600', textColor: '#475569' } },
       },
-      'tmpl_nav_logo_c': {
+      tmpl_nav_logo_c: {
         id: 'tmpl_nav_logo_c',
         name: 'الشعار',
         type: 'heading',
@@ -174,7 +285,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['navbar', 'split', 'قائمة'],
     rootNodeId: 'tmpl_nav_split_root',
     nodes: {
-      'tmpl_nav_split_root': {
+      tmpl_nav_split_root: {
         id: 'tmpl_nav_split_root',
         name: 'شريط تنقل Split',
         type: 'header',
@@ -182,9 +293,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_nav_split_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', borderBottomWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', paddingTop: '16px', paddingBottom: '16px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            borderBottomWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            paddingTop: '16px',
+            paddingBottom: '16px',
+          },
+        },
       },
-      'tmpl_nav_split_box': {
+      tmpl_nav_split_box: {
         id: 'tmpl_nav_split_box',
         name: 'حاوية التنقل',
         type: 'flex',
@@ -205,7 +327,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_nav_menu_btn': {
+      tmpl_nav_menu_btn: {
         id: 'tmpl_nav_menu_btn',
         name: 'زر القائمة',
         type: 'button',
@@ -213,9 +335,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_nav_split_box',
         childrenIds: [],
         props: { text: 'القائمة ☰' },
-        styles: { desktop: { backgroundColor: '#f1f5f9', textColor: '#0f172a', paddingTop: '8px', paddingBottom: '8px', paddingLeft: '16px', paddingRight: '16px', borderRadius: '8px', fontWeight: '700', fontSize: '13px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f1f5f9',
+            textColor: '#0f172a',
+            paddingTop: '8px',
+            paddingBottom: '8px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '13px',
+          },
+        },
       },
-      'tmpl_nav_split_logo': {
+      tmpl_nav_split_logo: {
         id: 'tmpl_nav_split_logo',
         name: 'الشعار',
         type: 'heading',
@@ -239,7 +373,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['navbar', 'حجز', 'button'],
     rootNodeId: 'tmpl_nav_vert_root',
     nodes: {
-      'tmpl_nav_vert_root': {
+      tmpl_nav_vert_root: {
         id: 'tmpl_nav_vert_root',
         name: 'شريط تنقل مع حجز',
         type: 'header',
@@ -247,9 +381,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_nav_vert_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', borderBottomWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', paddingTop: '16px', paddingBottom: '16px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            borderBottomWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            paddingTop: '16px',
+            paddingBottom: '16px',
+          },
+        },
       },
-      'tmpl_nav_vert_box': {
+      tmpl_nav_vert_box: {
         id: 'tmpl_nav_vert_box',
         name: 'حاوية التنقل',
         type: 'flex',
@@ -270,7 +415,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_nav_vert_btn': {
+      tmpl_nav_vert_btn: {
         id: 'tmpl_nav_vert_btn',
         name: 'زر احجز',
         type: 'button',
@@ -278,9 +423,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_nav_vert_box',
         childrenIds: [],
         props: { text: 'احجز الآن' },
-        styles: { desktop: { backgroundColor: '#65a30d', textColor: '#ffffff', paddingTop: '8px', paddingBottom: '8px', paddingLeft: '20px', paddingRight: '20px', borderRadius: '8px', fontWeight: '700', fontSize: '13px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#65a30d',
+            textColor: '#ffffff',
+            paddingTop: '8px',
+            paddingBottom: '8px',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '13px',
+          },
+        },
       },
-      'tmpl_nav_vert_logo': {
+      tmpl_nav_vert_logo: {
         id: 'tmpl_nav_vert_logo',
         name: 'الشعار',
         type: 'heading',
@@ -304,7 +461,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['navbar', 'تذكرة', 'قائمة'],
     rootNodeId: 'tmpl_nav_sup_root',
     nodes: {
-      'tmpl_nav_sup_root': {
+      tmpl_nav_sup_root: {
         id: 'tmpl_nav_sup_root',
         name: 'شريط تنقل Supported',
         type: 'header',
@@ -312,9 +469,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_nav_sup_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', borderBottomWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', paddingTop: '16px', paddingBottom: '16px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            borderBottomWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            paddingTop: '16px',
+            paddingBottom: '16px',
+          },
+        },
       },
-      'tmpl_nav_sup_box': {
+      tmpl_nav_sup_box: {
         id: 'tmpl_nav_sup_box',
         name: 'حاوية التنقل',
         type: 'flex',
@@ -335,7 +503,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_nav_sup_btn': {
+      tmpl_nav_sup_btn: {
         id: 'tmpl_nav_sup_btn',
         name: 'زر احجز تذكرة',
         type: 'button',
@@ -343,9 +511,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_nav_sup_box',
         childrenIds: [],
         props: { text: 'احجز تذكرة' },
-        styles: { desktop: { backgroundColor: '#65a30d', textColor: '#ffffff', paddingTop: '8px', paddingBottom: '8px', paddingLeft: '20px', paddingRight: '20px', borderRadius: '8px', fontWeight: '700', fontSize: '13px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#65a30d',
+            textColor: '#ffffff',
+            paddingTop: '8px',
+            paddingBottom: '8px',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '13px',
+          },
+        },
       },
-      'tmpl_nav_sup_links': {
+      tmpl_nav_sup_links: {
         id: 'tmpl_nav_sup_links',
         name: 'روابط التنقل',
         type: 'paragraph',
@@ -355,7 +535,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'الرئيسية    •    من نحن    •    القائمة ▾    •    تواصل معنا' },
         styles: { desktop: { fontSize: '14px', fontWeight: '600', textColor: '#475569' } },
       },
-      'tmpl_nav_sup_logo': {
+      tmpl_nav_sup_logo: {
         id: 'tmpl_nav_sup_logo',
         name: 'الشعار',
         type: 'heading',
@@ -379,7 +559,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['navbar', 'سوشيال', 'شعار بالوسط'],
     rootNodeId: 'tmpl_nav_mid_root',
     nodes: {
-      'tmpl_nav_mid_root': {
+      tmpl_nav_mid_root: {
         id: 'tmpl_nav_mid_root',
         name: 'شريط تنقل الشعار بالمنتصف',
         type: 'header',
@@ -387,9 +567,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_nav_mid_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', borderBottomWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', paddingTop: '16px', paddingBottom: '16px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            borderBottomWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            paddingTop: '16px',
+            paddingBottom: '16px',
+          },
+        },
       },
-      'tmpl_nav_mid_box': {
+      tmpl_nav_mid_box: {
         id: 'tmpl_nav_mid_box',
         name: 'حاوية التنقل',
         type: 'flex',
@@ -410,7 +601,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_nav_mid_social': {
+      tmpl_nav_mid_social: {
         id: 'tmpl_nav_mid_social',
         name: 'أيقونات التواصل',
         type: 'paragraph',
@@ -420,7 +611,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: '📸 Instagram   •   🐦 Twitter   •   👥 Facebook' },
         styles: { desktop: { fontSize: '13px', fontWeight: '600', textColor: '#64748b' } },
       },
-      'tmpl_nav_mid_logo': {
+      tmpl_nav_mid_logo: {
         id: 'tmpl_nav_mid_logo',
         name: 'الشعار بالوسط',
         type: 'heading',
@@ -430,7 +621,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'الشعار' },
         styles: { desktop: { fontSize: '22px', fontWeight: '900', textColor: '#0f172a' } },
       },
-      'tmpl_nav_mid_links': {
+      tmpl_nav_mid_links: {
         id: 'tmpl_nav_mid_links',
         name: 'روابط القائمة',
         type: 'paragraph',
@@ -454,7 +645,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['navbar', 'متكامل', 'full'],
     rootNodeId: 'tmpl_nav_full_root',
     nodes: {
-      'tmpl_nav_full_root': {
+      tmpl_nav_full_root: {
         id: 'tmpl_nav_full_root',
         name: 'شريط تنقل Full',
         type: 'header',
@@ -462,9 +653,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_nav_full_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', borderBottomWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', paddingTop: '16px', paddingBottom: '16px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            borderBottomWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            paddingTop: '16px',
+            paddingBottom: '16px',
+          },
+        },
       },
-      'tmpl_nav_full_box': {
+      tmpl_nav_full_box: {
         id: 'tmpl_nav_full_box',
         name: 'حاوية التنقل',
         type: 'flex',
@@ -485,7 +687,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_nav_full_cta': {
+      tmpl_nav_full_cta: {
         id: 'tmpl_nav_full_cta',
         name: 'زر تواصل',
         type: 'button',
@@ -493,9 +695,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_nav_full_box',
         childrenIds: [],
         props: { text: 'تواصل معنا' },
-        styles: { desktop: { backgroundColor: '#65a30d', textColor: '#ffffff', paddingTop: '8px', paddingBottom: '8px', paddingLeft: '18px', paddingRight: '18px', borderRadius: '8px', fontWeight: '700', fontSize: '13px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#65a30d',
+            textColor: '#ffffff',
+            paddingTop: '8px',
+            paddingBottom: '8px',
+            paddingLeft: '18px',
+            paddingRight: '18px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '13px',
+          },
+        },
       },
-      'tmpl_nav_full_links': {
+      tmpl_nav_full_links: {
         id: 'tmpl_nav_full_links',
         name: 'روابط وقوائم',
         type: 'paragraph',
@@ -505,7 +719,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'الرئيسية    •    من نحن    •    القائمة ▾    •    تواصل معنا' },
         styles: { desktop: { fontSize: '14px', fontWeight: '600', textColor: '#475569' } },
       },
-      'tmpl_nav_full_logo': {
+      tmpl_nav_full_logo: {
         id: 'tmpl_nav_full_logo',
         name: 'الشعار',
         type: 'heading',
@@ -529,7 +743,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['navbar', 'aligned'],
     rootNodeId: 'tmpl_nav_align_root',
     nodes: {
-      'tmpl_nav_align_root': {
+      tmpl_nav_align_root: {
         id: 'tmpl_nav_align_root',
         name: 'شريط تنقل Aligned',
         type: 'header',
@@ -537,9 +751,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_nav_align_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', borderBottomWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', paddingTop: '16px', paddingBottom: '16px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            borderBottomWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            paddingTop: '16px',
+            paddingBottom: '16px',
+          },
+        },
       },
-      'tmpl_nav_align_box': {
+      tmpl_nav_align_box: {
         id: 'tmpl_nav_align_box',
         name: 'حاوية التنقل',
         type: 'flex',
@@ -560,7 +785,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_nav_align_btn': {
+      tmpl_nav_align_btn: {
         id: 'tmpl_nav_align_btn',
         name: 'زر اتصل',
         type: 'button',
@@ -568,9 +793,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_nav_align_box',
         childrenIds: [],
         props: { text: 'اتصل بنا' },
-        styles: { desktop: { backgroundColor: '#65a30d', textColor: '#ffffff', paddingTop: '8px', paddingBottom: '8px', paddingLeft: '18px', paddingRight: '18px', borderRadius: '8px', fontWeight: '700', fontSize: '13px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#65a30d',
+            textColor: '#ffffff',
+            paddingTop: '8px',
+            paddingBottom: '8px',
+            paddingLeft: '18px',
+            paddingRight: '18px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '13px',
+          },
+        },
       },
-      'tmpl_nav_align_links': {
+      tmpl_nav_align_links: {
         id: 'tmpl_nav_align_links',
         name: 'روابط التنقل',
         type: 'paragraph',
@@ -580,7 +817,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'الرئيسية    •    من نحن    •    القائمة ▾    •    تواصل معنا' },
         styles: { desktop: { fontSize: '14px', fontWeight: '600', textColor: '#475569' } },
       },
-      'tmpl_nav_align_logo': {
+      tmpl_nav_align_logo: {
         id: 'tmpl_nav_align_logo',
         name: 'الشعار',
         type: 'heading',
@@ -608,7 +845,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['hero', 'slider', 'سلايدر', 'سلايد'],
     rootNodeId: 'tmpl_hero_slider_root',
     nodes: {
-      'tmpl_hero_slider_root': {
+      tmpl_hero_slider_root: {
         id: 'tmpl_hero_slider_root',
         name: 'قسم Hero Slider',
         type: 'hero',
@@ -629,7 +866,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_slider_box': {
+      tmpl_slider_box: {
         id: 'tmpl_slider_box',
         name: 'حاوية السلايدر',
         type: 'container',
@@ -651,7 +888,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_slider_title': {
+      tmpl_slider_title: {
         id: 'tmpl_slider_title',
         name: 'عنوان السلايدر',
         type: 'heading',
@@ -661,7 +898,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'التميز يبدأ من التفاصيل الصغيرة' },
         styles: { desktop: { fontSize: '44px', fontWeight: '800', textColor: '#ffffff' } },
       },
-      'tmpl_slider_btns': {
+      tmpl_slider_btns: {
         id: 'tmpl_slider_btns',
         name: 'أزرار الإجراء',
         type: 'flex',
@@ -671,7 +908,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: {},
         styles: { desktop: { display: 'flex', gap: '12px' } },
       },
-      'tmpl_s_btn1': {
+      tmpl_s_btn1: {
         id: 'tmpl_s_btn1',
         name: 'زر تواصل معنا',
         type: 'button',
@@ -679,9 +916,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_slider_btns',
         childrenIds: [],
         props: { text: 'تواصل معنا' },
-        styles: { desktop: { backgroundColor: '#ffffff', textColor: '#0f172a', paddingLeft: '24px', paddingRight: '24px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '9999px', fontWeight: '700' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            textColor: '#0f172a',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '9999px',
+            fontWeight: '700',
+          },
+        },
       },
-      'tmpl_s_btn2': {
+      tmpl_s_btn2: {
         id: 'tmpl_s_btn2',
         name: 'زر اقرأ المزيد',
         type: 'button',
@@ -689,7 +937,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_slider_btns',
         childrenIds: [],
         props: { text: 'اقرأ المزيد' },
-        styles: { desktop: { backgroundColor: 'rgba(255,255,255,0.15)', textColor: '#ffffff', borderWidth: '1px', borderStyle: 'solid', borderColor: 'rgba(255,255,255,0.3)', paddingLeft: '24px', paddingRight: '24px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '9999px', fontWeight: '600' } },
+        styles: {
+          desktop: {
+            backgroundColor: 'rgba(255,255,255,0.15)',
+            textColor: '#ffffff',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: 'rgba(255,255,255,0.3)',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '9999px',
+            fontWeight: '600',
+          },
+        },
       },
     },
   },
@@ -705,7 +967,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['hero', 'استشارات', 'تدريب'],
     rootNodeId: 'tmpl_hero_coach_root',
     nodes: {
-      'tmpl_hero_coach_root': {
+      tmpl_hero_coach_root: {
         id: 'tmpl_hero_coach_root',
         name: 'قسم Hero التدريب',
         type: 'hero',
@@ -713,9 +975,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_hero_coach_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#334155', backgroundImage: 'radial-gradient(circle at 80% 40%, #475569 0%, #1e293b 80%)', paddingTop: '100px', paddingBottom: '100px', textColor: '#ffffff', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#334155',
+            backgroundImage: 'radial-gradient(circle at 80% 40%, #475569 0%, #1e293b 80%)',
+            paddingTop: '100px',
+            paddingBottom: '100px',
+            textColor: '#ffffff',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_hero_coach_box': {
+      tmpl_hero_coach_box: {
         id: 'tmpl_hero_coach_box',
         name: 'حاوية التدريب',
         type: 'container',
@@ -737,7 +1010,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_hero_coach_title': {
+      tmpl_hero_coach_title: {
         id: 'tmpl_hero_coach_title',
         name: 'عنوان الاستشارات',
         type: 'heading',
@@ -747,17 +1020,21 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'استشارات رياضية مع مدربين متخصصين' },
         styles: { desktop: { fontSize: '40px', fontWeight: '800', textColor: '#ffffff' } },
       },
-      'tmpl_hero_coach_desc': {
+      tmpl_hero_coach_desc: {
         id: 'tmpl_hero_coach_desc',
         name: 'وصف الاستشارات',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_hero_coach_box',
         childrenIds: [],
-        props: { text: 'خطط تدريب وتغذية مدروسة تناسب مستوى لياقتك وأهدافك الشخصية تحت إشراف نخبة من الكفاءات المعتمدة.' },
-        styles: { desktop: { fontSize: '16px', textColor: '#cbd5e1', maxWidth: '650px', lineHeight: '1.6' } },
+        props: {
+          text: 'خطط تدريب وتغذية مدروسة تناسب مستوى لياقتك وأهدافك الشخصية تحت إشراف نخبة من الكفاءات المعتمدة.',
+        },
+        styles: {
+          desktop: { fontSize: '16px', textColor: '#cbd5e1', maxWidth: '650px', lineHeight: '1.6' },
+        },
       },
-      'tmpl_hero_coach_btn': {
+      tmpl_hero_coach_btn: {
         id: 'tmpl_hero_coach_btn',
         name: 'زر اطلب استشارة',
         type: 'button',
@@ -765,7 +1042,19 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_hero_coach_box',
         childrenIds: [],
         props: { text: 'اطلب استشارة مجانية' },
-        styles: { desktop: { backgroundColor: '#65a30d', textColor: '#ffffff', paddingLeft: '28px', paddingRight: '28px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '8px', fontWeight: '700', fontSize: '15px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#65a30d',
+            textColor: '#ffffff',
+            paddingLeft: '28px',
+            paddingRight: '28px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '15px',
+          },
+        },
       },
     },
   },
@@ -780,7 +1069,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['hero', 'تقنية', 'saas'],
     rootNodeId: 'tmpl_hero_saas_root',
     nodes: {
-      'tmpl_hero_saas_root': {
+      tmpl_hero_saas_root: {
         id: 'tmpl_hero_saas_root',
         name: 'قسم Hero السحابي',
         type: 'hero',
@@ -788,9 +1077,19 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_saas_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#0f172a', paddingTop: '90px', paddingBottom: '90px', textColor: '#ffffff', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#0f172a',
+            paddingTop: '90px',
+            paddingBottom: '90px',
+            textColor: '#ffffff',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_saas_box': {
+      tmpl_saas_box: {
         id: 'tmpl_saas_box',
         name: 'حاوية SaaS',
         type: 'container',
@@ -812,7 +1111,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_saas_badge': {
+      tmpl_saas_badge: {
         id: 'tmpl_saas_badge',
         name: 'شارة المنصة',
         type: 'badge',
@@ -820,9 +1119,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_saas_box',
         childrenIds: [],
         props: { text: '✨ الجيل القادم من الحلول السحابية' },
-        styles: { desktop: { backgroundColor: 'rgba(59,130,246,0.15)', textColor: '#60a5fa', paddingLeft: '16px', paddingRight: '16px', paddingTop: '6px', paddingBottom: '6px', borderRadius: '9999px', fontSize: '12px', fontWeight: '600' } },
+        styles: {
+          desktop: {
+            backgroundColor: 'rgba(59,130,246,0.15)',
+            textColor: '#60a5fa',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            paddingTop: '6px',
+            paddingBottom: '6px',
+            borderRadius: '9999px',
+            fontSize: '12px',
+            fontWeight: '600',
+          },
+        },
       },
-      'tmpl_saas_title': {
+      tmpl_saas_title: {
         id: 'tmpl_saas_title',
         name: 'عنوان SaaS',
         type: 'heading',
@@ -832,17 +1143,21 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'منصة واحدة لإدارة جميع عملياتك بذكاء' },
         styles: { desktop: { fontSize: '42px', fontWeight: '800', textColor: '#ffffff' } },
       },
-      'tmpl_saas_desc': {
+      tmpl_saas_desc: {
         id: 'tmpl_saas_desc',
         name: 'وصف SaaS',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_saas_box',
         childrenIds: [],
-        props: { text: 'أتمتة ذكية، لوحات تحكم متطورة، وتحليلات لحظية تمنحك السيطرة الكاملة على نمو أعمالك.' },
-        styles: { desktop: { fontSize: '16px', textColor: '#94a3b8', maxWidth: '600px', lineHeight: '1.6' } },
+        props: {
+          text: 'أتمتة ذكية، لوحات تحكم متطورة، وتحليلات لحظية تمنحك السيطرة الكاملة على نمو أعمالك.',
+        },
+        styles: {
+          desktop: { fontSize: '16px', textColor: '#94a3b8', maxWidth: '600px', lineHeight: '1.6' },
+        },
       },
-      'tmpl_saas_btn': {
+      tmpl_saas_btn: {
         id: 'tmpl_saas_btn',
         name: 'زر ابدأ التجربة',
         type: 'button',
@@ -850,7 +1165,19 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_saas_box',
         childrenIds: [],
         props: { text: 'ابدأ تجربتك المجانية' },
-        styles: { desktop: { backgroundColor: '#2563eb', textColor: '#ffffff', paddingLeft: '28px', paddingRight: '28px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '8px', fontWeight: '700', fontSize: '15px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#2563eb',
+            textColor: '#ffffff',
+            paddingLeft: '28px',
+            paddingRight: '28px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '15px',
+          },
+        },
       },
     },
   },
@@ -870,7 +1197,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['features', 'مميزات', 'grid'],
     rootNodeId: 'tmpl_feat_grid_root',
     nodes: {
-      'tmpl_feat_grid_root': {
+      tmpl_feat_grid_root: {
         id: 'tmpl_feat_grid_root',
         name: 'قسم المميزات الثلاثية',
         type: 'features',
@@ -878,9 +1205,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_feat_container'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#f8fafc', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#f8fafc',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_feat_container': {
+      tmpl_feat_container: {
         id: 'tmpl_feat_container',
         name: 'حاوية المميزات',
         type: 'container',
@@ -888,9 +1223,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_feat_grid_root',
         childrenIds: ['tmpl_feat_head', 'tmpl_feat_grid_box'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_feat_head': {
+      tmpl_feat_head: {
         id: 'tmpl_feat_head',
         name: 'عنوان القسم',
         type: 'heading',
@@ -898,9 +1241,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_feat_container',
         childrenIds: [],
         props: { text: 'لماذا يفضل العملاء خدماتنا؟' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '40px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '40px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_feat_grid_box': {
+      tmpl_feat_grid_box: {
         id: 'tmpl_feat_grid_box',
         name: 'شبكة المزايا',
         type: 'grid',
@@ -908,9 +1259,11 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_feat_container',
         childrenIds: ['tmpl_feat_card_1', 'tmpl_feat_card_2', 'tmpl_feat_card_3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' },
+        },
       },
-      'tmpl_feat_card_1': {
+      tmpl_feat_card_1: {
         id: 'tmpl_feat_card_1',
         name: 'بطاقة الميزة 1',
         type: 'card',
@@ -918,9 +1271,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_feat_grid_box',
         childrenIds: ['tmpl_fc1_title', 'tmpl_fc1_desc'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '24px', paddingRight: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_fc1_title': {
+      tmpl_fc1_title: {
         id: 'tmpl_fc1_title',
         name: 'عنوان الميزة 1',
         type: 'heading',
@@ -928,9 +1294,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_feat_card_1',
         childrenIds: [],
         props: { text: '⚡ سرعة وأداء فائق' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '700',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_fc1_desc': {
+      tmpl_fc1_desc: {
         id: 'tmpl_fc1_desc',
         name: 'وصف الميزة 1',
         type: 'paragraph',
@@ -940,7 +1313,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'بنية تحتية سحابية متطورة توفر سرعة تحميل فائقة وتجاوب فوري مع طلباتك.' },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.6' } },
       },
-      'tmpl_feat_card_2': {
+      tmpl_feat_card_2: {
         id: 'tmpl_feat_card_2',
         name: 'بطاقة الميزة 2',
         type: 'card',
@@ -948,9 +1321,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_feat_grid_box',
         childrenIds: ['tmpl_fc2_title', 'tmpl_fc2_desc'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '24px', paddingRight: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_fc2_title': {
+      tmpl_fc2_title: {
         id: 'tmpl_fc2_title',
         name: 'عنوان الميزة 2',
         type: 'heading',
@@ -958,9 +1344,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_feat_card_2',
         childrenIds: [],
         props: { text: '🔒 أمان وحماية متقدمة' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '700',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_fc2_desc': {
+      tmpl_fc2_desc: {
         id: 'tmpl_fc2_desc',
         name: 'وصف الميزة 2',
         type: 'paragraph',
@@ -970,7 +1363,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'تشفير شامل وحماية بيانات وفق أعلى المعايير القياسية العالمية.' },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.6' } },
       },
-      'tmpl_feat_card_3': {
+      tmpl_feat_card_3: {
         id: 'tmpl_feat_card_3',
         name: 'بطاقة الميزة 3',
         type: 'card',
@@ -978,9 +1371,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_feat_grid_box',
         childrenIds: ['tmpl_fc3_title', 'tmpl_fc3_desc'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '24px', paddingRight: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_fc3_title': {
+      tmpl_fc3_title: {
         id: 'tmpl_fc3_title',
         name: 'عنوان الميزة 3',
         type: 'heading',
@@ -988,9 +1394,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_feat_card_3',
         childrenIds: [],
         props: { text: '🎧 دعم فني متواصل' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '700',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_fc3_desc': {
+      tmpl_fc3_desc: {
         id: 'tmpl_fc3_desc',
         name: 'وصف الميزة 3',
         type: 'paragraph',
@@ -1018,7 +1431,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['gallery', 'صور', 'معرض'],
     rootNodeId: 'tmpl_gallery_root',
     nodes: {
-      'tmpl_gallery_root': {
+      tmpl_gallery_root: {
         id: 'tmpl_gallery_root',
         name: 'قسم معرض الصور',
         type: 'gallery',
@@ -1026,9 +1439,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_gal_container'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_gal_container': {
+      tmpl_gal_container: {
         id: 'tmpl_gal_container',
         name: 'حاوية المعرض',
         type: 'container',
@@ -1036,9 +1457,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_gallery_root',
         childrenIds: ['tmpl_gal_title', 'tmpl_gal_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_gal_title': {
+      tmpl_gal_title: {
         id: 'tmpl_gal_title',
         name: 'عنوان المعرض',
         type: 'heading',
@@ -1046,9 +1475,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_gal_container',
         childrenIds: [],
         props: { text: 'معرض الأعمال والمشاريع المنفذة' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '36px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '36px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_gal_grid': {
+      tmpl_gal_grid: {
         id: 'tmpl_gal_grid',
         name: 'شبكة الصور',
         type: 'grid',
@@ -1056,36 +1493,47 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_gal_container',
         childrenIds: ['tmpl_gal_img_1', 'tmpl_gal_img_2', 'tmpl_gal_img_3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '20px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '20px' },
+        },
       },
-      'tmpl_gal_img_1': {
+      tmpl_gal_img_1: {
         id: 'tmpl_gal_img_1',
         name: 'صورة المعرض 1',
         type: 'image',
         category: 'media',
         parentId: 'tmpl_gal_grid',
         childrenIds: [],
-        props: { src: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&auto=format&fit=crop&q=80', alt: 'مشروع 1' },
+        props: {
+          src: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&auto=format&fit=crop&q=80',
+          alt: 'مشروع 1',
+        },
         styles: { desktop: { height: '260px', borderRadius: '12px' } },
       },
-      'tmpl_gal_img_2': {
+      tmpl_gal_img_2: {
         id: 'tmpl_gal_img_2',
         name: 'صورة المعرض 2',
         type: 'image',
         category: 'media',
         parentId: 'tmpl_gal_grid',
         childrenIds: [],
-        props: { src: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80', alt: 'مشروع 2' },
+        props: {
+          src: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80',
+          alt: 'مشروع 2',
+        },
         styles: { desktop: { height: '260px', borderRadius: '12px' } },
       },
-      'tmpl_gal_img_3': {
+      tmpl_gal_img_3: {
         id: 'tmpl_gal_img_3',
         name: 'صورة المعرض 3',
         type: 'image',
         category: 'media',
         parentId: 'tmpl_gal_grid',
         childrenIds: [],
-        props: { src: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&auto=format&fit=crop&q=80', alt: 'مشروع 3' },
+        props: {
+          src: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&auto=format&fit=crop&q=80',
+          alt: 'مشروع 3',
+        },
         styles: { desktop: { height: '260px', borderRadius: '12px' } },
       },
     },
@@ -1106,7 +1554,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['pricing', 'أسعار', 'باقات'],
     rootNodeId: 'tmpl_pricing_root_sec',
     nodes: {
-      'tmpl_pricing_root_sec': {
+      tmpl_pricing_root_sec: {
         id: 'tmpl_pricing_root_sec',
         name: 'قسم باقات الأسعار',
         type: 'pricing',
@@ -1114,9 +1562,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_price_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_price_box': {
+      tmpl_price_box: {
         id: 'tmpl_price_box',
         name: 'حاوية الأسعار',
         type: 'container',
@@ -1124,9 +1580,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_pricing_root_sec',
         childrenIds: ['tmpl_price_title', 'tmpl_price_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_price_title': {
+      tmpl_price_title: {
         id: 'tmpl_price_title',
         name: 'عنوان الأسعار',
         type: 'heading',
@@ -1134,9 +1598,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_price_box',
         childrenIds: [],
         props: { text: 'خطط وباقات تناسب كافة الاحتياجات' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '40px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '40px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_price_grid': {
+      tmpl_price_grid: {
         id: 'tmpl_price_grid',
         name: 'شبكة الباقات',
         type: 'grid',
@@ -1144,9 +1616,11 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_price_box',
         childrenIds: ['tmpl_p1', 'tmpl_p2', 'tmpl_p3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' },
+        },
       },
-      'tmpl_p1': {
+      tmpl_p1: {
         id: 'tmpl_p1',
         name: 'الباقة الأساسية',
         type: 'card',
@@ -1154,9 +1628,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_price_grid',
         childrenIds: ['tmpl_p1_title', 'tmpl_p1_cost', 'tmpl_p1_btn'],
         props: {},
-        styles: { desktop: { backgroundColor: '#f8fafc', paddingTop: '32px', paddingBottom: '32px', paddingLeft: '32px', paddingRight: '32px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            paddingLeft: '32px',
+            paddingRight: '32px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_p1_title': {
+      tmpl_p1_title: {
         id: 'tmpl_p1_title',
         name: 'اسم الباقة 1',
         type: 'heading',
@@ -1166,7 +1653,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'الباقة الأساسية' },
         styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#0f172a' } },
       },
-      'tmpl_p1_cost': {
+      tmpl_p1_cost: {
         id: 'tmpl_p1_cost',
         name: 'سعر الباقة 1',
         type: 'heading',
@@ -1174,9 +1661,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_p1',
         childrenIds: [],
         props: { text: '199 ج.م / شهرياً' },
-        styles: { desktop: { fontSize: '24px', fontWeight: '800', textColor: '#2563eb', marginTop: '12px', marginBottom: '20px' } },
+        styles: {
+          desktop: {
+            fontSize: '24px',
+            fontWeight: '800',
+            textColor: '#2563eb',
+            marginTop: '12px',
+            marginBottom: '20px',
+          },
+        },
       },
-      'tmpl_p1_btn': {
+      tmpl_p1_btn: {
         id: 'tmpl_p1_btn',
         name: 'زر اختيار الباقة 1',
         type: 'button',
@@ -1184,9 +1679,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_p1',
         childrenIds: [],
         props: { text: 'اختر هذه الباقة' },
-        styles: { desktop: { backgroundColor: '#ffffff', textColor: '#0f172a', borderWidth: '1px', borderStyle: 'solid', borderColor: '#cbd5e1', width: '100%', paddingTop: '10px', paddingBottom: '10px', borderRadius: '8px', fontWeight: '700' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            textColor: '#0f172a',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#cbd5e1',
+            width: '100%',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            borderRadius: '8px',
+            fontWeight: '700',
+          },
+        },
       },
-      'tmpl_p2': {
+      tmpl_p2: {
         id: 'tmpl_p2',
         name: 'الباقة الاحترافية',
         type: 'card',
@@ -1194,9 +1702,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_price_grid',
         childrenIds: ['tmpl_p2_title', 'tmpl_p2_cost', 'tmpl_p2_btn'],
         props: {},
-        styles: { desktop: { backgroundColor: '#0f172a', textColor: '#ffffff', paddingTop: '32px', paddingBottom: '32px', paddingLeft: '32px', paddingRight: '32px', borderRadius: '16px', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#0f172a',
+            textColor: '#ffffff',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            paddingLeft: '32px',
+            paddingRight: '32px',
+            borderRadius: '16px',
+            textAlign: 'center',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+          },
+        },
       },
-      'tmpl_p2_title': {
+      tmpl_p2_title: {
         id: 'tmpl_p2_title',
         name: 'اسم الباقة 2',
         type: 'heading',
@@ -1206,7 +1726,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'الباقة الاحترافية (الأكثر طلباً)' },
         styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#38bdf8' } },
       },
-      'tmpl_p2_cost': {
+      tmpl_p2_cost: {
         id: 'tmpl_p2_cost',
         name: 'سعر الباقة 2',
         type: 'heading',
@@ -1214,9 +1734,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_p2',
         childrenIds: [],
         props: { text: '499 ج.م / شهرياً' },
-        styles: { desktop: { fontSize: '24px', fontWeight: '800', textColor: '#ffffff', marginTop: '12px', marginBottom: '20px' } },
+        styles: {
+          desktop: {
+            fontSize: '24px',
+            fontWeight: '800',
+            textColor: '#ffffff',
+            marginTop: '12px',
+            marginBottom: '20px',
+          },
+        },
       },
-      'tmpl_p2_btn': {
+      tmpl_p2_btn: {
         id: 'tmpl_p2_btn',
         name: 'زر اختيار الباقة 2',
         type: 'button',
@@ -1224,9 +1752,19 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_p2',
         childrenIds: [],
         props: { text: 'اشترك الآن' },
-        styles: { desktop: { backgroundColor: '#2563eb', textColor: '#ffffff', width: '100%', paddingTop: '10px', paddingBottom: '10px', borderRadius: '8px', fontWeight: '700' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#2563eb',
+            textColor: '#ffffff',
+            width: '100%',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            borderRadius: '8px',
+            fontWeight: '700',
+          },
+        },
       },
-      'tmpl_p3': {
+      tmpl_p3: {
         id: 'tmpl_p3',
         name: 'باقة الشركات',
         type: 'card',
@@ -1234,9 +1772,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_price_grid',
         childrenIds: ['tmpl_p3_title', 'tmpl_p3_cost', 'tmpl_p3_btn'],
         props: {},
-        styles: { desktop: { backgroundColor: '#f8fafc', paddingTop: '32px', paddingBottom: '32px', paddingLeft: '32px', paddingRight: '32px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            paddingLeft: '32px',
+            paddingRight: '32px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_p3_title': {
+      tmpl_p3_title: {
         id: 'tmpl_p3_title',
         name: 'اسم الباقة 3',
         type: 'heading',
@@ -1246,7 +1797,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'باقة المؤسسات' },
         styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#0f172a' } },
       },
-      'tmpl_p3_cost': {
+      tmpl_p3_cost: {
         id: 'tmpl_p3_cost',
         name: 'سعر الباقة 3',
         type: 'heading',
@@ -1254,9 +1805,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_p3',
         childrenIds: [],
         props: { text: '1499 ج.م / شهرياً' },
-        styles: { desktop: { fontSize: '24px', fontWeight: '800', textColor: '#2563eb', marginTop: '12px', marginBottom: '20px' } },
+        styles: {
+          desktop: {
+            fontSize: '24px',
+            fontWeight: '800',
+            textColor: '#2563eb',
+            marginTop: '12px',
+            marginBottom: '20px',
+          },
+        },
       },
-      'tmpl_p3_btn': {
+      tmpl_p3_btn: {
         id: 'tmpl_p3_btn',
         name: 'زر اختيار الباقة 3',
         type: 'button',
@@ -1264,7 +1823,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_p3',
         childrenIds: [],
         props: { text: 'تواصل لطلب عرض' },
-        styles: { desktop: { backgroundColor: '#ffffff', textColor: '#0f172a', borderWidth: '1px', borderStyle: 'solid', borderColor: '#cbd5e1', width: '100%', paddingTop: '10px', paddingBottom: '10px', borderRadius: '8px', fontWeight: '700' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            textColor: '#0f172a',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#cbd5e1',
+            width: '100%',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            borderRadius: '8px',
+            fontWeight: '700',
+          },
+        },
       },
     },
   },
@@ -1284,7 +1856,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['team', 'فريق', 'أعضاء'],
     rootNodeId: 'tmpl_team_root_sec',
     nodes: {
-      'tmpl_team_root_sec': {
+      tmpl_team_root_sec: {
         id: 'tmpl_team_root_sec',
         name: 'قسم أعضاء الفريق',
         type: 'team',
@@ -1292,9 +1864,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_team_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#f8fafc', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#f8fafc',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_team_box': {
+      tmpl_team_box: {
         id: 'tmpl_team_box',
         name: 'حاوية الفريق',
         type: 'container',
@@ -1302,9 +1882,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_team_root_sec',
         childrenIds: ['tmpl_team_title', 'tmpl_team_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_team_title': {
+      tmpl_team_title: {
         id: 'tmpl_team_title',
         name: 'عنوان الفريق',
         type: 'heading',
@@ -1312,9 +1900,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_team_box',
         childrenIds: [],
         props: { text: 'فريق العمل والخبراء' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '40px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '40px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_team_grid': {
+      tmpl_team_grid: {
         id: 'tmpl_team_grid',
         name: 'شبكة الفريق',
         type: 'grid',
@@ -1322,9 +1918,11 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_team_box',
         childrenIds: ['tmpl_t1', 'tmpl_t2', 'tmpl_t3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' },
+        },
       },
-      'tmpl_t1': {
+      tmpl_t1: {
         id: 'tmpl_t1',
         name: 'عضو 1',
         type: 'card',
@@ -1332,19 +1930,44 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_team_grid',
         childrenIds: ['tmpl_t1_img', 'tmpl_t1_name', 'tmpl_t1_role'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '24px', paddingRight: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_t1_img': {
+      tmpl_t1_img: {
         id: 'tmpl_t1_img',
         name: 'صورة عضو 1',
         type: 'image',
         category: 'media',
         parentId: 'tmpl_t1',
         childrenIds: [],
-        props: { src: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80', alt: 'سارة خالد' },
-        styles: { desktop: { width: '96px', height: '96px', borderRadius: '9999px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '16px' } },
+        props: {
+          src: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+          alt: 'سارة خالد',
+        },
+        styles: {
+          desktop: {
+            width: '96px',
+            height: '96px',
+            borderRadius: '9999px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            marginBottom: '16px',
+          },
+        },
       },
-      'tmpl_t1_name': {
+      tmpl_t1_name: {
         id: 'tmpl_t1_name',
         name: 'اسم عضو 1',
         type: 'heading',
@@ -1354,7 +1977,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'سارة خالد' },
         styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#0f172a' } },
       },
-      'tmpl_t1_role': {
+      tmpl_t1_role: {
         id: 'tmpl_t1_role',
         name: 'منصب عضو 1',
         type: 'paragraph',
@@ -1364,7 +1987,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'الرئيس التنفيذي للعمليات' },
         styles: { desktop: { fontSize: '13px', textColor: '#64748b', marginTop: '4px' } },
       },
-      'tmpl_t2': {
+      tmpl_t2: {
         id: 'tmpl_t2',
         name: 'عضو 2',
         type: 'card',
@@ -1372,19 +1995,44 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_team_grid',
         childrenIds: ['tmpl_t2_img', 'tmpl_t2_name', 'tmpl_t2_role'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '24px', paddingRight: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_t2_img': {
+      tmpl_t2_img: {
         id: 'tmpl_t2_img',
         name: 'صورة عضو 2',
         type: 'image',
         category: 'media',
         parentId: 'tmpl_t2',
         childrenIds: [],
-        props: { src: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80', alt: 'فيصل العمري' },
-        styles: { desktop: { width: '96px', height: '96px', borderRadius: '9999px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '16px' } },
+        props: {
+          src: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+          alt: 'فيصل العمري',
+        },
+        styles: {
+          desktop: {
+            width: '96px',
+            height: '96px',
+            borderRadius: '9999px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            marginBottom: '16px',
+          },
+        },
       },
-      'tmpl_t2_name': {
+      tmpl_t2_name: {
         id: 'tmpl_t2_name',
         name: 'اسم عضو 2',
         type: 'heading',
@@ -1394,7 +2042,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'فيصل العمري' },
         styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#0f172a' } },
       },
-      'tmpl_t2_role': {
+      tmpl_t2_role: {
         id: 'tmpl_t2_role',
         name: 'منصب عضو 2',
         type: 'paragraph',
@@ -1404,7 +2052,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'مدير التطوير الهندسي' },
         styles: { desktop: { fontSize: '13px', textColor: '#64748b', marginTop: '4px' } },
       },
-      'tmpl_t3': {
+      tmpl_t3: {
         id: 'tmpl_t3',
         name: 'عضو 3',
         type: 'card',
@@ -1412,19 +2060,44 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_team_grid',
         childrenIds: ['tmpl_t3_img', 'tmpl_t3_name', 'tmpl_t3_role'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '24px', paddingRight: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_t3_img': {
+      tmpl_t3_img: {
         id: 'tmpl_t3_img',
         name: 'صورة عضو 3',
         type: 'image',
         category: 'media',
         parentId: 'tmpl_t3',
         childrenIds: [],
-        props: { src: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80', alt: 'طارق المنصور' },
-        styles: { desktop: { width: '96px', height: '96px', borderRadius: '9999px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '16px' } },
+        props: {
+          src: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80',
+          alt: 'طارق المنصور',
+        },
+        styles: {
+          desktop: {
+            width: '96px',
+            height: '96px',
+            borderRadius: '9999px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            marginBottom: '16px',
+          },
+        },
       },
-      'tmpl_t3_name': {
+      tmpl_t3_name: {
         id: 'tmpl_t3_name',
         name: 'اسم عضو 3',
         type: 'heading',
@@ -1434,7 +2107,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'طارق المنصور' },
         styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#0f172a' } },
       },
-      'tmpl_t3_role': {
+      tmpl_t3_role: {
         id: 'tmpl_t3_role',
         name: 'منصب عضو 3',
         type: 'paragraph',
@@ -1462,7 +2135,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['tabs', 'تبويب', 'أفقي'],
     rootNodeId: 'tmpl_tabs_root_sec',
     nodes: {
-      'tmpl_tabs_root_sec': {
+      tmpl_tabs_root_sec: {
         id: 'tmpl_tabs_root_sec',
         name: 'قسم علامات التبويب',
         type: 'container',
@@ -1470,9 +2143,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_tabs_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', paddingTop: '70px', paddingBottom: '70px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            paddingTop: '70px',
+            paddingBottom: '70px',
+          },
+        },
       },
-      'tmpl_tabs_box': {
+      tmpl_tabs_box: {
         id: 'tmpl_tabs_box',
         name: 'حاوية التبويبات',
         type: 'container',
@@ -1480,9 +2161,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_tabs_root_sec',
         childrenIds: ['tmpl_tabs_title', 'tmpl_tabs_nav', 'tmpl_tabs_content'],
         props: {},
-        styles: { desktop: { maxWidth: '1000px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            maxWidth: '1000px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_tabs_title': {
+      tmpl_tabs_title: {
         id: 'tmpl_tabs_title',
         name: 'عنوان التبويبات',
         type: 'heading',
@@ -1490,9 +2180,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_tabs_box',
         childrenIds: [],
         props: { text: 'تصفح خدماتنا حسب المجال' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', marginBottom: '28px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            marginBottom: '28px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_tabs_nav': {
+      tmpl_tabs_nav: {
         id: 'tmpl_tabs_nav',
         name: 'أزرار التبويبات',
         type: 'flex',
@@ -1500,9 +2197,11 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_tabs_box',
         childrenIds: ['tmpl_tab_b1', 'tmpl_tab_b2', 'tmpl_tab_b3'],
         props: {},
-        styles: { desktop: { display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '24px' } },
+        styles: {
+          desktop: { display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '24px' },
+        },
       },
-      'tmpl_tab_b1': {
+      tmpl_tab_b1: {
         id: 'tmpl_tab_b1',
         name: 'تبويب 1',
         type: 'button',
@@ -1510,9 +2209,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_tabs_nav',
         childrenIds: [],
         props: { text: 'الحلول الرقمية' },
-        styles: { desktop: { backgroundColor: '#2563eb', textColor: '#ffffff', paddingLeft: '20px', paddingRight: '20px', paddingTop: '8px', paddingBottom: '8px', borderRadius: '8px', fontWeight: '700', fontSize: '13px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#2563eb',
+            textColor: '#ffffff',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            paddingTop: '8px',
+            paddingBottom: '8px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '13px',
+          },
+        },
       },
-      'tmpl_tab_b2': {
+      tmpl_tab_b2: {
         id: 'tmpl_tab_b2',
         name: 'تبويب 2',
         type: 'button',
@@ -1520,9 +2231,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_tabs_nav',
         childrenIds: [],
         props: { text: 'التسويق السحابي' },
-        styles: { desktop: { backgroundColor: '#f1f5f9', textColor: '#475569', paddingLeft: '20px', paddingRight: '20px', paddingTop: '8px', paddingBottom: '8px', borderRadius: '8px', fontWeight: '600', fontSize: '13px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f1f5f9',
+            textColor: '#475569',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            paddingTop: '8px',
+            paddingBottom: '8px',
+            borderRadius: '8px',
+            fontWeight: '600',
+            fontSize: '13px',
+          },
+        },
       },
-      'tmpl_tab_b3': {
+      tmpl_tab_b3: {
         id: 'tmpl_tab_b3',
         name: 'تبويب 3',
         type: 'button',
@@ -1530,9 +2253,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_tabs_nav',
         childrenIds: [],
         props: { text: 'استشارات الأعمال' },
-        styles: { desktop: { backgroundColor: '#f1f5f9', textColor: '#475569', paddingLeft: '20px', paddingRight: '20px', paddingTop: '8px', paddingBottom: '8px', borderRadius: '8px', fontWeight: '600', fontSize: '13px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f1f5f9',
+            textColor: '#475569',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            paddingTop: '8px',
+            paddingBottom: '8px',
+            borderRadius: '8px',
+            fontWeight: '600',
+            fontSize: '13px',
+          },
+        },
       },
-      'tmpl_tabs_content': {
+      tmpl_tabs_content: {
         id: 'tmpl_tabs_content',
         name: 'محتوى التبويب',
         type: 'card',
@@ -1540,16 +2275,30 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_tabs_box',
         childrenIds: ['tmpl_tc_text'],
         props: {},
-        styles: { desktop: { backgroundColor: '#f8fafc', paddingTop: '36px', paddingBottom: '36px', paddingLeft: '36px', paddingRight: '36px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            paddingTop: '36px',
+            paddingBottom: '36px',
+            paddingLeft: '36px',
+            paddingRight: '36px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+          },
+        },
       },
-      'tmpl_tc_text': {
+      tmpl_tc_text: {
         id: 'tmpl_tc_text',
         name: 'نص التبويب',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_tabs_content',
         childrenIds: [],
-        props: { text: 'نوفر باقة متكاملة من الحلول البرمجية والسحابية المصممة لرفع كفاءة أعمالك وتحقيق أفضل عائد استثماري.' },
+        props: {
+          text: 'نوفر باقة متكاملة من الحلول البرمجية والسحابية المصممة لرفع كفاءة أعمالك وتحقيق أفضل عائد استثماري.',
+        },
         styles: { desktop: { fontSize: '16px', textColor: '#334155', lineHeight: '1.7' } },
       },
     },
@@ -1570,7 +2319,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['accordion', 'faq', 'أكورديون', 'أسئلة'],
     rootNodeId: 'tmpl_acc_root_sec',
     nodes: {
-      'tmpl_acc_root_sec': {
+      tmpl_acc_root_sec: {
         id: 'tmpl_acc_root_sec',
         name: 'قسم أكورديون الأسئلة',
         type: 'faq',
@@ -1578,9 +2327,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_acc_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#f8fafc', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#f8fafc',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_acc_box': {
+      tmpl_acc_box: {
         id: 'tmpl_acc_box',
         name: 'حاوية الأسئلة',
         type: 'container',
@@ -1588,9 +2345,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_acc_root_sec',
         childrenIds: ['tmpl_acc_title', 'tmpl_acc_item1', 'tmpl_acc_item2', 'tmpl_acc_item3'],
         props: {},
-        styles: { desktop: { maxWidth: '800px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '800px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_acc_title': {
+      tmpl_acc_title: {
         id: 'tmpl_acc_title',
         name: 'عنوان الأسئلة',
         type: 'heading',
@@ -1598,9 +2363,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_acc_box',
         childrenIds: [],
         props: { text: 'الأسئلة الأكثر تكراراً' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '32px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '32px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_acc_item1': {
+      tmpl_acc_item1: {
         id: 'tmpl_acc_item1',
         name: 'سؤال 1',
         type: 'card',
@@ -1608,9 +2381,23 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_acc_box',
         childrenIds: ['tmpl_q1_head', 'tmpl_q1_ans'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingTop: '20px', paddingBottom: '20px', paddingLeft: '20px', paddingRight: '20px', borderRadius: '12px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', marginBottom: '12px', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingTop: '20px',
+            paddingBottom: '20px',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            borderRadius: '12px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            marginBottom: '12px',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_q1_head': {
+      tmpl_q1_head: {
         id: 'tmpl_q1_head',
         name: 'عنوان السؤال 1',
         type: 'heading',
@@ -1618,19 +2405,28 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_acc_item1',
         childrenIds: [],
         props: { text: 'كيف يمكنني الاشتراك والبدء في استخدام الخدمة؟' },
-        styles: { desktop: { fontSize: '16px', fontWeight: '700', textColor: '#0f172a', marginBottom: '6px' } },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            fontWeight: '700',
+            textColor: '#0f172a',
+            marginBottom: '6px',
+          },
+        },
       },
-      'tmpl_q1_ans': {
+      tmpl_q1_ans: {
         id: 'tmpl_q1_ans',
         name: 'إجابة السؤال 1',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_acc_item1',
         childrenIds: [],
-        props: { text: 'يمكنك البدء فوراً بالنقر على زر التسجيل وتحديد الباقة المناسبة لك، وسيتم تفعيل حسابك خلال دقائق معدودة.' },
+        props: {
+          text: 'يمكنك البدء فوراً بالنقر على زر التسجيل وتحديد الباقة المناسبة لك، وسيتم تفعيل حسابك خلال دقائق معدودة.',
+        },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.6' } },
       },
-      'tmpl_acc_item2': {
+      tmpl_acc_item2: {
         id: 'tmpl_acc_item2',
         name: 'سؤال 2',
         type: 'card',
@@ -1638,9 +2434,23 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_acc_box',
         childrenIds: ['tmpl_q2_head', 'tmpl_q2_ans'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingTop: '20px', paddingBottom: '20px', paddingLeft: '20px', paddingRight: '20px', borderRadius: '12px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', marginBottom: '12px', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingTop: '20px',
+            paddingBottom: '20px',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            borderRadius: '12px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            marginBottom: '12px',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_q2_head': {
+      tmpl_q2_head: {
         id: 'tmpl_q2_head',
         name: 'عنوان السؤال 2',
         type: 'heading',
@@ -1648,19 +2458,28 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_acc_item2',
         childrenIds: [],
         props: { text: 'هل تتوفر خيارات الدفع والتقسيط الميسر؟' },
-        styles: { desktop: { fontSize: '16px', fontWeight: '700', textColor: '#0f172a', marginBottom: '6px' } },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            fontWeight: '700',
+            textColor: '#0f172a',
+            marginBottom: '6px',
+          },
+        },
       },
-      'tmpl_q2_ans': {
+      tmpl_q2_ans: {
         id: 'tmpl_q2_ans',
         name: 'إجابة السؤال 2',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_acc_item2',
         childrenIds: [],
-        props: { text: 'نعم، نوفر دعم كامل لمدى، فيزا، ماستركارد بالإضافة إلى خيارات التقسيط بدون أي فوائد إضافية.' },
+        props: {
+          text: 'نعم، نوفر دعم كامل لمدى، فيزا، ماستركارد بالإضافة إلى خيارات التقسيط بدون أي فوائد إضافية.',
+        },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.6' } },
       },
-      'tmpl_acc_item3': {
+      tmpl_acc_item3: {
         id: 'tmpl_acc_item3',
         name: 'سؤال 3',
         type: 'card',
@@ -1668,9 +2487,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_acc_box',
         childrenIds: ['tmpl_q3_head', 'tmpl_q3_ans'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingTop: '20px', paddingBottom: '20px', paddingLeft: '20px', paddingRight: '20px', borderRadius: '12px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingTop: '20px',
+            paddingBottom: '20px',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            borderRadius: '12px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_q3_head': {
+      tmpl_q3_head: {
         id: 'tmpl_q3_head',
         name: 'عنوان السؤال 3',
         type: 'heading',
@@ -1678,16 +2510,25 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_acc_item3',
         childrenIds: [],
         props: { text: 'هل يمكنني ترقية أو إلغاء اشتراكي في أي وقت؟' },
-        styles: { desktop: { fontSize: '16px', fontWeight: '700', textColor: '#0f172a', marginBottom: '6px' } },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            fontWeight: '700',
+            textColor: '#0f172a',
+            marginBottom: '6px',
+          },
+        },
       },
-      'tmpl_q3_ans': {
+      tmpl_q3_ans: {
         id: 'tmpl_q3_ans',
         name: 'إجابة السؤال 3',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_acc_item3',
         childrenIds: [],
-        props: { text: 'بالتأكيد، يمكنك التحكم الكامل في خطتك السعرية وترقيتها أو إيقافها مباشرة من لوحة التحكم بكل مرونة.' },
+        props: {
+          text: 'بالتأكيد، يمكنك التحكم الكامل في خطتك السعرية وترقيتها أو إيقافها مباشرة من لوحة التحكم بكل مرونة.',
+        },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.6' } },
       },
     },
@@ -1708,7 +2549,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['testimonials', 'آراء', 'تقييمات', 'شهادات'],
     rootNodeId: 'tmpl_testi_root_sec',
     nodes: {
-      'tmpl_testi_root_sec': {
+      tmpl_testi_root_sec: {
         id: 'tmpl_testi_root_sec',
         name: 'قسم آراء العملاء',
         type: 'testimonials',
@@ -1716,9 +2557,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_testi_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_testi_box': {
+      tmpl_testi_box: {
         id: 'tmpl_testi_box',
         name: 'حاوية التقييمات',
         type: 'container',
@@ -1726,9 +2575,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_testi_root_sec',
         childrenIds: ['tmpl_testi_title', 'tmpl_testi_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_testi_title': {
+      tmpl_testi_title: {
         id: 'tmpl_testi_title',
         name: 'عنوان التقييمات',
         type: 'heading',
@@ -1736,9 +2593,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_testi_box',
         childrenIds: [],
         props: { text: 'ماذا يقول عملاؤنا عنا؟' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '40px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '40px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_testi_grid': {
+      tmpl_testi_grid: {
         id: 'tmpl_testi_grid',
         name: 'شبكة الآراء',
         type: 'grid',
@@ -1746,9 +2611,11 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_testi_box',
         childrenIds: ['tmpl_testi_c1', 'tmpl_testi_c2', 'tmpl_testi_c3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' },
+        },
       },
-      'tmpl_testi_c1': {
+      tmpl_testi_c1: {
         id: 'tmpl_testi_c1',
         name: 'رأي عميل 1',
         type: 'card',
@@ -1756,9 +2623,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_testi_grid',
         childrenIds: ['tmpl_tc1_stars', 'tmpl_tc1_quote', 'tmpl_tc1_author'],
         props: {},
-        styles: { desktop: { backgroundColor: '#f8fafc', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '24px', paddingRight: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_tc1_stars': {
+      tmpl_tc1_stars: {
         id: 'tmpl_tc1_stars',
         name: 'نجوم 1',
         type: 'paragraph',
@@ -1768,17 +2648,26 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: '⭐⭐⭐⭐⭐' },
         styles: { desktop: { fontSize: '16px', marginBottom: '8px' } },
       },
-      'tmpl_tc1_quote': {
+      tmpl_tc1_quote: {
         id: 'tmpl_tc1_quote',
         name: 'اقتباس 1',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_testi_c1',
         childrenIds: [],
-        props: { text: '"تجربة استثنائية وسرعة فائقة في التنفيذ والتسليم. نوصي بالتعامل معهم بشدة."' },
-        styles: { desktop: { fontSize: '14px', textColor: '#334155', lineHeight: '1.6', marginBottom: '12px' } },
+        props: {
+          text: '"تجربة استثنائية وسرعة فائقة في التنفيذ والتسليم. نوصي بالتعامل معهم بشدة."',
+        },
+        styles: {
+          desktop: {
+            fontSize: '14px',
+            textColor: '#334155',
+            lineHeight: '1.6',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_tc1_author': {
+      tmpl_tc1_author: {
         id: 'tmpl_tc1_author',
         name: 'صاحب الرأي 1',
         type: 'heading',
@@ -1788,7 +2677,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'عبدالله السالم - مدير تنفيذي' },
         styles: { desktop: { fontSize: '13px', fontWeight: '700', textColor: '#0f172a' } },
       },
-      'tmpl_testi_c2': {
+      tmpl_testi_c2: {
         id: 'tmpl_testi_c2',
         name: 'رأي عميل 2',
         type: 'card',
@@ -1796,9 +2685,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_testi_grid',
         childrenIds: ['tmpl_tc2_stars', 'tmpl_tc2_quote', 'tmpl_tc2_author'],
         props: {},
-        styles: { desktop: { backgroundColor: '#f8fafc', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '24px', paddingRight: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_tc2_stars': {
+      tmpl_tc2_stars: {
         id: 'tmpl_tc2_stars',
         name: 'نجوم 2',
         type: 'paragraph',
@@ -1808,7 +2710,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: '⭐⭐⭐⭐⭐' },
         styles: { desktop: { fontSize: '16px', marginBottom: '8px' } },
       },
-      'tmpl_tc2_quote': {
+      tmpl_tc2_quote: {
         id: 'tmpl_tc2_quote',
         name: 'اقتباس 2',
         type: 'paragraph',
@@ -1816,9 +2718,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_testi_c2',
         childrenIds: [],
         props: { text: '"من أفضل القرارات التي اتخذناها لتطوير هويتنا ورفع مبيعاتنا الرقمية."' },
-        styles: { desktop: { fontSize: '14px', textColor: '#334155', lineHeight: '1.6', marginBottom: '12px' } },
+        styles: {
+          desktop: {
+            fontSize: '14px',
+            textColor: '#334155',
+            lineHeight: '1.6',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_tc2_author': {
+      tmpl_tc2_author: {
         id: 'tmpl_tc2_author',
         name: 'صاحب الرأي 2',
         type: 'heading',
@@ -1828,7 +2737,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'نورة المنصور - مؤسسة متجر' },
         styles: { desktop: { fontSize: '13px', fontWeight: '700', textColor: '#0f172a' } },
       },
-      'tmpl_testi_c3': {
+      tmpl_testi_c3: {
         id: 'tmpl_testi_c3',
         name: 'رأي عميل 3',
         type: 'card',
@@ -1836,9 +2745,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_testi_grid',
         childrenIds: ['tmpl_tc3_stars', 'tmpl_tc3_quote', 'tmpl_tc3_author'],
         props: {},
-        styles: { desktop: { backgroundColor: '#f8fafc', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '24px', paddingRight: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_tc3_stars': {
+      tmpl_tc3_stars: {
         id: 'tmpl_tc3_stars',
         name: 'نجوم 3',
         type: 'paragraph',
@@ -1848,7 +2770,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: '⭐⭐⭐⭐⭐' },
         styles: { desktop: { fontSize: '16px', marginBottom: '8px' } },
       },
-      'tmpl_tc3_quote': {
+      tmpl_tc3_quote: {
         id: 'tmpl_tc3_quote',
         name: 'اقتباس 3',
         type: 'paragraph',
@@ -1856,9 +2778,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_testi_c3',
         childrenIds: [],
         props: { text: '"فريق عمل محترف ودعم فني متميز لا يتأخر أبداً في تلبية أي طلب."' },
-        styles: { desktop: { fontSize: '14px', textColor: '#334155', lineHeight: '1.6', marginBottom: '12px' } },
+        styles: {
+          desktop: {
+            fontSize: '14px',
+            textColor: '#334155',
+            lineHeight: '1.6',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_tc3_author': {
+      tmpl_tc3_author: {
         id: 'tmpl_tc3_author',
         name: 'صاحب الرأي 3',
         type: 'heading',
@@ -1886,7 +2815,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['contact', 'تواصل', 'نموذج', 'اتصال'],
     rootNodeId: 'tmpl_contact_root_sec',
     nodes: {
-      'tmpl_contact_root_sec': {
+      tmpl_contact_root_sec: {
         id: 'tmpl_contact_root_sec',
         name: 'قسم التواصل والاتصال',
         type: 'contact',
@@ -1894,9 +2823,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_cont_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_cont_box': {
+      tmpl_cont_box: {
         id: 'tmpl_cont_box',
         name: 'حاوية التواصل',
         type: 'container',
@@ -1904,9 +2841,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_contact_root_sec',
         childrenIds: ['tmpl_cont_title', 'tmpl_cont_card'],
         props: {},
-        styles: { desktop: { maxWidth: '750px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '750px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_cont_title': {
+      tmpl_cont_title: {
         id: 'tmpl_cont_title',
         name: 'عنوان التواصل',
         type: 'heading',
@@ -1914,9 +2859,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cont_box',
         childrenIds: [],
         props: { text: 'يسعدنا تواصلكم واستقبال استفساراتكم' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '32px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '32px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_cont_card': {
+      tmpl_cont_card: {
         id: 'tmpl_cont_card',
         name: 'بطاقة نموذج الاتصال',
         type: 'card',
@@ -1924,9 +2877,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cont_box',
         childrenIds: ['tmpl_cf_info', 'tmpl_cf_btn'],
         props: {},
-        styles: { desktop: { backgroundColor: '#f8fafc', paddingTop: '32px', paddingBottom: '32px', paddingLeft: '32px', paddingRight: '32px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            paddingLeft: '32px',
+            paddingRight: '32px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_cf_info': {
+      tmpl_cf_info: {
         id: 'tmpl_cf_info',
         name: 'بيانات التواصل المباشر',
         type: 'paragraph',
@@ -1934,9 +2900,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cont_card',
         childrenIds: [],
         props: { text: '📍 الرياض - طريق الملك فهد   •   📞 920000000   •   ✉️ info@domain.sa' },
-        styles: { desktop: { fontSize: '14px', fontWeight: '600', textColor: '#475569', marginBottom: '20px', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            fontSize: '14px',
+            fontWeight: '600',
+            textColor: '#475569',
+            marginBottom: '20px',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_cf_btn': {
+      tmpl_cf_btn: {
         id: 'tmpl_cf_btn',
         name: 'زر إرسال الرسالة',
         type: 'button',
@@ -1944,7 +2918,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cont_card',
         childrenIds: [],
         props: { text: 'إرسال الرسالة عبر الواتساب' },
-        styles: { desktop: { backgroundColor: '#16a34a', textColor: '#ffffff', width: '100%', paddingTop: '12px', paddingBottom: '12px', borderRadius: '8px', fontWeight: '700', fontSize: '15px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#16a34a',
+            textColor: '#ffffff',
+            width: '100%',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '15px',
+          },
+        },
       },
     },
   },
@@ -1964,7 +2949,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['cta', 'إجراء', 'بانر'],
     rootNodeId: 'tmpl_cta_root_sec',
     nodes: {
-      'tmpl_cta_root_sec': {
+      tmpl_cta_root_sec: {
         id: 'tmpl_cta_root_sec',
         name: 'قسم اتخاذ الإجراء CTA',
         type: 'cta',
@@ -1972,9 +2957,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_cta_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#1e293b', backgroundImage: 'linear-gradient(to left, #1e293b, #0f172a)', paddingTop: '70px', paddingBottom: '70px', textColor: '#ffffff', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#1e293b',
+            backgroundImage: 'linear-gradient(to left, #1e293b, #0f172a)',
+            paddingTop: '70px',
+            paddingBottom: '70px',
+            textColor: '#ffffff',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_cta_box': {
+      tmpl_cta_box: {
         id: 'tmpl_cta_box',
         name: 'حاوية CTA',
         type: 'container',
@@ -1982,9 +2978,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cta_root_sec',
         childrenIds: ['tmpl_cta_head', 'tmpl_cta_p', 'tmpl_cta_btn'],
         props: {},
-        styles: { desktop: { maxWidth: '800px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' } },
+        styles: {
+          desktop: {
+            maxWidth: '800px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px',
+          },
+        },
       },
-      'tmpl_cta_head': {
+      tmpl_cta_head: {
         id: 'tmpl_cta_head',
         name: 'عنوان الإجراء',
         type: 'heading',
@@ -1994,7 +3002,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'جاهز لبدء رحلة نجاحك الرقمي معنا؟' },
         styles: { desktop: { fontSize: '36px', fontWeight: '800', textColor: '#ffffff' } },
       },
-      'tmpl_cta_p': {
+      tmpl_cta_p: {
         id: 'tmpl_cta_p',
         name: 'وصف الإجراء',
         type: 'paragraph',
@@ -2004,7 +3012,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'تواصل مع مستشارينا اليوم واحصل على خطة عمل مخصصة تلبي كافة طموحاتك.' },
         styles: { desktop: { fontSize: '16px', textColor: '#cbd5e1' } },
       },
-      'tmpl_cta_btn': {
+      tmpl_cta_btn: {
         id: 'tmpl_cta_btn',
         name: 'زر اتخاذ الإجراء',
         type: 'button',
@@ -2012,7 +3020,19 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cta_box',
         childrenIds: [],
         props: { text: 'ابدأ مجاناً الآن' },
-        styles: { desktop: { backgroundColor: '#3b82f6', textColor: '#ffffff', paddingLeft: '32px', paddingRight: '32px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '9999px', fontWeight: '700', fontSize: '15px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#3b82f6',
+            textColor: '#ffffff',
+            paddingLeft: '32px',
+            paddingRight: '32px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '9999px',
+            fontWeight: '700',
+            fontSize: '15px',
+          },
+        },
       },
     },
   },
@@ -2032,7 +3052,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['content', 'محتوى', 'نص', 'مقال'],
     rootNodeId: 'tmpl_content_root_sec',
     nodes: {
-      'tmpl_content_root_sec': {
+      tmpl_content_root_sec: {
         id: 'tmpl_content_root_sec',
         name: 'قسم المحتوى والقصة',
         type: 'container',
@@ -2040,9 +3060,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_cont_split_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_cont_split_box': {
+      tmpl_cont_split_box: {
         id: 'tmpl_cont_split_box',
         name: 'حاوية المحتوى المتوازن',
         type: 'flex',
@@ -2050,9 +3078,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_content_root_sec',
         childrenIds: ['tmpl_cs_text_col', 'tmpl_cs_img'],
         props: {},
-        styles: { desktop: { display: 'flex', alignItems: 'center', gap: '48px', maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '48px',
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_cs_text_col': {
+      tmpl_cs_text_col: {
         id: 'tmpl_cs_text_col',
         name: 'عمود النص',
         type: 'container',
@@ -2062,7 +3101,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: {},
         styles: { desktop: { width: '50%', textAlign: 'right' } },
       },
-      'tmpl_cs_title': {
+      tmpl_cs_title: {
         id: 'tmpl_cs_title',
         name: 'عنوان القصة',
         type: 'heading',
@@ -2070,36 +3109,57 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cs_text_col',
         childrenIds: [],
         props: { text: 'شغف الابتكار والالتزام بأعلى معايير الجودة' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textColor: '#0f172a', marginBottom: '16px' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            marginBottom: '16px',
+          },
+        },
       },
-      'tmpl_cs_p1': {
+      tmpl_cs_p1: {
         id: 'tmpl_cs_p1',
         name: 'فقرة 1',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_cs_text_col',
         childrenIds: [],
-        props: { text: 'منذ انطلاقتنا، وضعنا نصب أعيننا تمكين الأعمال من خلال توفير أدوات وحلول متقدمة تصنع فارقاً حقيقياً في السوق.' },
-        styles: { desktop: { fontSize: '15px', textColor: '#475569', lineHeight: '1.7', marginBottom: '12px' } },
+        props: {
+          text: 'منذ انطلاقتنا، وضعنا نصب أعيننا تمكين الأعمال من خلال توفير أدوات وحلول متقدمة تصنع فارقاً حقيقياً في السوق.',
+        },
+        styles: {
+          desktop: {
+            fontSize: '15px',
+            textColor: '#475569',
+            lineHeight: '1.7',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_cs_p2': {
+      tmpl_cs_p2: {
         id: 'tmpl_cs_p2',
         name: 'فقرة 2',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_cs_text_col',
         childrenIds: [],
-        props: { text: 'نعمل يداً بيد مع شركائنا لنضمن تحقيق الأهداف الإستراتيجية وتحويل التحديات إلى فرص نجاح مستدامة.' },
+        props: {
+          text: 'نعمل يداً بيد مع شركائنا لنضمن تحقيق الأهداف الإستراتيجية وتحويل التحديات إلى فرص نجاح مستدامة.',
+        },
         styles: { desktop: { fontSize: '15px', textColor: '#475569', lineHeight: '1.7' } },
       },
-      'tmpl_cs_img': {
+      tmpl_cs_img: {
         id: 'tmpl_cs_img',
         name: 'صورة المحتوى',
         type: 'image',
         category: 'media',
         parentId: 'tmpl_cont_split_box',
         childrenIds: [],
-        props: { src: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop&q=80', alt: 'فريق العمل' },
+        props: {
+          src: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop&q=80',
+          alt: 'فريق العمل',
+        },
         styles: { desktop: { width: '50%', height: '360px', borderRadius: '16px' } },
       },
     },
@@ -2120,7 +3180,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['footer', 'تذييل', 'روابط', 'حقوق'],
     rootNodeId: 'tmpl_footer_root_sec',
     nodes: {
-      'tmpl_footer_root_sec': {
+      tmpl_footer_root_sec: {
         id: 'tmpl_footer_root_sec',
         name: 'تذييل الصفحة الشامل',
         type: 'footer',
@@ -2128,9 +3188,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_foot_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#0f172a', textColor: '#94a3b8', paddingTop: '60px', paddingBottom: '30px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#0f172a',
+            textColor: '#94a3b8',
+            paddingTop: '60px',
+            paddingBottom: '30px',
+          },
+        },
       },
-      'tmpl_foot_box': {
+      tmpl_foot_box: {
         id: 'tmpl_foot_box',
         name: 'حاوية الفوتر',
         type: 'container',
@@ -2138,9 +3207,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_footer_root_sec',
         childrenIds: ['tmpl_foot_top', 'tmpl_foot_copy'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_foot_top': {
+      tmpl_foot_top: {
         id: 'tmpl_foot_top',
         name: 'الجزء العلوي للفوتر',
         type: 'flex',
@@ -2148,9 +3225,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_foot_box',
         childrenIds: ['tmpl_foot_links', 'tmpl_foot_logo'],
         props: {},
-        styles: { desktop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: '1px', borderStyle: 'solid', borderColor: '#1e293b', paddingBottom: '24px', marginBottom: '24px' } },
+        styles: {
+          desktop: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottomWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#1e293b',
+            paddingBottom: '24px',
+            marginBottom: '24px',
+          },
+        },
       },
-      'tmpl_foot_links': {
+      tmpl_foot_links: {
         id: 'tmpl_foot_links',
         name: 'روابط الفوتر',
         type: 'paragraph',
@@ -2160,7 +3248,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'الرئيسية   •   من نحن   •   سياسة الخصوصية   •   الشروط والأحكام' },
         styles: { desktop: { fontSize: '13px', textColor: '#cbd5e1' } },
       },
-      'tmpl_foot_logo': {
+      tmpl_foot_logo: {
         id: 'tmpl_foot_logo',
         name: 'شعار الفوتر',
         type: 'heading',
@@ -2170,7 +3258,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'الشعار' },
         styles: { desktop: { fontSize: '22px', fontWeight: '800', textColor: '#ffffff' } },
       },
-      'tmpl_foot_copy': {
+      tmpl_foot_copy: {
         id: 'tmpl_foot_copy',
         name: 'حقوق النشر',
         type: 'paragraph',
@@ -2198,7 +3286,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['stats', 'إحصائيات', 'أرقام', 'ثقة'],
     rootNodeId: 'tmpl_stats_bar_root',
     nodes: {
-      'tmpl_stats_bar_root': {
+      tmpl_stats_bar_root: {
         id: 'tmpl_stats_bar_root',
         name: 'قسم شريط الإحصائيات',
         type: 'stats',
@@ -2206,9 +3294,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_stats_bar_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#0f172a', paddingTop: '60px', paddingBottom: '60px', textColor: '#ffffff' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#0f172a',
+            paddingTop: '60px',
+            paddingBottom: '60px',
+            textColor: '#ffffff',
+          },
+        },
       },
-      'tmpl_stats_bar_box': {
+      tmpl_stats_bar_box: {
         id: 'tmpl_stats_bar_box',
         name: 'حاوية الإحصائيات',
         type: 'container',
@@ -2216,9 +3313,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_stats_bar_root',
         childrenIds: ['tmpl_stats_bar_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_stats_bar_grid': {
+      tmpl_stats_bar_grid: {
         id: 'tmpl_stats_bar_grid',
         name: 'شبكة الإحصائيات 4 أعمدة',
         type: 'grid',
@@ -2226,9 +3331,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_stats_bar_box',
         childrenIds: ['tmpl_stat_c1', 'tmpl_stat_c2', 'tmpl_stat_c3', 'tmpl_stat_c4'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(4, minmax(0, 1fr))', gap: '24px', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            display: 'grid',
+            gridColumns: 'repeat(4, minmax(0, 1fr))',
+            gap: '24px',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_stat_c1': {
+      tmpl_stat_c1: {
         id: 'tmpl_stat_c1',
         name: 'مؤشر 1',
         type: 'card',
@@ -2236,9 +3348,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_stats_bar_grid',
         childrenIds: ['tmpl_s1_num', 'tmpl_s1_lbl'],
         props: {},
-        styles: { desktop: { backgroundColor: 'rgba(255,255,255,0.05)', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '16px', paddingRight: '16px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: 'rgba(255,255,255,0.1)' } },
+        styles: {
+          desktop: {
+            backgroundColor: 'rgba(255,255,255,0.05)',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: 'rgba(255,255,255,0.1)',
+          },
+        },
       },
-      'tmpl_s1_num': {
+      tmpl_s1_num: {
         id: 'tmpl_s1_num',
         name: 'رقم 1',
         type: 'heading',
@@ -2246,9 +3370,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_stat_c1',
         childrenIds: [],
         props: { text: '+1,500' },
-        styles: { desktop: { fontSize: '36px', fontWeight: '900', textColor: '#38bdf8', marginBottom: '4px' } },
+        styles: {
+          desktop: {
+            fontSize: '36px',
+            fontWeight: '900',
+            textColor: '#38bdf8',
+            marginBottom: '4px',
+          },
+        },
       },
-      'tmpl_s1_lbl': {
+      tmpl_s1_lbl: {
         id: 'tmpl_s1_lbl',
         name: 'تسمية 1',
         type: 'paragraph',
@@ -2258,7 +3389,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'مركبة مسلمة بنجاح' },
         styles: { desktop: { fontSize: '13px', textColor: '#94a3b8', fontWeight: '600' } },
       },
-      'tmpl_stat_c2': {
+      tmpl_stat_c2: {
         id: 'tmpl_stat_c2',
         name: 'مؤشر 2',
         type: 'card',
@@ -2266,9 +3397,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_stats_bar_grid',
         childrenIds: ['tmpl_s2_num', 'tmpl_s2_lbl'],
         props: {},
-        styles: { desktop: { backgroundColor: 'rgba(255,255,255,0.05)', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '16px', paddingRight: '16px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: 'rgba(255,255,255,0.1)' } },
+        styles: {
+          desktop: {
+            backgroundColor: 'rgba(255,255,255,0.05)',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: 'rgba(255,255,255,0.1)',
+          },
+        },
       },
-      'tmpl_s2_num': {
+      tmpl_s2_num: {
         id: 'tmpl_s2_num',
         name: 'رقم 2',
         type: 'heading',
@@ -2276,9 +3419,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_stat_c2',
         childrenIds: [],
         props: { text: '99.6%' },
-        styles: { desktop: { fontSize: '36px', fontWeight: '900', textColor: '#4ade80', marginBottom: '4px' } },
+        styles: {
+          desktop: {
+            fontSize: '36px',
+            fontWeight: '900',
+            textColor: '#4ade80',
+            marginBottom: '4px',
+          },
+        },
       },
-      'tmpl_s2_lbl': {
+      tmpl_s2_lbl: {
         id: 'tmpl_s2_lbl',
         name: 'تسمية 2',
         type: 'paragraph',
@@ -2288,7 +3438,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'نسبة رضا العملاء والتقييم' },
         styles: { desktop: { fontSize: '13px', textColor: '#94a3b8', fontWeight: '600' } },
       },
-      'tmpl_stat_c3': {
+      tmpl_stat_c3: {
         id: 'tmpl_stat_c3',
         name: 'مؤشر 3',
         type: 'card',
@@ -2296,9 +3446,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_stats_bar_grid',
         childrenIds: ['tmpl_s3_num', 'tmpl_s3_lbl'],
         props: {},
-        styles: { desktop: { backgroundColor: 'rgba(255,255,255,0.05)', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '16px', paddingRight: '16px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: 'rgba(255,255,255,0.1)' } },
+        styles: {
+          desktop: {
+            backgroundColor: 'rgba(255,255,255,0.05)',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: 'rgba(255,255,255,0.1)',
+          },
+        },
       },
-      'tmpl_s3_num': {
+      tmpl_s3_num: {
         id: 'tmpl_s3_num',
         name: 'رقم 3',
         type: 'heading',
@@ -2306,9 +3468,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_stat_c3',
         childrenIds: [],
         props: { text: '+15' },
-        styles: { desktop: { fontSize: '36px', fontWeight: '900', textColor: '#fbbf24', marginBottom: '4px' } },
+        styles: {
+          desktop: {
+            fontSize: '36px',
+            fontWeight: '900',
+            textColor: '#fbbf24',
+            marginBottom: '4px',
+          },
+        },
       },
-      'tmpl_s3_lbl': {
+      tmpl_s3_lbl: {
         id: 'tmpl_s3_lbl',
         name: 'تسمية 3',
         type: 'paragraph',
@@ -2318,7 +3487,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'عاماً من الريادة والتميز' },
         styles: { desktop: { fontSize: '13px', textColor: '#94a3b8', fontWeight: '600' } },
       },
-      'tmpl_stat_c4': {
+      tmpl_stat_c4: {
         id: 'tmpl_stat_c4',
         name: 'مؤشر 4',
         type: 'card',
@@ -2326,9 +3495,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_stats_bar_grid',
         childrenIds: ['tmpl_s4_num', 'tmpl_s4_lbl'],
         props: {},
-        styles: { desktop: { backgroundColor: 'rgba(255,255,255,0.05)', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '16px', paddingRight: '16px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: 'rgba(255,255,255,0.1)' } },
+        styles: {
+          desktop: {
+            backgroundColor: 'rgba(255,255,255,0.05)',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: 'rgba(255,255,255,0.1)',
+          },
+        },
       },
-      'tmpl_s4_num': {
+      tmpl_s4_num: {
         id: 'tmpl_s4_num',
         name: 'رقم 4',
         type: 'heading',
@@ -2336,9 +3517,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_stat_c4',
         childrenIds: [],
         props: { text: '24/7' },
-        styles: { desktop: { fontSize: '36px', fontWeight: '900', textColor: '#a78bfa', marginBottom: '4px' } },
+        styles: {
+          desktop: {
+            fontSize: '36px',
+            fontWeight: '900',
+            textColor: '#a78bfa',
+            marginBottom: '4px',
+          },
+        },
       },
-      'tmpl_s4_lbl': {
+      tmpl_s4_lbl: {
         id: 'tmpl_s4_lbl',
         name: 'تسمية 4',
         type: 'paragraph',
@@ -2362,7 +3550,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['stats', 'نمو', 'بطاقات', 'مؤشرات'],
     rootNodeId: 'tmpl_stats_growth_root',
     nodes: {
-      'tmpl_stats_growth_root': {
+      tmpl_stats_growth_root: {
         id: 'tmpl_stats_growth_root',
         name: 'قسم إحصائيات النمو',
         type: 'stats',
@@ -2370,9 +3558,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_sg_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#f8fafc', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#f8fafc',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_sg_box': {
+      tmpl_sg_box: {
         id: 'tmpl_sg_box',
         name: 'حاوية الإحصائيات',
         type: 'container',
@@ -2380,9 +3576,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_stats_growth_root',
         childrenIds: ['tmpl_sg_title', 'tmpl_sg_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_sg_title': {
+      tmpl_sg_title: {
         id: 'tmpl_sg_title',
         name: 'عنوان القسم',
         type: 'heading',
@@ -2390,9 +3594,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_sg_box',
         childrenIds: [],
         props: { text: 'أرقام تعكس ريادتنا وثقة شركائنا المستمرة' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '40px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '40px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_sg_grid': {
+      tmpl_sg_grid: {
         id: 'tmpl_sg_grid',
         name: 'شبكة بطاقات النمو 3 أعمدة',
         type: 'grid',
@@ -2400,9 +3612,11 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_sg_box',
         childrenIds: ['tmpl_sg_c1', 'tmpl_sg_c2', 'tmpl_sg_c3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' },
+        },
       },
-      'tmpl_sg_c1': {
+      tmpl_sg_c1: {
         id: 'tmpl_sg_c1',
         name: 'بطاقة إحصائية 1',
         type: 'card',
@@ -2410,9 +3624,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_sg_grid',
         childrenIds: ['tmpl_sg1_badge', 'tmpl_sg1_val', 'tmpl_sg1_desc'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingTop: '32px', paddingBottom: '32px', paddingLeft: '28px', paddingRight: '28px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            paddingLeft: '28px',
+            paddingRight: '28px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_sg1_badge': {
+      tmpl_sg1_badge: {
         id: 'tmpl_sg1_badge',
         name: 'شارة النمو 1',
         type: 'badge',
@@ -2420,9 +3647,23 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_sg_c1',
         childrenIds: [],
         props: { text: '📈 +45% نمو سنوي' },
-        styles: { desktop: { backgroundColor: '#dcfce7', textColor: '#15803d', fontSize: '11px', fontWeight: '700', paddingLeft: '10px', paddingRight: '10px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '9999px', marginBottom: '16px', display: 'inline-block' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#dcfce7',
+            textColor: '#15803d',
+            fontSize: '11px',
+            fontWeight: '700',
+            paddingLeft: '10px',
+            paddingRight: '10px',
+            paddingTop: '4px',
+            paddingBottom: '4px',
+            borderRadius: '9999px',
+            marginBottom: '16px',
+            display: 'inline-block',
+          },
+        },
       },
-      'tmpl_sg1_val': {
+      tmpl_sg1_val: {
         id: 'tmpl_sg1_val',
         name: 'قيمة 1',
         type: 'heading',
@@ -2430,9 +3671,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_sg_c1',
         childrenIds: [],
         props: { text: '500+ مليون ج.م' },
-        styles: { desktop: { fontSize: '28px', fontWeight: '800', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '28px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_sg1_desc': {
+      tmpl_sg1_desc: {
         id: 'tmpl_sg1_desc',
         name: 'وصف 1',
         type: 'paragraph',
@@ -2442,7 +3690,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'إجمالي حجم الصفقات والمبيعات المنفذة عبر منصتنا خلال العام الحالي.' },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.6' } },
       },
-      'tmpl_sg_c2': {
+      tmpl_sg_c2: {
         id: 'tmpl_sg_c2',
         name: 'بطاقة إحصائية 2',
         type: 'card',
@@ -2450,9 +3698,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_sg_grid',
         childrenIds: ['tmpl_sg2_badge', 'tmpl_sg2_val', 'tmpl_sg2_desc'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingTop: '32px', paddingBottom: '32px', paddingLeft: '28px', paddingRight: '28px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            paddingLeft: '28px',
+            paddingRight: '28px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_sg2_badge': {
+      tmpl_sg2_badge: {
         id: 'tmpl_sg2_badge',
         name: 'شارة النمو 2',
         type: 'badge',
@@ -2460,9 +3721,23 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_sg_c2',
         childrenIds: [],
         props: { text: '⚡ تسليم فوري' },
-        styles: { desktop: { backgroundColor: '#e0f2fe', textColor: '#0369a1', fontSize: '11px', fontWeight: '700', paddingLeft: '10px', paddingRight: '10px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '9999px', marginBottom: '16px', display: 'inline-block' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#e0f2fe',
+            textColor: '#0369a1',
+            fontSize: '11px',
+            fontWeight: '700',
+            paddingLeft: '10px',
+            paddingRight: '10px',
+            paddingTop: '4px',
+            paddingBottom: '4px',
+            borderRadius: '9999px',
+            marginBottom: '16px',
+            display: 'inline-block',
+          },
+        },
       },
-      'tmpl_sg2_val': {
+      tmpl_sg2_val: {
         id: 'tmpl_sg2_val',
         name: 'قيمة 2',
         type: 'heading',
@@ -2470,9 +3745,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_sg_c2',
         childrenIds: [],
         props: { text: 'أقل من 24 ساعة' },
-        styles: { desktop: { fontSize: '28px', fontWeight: '800', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '28px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_sg2_desc': {
+      tmpl_sg2_desc: {
         id: 'tmpl_sg2_desc',
         name: 'وصف 2',
         type: 'paragraph',
@@ -2482,7 +3764,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'متوسط زمن إنهاء كافة الإجراءات ونقل الملكية والتسليم المباشر للمفتاح.' },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.6' } },
       },
-      'tmpl_sg_c3': {
+      tmpl_sg_c3: {
         id: 'tmpl_sg_c3',
         name: 'بطاقة إحصائية 3',
         type: 'card',
@@ -2490,9 +3772,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_sg_grid',
         childrenIds: ['tmpl_sg3_badge', 'tmpl_sg3_val', 'tmpl_sg3_desc'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingTop: '32px', paddingBottom: '32px', paddingLeft: '28px', paddingRight: '28px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            paddingLeft: '28px',
+            paddingRight: '28px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_sg3_badge': {
+      tmpl_sg3_badge: {
         id: 'tmpl_sg3_badge',
         name: 'شارة النمو 3',
         type: 'badge',
@@ -2500,9 +3795,23 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_sg_c3',
         childrenIds: [],
         props: { text: '🛡️ ضمان شامل 100%' },
-        styles: { desktop: { backgroundColor: '#fef3c7', textColor: '#b45309', fontSize: '11px', fontWeight: '700', paddingLeft: '10px', paddingRight: '10px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '9999px', marginBottom: '16px', display: 'inline-block' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#fef3c7',
+            textColor: '#b45309',
+            fontSize: '11px',
+            fontWeight: '700',
+            paddingLeft: '10px',
+            paddingRight: '10px',
+            paddingTop: '4px',
+            paddingBottom: '4px',
+            borderRadius: '9999px',
+            marginBottom: '16px',
+            display: 'inline-block',
+          },
+        },
       },
-      'tmpl_sg3_val': {
+      tmpl_sg3_val: {
         id: 'tmpl_sg3_val',
         name: 'قيمة 3',
         type: 'heading',
@@ -2510,9 +3819,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_sg_c3',
         childrenIds: [],
         props: { text: 'فحص 250+ نقطة' },
-        styles: { desktop: { fontSize: '28px', fontWeight: '800', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '28px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_sg3_desc': {
+      tmpl_sg3_desc: {
         id: 'tmpl_sg3_desc',
         name: 'وصف 3',
         type: 'paragraph',
@@ -2540,7 +3856,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['steps', 'خطوات', 'عملية', 'كيفية'],
     rootNodeId: 'tmpl_steps_root',
     nodes: {
-      'tmpl_steps_root': {
+      tmpl_steps_root: {
         id: 'tmpl_steps_root',
         name: 'قسم خطوات العمل',
         type: 'container',
@@ -2548,9 +3864,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_steps_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_steps_box': {
+      tmpl_steps_box: {
         id: 'tmpl_steps_box',
         name: 'حاوية الخطوات',
         type: 'container',
@@ -2558,9 +3882,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_steps_root',
         childrenIds: ['tmpl_steps_head', 'tmpl_steps_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_steps_head': {
+      tmpl_steps_head: {
         id: 'tmpl_steps_head',
         name: 'عنوان الخطوات',
         type: 'heading',
@@ -2568,9 +3900,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_steps_box',
         childrenIds: [],
         props: { text: 'كيف تبدأ تجربتك الاستثنائية معنا في 3 خطوات؟' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '48px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '48px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_steps_grid': {
+      tmpl_steps_grid: {
         id: 'tmpl_steps_grid',
         name: 'شبكة الخطوات 3',
         type: 'grid',
@@ -2578,9 +3918,11 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_steps_box',
         childrenIds: ['tmpl_step_c1', 'tmpl_step_c2', 'tmpl_step_c3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '32px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '32px' },
+        },
       },
-      'tmpl_step_c1': {
+      tmpl_step_c1: {
         id: 'tmpl_step_c1',
         name: 'الخطوة الأولى',
         type: 'card',
@@ -2588,9 +3930,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_steps_grid',
         childrenIds: ['tmpl_step1_num', 'tmpl_step1_title', 'tmpl_step1_desc'],
         props: {},
-        styles: { desktop: { backgroundColor: '#f8fafc', paddingTop: '32px', paddingBottom: '32px', paddingLeft: '24px', paddingRight: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_step1_num': {
+      tmpl_step1_num: {
         id: 'tmpl_step1_num',
         name: 'رقم الخطوة 1',
         type: 'heading',
@@ -2598,9 +3953,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_step_c1',
         childrenIds: [],
         props: { text: '01' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '900', textColor: '#2563eb', marginBottom: '12px' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '900',
+            textColor: '#2563eb',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_step1_title': {
+      tmpl_step1_title: {
         id: 'tmpl_step1_title',
         name: 'عنوان الخطوة 1',
         type: 'heading',
@@ -2608,19 +3970,28 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_step_c1',
         childrenIds: [],
         props: { text: 'تصفح واختر سيارة أحلامك' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '700',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_step1_desc': {
+      tmpl_step1_desc: {
         id: 'tmpl_step1_desc',
         name: 'شرح الخطوة 1',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_step_c1',
         childrenIds: [],
-        props: { text: 'استكشف أسطولنا المميز من السيارات الفاخرة مع صور عالية الدقة وتقارير فحص كاملة.' },
+        props: {
+          text: 'استكشف أسطولنا المميز من السيارات الفاخرة مع صور عالية الدقة وتقارير فحص كاملة.',
+        },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.6' } },
       },
-      'tmpl_step_c2': {
+      tmpl_step_c2: {
         id: 'tmpl_step_c2',
         name: 'الخطوة الثانية',
         type: 'card',
@@ -2628,9 +3999,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_steps_grid',
         childrenIds: ['tmpl_step2_num', 'tmpl_step2_title', 'tmpl_step2_desc'],
         props: {},
-        styles: { desktop: { backgroundColor: '#f8fafc', paddingTop: '32px', paddingBottom: '32px', paddingLeft: '24px', paddingRight: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_step2_num': {
+      tmpl_step2_num: {
         id: 'tmpl_step2_num',
         name: 'رقم الخطوة 2',
         type: 'heading',
@@ -2638,9 +4022,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_step_c2',
         childrenIds: [],
         props: { text: '02' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '900', textColor: '#2563eb', marginBottom: '12px' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '900',
+            textColor: '#2563eb',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_step2_title': {
+      tmpl_step2_title: {
         id: 'tmpl_step2_title',
         name: 'عنوان الخطوة 2',
         type: 'heading',
@@ -2648,19 +4039,28 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_step_c2',
         childrenIds: [],
         props: { text: 'احجز تجربة القيادة والمعاينة' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '700',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_step2_desc': {
+      tmpl_step2_desc: {
         id: 'tmpl_step2_desc',
         name: 'شرح الخطوة 2',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_step_c2',
         childrenIds: [],
-        props: { text: 'حدد الوقت المناسب لك لمعاينة السيارة في صالة العرض أو طلب تجربة قيادة خاصة أمام منزلك.' },
+        props: {
+          text: 'حدد الوقت المناسب لك لمعاينة السيارة في صالة العرض أو طلب تجربة قيادة خاصة أمام منزلك.',
+        },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.6' } },
       },
-      'tmpl_step_c3': {
+      tmpl_step_c3: {
         id: 'tmpl_step_c3',
         name: 'الخطوة الثالثة',
         type: 'card',
@@ -2668,9 +4068,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_steps_grid',
         childrenIds: ['tmpl_step3_num', 'tmpl_step3_title', 'tmpl_step3_desc'],
         props: {},
-        styles: { desktop: { backgroundColor: '#f8fafc', paddingTop: '32px', paddingBottom: '32px', paddingLeft: '24px', paddingRight: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_step3_num': {
+      tmpl_step3_num: {
         id: 'tmpl_step3_num',
         name: 'رقم الخطوة 3',
         type: 'heading',
@@ -2678,9 +4091,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_step_c3',
         childrenIds: [],
         props: { text: '03' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '900', textColor: '#2563eb', marginBottom: '12px' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '900',
+            textColor: '#2563eb',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_step3_title': {
+      tmpl_step3_title: {
         id: 'tmpl_step3_title',
         name: 'عنوان الخطوة 3',
         type: 'heading',
@@ -2688,16 +4108,25 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_step_c3',
         childrenIds: [],
         props: { text: 'استلم مفتاحك وانطلق بثقة' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '700',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_step3_desc': {
+      tmpl_step3_desc: {
         id: 'tmpl_step3_desc',
         name: 'شرح الخطوة 3',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_step_c3',
         childrenIds: [],
-        props: { text: 'ننهي كافة إجراءات التسجيل والتأمين والضمان لتستلم مركبتك في أسرع وقت مع باقة عناية مجانية.' },
+        props: {
+          text: 'ننهي كافة إجراءات التسجيل والتأمين والضمان لتستلم مركبتك في أسرع وقت مع باقة عناية مجانية.',
+        },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.6' } },
       },
     },
@@ -2718,7 +4147,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['logos', 'شركاء', 'علامات', 'براندات'],
     rootNodeId: 'tmpl_logos_row_root',
     nodes: {
-      'tmpl_logos_row_root': {
+      tmpl_logos_row_root: {
         id: 'tmpl_logos_row_root',
         name: 'قسم العلامات التجارية',
         type: 'container',
@@ -2726,9 +4155,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_logos_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', borderTopWidth: '1px', borderBottomWidth: '1px', borderStyle: 'solid', borderColor: '#f1f5f9', paddingTop: '40px', paddingBottom: '40px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            borderTopWidth: '1px',
+            borderBottomWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#f1f5f9',
+            paddingTop: '40px',
+            paddingBottom: '40px',
+          },
+        },
       },
-      'tmpl_logos_box': {
+      tmpl_logos_box: {
         id: 'tmpl_logos_box',
         name: 'حاوية الشعارات',
         type: 'container',
@@ -2736,9 +4177,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_logos_row_root',
         childrenIds: ['tmpl_logos_lbl', 'tmpl_logos_flex'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_logos_lbl': {
+      tmpl_logos_lbl: {
         id: 'tmpl_logos_lbl',
         name: 'عنوان الشعارات',
         type: 'paragraph',
@@ -2746,9 +4196,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_logos_box',
         childrenIds: [],
         props: { text: 'نوفر أحدث طرازات أعرق العلامات التجارية العالمية' },
-        styles: { desktop: { fontSize: '13px', fontWeight: '700', textColor: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '24px' } },
+        styles: {
+          desktop: {
+            fontSize: '13px',
+            fontWeight: '700',
+            textColor: '#94a3b8',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            marginBottom: '24px',
+          },
+        },
       },
-      'tmpl_logos_flex': {
+      tmpl_logos_flex: {
         id: 'tmpl_logos_flex',
         name: 'صف الشعارات',
         type: 'flex',
@@ -2756,9 +4215,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_logos_box',
         childrenIds: ['tmpl_lb1', 'tmpl_lb2', 'tmpl_lb3', 'tmpl_lb4', 'tmpl_lb5', 'tmpl_lb6'],
         props: {},
-        styles: { desktop: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '36px', flexWrap: 'wrap' } },
+        styles: {
+          desktop: {
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '36px',
+            flexWrap: 'wrap',
+          },
+        },
       },
-      'tmpl_lb1': {
+      tmpl_lb1: {
         id: 'tmpl_lb1',
         name: 'علامة 1',
         type: 'heading',
@@ -2766,9 +4233,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_logos_flex',
         childrenIds: [],
         props: { text: 'MERCEDES-BENZ' },
-        styles: { desktop: { fontSize: '16px', fontWeight: '800', textColor: '#475569', letterSpacing: '0.1em' } },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            fontWeight: '800',
+            textColor: '#475569',
+            letterSpacing: '0.1em',
+          },
+        },
       },
-      'tmpl_lb2': {
+      tmpl_lb2: {
         id: 'tmpl_lb2',
         name: 'علامة 2',
         type: 'heading',
@@ -2776,9 +4250,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_logos_flex',
         childrenIds: [],
         props: { text: 'PORSCHE' },
-        styles: { desktop: { fontSize: '16px', fontWeight: '800', textColor: '#475569', letterSpacing: '0.1em' } },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            fontWeight: '800',
+            textColor: '#475569',
+            letterSpacing: '0.1em',
+          },
+        },
       },
-      'tmpl_lb3': {
+      tmpl_lb3: {
         id: 'tmpl_lb3',
         name: 'علامة 3',
         type: 'heading',
@@ -2786,9 +4267,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_logos_flex',
         childrenIds: [],
         props: { text: 'BMW M POWER' },
-        styles: { desktop: { fontSize: '16px', fontWeight: '800', textColor: '#475569', letterSpacing: '0.1em' } },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            fontWeight: '800',
+            textColor: '#475569',
+            letterSpacing: '0.1em',
+          },
+        },
       },
-      'tmpl_lb4': {
+      tmpl_lb4: {
         id: 'tmpl_lb4',
         name: 'علامة 4',
         type: 'heading',
@@ -2796,9 +4284,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_logos_flex',
         childrenIds: [],
         props: { text: 'RANGE ROVER' },
-        styles: { desktop: { fontSize: '16px', fontWeight: '800', textColor: '#475569', letterSpacing: '0.1em' } },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            fontWeight: '800',
+            textColor: '#475569',
+            letterSpacing: '0.1em',
+          },
+        },
       },
-      'tmpl_lb5': {
+      tmpl_lb5: {
         id: 'tmpl_lb5',
         name: 'علامة 5',
         type: 'heading',
@@ -2806,9 +4301,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_logos_flex',
         childrenIds: [],
         props: { text: 'AUDI RS' },
-        styles: { desktop: { fontSize: '16px', fontWeight: '800', textColor: '#475569', letterSpacing: '0.1em' } },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            fontWeight: '800',
+            textColor: '#475569',
+            letterSpacing: '0.1em',
+          },
+        },
       },
-      'tmpl_lb6': {
+      tmpl_lb6: {
         id: 'tmpl_lb6',
         name: 'علامة 6',
         type: 'heading',
@@ -2816,7 +4318,14 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_logos_flex',
         childrenIds: [],
         props: { text: 'MASERATI' },
-        styles: { desktop: { fontSize: '16px', fontWeight: '800', textColor: '#475569', letterSpacing: '0.1em' } },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            fontWeight: '800',
+            textColor: '#475569',
+            letterSpacing: '0.1em',
+          },
+        },
       },
     },
   },
@@ -2832,11 +4341,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'automotive',
     style: 'luxury',
     wireframeType: 'hero-luxury-car',
-    descriptionAr: 'واجهة رئيسية داكنة فخمة مع عنوان عريض، شارة تميز، وأزرار لحجز تجربة القيادة والمعاينة 360°.',
+    descriptionAr:
+      'واجهة رئيسية داكنة فخمة مع عنوان عريض، شارة تميز، وأزرار لحجز تجربة القيادة والمعاينة 360°.',
     tags: ['hero', 'سيارات', 'فاخر', 'automotive'],
     rootNodeId: 'tmpl_hero_lux_root',
     nodes: {
-      'tmpl_hero_lux_root': {
+      tmpl_hero_lux_root: {
         id: 'tmpl_hero_lux_root',
         name: 'قسم Hero الفاخر',
         type: 'hero',
@@ -2857,7 +4367,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_hl_box': {
+      tmpl_hl_box: {
         id: 'tmpl_hl_box',
         name: 'حاوية الهيرو الفاخر',
         type: 'container',
@@ -2879,7 +4389,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_hl_badge': {
+      tmpl_hl_badge: {
         id: 'tmpl_hl_badge',
         name: 'شارة التميز',
         type: 'badge',
@@ -2887,9 +4397,24 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_hl_box',
         childrenIds: [],
         props: { text: '👑 صالة العرض الحصرية 2025' },
-        styles: { desktop: { backgroundColor: 'rgba(56,189,248,0.15)', textColor: '#38bdf8', borderWidth: '1px', borderStyle: 'solid', borderColor: 'rgba(56,189,248,0.3)', paddingLeft: '18px', paddingRight: '18px', paddingTop: '6px', paddingBottom: '6px', borderRadius: '9999px', fontSize: '13px', fontWeight: '700' } },
+        styles: {
+          desktop: {
+            backgroundColor: 'rgba(56,189,248,0.15)',
+            textColor: '#38bdf8',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: 'rgba(56,189,248,0.3)',
+            paddingLeft: '18px',
+            paddingRight: '18px',
+            paddingTop: '6px',
+            paddingBottom: '6px',
+            borderRadius: '9999px',
+            fontSize: '13px',
+            fontWeight: '700',
+          },
+        },
       },
-      'tmpl_hl_title': {
+      tmpl_hl_title: {
         id: 'tmpl_hl_title',
         name: 'العنوان الفاخر',
         type: 'heading',
@@ -2897,19 +4422,25 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_hl_box',
         childrenIds: [],
         props: { text: 'قمة الفخامة والأداء الرياضي الخارق' },
-        styles: { desktop: { fontSize: '46px', fontWeight: '900', textColor: '#ffffff', lineHeight: '1.2' } },
+        styles: {
+          desktop: { fontSize: '46px', fontWeight: '900', textColor: '#ffffff', lineHeight: '1.2' },
+        },
       },
-      'tmpl_hl_desc': {
+      tmpl_hl_desc: {
         id: 'tmpl_hl_desc',
         name: 'الوصف الفاخر',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_hl_box',
         childrenIds: [],
-        props: { text: 'نقدم لك تجربة اقتناء استثنائية لأندر وأرقى السيارات في مصر، مع باقات صيانة شاملة وضمان ذهبي معتمد.' },
-        styles: { desktop: { fontSize: '16px', textColor: '#94a3b8', maxWidth: '680px', lineHeight: '1.7' } },
+        props: {
+          text: 'نقدم لك تجربة اقتناء استثنائية لأندر وأرقى السيارات في مصر، مع باقات صيانة شاملة وضمان ذهبي معتمد.',
+        },
+        styles: {
+          desktop: { fontSize: '16px', textColor: '#94a3b8', maxWidth: '680px', lineHeight: '1.7' },
+        },
       },
-      'tmpl_hl_btns': {
+      tmpl_hl_btns: {
         id: 'tmpl_hl_btns',
         name: 'أزرار الهيرو',
         type: 'flex',
@@ -2919,7 +4450,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: {},
         styles: { desktop: { display: 'flex', gap: '14px', marginTop: '10px' } },
       },
-      'tmpl_hl_btn1': {
+      tmpl_hl_btn1: {
         id: 'tmpl_hl_btn1',
         name: 'زر احجز تجربة القيادة',
         type: 'button',
@@ -2927,9 +4458,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_hl_btns',
         childrenIds: [],
         props: { text: 'احجز تجربة القيادة' },
-        styles: { desktop: { backgroundColor: '#2563eb', textColor: '#ffffff', paddingLeft: '28px', paddingRight: '28px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '10px', fontWeight: '700', fontSize: '15px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#2563eb',
+            textColor: '#ffffff',
+            paddingLeft: '28px',
+            paddingRight: '28px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '10px',
+            fontWeight: '700',
+            fontSize: '15px',
+          },
+        },
       },
-      'tmpl_hl_btn2': {
+      tmpl_hl_btn2: {
         id: 'tmpl_hl_btn2',
         name: 'زر استكشف الأسطول',
         type: 'button',
@@ -2937,7 +4480,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_hl_btns',
         childrenIds: [],
         props: { text: 'تصفح الأسطول المتاح' },
-        styles: { desktop: { backgroundColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', borderWidth: '1px', borderStyle: 'solid', borderColor: 'rgba(255,255,255,0.2)', paddingLeft: '28px', paddingRight: '28px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '10px', fontWeight: '600', fontSize: '15px' } },
+        styles: {
+          desktop: {
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            textColor: '#ffffff',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: 'rgba(255,255,255,0.2)',
+            paddingLeft: '28px',
+            paddingRight: '28px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '10px',
+            fontWeight: '600',
+            fontSize: '15px',
+          },
+        },
       },
     },
   },
@@ -2953,11 +4511,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'automotive',
     style: 'luxury',
     wireframeType: 'gallery-fleet',
-    descriptionAr: 'بطاقات عرض سيارات فخمة تشمل صوراً واضحة، تفاصيل السعر، والمواصفات وزر حجز فوري.',
+    descriptionAr:
+      'بطاقات عرض سيارات فخمة تشمل صوراً واضحة، تفاصيل السعر، والمواصفات وزر حجز فوري.',
     tags: ['gallery', 'أسطول', 'سيارات', 'حجز'],
     rootNodeId: 'tmpl_fleet_grid_root',
     nodes: {
-      'tmpl_fleet_grid_root': {
+      tmpl_fleet_grid_root: {
         id: 'tmpl_fleet_grid_root',
         name: 'قسم أسطول السيارات',
         type: 'gallery',
@@ -2965,9 +4524,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_fleet_container'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#f8fafc', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#f8fafc',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_fleet_container': {
+      tmpl_fleet_container: {
         id: 'tmpl_fleet_container',
         name: 'حاوية الأسطول',
         type: 'container',
@@ -2975,9 +4542,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fleet_grid_root',
         childrenIds: ['tmpl_fleet_head', 'tmpl_fleet_grid_box'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_fleet_head': {
+      tmpl_fleet_head: {
         id: 'tmpl_fleet_head',
         name: 'عنوان الأسطول',
         type: 'heading',
@@ -2985,9 +4560,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fleet_container',
         childrenIds: [],
         props: { text: 'الأسطول الحصري المتاح للتسليم الفوري' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '40px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '40px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_fleet_grid_box': {
+      tmpl_fleet_grid_box: {
         id: 'tmpl_fleet_grid_box',
         name: 'شبكة بطاقات السيارات',
         type: 'grid',
@@ -2995,29 +4578,51 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fleet_container',
         childrenIds: ['tmpl_fc_card1', 'tmpl_fc_card2', 'tmpl_fc_card3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' },
+        },
       },
-      'tmpl_fc_card1': {
+      tmpl_fc_card1: {
         id: 'tmpl_fc_card1',
         name: 'بطاقة سيارة 1',
         type: 'card',
         category: 'layout',
         parentId: 'tmpl_fleet_grid_box',
-        childrenIds: ['tmpl_f1_img', 'tmpl_f1_title', 'tmpl_f1_spec', 'tmpl_f1_price', 'tmpl_f1_btn'],
+        childrenIds: [
+          'tmpl_f1_img',
+          'tmpl_f1_title',
+          'tmpl_f1_spec',
+          'tmpl_f1_price',
+          'tmpl_f1_btn',
+        ],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', overflow: 'hidden', paddingBottom: '20px', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            overflow: 'hidden',
+            paddingBottom: '20px',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_f1_img': {
+      tmpl_f1_img: {
         id: 'tmpl_f1_img',
         name: 'صورة سيارة 1',
         type: 'image',
         category: 'media',
         parentId: 'tmpl_fc_card1',
         childrenIds: [],
-        props: { src: 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=800&auto=format&fit=crop&q=80', alt: 'بورش 911 توربو S' },
+        props: {
+          src: 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=800&auto=format&fit=crop&q=80',
+          alt: 'بورش 911 توربو S',
+        },
         styles: { desktop: { height: '220px', width: '100%', marginBottom: '16px' } },
       },
-      'tmpl_f1_title': {
+      tmpl_f1_title: {
         id: 'tmpl_f1_title',
         name: 'اسم سيارة 1',
         type: 'heading',
@@ -3025,9 +4630,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fc_card1',
         childrenIds: [],
         props: { text: 'Porsche 911 Turbo S - 2024' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '800', textColor: '#0f172a', paddingLeft: '20px', paddingRight: '20px', marginBottom: '4px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            marginBottom: '4px',
+          },
+        },
       },
-      'tmpl_f1_spec': {
+      tmpl_f1_spec: {
         id: 'tmpl_f1_spec',
         name: 'مواصفات 1',
         type: 'paragraph',
@@ -3035,9 +4649,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fc_card1',
         childrenIds: [],
         props: { text: '🏎️ 640 حصان • 0-100 كم/س في 2.6 ث • دفع كلي' },
-        styles: { desktop: { fontSize: '13px', textColor: '#64748b', paddingLeft: '20px', paddingRight: '20px', marginBottom: '14px' } },
+        styles: {
+          desktop: {
+            fontSize: '13px',
+            textColor: '#64748b',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            marginBottom: '14px',
+          },
+        },
       },
-      'tmpl_f1_price': {
+      tmpl_f1_price: {
         id: 'tmpl_f1_price',
         name: 'سعر سيارة 1',
         type: 'heading',
@@ -3045,9 +4667,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fc_card1',
         childrenIds: [],
         props: { text: '950,000 ج.م' },
-        styles: { desktop: { fontSize: '20px', fontWeight: '900', textColor: '#2563eb', paddingLeft: '20px', paddingRight: '20px', marginBottom: '14px' } },
+        styles: {
+          desktop: {
+            fontSize: '20px',
+            fontWeight: '900',
+            textColor: '#2563eb',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            marginBottom: '14px',
+          },
+        },
       },
-      'tmpl_f1_btn': {
+      tmpl_f1_btn: {
         id: 'tmpl_f1_btn',
         name: 'زر حجز 1',
         type: 'button',
@@ -3055,29 +4686,62 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fc_card1',
         childrenIds: [],
         props: { text: 'احجز للمعاينة الفورية' },
-        styles: { desktop: { backgroundColor: '#0f172a', textColor: '#ffffff', width: 'calc(100% - 40px)', marginLeft: '20px', marginRight: '20px', paddingTop: '10px', paddingBottom: '10px', borderRadius: '8px', fontWeight: '700', fontSize: '14px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#0f172a',
+            textColor: '#ffffff',
+            width: 'calc(100% - 40px)',
+            marginLeft: '20px',
+            marginRight: '20px',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '14px',
+          },
+        },
       },
-      'tmpl_fc_card2': {
+      tmpl_fc_card2: {
         id: 'tmpl_fc_card2',
         name: 'بطاقة سيارة 2',
         type: 'card',
         category: 'layout',
         parentId: 'tmpl_fleet_grid_box',
-        childrenIds: ['tmpl_f2_img', 'tmpl_f2_title', 'tmpl_f2_spec', 'tmpl_f2_price', 'tmpl_f2_btn'],
+        childrenIds: [
+          'tmpl_f2_img',
+          'tmpl_f2_title',
+          'tmpl_f2_spec',
+          'tmpl_f2_price',
+          'tmpl_f2_btn',
+        ],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', overflow: 'hidden', paddingBottom: '20px', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            overflow: 'hidden',
+            paddingBottom: '20px',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_f2_img': {
+      tmpl_f2_img: {
         id: 'tmpl_f2_img',
         name: 'صورة سيارة 2',
         type: 'image',
         category: 'media',
         parentId: 'tmpl_fc_card2',
         childrenIds: [],
-        props: { src: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&auto=format&fit=crop&q=80', alt: 'مرسيدس AMG GT' },
+        props: {
+          src: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&auto=format&fit=crop&q=80',
+          alt: 'مرسيدس AMG GT',
+        },
         styles: { desktop: { height: '220px', width: '100%', marginBottom: '16px' } },
       },
-      'tmpl_f2_title': {
+      tmpl_f2_title: {
         id: 'tmpl_f2_title',
         name: 'اسم سيارة 2',
         type: 'heading',
@@ -3085,9 +4749,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fc_card2',
         childrenIds: [],
         props: { text: 'Mercedes-AMG GT Coupe - 2024' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '800', textColor: '#0f172a', paddingLeft: '20px', paddingRight: '20px', marginBottom: '4px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            marginBottom: '4px',
+          },
+        },
       },
-      'tmpl_f2_spec': {
+      tmpl_f2_spec: {
         id: 'tmpl_f2_spec',
         name: 'مواصفات 2',
         type: 'paragraph',
@@ -3095,9 +4768,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fc_card2',
         childrenIds: [],
         props: { text: '🏎️ 577 حصان V8 • 0-100 كم/س في 3.1 ث • دفع كلي' },
-        styles: { desktop: { fontSize: '13px', textColor: '#64748b', paddingLeft: '20px', paddingRight: '20px', marginBottom: '14px' } },
+        styles: {
+          desktop: {
+            fontSize: '13px',
+            textColor: '#64748b',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            marginBottom: '14px',
+          },
+        },
       },
-      'tmpl_f2_price': {
+      tmpl_f2_price: {
         id: 'tmpl_f2_price',
         name: 'سعر سيارة 2',
         type: 'heading',
@@ -3105,9 +4786,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fc_card2',
         childrenIds: [],
         props: { text: '870,000 ج.م' },
-        styles: { desktop: { fontSize: '20px', fontWeight: '900', textColor: '#2563eb', paddingLeft: '20px', paddingRight: '20px', marginBottom: '14px' } },
+        styles: {
+          desktop: {
+            fontSize: '20px',
+            fontWeight: '900',
+            textColor: '#2563eb',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            marginBottom: '14px',
+          },
+        },
       },
-      'tmpl_f2_btn': {
+      tmpl_f2_btn: {
         id: 'tmpl_f2_btn',
         name: 'زر حجز 2',
         type: 'button',
@@ -3115,29 +4805,62 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fc_card2',
         childrenIds: [],
         props: { text: 'احجز للمعاينة الفورية' },
-        styles: { desktop: { backgroundColor: '#0f172a', textColor: '#ffffff', width: 'calc(100% - 40px)', marginLeft: '20px', marginRight: '20px', paddingTop: '10px', paddingBottom: '10px', borderRadius: '8px', fontWeight: '700', fontSize: '14px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#0f172a',
+            textColor: '#ffffff',
+            width: 'calc(100% - 40px)',
+            marginLeft: '20px',
+            marginRight: '20px',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '14px',
+          },
+        },
       },
-      'tmpl_fc_card3': {
+      tmpl_fc_card3: {
         id: 'tmpl_fc_card3',
         name: 'بطاقة سيارة 3',
         type: 'card',
         category: 'layout',
         parentId: 'tmpl_fleet_grid_box',
-        childrenIds: ['tmpl_f3_img', 'tmpl_f3_title', 'tmpl_f3_spec', 'tmpl_f3_price', 'tmpl_f3_btn'],
+        childrenIds: [
+          'tmpl_f3_img',
+          'tmpl_f3_title',
+          'tmpl_f3_spec',
+          'tmpl_f3_price',
+          'tmpl_f3_btn',
+        ],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', overflow: 'hidden', paddingBottom: '20px', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            overflow: 'hidden',
+            paddingBottom: '20px',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_f3_img': {
+      tmpl_f3_img: {
         id: 'tmpl_f3_img',
         name: 'صورة سيارة 3',
         type: 'image',
         category: 'media',
         parentId: 'tmpl_fc_card3',
         childrenIds: [],
-        props: { src: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&auto=format&fit=crop&q=80', alt: 'رينج روفر فيلار' },
+        props: {
+          src: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&auto=format&fit=crop&q=80',
+          alt: 'رينج روفر فيلار',
+        },
         styles: { desktop: { height: '220px', width: '100%', marginBottom: '16px' } },
       },
-      'tmpl_f3_title': {
+      tmpl_f3_title: {
         id: 'tmpl_f3_title',
         name: 'اسم سيارة 3',
         type: 'heading',
@@ -3145,9 +4868,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fc_card3',
         childrenIds: [],
         props: { text: 'Range Rover Velar Autobiography' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '800', textColor: '#0f172a', paddingLeft: '20px', paddingRight: '20px', marginBottom: '4px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            marginBottom: '4px',
+          },
+        },
       },
-      'tmpl_f3_spec': {
+      tmpl_f3_spec: {
         id: 'tmpl_f3_spec',
         name: 'مواصفات 3',
         type: 'paragraph',
@@ -3155,9 +4887,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fc_card3',
         childrenIds: [],
         props: { text: '🚙 فخامة مطلقة • نظام صوت Meridian • مقاعد مساج' },
-        styles: { desktop: { fontSize: '13px', textColor: '#64748b', paddingLeft: '20px', paddingRight: '20px', marginBottom: '14px' } },
+        styles: {
+          desktop: {
+            fontSize: '13px',
+            textColor: '#64748b',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            marginBottom: '14px',
+          },
+        },
       },
-      'tmpl_f3_price': {
+      tmpl_f3_price: {
         id: 'tmpl_f3_price',
         name: 'سعر سيارة 3',
         type: 'heading',
@@ -3165,9 +4905,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fc_card3',
         childrenIds: [],
         props: { text: '460,000 ج.م' },
-        styles: { desktop: { fontSize: '20px', fontWeight: '900', textColor: '#2563eb', paddingLeft: '20px', paddingRight: '20px', marginBottom: '14px' } },
+        styles: {
+          desktop: {
+            fontSize: '20px',
+            fontWeight: '900',
+            textColor: '#2563eb',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            marginBottom: '14px',
+          },
+        },
       },
-      'tmpl_f3_btn': {
+      tmpl_f3_btn: {
         id: 'tmpl_f3_btn',
         name: 'زر حجز 3',
         type: 'button',
@@ -3175,7 +4924,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fc_card3',
         childrenIds: [],
         props: { text: 'احجز للمعاينة الفورية' },
-        styles: { desktop: { backgroundColor: '#0f172a', textColor: '#ffffff', width: 'calc(100% - 40px)', marginLeft: '20px', marginRight: '20px', paddingTop: '10px', paddingBottom: '10px', borderRadius: '8px', fontWeight: '700', fontSize: '14px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#0f172a',
+            textColor: '#ffffff',
+            width: 'calc(100% - 40px)',
+            marginLeft: '20px',
+            marginRight: '20px',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '14px',
+          },
+        },
       },
     },
   },
@@ -3191,11 +4953,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'creative',
     wireframeType: 'cta-countdown',
-    descriptionAr: 'بانر عالي الجاذبية يبرز خصماً استثنائياً مع مؤقت ينتهي قريباً لحث العميل على الشراء.',
+    descriptionAr:
+      'بانر عالي الجاذبية يبرز خصماً استثنائياً مع مؤقت ينتهي قريباً لحث العميل على الشراء.',
     tags: ['cta', 'عرض', 'خصم', 'مؤقت'],
     rootNodeId: 'tmpl_cta_count_root',
     nodes: {
-      'tmpl_cta_count_root': {
+      tmpl_cta_count_root: {
         id: 'tmpl_cta_count_root',
         name: 'قسم عرض خاص محدود',
         type: 'cta',
@@ -3216,13 +4979,19 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_cc_box': {
+      tmpl_cc_box: {
         id: 'tmpl_cc_box',
         name: 'حاوية العرض',
         type: 'container',
         category: 'layout',
         parentId: 'tmpl_cta_count_root',
-        childrenIds: ['tmpl_cc_badge', 'tmpl_cc_title', 'tmpl_cc_desc', 'tmpl_cc_timer', 'tmpl_cc_btn'],
+        childrenIds: [
+          'tmpl_cc_badge',
+          'tmpl_cc_title',
+          'tmpl_cc_desc',
+          'tmpl_cc_timer',
+          'tmpl_cc_btn',
+        ],
         props: {},
         styles: {
           desktop: {
@@ -3238,7 +5007,7 @@ export const sectionTemplates: SectionTemplate[] = [
           },
         },
       },
-      'tmpl_cc_badge': {
+      tmpl_cc_badge: {
         id: 'tmpl_cc_badge',
         name: 'شارة العرض',
         type: 'badge',
@@ -3246,9 +5015,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cc_box',
         childrenIds: [],
         props: { text: '🔥 عرض نهاية الشهر - خصم 15% + صيانة مجانية' },
-        styles: { desktop: { backgroundColor: '#f43f5e', textColor: '#ffffff', fontSize: '12px', fontWeight: '800', paddingLeft: '16px', paddingRight: '16px', paddingTop: '6px', paddingBottom: '6px', borderRadius: '9999px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f43f5e',
+            textColor: '#ffffff',
+            fontSize: '12px',
+            fontWeight: '800',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            paddingTop: '6px',
+            paddingBottom: '6px',
+            borderRadius: '9999px',
+          },
+        },
       },
-      'tmpl_cc_title': {
+      tmpl_cc_title: {
         id: 'tmpl_cc_title',
         name: 'عنوان العرض',
         type: 'heading',
@@ -3258,17 +5039,21 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'امتلك سيارتك الفاخرة بدون دفعة أولى الآن' },
         styles: { desktop: { fontSize: '38px', fontWeight: '900', textColor: '#ffffff' } },
       },
-      'tmpl_cc_desc': {
+      tmpl_cc_desc: {
         id: 'tmpl_cc_desc',
         name: 'شرح العرض',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_cc_box',
         childrenIds: [],
-        props: { text: 'يشمل العرض ضمان ممتد لمدة 5 سنوات، عازل حراري مجاني، وخدمة مساعدة على الطريق على مدار 24 ساعة.' },
-        styles: { desktop: { fontSize: '15px', textColor: '#c7d2fe', maxWidth: '620px', lineHeight: '1.6' } },
+        props: {
+          text: 'يشمل العرض ضمان ممتد لمدة 5 سنوات، عازل حراري مجاني، وخدمة مساعدة على الطريق على مدار 24 ساعة.',
+        },
+        styles: {
+          desktop: { fontSize: '15px', textColor: '#c7d2fe', maxWidth: '620px', lineHeight: '1.6' },
+        },
       },
-      'tmpl_cc_timer': {
+      tmpl_cc_timer: {
         id: 'tmpl_cc_timer',
         name: 'مؤقت تنازلي',
         type: 'paragraph',
@@ -3276,9 +5061,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cc_box',
         childrenIds: [],
         props: { text: '⏳ ينتهي العرض خلال: 03 أيام  :  14 ساعة  :  28 دقيقة' },
-        styles: { desktop: { fontSize: '14px', fontWeight: '700', textColor: '#fde047', backgroundColor: 'rgba(0,0,0,0.3)', paddingLeft: '20px', paddingRight: '20px', paddingTop: '8px', paddingBottom: '8px', borderRadius: '10px' } },
+        styles: {
+          desktop: {
+            fontSize: '14px',
+            fontWeight: '700',
+            textColor: '#fde047',
+            backgroundColor: 'rgba(0,0,0,0.3)',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            paddingTop: '8px',
+            paddingBottom: '8px',
+            borderRadius: '10px',
+          },
+        },
       },
-      'tmpl_cc_btn': {
+      tmpl_cc_btn: {
         id: 'tmpl_cc_btn',
         name: 'زر الاستفادة من العرض',
         type: 'button',
@@ -3286,7 +5083,19 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cc_box',
         childrenIds: [],
         props: { text: 'استفد من العرض قبل انتهائه' },
-        styles: { desktop: { backgroundColor: '#f43f5e', textColor: '#ffffff', paddingLeft: '36px', paddingRight: '36px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '9999px', fontWeight: '800', fontSize: '15px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f43f5e',
+            textColor: '#ffffff',
+            paddingLeft: '36px',
+            paddingRight: '36px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '9999px',
+            fontWeight: '800',
+            fontSize: '15px',
+          },
+        },
       },
     },
   },
@@ -3306,7 +5115,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['features', 'bento', 'بينتو', 'مميزات'],
     rootNodeId: 'tmpl_bento_root',
     nodes: {
-      'tmpl_bento_root': {
+      tmpl_bento_root: {
         id: 'tmpl_bento_root',
         name: 'قسم بينتو للمميزات',
         type: 'features',
@@ -3314,9 +5123,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_bento_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_bento_box': {
+      tmpl_bento_box: {
         id: 'tmpl_bento_box',
         name: 'حاوية بينتو',
         type: 'container',
@@ -3324,9 +5141,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_bento_root',
         childrenIds: ['tmpl_bento_head', 'tmpl_bento_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_bento_head': {
+      tmpl_bento_head: {
         id: 'tmpl_bento_head',
         name: 'عنوان بينتو',
         type: 'heading',
@@ -3334,9 +5159,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_bento_box',
         childrenIds: [],
         props: { text: 'مزايا فريدة صُممت لراحتك وأمانك' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '44px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '44px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_bento_grid': {
+      tmpl_bento_grid: {
         id: 'tmpl_bento_grid',
         name: 'شبكة بينتو',
         type: 'grid',
@@ -3344,9 +5177,11 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_bento_box',
         childrenIds: ['tmpl_bg_c1', 'tmpl_bg_c2', 'tmpl_bg_c3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' },
+        },
       },
-      'tmpl_bg_c1': {
+      tmpl_bg_c1: {
         id: 'tmpl_bg_c1',
         name: 'بطاقة بينتو 1',
         type: 'card',
@@ -3354,9 +5189,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_bento_grid',
         childrenIds: ['tmpl_bg1_icon', 'tmpl_bg1_title', 'tmpl_bg1_desc'],
         props: {},
-        styles: { desktop: { backgroundColor: '#f0f9ff', paddingLeft: '28px', paddingRight: '28px', paddingTop: '32px', paddingBottom: '32px', borderRadius: '20px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#bae6fd', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f0f9ff',
+            paddingLeft: '28px',
+            paddingRight: '28px',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            borderRadius: '20px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#bae6fd',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_bg1_icon': {
+      tmpl_bg1_icon: {
         id: 'tmpl_bg1_icon',
         name: 'أيقونة 1',
         type: 'heading',
@@ -3364,9 +5212,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_bg_c1',
         childrenIds: [],
         props: { text: '🔍 فحص 250 نقطة' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '800', textColor: '#0284c7', marginBottom: '12px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '800',
+            textColor: '#0284c7',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_bg1_title': {
+      tmpl_bg1_title: {
         id: 'tmpl_bg1_title',
         name: 'عنوان بطاقة 1',
         type: 'heading',
@@ -3374,19 +5229,28 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_bg_c1',
         childrenIds: [],
         props: { text: 'شفافية وتقارير معتمدة' },
-        styles: { desktop: { fontSize: '20px', fontWeight: '800', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '20px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_bg1_desc': {
+      tmpl_bg1_desc: {
         id: 'tmpl_bg1_desc',
         name: 'وصف بطاقة 1',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_bg_c1',
         childrenIds: [],
-        props: { text: 'نقدم تقريراً هندسياً مفصلاً لكل مركبة يشمل كافة الأنظمة الميكانيكية والكهربائية والهيكل الخارجي.' },
+        props: {
+          text: 'نقدم تقريراً هندسياً مفصلاً لكل مركبة يشمل كافة الأنظمة الميكانيكية والكهربائية والهيكل الخارجي.',
+        },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.6' } },
       },
-      'tmpl_bg_c2': {
+      tmpl_bg_c2: {
         id: 'tmpl_bg_c2',
         name: 'بطاقة بينتو 2',
         type: 'card',
@@ -3394,9 +5258,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_bento_grid',
         childrenIds: ['tmpl_bg2_icon', 'tmpl_bg2_title', 'tmpl_bg2_desc'],
         props: {},
-        styles: { desktop: { backgroundColor: '#fdf2f8', paddingLeft: '28px', paddingRight: '28px', paddingTop: '32px', paddingBottom: '32px', borderRadius: '20px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#fbcfe8', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#fdf2f8',
+            paddingLeft: '28px',
+            paddingRight: '28px',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            borderRadius: '20px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#fbcfe8',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_bg2_icon': {
+      tmpl_bg2_icon: {
         id: 'tmpl_bg2_icon',
         name: 'أيقونة 2',
         type: 'heading',
@@ -3404,9 +5281,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_bg_c2',
         childrenIds: [],
         props: { text: '💳 تمويل فوري ميسر' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '800', textColor: '#db2777', marginBottom: '12px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '800',
+            textColor: '#db2777',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_bg2_title': {
+      tmpl_bg2_title: {
         id: 'tmpl_bg2_title',
         name: 'عنوان بطاقة 2',
         type: 'heading',
@@ -3414,19 +5298,28 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_bg_c2',
         childrenIds: [],
         props: { text: 'حلول تمويلية بأقل هامش ربح' },
-        styles: { desktop: { fontSize: '20px', fontWeight: '800', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '20px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_bg2_desc': {
+      tmpl_bg2_desc: {
         id: 'tmpl_bg2_desc',
         name: 'وصف بطاقة 2',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_bg_c2',
         childrenIds: [],
-        props: { text: 'شراكات مع كافة البنوك والجهات التمويلية المعتمدة لتقديم أفضل أقساط وموافقات سريعة خلال ساعتين.' },
+        props: {
+          text: 'شراكات مع كافة البنوك والجهات التمويلية المعتمدة لتقديم أفضل أقساط وموافقات سريعة خلال ساعتين.',
+        },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.6' } },
       },
-      'tmpl_bg_c3': {
+      tmpl_bg_c3: {
         id: 'tmpl_bg_c3',
         name: 'بطاقة بينتو 3',
         type: 'card',
@@ -3434,9 +5327,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_bento_grid',
         childrenIds: ['tmpl_bg3_icon', 'tmpl_bg3_title', 'tmpl_bg3_desc'],
         props: {},
-        styles: { desktop: { backgroundColor: '#f0fdf4', paddingLeft: '28px', paddingRight: '28px', paddingTop: '32px', paddingBottom: '32px', borderRadius: '20px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#bbf7d0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f0fdf4',
+            paddingLeft: '28px',
+            paddingRight: '28px',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            borderRadius: '20px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#bbf7d0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_bg3_icon': {
+      tmpl_bg3_icon: {
         id: 'tmpl_bg3_icon',
         name: 'أيقونة 3',
         type: 'heading',
@@ -3444,9 +5350,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_bg_c3',
         childrenIds: [],
         props: { text: '🚚 تسليم حتى باب المنزل' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '800', textColor: '#16a34a', marginBottom: '12px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '800',
+            textColor: '#16a34a',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_bg3_title': {
+      tmpl_bg3_title: {
         id: 'tmpl_bg3_title',
         name: 'عنوان بطاقة 3',
         type: 'heading',
@@ -3454,16 +5367,25 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_bg_c3',
         childrenIds: [],
         props: { text: 'شحن آمن في كافة المناطق' },
-        styles: { desktop: { fontSize: '20px', fontWeight: '800', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '20px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_bg3_desc': {
+      tmpl_bg3_desc: {
         id: 'tmpl_bg3_desc',
         name: 'وصف بطاقة 3',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_bg_c3',
         childrenIds: [],
-        props: { text: 'سطحات هيدروليكية مغلقة ومؤمنة تنقل سيارتك إلى باب بيتك بكامل جاهزيتها ونظافتها.' },
+        props: {
+          text: 'سطحات هيدروليكية مغلقة ومؤمنة تنقل سيارتك إلى باب بيتك بكامل جاهزيتها ونظافتها.',
+        },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.6' } },
       },
     },
@@ -3484,7 +5406,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['pricing', 'باقات', 'vip', 'ضمان', 'أسعار'],
     rootNodeId: 'tmpl_pr_vip_root',
     nodes: {
-      'tmpl_pr_vip_root': {
+      tmpl_pr_vip_root: {
         id: 'tmpl_pr_vip_root',
         name: 'قسم باقات VIP',
         type: 'pricing',
@@ -3492,9 +5414,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_pr_vip_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#0b0f19', paddingTop: '80px', paddingBottom: '80px', textColor: '#ffffff' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#0b0f19',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+            textColor: '#ffffff',
+          },
+        },
       },
-      'tmpl_pr_vip_box': {
+      tmpl_pr_vip_box: {
         id: 'tmpl_pr_vip_box',
         name: 'حاوية الباقات',
         type: 'container',
@@ -3502,9 +5433,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_pr_vip_root',
         childrenIds: ['tmpl_prv_head', 'tmpl_prv_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_prv_head': {
+      tmpl_prv_head: {
         id: 'tmpl_prv_head',
         name: 'عنوان الباقات',
         type: 'heading',
@@ -3512,9 +5451,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_pr_vip_box',
         childrenIds: [],
         props: { text: 'باقات الضمان الممتد والعناية المتقدمة' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '48px', textColor: '#ffffff' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '48px',
+            textColor: '#ffffff',
+          },
+        },
       },
-      'tmpl_prv_grid': {
+      tmpl_prv_grid: {
         id: 'tmpl_prv_grid',
         name: 'شبكة الباقات 3',
         type: 'grid',
@@ -3522,9 +5469,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_pr_vip_box',
         childrenIds: ['tmpl_prv_c1', 'tmpl_prv_c2', 'tmpl_prv_c3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px', alignItems: 'stretch' } },
+        styles: {
+          desktop: {
+            display: 'grid',
+            gridColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: '24px',
+            alignItems: 'stretch',
+          },
+        },
       },
-      'tmpl_prv_c1': {
+      tmpl_prv_c1: {
         id: 'tmpl_prv_c1',
         name: 'الباقة الأساسية',
         type: 'card',
@@ -3532,9 +5486,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_prv_grid',
         childrenIds: ['tmpl_pc1_title', 'tmpl_pc1_price', 'tmpl_pc1_feats', 'tmpl_pc1_btn'],
         props: {},
-        styles: { desktop: { backgroundColor: '#131c2e', paddingLeft: '24px', paddingRight: '24px', paddingTop: '32px', paddingBottom: '32px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#1e293b', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#131c2e',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#1e293b',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_pc1_title': {
+      tmpl_pc1_title: {
         id: 'tmpl_pc1_title',
         name: 'اسم الباقة 1',
         type: 'heading',
@@ -3542,9 +5509,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_prv_c1',
         childrenIds: [],
         props: { text: 'باقة الفضة (Silver Care)' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#94a3b8', marginBottom: '12px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '700',
+            textColor: '#94a3b8',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_pc1_price': {
+      tmpl_pc1_price: {
         id: 'tmpl_pc1_price',
         name: 'سعر باقة 1',
         type: 'heading',
@@ -3552,19 +5526,36 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_prv_c1',
         childrenIds: [],
         props: { text: '3,500 ج.م / سنوياً' },
-        styles: { desktop: { fontSize: '24px', fontWeight: '800', textColor: '#ffffff', marginBottom: '20px' } },
+        styles: {
+          desktop: {
+            fontSize: '24px',
+            fontWeight: '800',
+            textColor: '#ffffff',
+            marginBottom: '20px',
+          },
+        },
       },
-      'tmpl_pc1_feats': {
+      tmpl_pc1_feats: {
         id: 'tmpl_pc1_feats',
         name: 'ميزات باقة 1',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_prv_c1',
         childrenIds: [],
-        props: { text: '✓ ضمان المحرك والجير لمدة سنة\n✓ 2 صيانة دورية مجانية\n✓ مساعدة على الطريق داخل المدينة' },
-        styles: { desktop: { fontSize: '13px', textColor: '#94a3b8', lineHeight: '2', whiteSpace: 'pre-line', marginBottom: '24px' } },
+        props: {
+          text: '✓ ضمان المحرك والجير لمدة سنة\n✓ 2 صيانة دورية مجانية\n✓ مساعدة على الطريق داخل المدينة',
+        },
+        styles: {
+          desktop: {
+            fontSize: '13px',
+            textColor: '#94a3b8',
+            lineHeight: '2',
+            whiteSpace: 'pre-line',
+            marginBottom: '24px',
+          },
+        },
       },
-      'tmpl_pc1_btn': {
+      tmpl_pc1_btn: {
         id: 'tmpl_pc1_btn',
         name: 'زر باقة 1',
         type: 'button',
@@ -3572,19 +5563,50 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_prv_c1',
         childrenIds: [],
         props: { text: 'اختيار باقة الفضة' },
-        styles: { desktop: { backgroundColor: '#1e293b', textColor: '#ffffff', width: '100%', paddingTop: '10px', paddingBottom: '10px', borderRadius: '8px', fontWeight: '700', fontSize: '14px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#1e293b',
+            textColor: '#ffffff',
+            width: '100%',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '14px',
+          },
+        },
       },
-      'tmpl_prv_c2': {
+      tmpl_prv_c2: {
         id: 'tmpl_prv_c2',
         name: 'الباقة الذهبية VIP',
         type: 'card',
         category: 'layout',
         parentId: 'tmpl_prv_grid',
-        childrenIds: ['tmpl_pc2_badge', 'tmpl_pc2_title', 'tmpl_pc2_price', 'tmpl_pc2_feats', 'tmpl_pc2_btn'],
+        childrenIds: [
+          'tmpl_pc2_badge',
+          'tmpl_pc2_title',
+          'tmpl_pc2_price',
+          'tmpl_pc2_feats',
+          'tmpl_pc2_btn',
+        ],
         props: {},
-        styles: { desktop: { backgroundColor: '#172554', paddingLeft: '24px', paddingRight: '24px', paddingTop: '32px', paddingBottom: '32px', borderRadius: '16px', borderWidth: '2px', borderStyle: 'solid', borderColor: '#3b82f6', textAlign: 'right', position: 'relative' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#172554',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            borderRadius: '16px',
+            borderWidth: '2px',
+            borderStyle: 'solid',
+            borderColor: '#3b82f6',
+            textAlign: 'right',
+            position: 'relative',
+          },
+        },
       },
-      'tmpl_pc2_badge': {
+      tmpl_pc2_badge: {
         id: 'tmpl_pc2_badge',
         name: 'شارة VIP',
         type: 'badge',
@@ -3592,9 +5614,23 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_prv_c2',
         childrenIds: [],
         props: { text: '⭐ الأكثر طلباً وتفضيلاً' },
-        styles: { desktop: { backgroundColor: '#2563eb', textColor: '#ffffff', fontSize: '11px', fontWeight: '700', paddingLeft: '12px', paddingRight: '12px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '9999px', display: 'inline-block', marginBottom: '12px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#2563eb',
+            textColor: '#ffffff',
+            fontSize: '11px',
+            fontWeight: '700',
+            paddingLeft: '12px',
+            paddingRight: '12px',
+            paddingTop: '4px',
+            paddingBottom: '4px',
+            borderRadius: '9999px',
+            display: 'inline-block',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_pc2_title': {
+      tmpl_pc2_title: {
         id: 'tmpl_pc2_title',
         name: 'اسم الباقة 2',
         type: 'heading',
@@ -3602,9 +5638,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_prv_c2',
         childrenIds: [],
         props: { text: 'باقة الذهب VIP (Gold Care)' },
-        styles: { desktop: { fontSize: '20px', fontWeight: '800', textColor: '#60a5fa', marginBottom: '12px' } },
+        styles: {
+          desktop: {
+            fontSize: '20px',
+            fontWeight: '800',
+            textColor: '#60a5fa',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_pc2_price': {
+      tmpl_pc2_price: {
         id: 'tmpl_pc2_price',
         name: 'سعر باقة 2',
         type: 'heading',
@@ -3612,19 +5655,36 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_prv_c2',
         childrenIds: [],
         props: { text: '6,900 ج.م / سنوياً' },
-        styles: { desktop: { fontSize: '28px', fontWeight: '900', textColor: '#ffffff', marginBottom: '20px' } },
+        styles: {
+          desktop: {
+            fontSize: '28px',
+            fontWeight: '900',
+            textColor: '#ffffff',
+            marginBottom: '20px',
+          },
+        },
       },
-      'tmpl_pc2_feats': {
+      tmpl_pc2_feats: {
         id: 'tmpl_pc2_feats',
         name: 'ميزات باقة 2',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_prv_c2',
         childrenIds: [],
-        props: { text: '✓ ضمان شامل ممتد 3 سنوات كاملة\n✓ صيانة دورية مجانية شاملة قطع الاستهلاك\n✓ سيارة بديلة فارهة أثناء الصيانة\n✓ مساعدة طريق 24/7 بكافة مناطق مصر' },
-        styles: { desktop: { fontSize: '13px', textColor: '#bfdbfe', lineHeight: '2', whiteSpace: 'pre-line', marginBottom: '24px' } },
+        props: {
+          text: '✓ ضمان شامل ممتد 3 سنوات كاملة\n✓ صيانة دورية مجانية شاملة قطع الاستهلاك\n✓ سيارة بديلة فارهة أثناء الصيانة\n✓ مساعدة طريق 24/7 بكافة مناطق مصر',
+        },
+        styles: {
+          desktop: {
+            fontSize: '13px',
+            textColor: '#bfdbfe',
+            lineHeight: '2',
+            whiteSpace: 'pre-line',
+            marginBottom: '24px',
+          },
+        },
       },
-      'tmpl_pc2_btn': {
+      tmpl_pc2_btn: {
         id: 'tmpl_pc2_btn',
         name: 'زر باقة 2',
         type: 'button',
@@ -3632,9 +5692,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_prv_c2',
         childrenIds: [],
         props: { text: 'اشترك في باقة الذهب VIP' },
-        styles: { desktop: { backgroundColor: '#2563eb', textColor: '#ffffff', width: '100%', paddingTop: '12px', paddingBottom: '12px', borderRadius: '8px', fontWeight: '800', fontSize: '14px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#2563eb',
+            textColor: '#ffffff',
+            width: '100%',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '8px',
+            fontWeight: '800',
+            fontSize: '14px',
+          },
+        },
       },
-      'tmpl_prv_c3': {
+      tmpl_prv_c3: {
         id: 'tmpl_prv_c3',
         name: 'الباقة البلاتينية',
         type: 'card',
@@ -3642,9 +5713,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_prv_grid',
         childrenIds: ['tmpl_pc3_title', 'tmpl_pc3_price', 'tmpl_pc3_feats', 'tmpl_pc3_btn'],
         props: {},
-        styles: { desktop: { backgroundColor: '#131c2e', paddingLeft: '24px', paddingRight: '24px', paddingTop: '32px', paddingBottom: '32px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#1e293b', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#131c2e',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#1e293b',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_pc3_title': {
+      tmpl_pc3_title: {
         id: 'tmpl_pc3_title',
         name: 'اسم الباقة 3',
         type: 'heading',
@@ -3652,9 +5736,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_prv_c3',
         childrenIds: [],
         props: { text: 'باقة البلاتينيوم (Royal Black)' },
-        styles: { desktop: { fontSize: '18px', fontWeight: '700', textColor: '#94a3b8', marginBottom: '12px' } },
+        styles: {
+          desktop: {
+            fontSize: '18px',
+            fontWeight: '700',
+            textColor: '#94a3b8',
+            marginBottom: '12px',
+          },
+        },
       },
-      'tmpl_pc3_price': {
+      tmpl_pc3_price: {
         id: 'tmpl_pc3_price',
         name: 'سعر باقة 3',
         type: 'heading',
@@ -3662,19 +5753,36 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_prv_c3',
         childrenIds: [],
         props: { text: '11,500 ج.م / سنوياً' },
-        styles: { desktop: { fontSize: '24px', fontWeight: '800', textColor: '#ffffff', marginBottom: '20px' } },
+        styles: {
+          desktop: {
+            fontSize: '24px',
+            fontWeight: '800',
+            textColor: '#ffffff',
+            marginBottom: '20px',
+          },
+        },
       },
-      'tmpl_pc3_feats': {
+      tmpl_pc3_feats: {
         id: 'tmpl_pc3_feats',
         name: 'ميزات باقة 3',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_prv_c3',
         childrenIds: [],
-        props: { text: '✓ تغطية شاملة غير محدودة 5 سنوات\n✓ خدمة الكونسيرج ومستشار خاص 24/7\n✓ حماية نانو سيراميك وتظليل حراري\n✓ شحن مجاني للمركبة بين المدن' },
-        styles: { desktop: { fontSize: '13px', textColor: '#94a3b8', lineHeight: '2', whiteSpace: 'pre-line', marginBottom: '24px' } },
+        props: {
+          text: '✓ تغطية شاملة غير محدودة 5 سنوات\n✓ خدمة الكونسيرج ومستشار خاص 24/7\n✓ حماية نانو سيراميك وتظليل حراري\n✓ شحن مجاني للمركبة بين المدن',
+        },
+        styles: {
+          desktop: {
+            fontSize: '13px',
+            textColor: '#94a3b8',
+            lineHeight: '2',
+            whiteSpace: 'pre-line',
+            marginBottom: '24px',
+          },
+        },
       },
-      'tmpl_pc3_btn': {
+      tmpl_pc3_btn: {
         id: 'tmpl_pc3_btn',
         name: 'زر باقة 3',
         type: 'button',
@@ -3682,7 +5790,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_prv_c3',
         childrenIds: [],
         props: { text: 'اختيار باقة البلاتينيوم' },
-        styles: { desktop: { backgroundColor: '#1e293b', textColor: '#ffffff', width: '100%', paddingTop: '10px', paddingBottom: '10px', borderRadius: '8px', fontWeight: '700', fontSize: '14px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#1e293b',
+            textColor: '#ffffff',
+            width: '100%',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '14px',
+          },
+        },
       },
     },
   },
@@ -3702,7 +5821,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['accordion', 'faq', 'أسئلة', 'شائعة'],
     rootNodeId: 'tmpl_faq_2col_root',
     nodes: {
-      'tmpl_faq_2col_root': {
+      tmpl_faq_2col_root: {
         id: 'tmpl_faq_2col_root',
         name: 'قسم الأسئلة عمودين',
         type: 'faq',
@@ -3710,9 +5829,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_f2c_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#f8fafc', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#f8fafc',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_f2c_box': {
+      tmpl_f2c_box: {
         id: 'tmpl_f2c_box',
         name: 'حاوية الأسئلة',
         type: 'container',
@@ -3720,9 +5847,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_faq_2col_root',
         childrenIds: ['tmpl_f2c_head', 'tmpl_f2c_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_f2c_head': {
+      tmpl_f2c_head: {
         id: 'tmpl_f2c_head',
         name: 'عنوان الأسئلة',
         type: 'heading',
@@ -3730,9 +5865,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_f2c_box',
         childrenIds: [],
         props: { text: 'الأسئلة الشائعة والأجوبة الوافية' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '48px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '48px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_f2c_grid': {
+      tmpl_f2c_grid: {
         id: 'tmpl_f2c_grid',
         name: 'شبكة عمودين',
         type: 'grid',
@@ -3740,9 +5883,11 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_f2c_box',
         childrenIds: ['tmpl_f2c_col1', 'tmpl_f2c_col2'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(2, minmax(0, 1fr))', gap: '24px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(2, minmax(0, 1fr))', gap: '24px' },
+        },
       },
-      'tmpl_f2c_col1': {
+      tmpl_f2c_col1: {
         id: 'tmpl_f2c_col1',
         name: 'العمود الأول',
         type: 'container',
@@ -3752,7 +5897,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: {},
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '16px' } },
       },
-      'tmpl_fq_item1': {
+      tmpl_fq_item1: {
         id: 'tmpl_fq_item1',
         name: 'سؤال 1',
         type: 'card',
@@ -3760,9 +5905,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_f2c_col1',
         childrenIds: ['tmpl_fq1_q', 'tmpl_fq1_a'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingLeft: '24px', paddingRight: '24px', paddingTop: '20px', paddingBottom: '20px', borderRadius: '12px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '20px',
+            paddingBottom: '20px',
+            borderRadius: '12px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_fq1_q': {
+      tmpl_fq1_q: {
         id: 'tmpl_fq1_q',
         name: 'سؤال 1 نص',
         type: 'heading',
@@ -3770,19 +5928,28 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fq_item1',
         childrenIds: [],
         props: { text: '❓ هل يتم فحص جميع السيارات بدقة قبل البيع؟' },
-        styles: { desktop: { fontSize: '16px', fontWeight: '700', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            fontWeight: '700',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_fq1_a': {
+      tmpl_fq1_a: {
         id: 'tmpl_fq1_a',
         name: 'جواب 1 نص',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_fq_item1',
         childrenIds: [],
-        props: { text: 'نعم، تخضع كافة السيارات لفحص شامل لأكثر من 250 نقطة فنية معتمدة ويتم تزويدك بنسخة كاملة من التقرير.' },
+        props: {
+          text: 'نعم، تخضع كافة السيارات لفحص شامل لأكثر من 250 نقطة فنية معتمدة ويتم تزويدك بنسخة كاملة من التقرير.',
+        },
         styles: { desktop: { fontSize: '13px', textColor: '#64748b', lineHeight: '1.6' } },
       },
-      'tmpl_fq_item2': {
+      tmpl_fq_item2: {
         id: 'tmpl_fq_item2',
         name: 'سؤال 2',
         type: 'card',
@@ -3790,9 +5957,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_f2c_col1',
         childrenIds: ['tmpl_fq2_q', 'tmpl_fq2_a'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingLeft: '24px', paddingRight: '24px', paddingTop: '20px', paddingBottom: '20px', borderRadius: '12px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '20px',
+            paddingBottom: '20px',
+            borderRadius: '12px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_fq2_q': {
+      tmpl_fq2_q: {
         id: 'tmpl_fq2_q',
         name: 'سؤال 2 نص',
         type: 'heading',
@@ -3800,19 +5980,28 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fq_item2',
         childrenIds: [],
         props: { text: '❓ ما هي البنوك والجهات التمويلية المعتمدة؟' },
-        styles: { desktop: { fontSize: '16px', fontWeight: '700', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            fontWeight: '700',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_fq2_a': {
+      tmpl_fq2_a: {
         id: 'tmpl_fq2_a',
         name: 'جواب 2 نص',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_fq_item2',
         childrenIds: [],
-        props: { text: 'نتعامل مع كافة البنوك السعودية والشركات التمويلية الكبرى لتوفير أفضل هامش ربح وأسرع موافقة فورية.' },
+        props: {
+          text: 'نتعامل مع كافة البنوك السعودية والشركات التمويلية الكبرى لتوفير أفضل هامش ربح وأسرع موافقة فورية.',
+        },
         styles: { desktop: { fontSize: '13px', textColor: '#64748b', lineHeight: '1.6' } },
       },
-      'tmpl_f2c_col2': {
+      tmpl_f2c_col2: {
         id: 'tmpl_f2c_col2',
         name: 'العمود الثاني',
         type: 'container',
@@ -3822,7 +6011,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: {},
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '16px' } },
       },
-      'tmpl_fq_item3': {
+      tmpl_fq_item3: {
         id: 'tmpl_fq_item3',
         name: 'سؤال 3',
         type: 'card',
@@ -3830,9 +6019,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_f2c_col2',
         childrenIds: ['tmpl_fq3_q', 'tmpl_fq3_a'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingLeft: '24px', paddingRight: '24px', paddingTop: '20px', paddingBottom: '20px', borderRadius: '12px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '20px',
+            paddingBottom: '20px',
+            borderRadius: '12px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_fq3_q': {
+      tmpl_fq3_q: {
         id: 'tmpl_fq3_q',
         name: 'سؤال 3 نص',
         type: 'heading',
@@ -3840,19 +6042,28 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fq_item3',
         childrenIds: [],
         props: { text: '❓ هل أستطيع طلب تجربة قيادة قبل الشراء؟' },
-        styles: { desktop: { fontSize: '16px', fontWeight: '700', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            fontWeight: '700',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_fq3_a': {
+      tmpl_fq3_a: {
         id: 'tmpl_fq3_a',
         name: 'جواب 3 نص',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_fq_item3',
         childrenIds: [],
-        props: { text: 'بالتأكيد، يمكنك حجز موعد تجربة قيادة بكل سهولة عبر الموقع أو التواصل المباشر مع مستشارك الخاص.' },
+        props: {
+          text: 'بالتأكيد، يمكنك حجز موعد تجربة قيادة بكل سهولة عبر الموقع أو التواصل المباشر مع مستشارك الخاص.',
+        },
         styles: { desktop: { fontSize: '13px', textColor: '#64748b', lineHeight: '1.6' } },
       },
-      'tmpl_fq_item4': {
+      tmpl_fq_item4: {
         id: 'tmpl_fq_item4',
         name: 'سؤال 4',
         type: 'card',
@@ -3860,9 +6071,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_f2c_col2',
         childrenIds: ['tmpl_fq4_q', 'tmpl_fq4_a'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', paddingLeft: '24px', paddingRight: '24px', paddingTop: '20px', paddingBottom: '20px', borderRadius: '12px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '20px',
+            paddingBottom: '20px',
+            borderRadius: '12px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_fq4_q': {
+      tmpl_fq4_q: {
         id: 'tmpl_fq4_q',
         name: 'سؤال 4 نص',
         type: 'heading',
@@ -3870,16 +6094,25 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fq_item4',
         childrenIds: [],
         props: { text: '❓ كم تستغرق إجراءات نقل الملكية والتسليم؟' },
-        styles: { desktop: { fontSize: '16px', fontWeight: '700', textColor: '#0f172a', marginBottom: '8px' } },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            fontWeight: '700',
+            textColor: '#0f172a',
+            marginBottom: '8px',
+          },
+        },
       },
-      'tmpl_fq4_a': {
+      tmpl_fq4_a: {
         id: 'tmpl_fq4_a',
         name: 'جواب 4 نص',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_fq_item4',
         childrenIds: [],
-        props: { text: 'تتم كافة الإجراءات إلكترونياً وبشكل فوري، ويمكنك استلام سيارتك خلال أقل من 24 ساعة من إتمام الدفع.' },
+        props: {
+          text: 'تتم كافة الإجراءات إلكترونياً وبشكل فوري، ويمكنك استلام سيارتك خلال أقل من 24 ساعة من إتمام الدفع.',
+        },
         styles: { desktop: { fontSize: '13px', textColor: '#64748b', lineHeight: '1.6' } },
       },
     },
@@ -3896,11 +6129,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'modern',
     wireframeType: 'contact-booking',
-    descriptionAr: 'واجهة تواصل أنيقة تضم ساعات العمل، معلومات الفروع، رقم الواتساب المباشر، ونموذج إرسال سريع.',
+    descriptionAr:
+      'واجهة تواصل أنيقة تضم ساعات العمل، معلومات الفروع، رقم الواتساب المباشر، ونموذج إرسال سريع.',
     tags: ['contact', 'تواصل', 'حجز', 'واتساب'],
     rootNodeId: 'tmpl_cnt_spl_root',
     nodes: {
-      'tmpl_cnt_spl_root': {
+      tmpl_cnt_spl_root: {
         id: 'tmpl_cnt_spl_root',
         name: 'قسم التواصل والحجز',
         type: 'contact',
@@ -3908,9 +6142,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_cnt_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', paddingTop: '80px', paddingBottom: '80px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            paddingTop: '80px',
+            paddingBottom: '80px',
+          },
+        },
       },
-      'tmpl_cnt_box': {
+      tmpl_cnt_box: {
         id: 'tmpl_cnt_box',
         name: 'حاوية التواصل',
         type: 'container',
@@ -3918,9 +6160,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cnt_spl_root',
         childrenIds: ['tmpl_cnt_head', 'tmpl_cnt_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_cnt_head': {
+      tmpl_cnt_head: {
         id: 'tmpl_cnt_head',
         name: 'عنوان التواصل',
         type: 'heading',
@@ -3928,9 +6178,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cnt_box',
         childrenIds: [],
         props: { text: 'تواصل معنا واحجز موعد معاينتك الخاصة' },
-        styles: { desktop: { fontSize: '32px', fontWeight: '800', textAlign: 'center', marginBottom: '44px', textColor: '#0f172a' } },
+        styles: {
+          desktop: {
+            fontSize: '32px',
+            fontWeight: '800',
+            textAlign: 'center',
+            marginBottom: '44px',
+            textColor: '#0f172a',
+          },
+        },
       },
-      'tmpl_cnt_grid': {
+      tmpl_cnt_grid: {
         id: 'tmpl_cnt_grid',
         name: 'شبكة التواصل منقسمة',
         type: 'grid',
@@ -3938,9 +6196,11 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cnt_box',
         childrenIds: ['tmpl_cnt_info_card', 'tmpl_cnt_form_card'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(2, minmax(0, 1fr))', gap: '32px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(2, minmax(0, 1fr))', gap: '32px' },
+        },
       },
-      'tmpl_cnt_info_card': {
+      tmpl_cnt_info_card: {
         id: 'tmpl_cnt_info_card',
         name: 'بطاقة معلومات الاتصال',
         type: 'card',
@@ -3948,9 +6208,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cnt_grid',
         childrenIds: ['tmpl_ci_title', 'tmpl_ci_items', 'tmpl_ci_wa_btn'],
         props: {},
-        styles: { desktop: { backgroundColor: '#0f172a', textColor: '#ffffff', paddingLeft: '32px', paddingRight: '32px', paddingTop: '36px', paddingBottom: '36px', borderRadius: '16px', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#0f172a',
+            textColor: '#ffffff',
+            paddingLeft: '32px',
+            paddingRight: '32px',
+            paddingTop: '36px',
+            paddingBottom: '36px',
+            borderRadius: '16px',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_ci_title': {
+      tmpl_ci_title: {
         id: 'tmpl_ci_title',
         name: 'عنوان المعلومات',
         type: 'heading',
@@ -3958,19 +6229,36 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cnt_info_card',
         childrenIds: [],
         props: { text: 'صالة العرض الرئيسية' },
-        styles: { desktop: { fontSize: '22px', fontWeight: '800', textColor: '#ffffff', marginBottom: '20px' } },
+        styles: {
+          desktop: {
+            fontSize: '22px',
+            fontWeight: '800',
+            textColor: '#ffffff',
+            marginBottom: '20px',
+          },
+        },
       },
-      'tmpl_ci_items': {
+      tmpl_ci_items: {
         id: 'tmpl_ci_items',
         name: 'تفاصيل الفروع والدوام',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_cnt_info_card',
         childrenIds: [],
-        props: { text: '📍 الرياض - طريق الملك فهد، حي الصحافة\n⏰ أوقات العمل: السبت - الخميس: 9:00 ص - 10:00 م\n📞 الهاتف الموحد: 920000000\n✉️ البريد الإلكتروني: info@luxurycars.sa' },
-        styles: { desktop: { fontSize: '14px', textColor: '#cbd5e1', lineHeight: '2.2', whiteSpace: 'pre-line', marginBottom: '28px' } },
+        props: {
+          text: '📍 الرياض - طريق الملك فهد، حي الصحافة\n⏰ أوقات العمل: السبت - الخميس: 9:00 ص - 10:00 م\n📞 الهاتف الموحد: 920000000\n✉️ البريد الإلكتروني: info@luxurycars.sa',
+        },
+        styles: {
+          desktop: {
+            fontSize: '14px',
+            textColor: '#cbd5e1',
+            lineHeight: '2.2',
+            whiteSpace: 'pre-line',
+            marginBottom: '28px',
+          },
+        },
       },
-      'tmpl_ci_wa_btn': {
+      tmpl_ci_wa_btn: {
         id: 'tmpl_ci_wa_btn',
         name: 'زر واتساب مباشر',
         type: 'button',
@@ -3978,9 +6266,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cnt_info_card',
         childrenIds: [],
         props: { text: '💬 تحدث معنا مباشرة عبر واتساب' },
-        styles: { desktop: { backgroundColor: '#22c55e', textColor: '#ffffff', width: '100%', paddingTop: '12px', paddingBottom: '12px', borderRadius: '10px', fontWeight: '800', fontSize: '15px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#22c55e',
+            textColor: '#ffffff',
+            width: '100%',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '10px',
+            fontWeight: '800',
+            fontSize: '15px',
+          },
+        },
       },
-      'tmpl_cnt_form_card': {
+      tmpl_cnt_form_card: {
         id: 'tmpl_cnt_form_card',
         name: 'بطاقة نموذج الحجز',
         type: 'card',
@@ -3988,9 +6287,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cnt_grid',
         childrenIds: ['tmpl_cf_title', 'tmpl_cf_inp1', 'tmpl_cf_inp2', 'tmpl_cf_btn'],
         props: {},
-        styles: { desktop: { backgroundColor: '#f8fafc', paddingLeft: '32px', paddingRight: '32px', paddingTop: '36px', paddingBottom: '36px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', textAlign: 'right' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            paddingLeft: '32px',
+            paddingRight: '32px',
+            paddingTop: '36px',
+            paddingBottom: '36px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            textAlign: 'right',
+          },
+        },
       },
-      'tmpl_cf_title': {
+      tmpl_cf_title: {
         id: 'tmpl_cf_title',
         name: 'عنوان النموذج',
         type: 'heading',
@@ -3998,9 +6310,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cnt_form_card',
         childrenIds: [],
         props: { text: 'طلب استشارة أو حجز موعد' },
-        styles: { desktop: { fontSize: '20px', fontWeight: '800', textColor: '#0f172a', marginBottom: '20px' } },
+        styles: {
+          desktop: {
+            fontSize: '20px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            marginBottom: '20px',
+          },
+        },
       },
-      'tmpl_cf_inp1': {
+      tmpl_cf_inp1: {
         id: 'tmpl_cf_inp1',
         name: 'حقل الاسم',
         type: 'paragraph',
@@ -4008,9 +6327,24 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cnt_form_card',
         childrenIds: [],
         props: { text: 'الاسم الكريم: ___________________________' },
-        styles: { desktop: { fontSize: '14px', textColor: '#475569', backgroundColor: '#ffffff', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '8px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#cbd5e1', marginBottom: '14px' } },
+        styles: {
+          desktop: {
+            fontSize: '14px',
+            textColor: '#475569',
+            backgroundColor: '#ffffff',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '8px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#cbd5e1',
+            marginBottom: '14px',
+          },
+        },
       },
-      'tmpl_cf_inp2': {
+      tmpl_cf_inp2: {
         id: 'tmpl_cf_inp2',
         name: 'حقل رقم الجوال',
         type: 'paragraph',
@@ -4018,9 +6352,24 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cnt_form_card',
         childrenIds: [],
         props: { text: 'رقم الجوال: 01xxxxxxxxx' },
-        styles: { desktop: { fontSize: '14px', textColor: '#475569', backgroundColor: '#ffffff', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '8px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#cbd5e1', marginBottom: '20px' } },
+        styles: {
+          desktop: {
+            fontSize: '14px',
+            textColor: '#475569',
+            backgroundColor: '#ffffff',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '8px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#cbd5e1',
+            marginBottom: '20px',
+          },
+        },
       },
-      'tmpl_cf_btn': {
+      tmpl_cf_btn: {
         id: 'tmpl_cf_btn',
         name: 'زر إرسال الطلب',
         type: 'button',
@@ -4028,7 +6377,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_cnt_form_card',
         childrenIds: [],
         props: { text: 'إرسال طلب الحجز الآن' },
-        styles: { desktop: { backgroundColor: '#2563eb', textColor: '#ffffff', width: '100%', paddingTop: '12px', paddingBottom: '12px', borderRadius: '8px', fontWeight: '800', fontSize: '15px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#2563eb',
+            textColor: '#ffffff',
+            width: '100%',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '8px',
+            fontWeight: '800',
+            fontSize: '15px',
+          },
+        },
       },
     },
   },
@@ -4044,11 +6404,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'corporate',
     wireframeType: 'footer-mega-corporate',
-    descriptionAr: 'فوتر احترافي شامل يضم 4 أعمدة، صندوق اشتراك بالنشرة البريدية، بيانات السجل التجاري والضريبة، وروابط الفروع.',
+    descriptionAr:
+      'فوتر احترافي شامل يضم 4 أعمدة، صندوق اشتراك بالنشرة البريدية، بيانات السجل التجاري والضريبة، وروابط الفروع.',
     tags: ['footer', 'فوتر', 'شركات', 'نشرة بريدية', 'سجل تجاري'],
     rootNodeId: 'tmpl_ft_mega_root',
     nodes: {
-      'tmpl_ft_mega_root': {
+      tmpl_ft_mega_root: {
         id: 'tmpl_ft_mega_root',
         name: 'فوتر الشركات المتكامل',
         type: 'footer',
@@ -4056,9 +6417,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_ft_mega_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#09090b', textColor: '#94a3b8', paddingTop: '64px', paddingBottom: '32px', borderTopWidth: '1px', borderStyle: 'solid', borderColor: '#27272a' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#09090b',
+            textColor: '#94a3b8',
+            paddingTop: '64px',
+            paddingBottom: '32px',
+            borderTopWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#27272a',
+          },
+        },
       },
-      'tmpl_ft_mega_box': {
+      tmpl_ft_mega_box: {
         id: 'tmpl_ft_mega_box',
         name: 'حاوية الفوتر',
         type: 'container',
@@ -4066,9 +6439,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_mega_root',
         childrenIds: ['tmpl_ft_news_card', 'tmpl_ft_mega_grid', 'tmpl_ft_mega_bottom'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_ft_news_card': {
+      tmpl_ft_news_card: {
         id: 'tmpl_ft_news_card',
         name: 'صندوق النشرة البريدية',
         type: 'card',
@@ -4076,9 +6457,25 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_mega_box',
         childrenIds: ['tmpl_ftn_head', 'tmpl_ftn_desc', 'tmpl_ftn_form'],
         props: {},
-        styles: { desktop: { backgroundColor: '#18181b', paddingLeft: '32px', paddingRight: '32px', paddingTop: '28px', paddingBottom: '28px', borderRadius: '16px', marginBottom: '48px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#27272a', display: 'flex', flexDirection: 'column', gap: '12px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#18181b',
+            paddingLeft: '32px',
+            paddingRight: '32px',
+            paddingTop: '28px',
+            paddingBottom: '28px',
+            borderRadius: '16px',
+            marginBottom: '48px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#27272a',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          },
+        },
       },
-      'tmpl_ftn_head': {
+      tmpl_ftn_head: {
         id: 'tmpl_ftn_head',
         name: 'عنوان النشرة',
         type: 'heading',
@@ -4088,17 +6485,19 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: '📩 انضم إلى القائمة البريدية للنخبة' },
         styles: { desktop: { fontSize: '20px', fontWeight: '800', textColor: '#ffffff' } },
       },
-      'tmpl_ftn_desc': {
+      tmpl_ftn_desc: {
         id: 'tmpl_ftn_desc',
         name: 'وصف النشرة',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_ft_news_card',
         childrenIds: [],
-        props: { text: 'احصل على أحدث عروض السيارات الحصرية وإشعارات الوصول الفوري قبل طرحها في المعرض العام.' },
+        props: {
+          text: 'احصل على أحدث عروض السيارات الحصرية وإشعارات الوصول الفوري قبل طرحها في المعرض العام.',
+        },
         styles: { desktop: { fontSize: '13px', textColor: '#a1a1aa' } },
       },
-      'tmpl_ftn_form': {
+      tmpl_ftn_form: {
         id: 'tmpl_ftn_form',
         name: 'صف الاشتراك',
         type: 'flex',
@@ -4108,7 +6507,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: {},
         styles: { desktop: { display: 'flex', gap: '12px', marginTop: '8px' } },
       },
-      'tmpl_ftn_inp': {
+      tmpl_ftn_inp: {
         id: 'tmpl_ftn_inp',
         name: 'حقل البريد',
         type: 'paragraph',
@@ -4116,9 +6515,24 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ftn_form',
         childrenIds: [],
         props: { text: 'ادخل بريدك الإلكتروني: name@example.com' },
-        styles: { desktop: { flex: '1', backgroundColor: '#09090b', paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '8px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#3f3f46', fontSize: '13px', textColor: '#cbd5e1' } },
+        styles: {
+          desktop: {
+            flex: '1',
+            backgroundColor: '#09090b',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '8px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#3f3f46',
+            fontSize: '13px',
+            textColor: '#cbd5e1',
+          },
+        },
       },
-      'tmpl_ftn_btn': {
+      tmpl_ftn_btn: {
         id: 'tmpl_ftn_btn',
         name: 'زر الاشتراك',
         type: 'button',
@@ -4126,9 +6540,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ftn_form',
         childrenIds: [],
         props: { text: 'اشتراك فوري' },
-        styles: { desktop: { backgroundColor: '#2563eb', textColor: '#ffffff', paddingLeft: '24px', paddingRight: '24px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '8px', fontWeight: '700', fontSize: '13px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#2563eb',
+            textColor: '#ffffff',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '13px',
+          },
+        },
       },
-      'tmpl_ft_mega_grid': {
+      tmpl_ft_mega_grid: {
         id: 'tmpl_ft_mega_grid',
         name: 'شبكة أعمدة الفوتر',
         type: 'grid',
@@ -4136,9 +6562,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_mega_box',
         childrenIds: ['tmpl_ft_col1', 'tmpl_ft_col2', 'tmpl_ft_col3', 'tmpl_ft_col4'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: '2fr 1fr 1fr 1.5fr', gap: '40px', marginBottom: '40px' } },
+        styles: {
+          desktop: {
+            display: 'grid',
+            gridColumns: '2fr 1fr 1fr 1.5fr',
+            gap: '40px',
+            marginBottom: '40px',
+          },
+        },
       },
-      'tmpl_ft_col1': {
+      tmpl_ft_col1: {
         id: 'tmpl_ft_col1',
         name: 'العمود الأول - عن الشركة والاعتمادات',
         type: 'container',
@@ -4148,7 +6581,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: {},
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '14px' } },
       },
-      'tmpl_ftc1_title': {
+      tmpl_ftc1_title: {
         id: 'tmpl_ftc1_title',
         name: 'اسم الشركة',
         type: 'heading',
@@ -4158,17 +6591,19 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'شركة المجد للسيارات الفاخرة' },
         styles: { desktop: { fontSize: '20px', fontWeight: '800', textColor: '#ffffff' } },
       },
-      'tmpl_ftc1_desc': {
+      tmpl_ftc1_desc: {
         id: 'tmpl_ftc1_desc',
         name: 'نبذة الشركة',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_ft_col1',
         childrenIds: [],
-        props: { text: 'الوجهة المعتمدة الأولى لاقتناء أحدث السيارات الرياضية والفارهة في مصر مع ضمان شامل وفحص موثق بأكثر من 150 نقطة.' },
+        props: {
+          text: 'الوجهة المعتمدة الأولى لاقتناء أحدث السيارات الرياضية والفارهة في مصر مع ضمان شامل وفحص موثق بأكثر من 150 نقطة.',
+        },
         styles: { desktop: { fontSize: '13px', textColor: '#a1a1aa', lineHeight: '1.7' } },
       },
-      'tmpl_ftc1_badges': {
+      tmpl_ftc1_badges: {
         id: 'tmpl_ftc1_badges',
         name: 'بيانات السجل والضريبة',
         type: 'paragraph',
@@ -4178,7 +6613,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: '🏛️ س.ت: 1010894721 | 🏷️ الرقم الضريبي: 310948271600003' },
         styles: { desktop: { fontSize: '11px', textColor: '#71717a', fontWeight: '600' } },
       },
-      'tmpl_ft_col2': {
+      tmpl_ft_col2: {
         id: 'tmpl_ft_col2',
         name: 'العمود الثاني - روابط سريعة',
         type: 'flex',
@@ -4187,11 +6622,17 @@ export const sectionTemplates: SectionTemplate[] = [
         childrenIds: [],
         props: {
           heading: 'تصفح الموقع',
-          links: ['الرئيسية', 'من نحن وقصتنا', 'أسطول سيارات 2025', 'فريق الخبراء والقيادة', 'فروعنا وصالات العرض'],
+          links: [
+            'الرئيسية',
+            'من نحن وقصتنا',
+            'أسطول سيارات 2025',
+            'فريق الخبراء والقيادة',
+            'فروعنا وصالات العرض',
+          ],
         },
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '10px' } },
       },
-      'tmpl_ft_col3': {
+      tmpl_ft_col3: {
         id: 'tmpl_ft_col3',
         name: 'العمود الثالث - خدمات وضمانات',
         type: 'flex',
@@ -4200,11 +6641,17 @@ export const sectionTemplates: SectionTemplate[] = [
         childrenIds: [],
         props: {
           heading: 'الخدمات والضمان',
-          links: ['فحص معتمد 150+ نقطة', 'برامج التمويل الميسر', 'الضمان الذهبي 5 سنوات', 'توصيل سطحة VIP', 'سياسة الخصوصية'],
+          links: [
+            'فحص معتمد 150+ نقطة',
+            'برامج التمويل الميسر',
+            'الضمان الذهبي 5 سنوات',
+            'توصيل سطحة VIP',
+            'سياسة الخصوصية',
+          ],
         },
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '10px' } },
       },
-      'tmpl_ft_col4': {
+      tmpl_ft_col4: {
         id: 'tmpl_ft_col4',
         name: 'العمود الرابع - الفروع والتواصل',
         type: 'flex',
@@ -4213,11 +6660,16 @@ export const sectionTemplates: SectionTemplate[] = [
         childrenIds: [],
         props: {
           heading: 'صالات العرض والتواصل',
-          info: ['📍 الرياض: طريق الملك فهد - حي الصحافة', '📍 جدة: طريق الملك عبدالعزيز', '📞 الهاتف الموحد: 920004567', '⏰ الدوام: السبت - الخميس: 9 ص - 10 م'],
+          info: [
+            '📍 الرياض: طريق الملك فهد - حي الصحافة',
+            '📍 جدة: طريق الملك عبدالعزيز',
+            '📞 الهاتف الموحد: 920004567',
+            '⏰ الدوام: السبت - الخميس: 9 ص - 10 م',
+          ],
         },
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '10px' } },
       },
-      'tmpl_ft_mega_bottom': {
+      tmpl_ft_mega_bottom: {
         id: 'tmpl_ft_mega_bottom',
         name: 'الشريط السفلي للفوتر',
         type: 'container',
@@ -4225,17 +6677,31 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_mega_box',
         childrenIds: ['tmpl_ftmb_copy'],
         props: {},
-        styles: { desktop: { borderTopWidth: '1px', borderStyle: 'solid', borderColor: '#27272a', paddingTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+        styles: {
+          desktop: {
+            borderTopWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#27272a',
+            paddingTop: '24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          },
+        },
       },
-      'tmpl_ftmb_copy': {
+      tmpl_ftmb_copy: {
         id: 'tmpl_ftmb_copy',
         name: 'نص حقوق الملكية',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_ft_mega_bottom',
         childrenIds: [],
-        props: { text: 'جميع الحقوق محفوظة © 2025 شركة المجد للسيارات الفاخرة. مرخص من وزارة التجارة والاستثمار.' },
-        styles: { desktop: { fontSize: '12px', textColor: '#71717a', textAlign: 'center', width: '100%' } },
+        props: {
+          text: 'جميع الحقوق محفوظة © 2025 شركة المجد للسيارات الفاخرة. مرخص من وزارة التجارة والاستثمار.',
+        },
+        styles: {
+          desktop: { fontSize: '12px', textColor: '#71717a', textAlign: 'center', width: '100%' },
+        },
       },
     },
   },
@@ -4252,7 +6718,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['footer', 'luxury', 'فاخر', 'بسيط', 'فخامة'],
     rootNodeId: 'tmpl_ft_lux_root',
     nodes: {
-      'tmpl_ft_lux_root': {
+      tmpl_ft_lux_root: {
         id: 'tmpl_ft_lux_root',
         name: 'فوتر الفخامة الملكي',
         type: 'footer',
@@ -4260,19 +6726,50 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_ft_lux_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#050505', textColor: '#ffffff', paddingTop: '60px', paddingBottom: '48px', borderTopWidth: '1px', borderStyle: 'solid', borderColor: '#1f1f23' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#050505',
+            textColor: '#ffffff',
+            paddingTop: '60px',
+            paddingBottom: '48px',
+            borderTopWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#1f1f23',
+          },
+        },
       },
-      'tmpl_ft_lux_box': {
+      tmpl_ft_lux_box: {
         id: 'tmpl_ft_lux_box',
         name: 'حاوية فوتر الفخامة',
         type: 'container',
         category: 'layout',
         parentId: 'tmpl_ft_lux_root',
-        childrenIds: ['tmpl_lux_badge', 'tmpl_lux_title', 'tmpl_lux_quote', 'tmpl_lux_links', 'tmpl_lux_copy'],
+        childrenIds: [
+          'tmpl_lux_badge',
+          'tmpl_lux_title',
+          'tmpl_lux_quote',
+          'tmpl_lux_links',
+          'tmpl_lux_copy',
+        ],
         props: {},
-        styles: { desktop: { maxWidth: '1000px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '20px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1000px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: '20px',
+          },
+        },
       },
-      'tmpl_lux_badge': {
+      tmpl_lux_badge: {
         id: 'tmpl_lux_badge',
         name: 'شارة VIP',
         type: 'badge',
@@ -4280,9 +6777,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_lux_box',
         childrenIds: [],
         props: { text: '👑 THE PINNACLE OF LUXURY MOTORS' },
-        styles: { desktop: { backgroundColor: 'rgba(217, 119, 6, 0.15)', textColor: '#fbbf24', fontSize: '11px', fontWeight: '800', paddingLeft: '14px', paddingRight: '14px', paddingTop: '4px', paddingBottom: '4px', borderRadius: '9999px', letterSpacing: '1px' } },
+        styles: {
+          desktop: {
+            backgroundColor: 'rgba(217, 119, 6, 0.15)',
+            textColor: '#fbbf24',
+            fontSize: '11px',
+            fontWeight: '800',
+            paddingLeft: '14px',
+            paddingRight: '14px',
+            paddingTop: '4px',
+            paddingBottom: '4px',
+            borderRadius: '9999px',
+            letterSpacing: '1px',
+          },
+        },
       },
-      'tmpl_lux_title': {
+      tmpl_lux_title: {
         id: 'tmpl_lux_title',
         name: 'شعار الفخامة',
         type: 'heading',
@@ -4290,36 +6800,69 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_lux_box',
         childrenIds: [],
         props: { text: 'المجد للسيارات الفاخرة' },
-        styles: { desktop: { fontSize: '28px', fontWeight: '900', textColor: '#ffffff', letterSpacing: '-0.5px' } },
+        styles: {
+          desktop: {
+            fontSize: '28px',
+            fontWeight: '900',
+            textColor: '#ffffff',
+            letterSpacing: '-0.5px',
+          },
+        },
       },
-      'tmpl_lux_quote': {
+      tmpl_lux_quote: {
         id: 'tmpl_lux_quote',
         name: 'شعار الشركة اللفظي',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_ft_lux_box',
         childrenIds: [],
-        props: { text: '« تجربة استثنائية تصنع الفارق بين مجرد القيادة وبين عيش الرفاهية المطلقة »' },
-        styles: { desktop: { fontSize: '14px', textColor: '#a1a1aa', fontStyle: 'italic', maxWidth: '600px' } },
+        props: {
+          text: '« تجربة استثنائية تصنع الفارق بين مجرد القيادة وبين عيش الرفاهية المطلقة »',
+        },
+        styles: {
+          desktop: {
+            fontSize: '14px',
+            textColor: '#a1a1aa',
+            fontStyle: 'italic',
+            maxWidth: '600px',
+          },
+        },
       },
-      'tmpl_lux_links': {
+      tmpl_lux_links: {
         id: 'tmpl_lux_links',
         name: 'روابط أفقية فاخرة',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_ft_lux_box',
         childrenIds: [],
-        props: { text: 'الرئيسية    •    من نحن    •    أسطول السيارات    •    صالات العرض    •    خدمة كبار الشخصيات    •    تواصل معنا' },
-        styles: { desktop: { fontSize: '13px', fontWeight: '600', textColor: '#d4d4d8', paddingTop: '12px', paddingBottom: '12px', borderTopWidth: '1px', borderBottomWidth: '1px', borderStyle: 'solid', borderColor: '#27272a', width: '100%' } },
+        props: {
+          text: 'الرئيسية    •    من نحن    •    أسطول السيارات    •    صالات العرض    •    خدمة كبار الشخصيات    •    تواصل معنا',
+        },
+        styles: {
+          desktop: {
+            fontSize: '13px',
+            fontWeight: '600',
+            textColor: '#d4d4d8',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderTopWidth: '1px',
+            borderBottomWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#27272a',
+            width: '100%',
+          },
+        },
       },
-      'tmpl_lux_copy': {
+      tmpl_lux_copy: {
         id: 'tmpl_lux_copy',
         name: 'حقوق الفخامة',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_ft_lux_box',
         childrenIds: [],
-        props: { text: 'جميع الحقوق محفوظة © 2025 شركة المجد للسيارات. الرياض - جمهورية مصر العربية.' },
+        props: {
+          text: 'جميع الحقوق محفوظة © 2025 شركة المجد للسيارات. الرياض - جمهورية مصر العربية.',
+        },
         styles: { desktop: { fontSize: '12px', textColor: '#52525b' } },
       },
     },
@@ -4333,11 +6876,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'ecommerce',
     style: 'modern',
     wireframeType: 'footer-ecommerce-badges',
-    descriptionAr: 'فوتر متجر مجهز بوسائل الدفع (مدى، فيزا، آبل باي، الدفع عند الاستلام، الدفع عند الاستلام) وشارات الأمان والشحن السريع وسياسات الاسترجاع.',
+    descriptionAr:
+      'فوتر متجر مجهز بوسائل الدفع (مدى، فيزا، آبل باي، الدفع عند الاستلام، الدفع عند الاستلام) وشارات الأمان والشحن السريع وسياسات الاسترجاع.',
     tags: ['footer', 'ecommerce', 'متجر', 'دفع', 'مدى', 'الدفع عند الاستلام'],
     rootNodeId: 'tmpl_ft_ecom_root',
     nodes: {
-      'tmpl_ft_ecom_root': {
+      tmpl_ft_ecom_root: {
         id: 'tmpl_ft_ecom_root',
         name: 'فوتر المتاجر وبوابات الدفع',
         type: 'footer',
@@ -4345,9 +6889,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_ft_ecom_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#0f172a', textColor: '#cbd5e1', paddingTop: '56px', paddingBottom: '36px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#0f172a',
+            textColor: '#cbd5e1',
+            paddingTop: '56px',
+            paddingBottom: '36px',
+          },
+        },
       },
-      'tmpl_ft_ecom_box': {
+      tmpl_ft_ecom_box: {
         id: 'tmpl_ft_ecom_box',
         name: 'حاوية المتجر',
         type: 'container',
@@ -4355,9 +6908,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_ecom_root',
         childrenIds: ['tmpl_ecom_trust_row', 'tmpl_ecom_grid', 'tmpl_ecom_payments'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_ecom_trust_row': {
+      tmpl_ecom_trust_row: {
         id: 'tmpl_ecom_trust_row',
         name: 'شريط الثقة والضمان',
         type: 'grid',
@@ -4365,9 +6926,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_ecom_box',
         childrenIds: ['tmpl_tr_item1', 'tmpl_tr_item2', 'tmpl_tr_item3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '20px', backgroundColor: '#1e293b', paddingLeft: '24px', paddingRight: '24px', paddingTop: '20px', paddingBottom: '20px', borderRadius: '12px', marginBottom: '40px' } },
+        styles: {
+          desktop: {
+            display: 'grid',
+            gridColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: '20px',
+            backgroundColor: '#1e293b',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '20px',
+            paddingBottom: '20px',
+            borderRadius: '12px',
+            marginBottom: '40px',
+          },
+        },
       },
-      'tmpl_tr_item1': {
+      tmpl_tr_item1: {
         id: 'tmpl_tr_item1',
         name: 'ميزة الدفع الآمن',
         type: 'paragraph',
@@ -4375,9 +6949,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ecom_trust_row',
         childrenIds: [],
         props: { text: '🔒 بوابات دفع إلكتروني مشفرة ومعتمدة 100%' },
-        styles: { desktop: { fontSize: '13px', fontWeight: '700', textColor: '#ffffff', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            fontSize: '13px',
+            fontWeight: '700',
+            textColor: '#ffffff',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_tr_item2': {
+      tmpl_tr_item2: {
         id: 'tmpl_tr_item2',
         name: 'ميزة التوصيل السريع',
         type: 'paragraph',
@@ -4385,9 +6966,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ecom_trust_row',
         childrenIds: [],
         props: { text: '🚚 توصيل وشحن سطحة مغلقة لكافة المدن' },
-        styles: { desktop: { fontSize: '13px', fontWeight: '700', textColor: '#ffffff', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            fontSize: '13px',
+            fontWeight: '700',
+            textColor: '#ffffff',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_tr_item3': {
+      tmpl_tr_item3: {
         id: 'tmpl_tr_item3',
         name: 'ميزة الضمان الذهبي',
         type: 'paragraph',
@@ -4395,9 +6983,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ecom_trust_row',
         childrenIds: [],
         props: { text: '🛡️ فحص شامل معتمد مع ضمان 5 سنوات' },
-        styles: { desktop: { fontSize: '13px', fontWeight: '700', textColor: '#ffffff', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            fontSize: '13px',
+            fontWeight: '700',
+            textColor: '#ffffff',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_ecom_grid': {
+      tmpl_ecom_grid: {
         id: 'tmpl_ecom_grid',
         name: 'أعمدة المتجر',
         type: 'grid',
@@ -4405,9 +7000,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_ecom_box',
         childrenIds: ['tmpl_ec_col1', 'tmpl_ec_col2', 'tmpl_ec_col3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '32px', marginBottom: '32px' } },
+        styles: {
+          desktop: {
+            display: 'grid',
+            gridColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: '32px',
+            marginBottom: '32px',
+          },
+        },
       },
-      'tmpl_ec_col1': {
+      tmpl_ec_col1: {
         id: 'tmpl_ec_col1',
         name: 'عن المتجر الإلكتروني',
         type: 'flex',
@@ -4416,11 +7018,16 @@ export const sectionTemplates: SectionTemplate[] = [
         childrenIds: [],
         props: {
           heading: 'المتجر الإلكتروني',
-          links: ['تصفح أحدث الموديلات', 'حجز ومعاينة السيارة', 'حاسبة التمويل والأقساط', 'عروض التصفية الحصرية'],
+          links: [
+            'تصفح أحدث الموديلات',
+            'حجز ومعاينة السيارة',
+            'حاسبة التمويل والأقساط',
+            'عروض التصفية الحصرية',
+          ],
         },
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '10px' } },
       },
-      'tmpl_ec_col2': {
+      tmpl_ec_col2: {
         id: 'tmpl_ec_col2',
         name: 'خدمة العملاء والسياسات',
         type: 'flex',
@@ -4429,11 +7036,16 @@ export const sectionTemplates: SectionTemplate[] = [
         childrenIds: [],
         props: {
           heading: 'خدمة العملاء',
-          links: ['الأسئلة الشائعة حول الحجز', 'سياسة الاستبدال والضمان', 'الشحن والتوصيل', 'تتبع حالة طلبك'],
+          links: [
+            'الأسئلة الشائعة حول الحجز',
+            'سياسة الاستبدال والضمان',
+            'الشحن والتوصيل',
+            'تتبع حالة طلبك',
+          ],
         },
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '10px' } },
       },
-      'tmpl_ec_col3': {
+      tmpl_ec_col3: {
         id: 'tmpl_ec_col3',
         name: 'تواصل مباشر مع المتجر',
         type: 'flex',
@@ -4442,11 +7054,15 @@ export const sectionTemplates: SectionTemplate[] = [
         childrenIds: [],
         props: {
           heading: 'الدعم والمساعدة',
-          info: ['📱 واتساب المبيعات: 0501234567', '✉️ بريد الدعم: sales@store.sa', '🕒 خدمة العملاء: يومياً 8 ص - 11 م'],
+          info: [
+            '📱 واتساب المبيعات: 0501234567',
+            '✉️ بريد الدعم: sales@store.sa',
+            '🕒 خدمة العملاء: يومياً 8 ص - 11 م',
+          ],
         },
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '10px' } },
       },
-      'tmpl_ecom_payments': {
+      tmpl_ecom_payments: {
         id: 'tmpl_ecom_payments',
         name: 'شريط وسائل الدفع',
         type: 'container',
@@ -4454,17 +7070,34 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_ecom_box',
         childrenIds: ['tmpl_pay_text'],
         props: {},
-        styles: { desktop: { borderTopWidth: '1px', borderStyle: 'solid', borderColor: '#334155', paddingTop: '24px', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            borderTopWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#334155',
+            paddingTop: '24px',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_pay_text': {
+      tmpl_pay_text: {
         id: 'tmpl_pay_text',
         name: 'نصوص وسائل الدفع والترخيص',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_ecom_payments',
         childrenIds: [],
-        props: { text: '💳 نقبل: مدى | فيزا | ماستركارد | Apple Pay | الدفع عند الاستلام | الدفع عند الاستلام | تحويل بنكي مباشر\nموثق لدى المركز السعودي للأعمال ومنصة معروف' },
-        styles: { desktop: { fontSize: '12px', textColor: '#94a3b8', lineHeight: '2', whiteSpace: 'pre-line' } },
+        props: {
+          text: '💳 نقبل: مدى | فيزا | ماستركارد | Apple Pay | الدفع عند الاستلام | الدفع عند الاستلام | تحويل بنكي مباشر\nموثق لدى المركز السعودي للأعمال ومنصة معروف',
+        },
+        styles: {
+          desktop: {
+            fontSize: '12px',
+            textColor: '#94a3b8',
+            lineHeight: '2',
+            whiteSpace: 'pre-line',
+          },
+        },
       },
     },
   },
@@ -4477,11 +7110,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'clean',
     wireframeType: 'footer-light-modern-split',
-    descriptionAr: 'فوتر بلون أبيض ناصع وتصميم نظيف جداً يناسب المواقع العصرية مع ساعات الدوام وروابط خرائط جوجل.',
+    descriptionAr:
+      'فوتر بلون أبيض ناصع وتصميم نظيف جداً يناسب المواقع العصرية مع ساعات الدوام وروابط خرائط جوجل.',
     tags: ['footer', 'light', 'أبيض', 'ساعات عمل', 'خريطة'],
     rootNodeId: 'tmpl_ft_light_root',
     nodes: {
-      'tmpl_ft_light_root': {
+      tmpl_ft_light_root: {
         id: 'tmpl_ft_light_root',
         name: 'فوتر عصري خفيف',
         type: 'footer',
@@ -4489,9 +7123,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_ft_light_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', textColor: '#475569', paddingTop: '64px', paddingBottom: '32px', borderTopWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            textColor: '#475569',
+            paddingTop: '64px',
+            paddingBottom: '32px',
+            borderTopWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+          },
+        },
       },
-      'tmpl_ft_light_box': {
+      tmpl_ft_light_box: {
         id: 'tmpl_ft_light_box',
         name: 'حاوية الفوتر الخفيف',
         type: 'container',
@@ -4499,9 +7145,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_light_root',
         childrenIds: ['tmpl_ftl_grid', 'tmpl_ftl_bottom'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_ftl_grid': {
+      tmpl_ftl_grid: {
         id: 'tmpl_ftl_grid',
         name: 'أعمدة الفوتر الخفيف',
         type: 'grid',
@@ -4509,9 +7163,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_light_box',
         childrenIds: ['tmpl_fl_col1', 'tmpl_fl_col2', 'tmpl_fl_col3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: '1.5fr 1fr 1.5fr', gap: '48px', marginBottom: '40px' } },
+        styles: {
+          desktop: {
+            display: 'grid',
+            gridColumns: '1.5fr 1fr 1.5fr',
+            gap: '48px',
+            marginBottom: '40px',
+          },
+        },
       },
-      'tmpl_fl_col1': {
+      tmpl_fl_col1: {
         id: 'tmpl_fl_col1',
         name: 'نبذة وشعار الفوتر الخفيف',
         type: 'container',
@@ -4521,7 +7182,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: {},
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '14px' } },
       },
-      'tmpl_fl_logo': {
+      tmpl_fl_logo: {
         id: 'tmpl_fl_logo',
         name: 'شعار الفوتر',
         type: 'heading',
@@ -4531,17 +7192,19 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'المجد للسيارات' },
         styles: { desktop: { fontSize: '22px', fontWeight: '800', textColor: '#0f172a' } },
       },
-      'tmpl_fl_text': {
+      tmpl_fl_text: {
         id: 'tmpl_fl_text',
         name: 'نص الفوتر',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_fl_col1',
         childrenIds: [],
-        props: { text: 'نسعد بتقديم أفضل تجربة شراء سيارات فاخرة في جمهورية مصر العربية مع الالتزام بأعلى معايير الدقة والشفافية.' },
+        props: {
+          text: 'نسعد بتقديم أفضل تجربة شراء سيارات فاخرة في جمهورية مصر العربية مع الالتزام بأعلى معايير الدقة والشفافية.',
+        },
         styles: { desktop: { fontSize: '14px', textColor: '#64748b', lineHeight: '1.7' } },
       },
-      'tmpl_fl_wa': {
+      tmpl_fl_wa: {
         id: 'tmpl_fl_wa',
         name: 'زر واتساب خفيف',
         type: 'button',
@@ -4549,9 +7212,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_fl_col1',
         childrenIds: [],
         props: { text: '💬 تواصل فوري عبر الواتساب' },
-        styles: { desktop: { backgroundColor: '#22c55e', textColor: '#ffffff', paddingLeft: '20px', paddingRight: '20px', paddingTop: '10px', paddingBottom: '10px', borderRadius: '8px', fontWeight: '700', fontSize: '13px', width: 'fit-content' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#22c55e',
+            textColor: '#ffffff',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '13px',
+            width: 'fit-content',
+          },
+        },
       },
-      'tmpl_fl_col2': {
+      tmpl_fl_col2: {
         id: 'tmpl_fl_col2',
         name: 'أقسام الموقع',
         type: 'flex',
@@ -4564,7 +7240,7 @@ export const sectionTemplates: SectionTemplate[] = [
         },
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '10px' } },
       },
-      'tmpl_fl_col3': {
+      tmpl_fl_col3: {
         id: 'tmpl_fl_col3',
         name: 'أوقات العمل والموقع',
         type: 'flex',
@@ -4573,11 +7249,16 @@ export const sectionTemplates: SectionTemplate[] = [
         childrenIds: [],
         props: {
           heading: 'أوقات العمل والفروع',
-          info: ['📍 صالة الرياض: طريق الملك فهد - حي الصحافة', '🕒 السبت - الخميس: 9:00 ص - 10:00 م', '🕒 الجمعة: 4:00 م - 10:00 م', '📞 الهاتف: 0112345678'],
+          info: [
+            '📍 صالة الرياض: طريق الملك فهد - حي الصحافة',
+            '🕒 السبت - الخميس: 9:00 ص - 10:00 م',
+            '🕒 الجمعة: 4:00 م - 10:00 م',
+            '📞 الهاتف: 0112345678',
+          ],
         },
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '10px' } },
       },
-      'tmpl_ftl_bottom': {
+      tmpl_ftl_bottom: {
         id: 'tmpl_ftl_bottom',
         name: 'شريط سفلي خفيف',
         type: 'container',
@@ -4585,9 +7266,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_light_box',
         childrenIds: ['tmpl_fl_copy'],
         props: {},
-        styles: { desktop: { borderTopWidth: '1px', borderStyle: 'solid', borderColor: '#f1f5f9', paddingTop: '20px', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            borderTopWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#f1f5f9',
+            paddingTop: '20px',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_fl_copy': {
+      tmpl_fl_copy: {
         id: 'tmpl_fl_copy',
         name: 'حقوق الموقع الخفيف',
         type: 'paragraph',
@@ -4608,11 +7297,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'corporate',
     wireframeType: 'footer-directory-categories',
-    descriptionAr: 'فوتر غني بالأعمدة المتعددة (5 أعمدة) لتصنيف السيارات والموديلات والخدمات والمدن والشركاء.',
+    descriptionAr:
+      'فوتر غني بالأعمدة المتعددة (5 أعمدة) لتصنيف السيارات والموديلات والخدمات والمدن والشركاء.',
     tags: ['footer', 'directory', 'أدلة', 'تصنيفات', 'أعمدة'],
     rootNodeId: 'tmpl_ft_dir_root',
     nodes: {
-      'tmpl_ft_dir_root': {
+      tmpl_ft_dir_root: {
         id: 'tmpl_ft_dir_root',
         name: 'فوتر الأدلة الشاملة',
         type: 'footer',
@@ -4620,9 +7310,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_ft_dir_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#0b0f19', textColor: '#94a3b8', paddingTop: '64px', paddingBottom: '36px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#0b0f19',
+            textColor: '#94a3b8',
+            paddingTop: '64px',
+            paddingBottom: '36px',
+          },
+        },
       },
-      'tmpl_ft_dir_box': {
+      tmpl_ft_dir_box: {
         id: 'tmpl_ft_dir_box',
         name: 'حاوية الأدلة',
         type: 'container',
@@ -4630,9 +7329,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_dir_root',
         childrenIds: ['tmpl_dir_grid', 'tmpl_dir_bot'],
         props: {},
-        styles: { desktop: { maxWidth: '1280px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1280px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_dir_grid': {
+      tmpl_dir_grid: {
         id: 'tmpl_dir_grid',
         name: 'شبكة 4 أعمدة تصنيفية',
         type: 'grid',
@@ -4640,9 +7347,16 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_dir_box',
         childrenIds: ['tmpl_dg_col1', 'tmpl_dg_col2', 'tmpl_dg_col3', 'tmpl_dg_col4'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(4, minmax(0, 1fr))', gap: '32px', marginBottom: '40px' } },
+        styles: {
+          desktop: {
+            display: 'grid',
+            gridColumns: 'repeat(4, minmax(0, 1fr))',
+            gap: '32px',
+            marginBottom: '40px',
+          },
+        },
       },
-      'tmpl_dg_col1': {
+      tmpl_dg_col1: {
         id: 'tmpl_dg_col1',
         name: 'ماركات السيارات',
         type: 'flex',
@@ -4651,11 +7365,17 @@ export const sectionTemplates: SectionTemplate[] = [
         childrenIds: [],
         props: {
           heading: 'أبرز الماركات',
-          links: ['مرسيدس بنز & AMG', 'بورش 911 وكايين', 'رينج روفر & ديفندر', 'بنتلي ورولز رويس', 'فيراري ولامبورغيني'],
+          links: [
+            'مرسيدس بنز & AMG',
+            'بورش 911 وكايين',
+            'رينج روفر & ديفندر',
+            'بنتلي ورولز رويس',
+            'فيراري ولامبورغيني',
+          ],
         },
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '10px' } },
       },
-      'tmpl_dg_col2': {
+      tmpl_dg_col2: {
         id: 'tmpl_dg_col2',
         name: 'فئات السيارات',
         type: 'flex',
@@ -4664,11 +7384,17 @@ export const sectionTemplates: SectionTemplate[] = [
         childrenIds: [],
         props: {
           heading: 'فئات الأسطول',
-          links: ['سيارات SUV الدفع الرباعي', 'سيدان VIP الفاخرة', 'كوبيه وسوبر سبورت', 'سيارات هايبرد وكهربائية', 'موديلات التسليم الفوري'],
+          links: [
+            'سيارات SUV الدفع الرباعي',
+            'سيدان VIP الفاخرة',
+            'كوبيه وسوبر سبورت',
+            'سيارات هايبرد وكهربائية',
+            'موديلات التسليم الفوري',
+          ],
         },
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '10px' } },
       },
-      'tmpl_dg_col3': {
+      tmpl_dg_col3: {
         id: 'tmpl_dg_col3',
         name: 'من نحن والمؤسسة',
         type: 'flex',
@@ -4677,11 +7403,17 @@ export const sectionTemplates: SectionTemplate[] = [
         childrenIds: [],
         props: {
           heading: 'عن شركة المجد',
-          links: ['قصتنا ورؤيتنا 2030', 'فريق الخبراء والمهندسين', 'فروع وصالات العرض', 'الاعتمادات وشهادات الجودة', 'أخبار المعرض والمناسبات'],
+          links: [
+            'قصتنا ورؤيتنا 2030',
+            'فريق الخبراء والمهندسين',
+            'فروع وصالات العرض',
+            'الاعتمادات وشهادات الجودة',
+            'أخبار المعرض والمناسبات',
+          ],
         },
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '10px' } },
       },
-      'tmpl_dg_col4': {
+      tmpl_dg_col4: {
         id: 'tmpl_dg_col4',
         name: 'الخدمات والحلول',
         type: 'flex',
@@ -4690,19 +7422,37 @@ export const sectionTemplates: SectionTemplate[] = [
         childrenIds: [],
         props: {
           heading: 'الخدمات والدعم',
-          links: ['طلب استيراد سيارة خاصة', 'خدمة تقييم وشراء سيارتك', 'شراكات البنوك والتمويل', 'حجز تجربة قيادة خاصة', 'تواصل مع الإدارة العليا'],
+          links: [
+            'طلب استيراد سيارة خاصة',
+            'خدمة تقييم وشراء سيارتك',
+            'شراكات البنوك والتمويل',
+            'حجز تجربة قيادة خاصة',
+            'تواصل مع الإدارة العليا',
+          ],
         },
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '10px' } },
       },
-      'tmpl_dir_bot': {
+      tmpl_dir_bot: {
         id: 'tmpl_dir_bot',
         name: 'الشريط السفلي',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_ft_dir_box',
         childrenIds: [],
-        props: { text: 'جميع الحقوق محفوظة © 2025 شركة المجد للسيارات الفاخرة | دليل شامل لكافة الموديلات والخدمات' },
-        styles: { desktop: { borderTopWidth: '1px', borderStyle: 'solid', borderColor: '#1e293b', paddingTop: '20px', fontSize: '12px', textColor: '#64748b', textAlign: 'center' } },
+        props: {
+          text: 'جميع الحقوق محفوظة © 2025 شركة المجد للسيارات الفاخرة | دليل شامل لكافة الموديلات والخدمات',
+        },
+        styles: {
+          desktop: {
+            borderTopWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#1e293b',
+            paddingTop: '20px',
+            fontSize: '12px',
+            textColor: '#64748b',
+            textAlign: 'center',
+          },
+        },
       },
     },
   },
@@ -4715,11 +7465,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'creative',
     wireframeType: 'footer-cta-social-bar',
-    descriptionAr: 'فوتر جذاب يبدأ ببانر تفاعلي لحجز موعد فوري، مع أزرار بارزة لشبكات التواصل الاجتماعي وأرقام الخط الساخن.',
+    descriptionAr:
+      'فوتر جذاب يبدأ ببانر تفاعلي لحجز موعد فوري، مع أزرار بارزة لشبكات التواصل الاجتماعي وأرقام الخط الساخن.',
     tags: ['footer', 'social', 'تواصل', 'بانر', 'سوشيال ميديا'],
     rootNodeId: 'tmpl_ft_soc_root',
     nodes: {
-      'tmpl_ft_soc_root': {
+      tmpl_ft_soc_root: {
         id: 'tmpl_ft_soc_root',
         name: 'فوتر التفاعل وشبكات التواصل',
         type: 'footer',
@@ -4727,9 +7478,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_ft_soc_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#020617', textColor: '#e2e8f0', paddingTop: '48px', paddingBottom: '32px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#020617',
+            textColor: '#e2e8f0',
+            paddingTop: '48px',
+            paddingBottom: '32px',
+          },
+        },
       },
-      'tmpl_ft_soc_box': {
+      tmpl_ft_soc_box: {
         id: 'tmpl_ft_soc_box',
         name: 'حاوية فوتر التواصل',
         type: 'container',
@@ -4737,9 +7497,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_soc_root',
         childrenIds: ['tmpl_soc_banner', 'tmpl_soc_icons_row', 'tmpl_soc_copy'],
         props: {},
-        styles: { desktop: { maxWidth: '1100px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px', display: 'flex', flexDirection: 'column', gap: '32px', alignItems: 'center', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            maxWidth: '1100px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '32px',
+            alignItems: 'center',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_soc_banner': {
+      tmpl_soc_banner: {
         id: 'tmpl_soc_banner',
         name: 'بانر الفوتر التفاعلي',
         type: 'card',
@@ -4747,9 +7520,25 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ft_soc_box',
         childrenIds: ['tmpl_sb_text', 'tmpl_sb_btn'],
         props: {},
-        styles: { desktop: { width: '100%', backgroundColor: '#1e1b4b', paddingLeft: '32px', paddingRight: '32px', paddingTop: '24px', paddingBottom: '24px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderWidth: '1px', borderStyle: 'solid', borderColor: '#4338ca' } },
+        styles: {
+          desktop: {
+            width: '100%',
+            backgroundColor: '#1e1b4b',
+            paddingLeft: '32px',
+            paddingRight: '32px',
+            paddingTop: '24px',
+            paddingBottom: '24px',
+            borderRadius: '16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#4338ca',
+          },
+        },
       },
-      'tmpl_sb_text': {
+      tmpl_sb_text: {
         id: 'tmpl_sb_text',
         name: 'نص البانر',
         type: 'heading',
@@ -4759,7 +7548,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: '✨ هل لديك استفسار خاص أو تبحث عن سيارة نادرة؟' },
         styles: { desktop: { fontSize: '17px', fontWeight: '800', textColor: '#ffffff' } },
       },
-      'tmpl_sb_btn': {
+      tmpl_sb_btn: {
         id: 'tmpl_sb_btn',
         name: 'زر تواصل مباشر',
         type: 'button',
@@ -4767,26 +7556,57 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_soc_banner',
         childrenIds: [],
         props: { text: 'تحدث مع المستشار الآن 📞' },
-        styles: { desktop: { backgroundColor: '#4f46e5', textColor: '#ffffff', paddingLeft: '20px', paddingRight: '20px', paddingTop: '10px', paddingBottom: '10px', borderRadius: '10px', fontWeight: '700', fontSize: '13px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#4f46e5',
+            textColor: '#ffffff',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            borderRadius: '10px',
+            fontWeight: '700',
+            fontSize: '13px',
+          },
+        },
       },
-      'tmpl_soc_icons_row': {
+      tmpl_soc_icons_row: {
         id: 'tmpl_soc_icons_row',
         name: 'شبكات التواصل',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_ft_soc_box',
         childrenIds: [],
-        props: { text: 'تابعنا على منصات التواصل: 𝕏 تويتر  •  📸 انستغرام  •  💼 لينكد إن  •  ▶️ يوتيوب  •  🎵 تيك توك  •  💬 واتساب' },
-        styles: { desktop: { fontSize: '14px', fontWeight: '600', textColor: '#a5b4fc', backgroundColor: '#0f172a', paddingLeft: '24px', paddingRight: '24px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '9999px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#1e293b' } },
+        props: {
+          text: 'تابعنا على منصات التواصل: 𝕏 تويتر  •  📸 انستغرام  •  💼 لينكد إن  •  ▶️ يوتيوب  •  🎵 تيك توك  •  💬 واتساب',
+        },
+        styles: {
+          desktop: {
+            fontSize: '14px',
+            fontWeight: '600',
+            textColor: '#a5b4fc',
+            backgroundColor: '#0f172a',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '9999px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#1e293b',
+          },
+        },
       },
-      'tmpl_soc_copy': {
+      tmpl_soc_copy: {
         id: 'tmpl_soc_copy',
         name: 'حقوق الفوتر التفاعلي',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_ft_soc_box',
         childrenIds: [],
-        props: { text: 'جميع الحقوق محفوظة © 2025 شركة المجد للسيارات الفاخرة | الرياض - جدة - الخبر' },
+        props: {
+          text: 'جميع الحقوق محفوظة © 2025 شركة المجد للسيارات الفاخرة | الرياض - جدة - الخبر',
+        },
         styles: { desktop: { fontSize: '12px', textColor: '#64748b' } },
       },
     },
@@ -4803,11 +7623,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'modern',
     wireframeType: 'about-story-timeline',
-    descriptionAr: 'عرض متكامل لقصة وتأسيس المعرض مع خط زمني لمحطات التوسع والإنجازات من 2015 وحتى اليوم.',
+    descriptionAr:
+      'عرض متكامل لقصة وتأسيس المعرض مع خط زمني لمحطات التوسع والإنجازات من 2015 وحتى اليوم.',
     tags: ['about', 'من نحن', 'قصة', 'مسيرة', 'سنوات'],
     rootNodeId: 'tmpl_ab_story_root',
     nodes: {
-      'tmpl_ab_story_root': {
+      tmpl_ab_story_root: {
         id: 'tmpl_ab_story_root',
         name: 'قسم قصة الشركة',
         type: 'features',
@@ -4815,9 +7636,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_abs_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', paddingTop: '64px', paddingBottom: '64px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            paddingTop: '64px',
+            paddingBottom: '64px',
+          },
+        },
       },
-      'tmpl_abs_box': {
+      tmpl_abs_box: {
         id: 'tmpl_abs_box',
         name: 'حاوية القصة',
         type: 'container',
@@ -4825,9 +7654,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ab_story_root',
         childrenIds: ['tmpl_abs_head', 'tmpl_abs_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1180px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px', display: 'flex', flexDirection: 'column', gap: '32px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1180px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '32px',
+          },
+        },
       },
-      'tmpl_abs_head': {
+      tmpl_abs_head: {
         id: 'tmpl_abs_head',
         name: 'عنوان القصة',
         type: 'flex',
@@ -4837,11 +7677,19 @@ export const sectionTemplates: SectionTemplate[] = [
         props: {
           badge: '✨ مسيرة التميز',
           title: 'عقد من الريادة في عالم السيارات الفاخرة',
-          subtitle: 'انطلقنا في عام 2015 برؤية واضحة لإعادة تعريف تجربة اقتناء السيارات الفارهة في مصر مع توفير أعلى درجات الثقة والفحص المعتمد.',
+          subtitle:
+            'انطلقنا في عام 2015 برؤية واضحة لإعادة تعريف تجربة اقتناء السيارات الفارهة في مصر مع توفير أعلى درجات الثقة والفحص المعتمد.',
         },
-        styles: { desktop: { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_abs_grid': {
+      tmpl_abs_grid: {
         id: 'tmpl_abs_grid',
         name: 'شبكة محطات التأسيس',
         type: 'grid',
@@ -4849,37 +7697,78 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_abs_box',
         childrenIds: ['tmpl_abs_c1', 'tmpl_abs_c2', 'tmpl_abs_c3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '20px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '20px' },
+        },
       },
-      'tmpl_abs_c1': {
+      tmpl_abs_c1: {
         id: 'tmpl_abs_c1',
         name: 'بطاقة الانطلاقة',
         type: 'card',
         category: 'section',
         parentId: 'tmpl_abs_grid',
         childrenIds: [],
-        props: { badge: '2015', title: 'البداية والتأسيس', description: 'افتتاح أول صالة عرض بالرياض متخصصة في السيارات الفارهة وسوبر سبورت.' },
-        styles: { desktop: { backgroundColor: '#f8fafc', padding: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0' } },
+        props: {
+          badge: '2015',
+          title: 'البداية والتأسيس',
+          description: 'افتتاح أول صالة عرض بالرياض متخصصة في السيارات الفارهة وسوبر سبورت.',
+        },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            padding: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+          },
+        },
       },
-      'tmpl_abs_c2': {
+      tmpl_abs_c2: {
         id: 'tmpl_abs_c2',
         name: 'بطاقة الفحص المعتمد',
         type: 'card',
         category: 'section',
         parentId: 'tmpl_abs_grid',
         childrenIds: [],
-        props: { badge: '2021', title: 'اعتماد فحص 150+ نقطة', description: 'تطبيق أعلى بروتوكولات الفحص الهندسي والميكانيكي المعتمد أوروبياً.' },
-        styles: { desktop: { backgroundColor: '#f8fafc', padding: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0' } },
+        props: {
+          badge: '2021',
+          title: 'اعتماد فحص 150+ نقطة',
+          description: 'تطبيق أعلى بروتوكولات الفحص الهندسي والميكانيكي المعتمد أوروبياً.',
+        },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            padding: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+          },
+        },
       },
-      'tmpl_abs_c3': {
+      tmpl_abs_c3: {
         id: 'tmpl_abs_c3',
         name: 'بطاقة التوسع',
         type: 'card',
         category: 'section',
         parentId: 'tmpl_abs_grid',
         childrenIds: [],
-        props: { badge: '2025', title: 'التوسع والشحن لكافة المدن', description: 'صالات عرض بالرياض وجدة والخبر مع شحن سطحة VIP لكافة مناطق مصر.' },
-        styles: { desktop: { backgroundColor: '#eff6ff', padding: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#93c5fd' } },
+        props: {
+          badge: '2025',
+          title: 'التوسع والشحن لكافة المدن',
+          description: 'صالات عرض بالرياض وجدة والخبر مع شحن سطحة VIP لكافة مناطق مصر.',
+        },
+        styles: {
+          desktop: {
+            backgroundColor: '#eff6ff',
+            padding: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#93c5fd',
+          },
+        },
       },
     },
   },
@@ -4891,11 +7780,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'luxury',
     wireframeType: 'about-split-ceo',
-    descriptionAr: 'تصميم منقسم أنيق يبرز كلمة الرئيس التنفيذي ورسالة المعرض بجانب صورة رمزية وتوقيع الإدارة.',
+    descriptionAr:
+      'تصميم منقسم أنيق يبرز كلمة الرئيس التنفيذي ورسالة المعرض بجانب صورة رمزية وتوقيع الإدارة.',
     tags: ['about', 'من نحن', 'رئيس تنفيذي', 'كلمة الإدارة', 'رؤية'],
     rootNodeId: 'tmpl_ab_ceo_root',
     nodes: {
-      'tmpl_ab_ceo_root': {
+      tmpl_ab_ceo_root: {
         id: 'tmpl_ab_ceo_root',
         name: 'قسم كلمة الإدارة Split',
         type: 'features',
@@ -4903,9 +7793,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_ab_ceo_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#0f172a', textColor: '#ffffff', paddingTop: '72px', paddingBottom: '72px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#0f172a',
+            textColor: '#ffffff',
+            paddingTop: '72px',
+            paddingBottom: '72px',
+          },
+        },
       },
-      'tmpl_ab_ceo_box': {
+      tmpl_ab_ceo_box: {
         id: 'tmpl_ab_ceo_box',
         name: 'حاوية كلمة الإدارة',
         type: 'grid',
@@ -4913,9 +7812,21 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ab_ceo_root',
         childrenIds: ['tmpl_ab_ceo_text_card', 'tmpl_ab_ceo_img_card'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(2, minmax(0, 1fr))', gap: '48px', alignItems: 'center', maxWidth: '1200px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' } },
+        styles: {
+          desktop: {
+            display: 'grid',
+            gridColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: '48px',
+            alignItems: 'center',
+            maxWidth: '1200px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
       },
-      'tmpl_ab_ceo_text_card': {
+      tmpl_ab_ceo_text_card: {
         id: 'tmpl_ab_ceo_text_card',
         name: 'بطاقة نص الرسالة',
         type: 'card',
@@ -4925,7 +7836,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: {},
         styles: { desktop: { display: 'flex', flexDirection: 'column', gap: '16px' } },
       },
-      'tmpl_ab_badge': {
+      tmpl_ab_badge: {
         id: 'tmpl_ab_badge',
         name: 'شارة الرؤية',
         type: 'badge',
@@ -4933,9 +7844,22 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ab_ceo_text_card',
         childrenIds: [],
         props: { text: '🏛️ رسالة القيادة والرؤية' },
-        styles: { desktop: { backgroundColor: 'rgba(59, 130, 246, 0.2)', textColor: '#60a5fa', fontSize: '13px', fontWeight: '700', paddingLeft: '14px', paddingRight: '14px', paddingTop: '6px', paddingBottom: '6px', borderRadius: '9999px', width: 'fit-content' } },
+        styles: {
+          desktop: {
+            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+            textColor: '#60a5fa',
+            fontSize: '13px',
+            fontWeight: '700',
+            paddingLeft: '14px',
+            paddingRight: '14px',
+            paddingTop: '6px',
+            paddingBottom: '6px',
+            borderRadius: '9999px',
+            width: 'fit-content',
+          },
+        },
       },
-      'tmpl_ab_title': {
+      tmpl_ab_title: {
         id: 'tmpl_ab_title',
         name: 'عنوان الرسالة',
         type: 'heading',
@@ -4943,19 +7867,30 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ab_ceo_text_card',
         childrenIds: [],
         props: { text: 'شغف بالفخامة والتزام راسخ بالثقة والريادة' },
-        styles: { desktop: { fontSize: '28px', fontWeight: '900', textColor: '#ffffff', lineHeight: '1.4' } },
+        styles: {
+          desktop: { fontSize: '28px', fontWeight: '900', textColor: '#ffffff', lineHeight: '1.4' },
+        },
       },
-      'tmpl_ab_quote': {
+      tmpl_ab_quote: {
         id: 'tmpl_ab_quote',
         name: 'اقتباس الإدارة',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmpl_ab_ceo_text_card',
         childrenIds: [],
-        props: { text: '« نؤمن بأن شراء سيارة فارهة هو تجربة شخصية راقية تتطلب أقصى معايير النزاهة والاهتمام بالتفاصيل. نرافق عملاءنا في كل خطوة لنمنحهم الطمأنينة الكاملة والتميز الحقيقي. »' },
-        styles: { desktop: { fontSize: '16px', textColor: '#cbd5e1', lineHeight: '1.8', fontStyle: 'italic' } },
+        props: {
+          text: '« نؤمن بأن شراء سيارة فارهة هو تجربة شخصية راقية تتطلب أقصى معايير النزاهة والاهتمام بالتفاصيل. نرافق عملاءنا في كل خطوة لنمنحهم الطمأنينة الكاملة والتميز الحقيقي. »',
+        },
+        styles: {
+          desktop: {
+            fontSize: '16px',
+            textColor: '#cbd5e1',
+            lineHeight: '1.8',
+            fontStyle: 'italic',
+          },
+        },
       },
-      'tmpl_ab_sign': {
+      tmpl_ab_sign: {
         id: 'tmpl_ab_sign',
         name: 'التوقيع والمنصب',
         type: 'heading',
@@ -4965,7 +7900,7 @@ export const sectionTemplates: SectionTemplate[] = [
         props: { text: 'م. سلطان الهذلول — المؤسس والرئيس التنفيذي' },
         styles: { desktop: { fontSize: '14px', fontWeight: '800', textColor: '#60a5fa' } },
       },
-      'tmpl_ab_ceo_img_card': {
+      tmpl_ab_ceo_img_card: {
         id: 'tmpl_ab_ceo_img_card',
         name: 'بطاقة الصورة',
         type: 'card',
@@ -4973,16 +7908,27 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ab_ceo_box',
         childrenIds: ['tmpl_ab_img'],
         props: {},
-        styles: { desktop: { borderRadius: '24px', overflow: 'hidden', borderWidth: '1px', borderStyle: 'solid', borderColor: '#334155' } },
+        styles: {
+          desktop: {
+            borderRadius: '24px',
+            overflow: 'hidden',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#334155',
+          },
+        },
       },
-      'tmpl_ab_img': {
+      tmpl_ab_img: {
         id: 'tmpl_ab_img',
         name: 'صورة صالة العرض أو الإدارة',
         type: 'image',
         category: 'media',
         parentId: 'tmpl_ab_ceo_img_card',
         childrenIds: [],
-        props: { src: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&auto=format&fit=crop&q=80', alt: 'القيادة والرؤية' },
+        props: {
+          src: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&auto=format&fit=crop&q=80',
+          alt: 'القيادة والرؤية',
+        },
         styles: { desktop: { width: '100%', height: '360px', objectFit: 'cover' } },
       },
     },
@@ -4995,11 +7941,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'clean',
     wireframeType: 'about-values-pillars',
-    descriptionAr: 'عرض ركائز المعرض الأساسية: الشفافية المطلقة، خدمة الضيافة الملكية، والضمان الذهبي والشراكة الممتدة.',
+    descriptionAr:
+      'عرض ركائز المعرض الأساسية: الشفافية المطلقة، خدمة الضيافة الملكية، والضمان الذهبي والشراكة الممتدة.',
     tags: ['about', 'من نحن', 'قيم', 'ركائز', 'مبادئ'],
     rootNodeId: 'tmpl_ab_val_root',
     nodes: {
-      'tmpl_ab_val_root': {
+      tmpl_ab_val_root: {
         id: 'tmpl_ab_val_root',
         name: 'قسم القيم والركائز',
         type: 'bento',
@@ -5007,9 +7954,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_ab_val_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#f8fafc', paddingTop: '64px', paddingBottom: '64px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#f8fafc',
+            paddingTop: '64px',
+            paddingBottom: '64px',
+          },
+        },
       },
-      'tmpl_ab_val_box': {
+      tmpl_ab_val_box: {
         id: 'tmpl_ab_val_box',
         name: 'حاوية الركائز',
         type: 'container',
@@ -5017,9 +7972,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ab_val_root',
         childrenIds: ['tmpl_abv_head', 'tmpl_abv_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1200px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px', display: 'flex', flexDirection: 'column', gap: '32px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1200px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '32px',
+          },
+        },
       },
-      'tmpl_abv_head': {
+      tmpl_abv_head: {
         id: 'tmpl_abv_head',
         name: 'عنوان الركائز',
         type: 'flex',
@@ -5031,9 +7997,16 @@ export const sectionTemplates: SectionTemplate[] = [
           title: 'القيم التي تحكم كل خطوة في خدماتنا',
           subtitle: 'نلتزم بأعلى معايير الأمانة والشفافية لنمنحك تجربة خالية من المفاجآت.',
         },
-        styles: { desktop: { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_abv_grid': {
+      tmpl_abv_grid: {
         id: 'tmpl_abv_grid',
         name: 'شبكة الركائز الثلاثية',
         type: 'grid',
@@ -5041,37 +8014,81 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ab_val_box',
         childrenIds: ['tmpl_ab_v1', 'tmpl_ab_v2', 'tmpl_ab_v3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' },
+        },
       },
-      'tmpl_ab_v1': {
+      tmpl_ab_v1: {
         id: 'tmpl_ab_v1',
         name: 'ركيزة الشفافية',
         type: 'card',
         category: 'section',
         parentId: 'tmpl_abv_grid',
         childrenIds: [],
-        props: { title: '🔍 الشفافية المطلقة', description: 'تقرير فحص تفصيلي شامل لكل سيارة يوضح أدق التفاصيل وتاريخ الصيانة دون أي مواربة.' },
-        styles: { desktop: { backgroundColor: '#ffffff', padding: '32px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' } },
+        props: {
+          title: '🔍 الشفافية المطلقة',
+          description:
+            'تقرير فحص تفصيلي شامل لكل سيارة يوضح أدق التفاصيل وتاريخ الصيانة دون أي مواربة.',
+        },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            padding: '32px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+          },
+        },
       },
-      'tmpl_ab_v2': {
+      tmpl_ab_v2: {
         id: 'tmpl_ab_v2',
         name: 'ركيزة الضيافة الملكية',
         type: 'card',
         category: 'section',
         parentId: 'tmpl_abv_grid',
         childrenIds: [],
-        props: { title: '👑 ضيافة VIP استثنائية', description: 'صالات عرض فاخرة ومستشارون شخصيون يرافقونك خطوة بخطوة حتى استلام سيارتك بكل خصوصية.' },
-        styles: { desktop: { backgroundColor: '#ffffff', padding: '32px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' } },
+        props: {
+          title: '👑 ضيافة VIP استثنائية',
+          description:
+            'صالات عرض فاخرة ومستشارون شخصيون يرافقونك خطوة بخطوة حتى استلام سيارتك بكل خصوصية.',
+        },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            padding: '32px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+          },
+        },
       },
-      'tmpl_ab_v3': {
+      tmpl_ab_v3: {
         id: 'tmpl_ab_v3',
         name: 'ركيزة الضمان الذهبي',
         type: 'card',
         category: 'section',
         parentId: 'tmpl_abv_grid',
         childrenIds: [],
-        props: { title: '🏆 الضمان الذهبي الممتد', description: 'شراكتنا تبدأ بعد الشراء عبر برامج الضمان الشامل وخدمات المساعدة على الطريق 24/7.' },
-        styles: { desktop: { backgroundColor: '#ffffff', padding: '32px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' } },
+        props: {
+          title: '🏆 الضمان الذهبي الممتد',
+          description:
+            'شراكتنا تبدأ بعد الشراء عبر برامج الضمان الشامل وخدمات المساعدة على الطريق 24/7.',
+        },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            padding: '32px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+          },
+        },
       },
     },
   },
@@ -5083,11 +8100,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'corporate',
     wireframeType: 'about-branches-locations',
-    descriptionAr: 'عرض احترافي لصالات العرض في الرياض وجدة والخبر مع أوقات الدوام وأرقام الاتصال المباشرة ومرافق الضيافة.',
+    descriptionAr:
+      'عرض احترافي لصالات العرض في الرياض وجدة والخبر مع أوقات الدوام وأرقام الاتصال المباشرة ومرافق الضيافة.',
     tags: ['about', 'من نحن', 'فروع', 'صالات', 'مواقع'],
     rootNodeId: 'tmpl_ab_br_root',
     nodes: {
-      'tmpl_ab_br_root': {
+      tmpl_ab_br_root: {
         id: 'tmpl_ab_br_root',
         name: 'قسم الفروع وصالات العرض',
         type: 'features',
@@ -5095,9 +8113,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_abbr_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', paddingTop: '64px', paddingBottom: '64px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            paddingTop: '64px',
+            paddingBottom: '64px',
+          },
+        },
       },
-      'tmpl_abbr_box': {
+      tmpl_abbr_box: {
         id: 'tmpl_abbr_box',
         name: 'حاوية الفروع',
         type: 'container',
@@ -5105,9 +8131,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ab_br_root',
         childrenIds: ['tmpl_abbr_head', 'tmpl_abbr_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1200px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px', display: 'flex', flexDirection: 'column', gap: '32px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1200px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '32px',
+          },
+        },
       },
-      'tmpl_abbr_head': {
+      tmpl_abbr_head: {
         id: 'tmpl_abbr_head',
         name: 'عنوان الفروع',
         type: 'flex',
@@ -5117,11 +8154,19 @@ export const sectionTemplates: SectionTemplate[] = [
         props: {
           badge: '📍 تواجدنا في مصر',
           title: 'صالات عرض مهيأة بأحدث معايير الفخامة',
-          subtitle: 'تسعدنا زيارتكم في صالاتنا بالرياض، جدة، والخبر لتجربة قيادة فورية والاطلاع على أحدث الموديلات.',
+          subtitle:
+            'تسعدنا زيارتكم في صالاتنا بالرياض، جدة، والخبر لتجربة قيادة فورية والاطلاع على أحدث الموديلات.',
         },
-        styles: { desktop: { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_abbr_grid': {
+      tmpl_abbr_grid: {
         id: 'tmpl_abbr_grid',
         name: 'شبكة صالات المدن',
         type: 'grid',
@@ -5129,9 +8174,11 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_abbr_box',
         childrenIds: ['tmpl_abbr_c1', 'tmpl_abbr_c2', 'tmpl_abbr_c3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' },
+        },
       },
-      'tmpl_abbr_c1': {
+      tmpl_abbr_c1: {
         id: 'tmpl_abbr_c1',
         name: 'فرع الرياض الرئيسي',
         type: 'card',
@@ -5143,9 +8190,18 @@ export const sectionTemplates: SectionTemplate[] = [
           title: 'صالة طريق الملك فهد',
           description: '📍 حي الصحافة • 🕒 9 ص - 10:30 م • 📞 0112345678',
         },
-        styles: { desktop: { backgroundColor: '#f8fafc', padding: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            padding: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+          },
+        },
       },
-      'tmpl_abbr_c2': {
+      tmpl_abbr_c2: {
         id: 'tmpl_abbr_c2',
         name: 'فرع جدة',
         type: 'card',
@@ -5157,9 +8213,18 @@ export const sectionTemplates: SectionTemplate[] = [
           title: 'صالة طريق الملك عبدالعزيز',
           description: '📍 حي الشاطئ • 🕒 9:30 ص - 11 م • 📞 0123456789',
         },
-        styles: { desktop: { backgroundColor: '#f8fafc', padding: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            padding: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+          },
+        },
       },
-      'tmpl_abbr_c3': {
+      tmpl_abbr_c3: {
         id: 'tmpl_abbr_c3',
         name: 'فرع الخبر',
         type: 'card',
@@ -5171,7 +8236,16 @@ export const sectionTemplates: SectionTemplate[] = [
           title: 'صالة طريق الملك فيصل',
           description: '📍 حي الحزام الذهبي • 🕒 9 ص - 10 م • 📞 0134567890',
         },
-        styles: { desktop: { backgroundColor: '#f8fafc', padding: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#f8fafc',
+            padding: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+          },
+        },
       },
     },
   },
@@ -5183,11 +8257,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'luxury',
     wireframeType: 'about-certifications-awards',
-    descriptionAr: 'إبراز شهادات الأيزو، اعتماد الفحص TÜV الألماني، وجائزة أفضل معرض سيارات فاخرة في مصر لتعزيز الموثوقية.',
+    descriptionAr:
+      'إبراز شهادات الأيزو، اعتماد الفحص TÜV الألماني، وجائزة أفضل معرض سيارات فاخرة في مصر لتعزيز الموثوقية.',
     tags: ['about', 'من نحن', 'شهادات', 'اعتمادات', 'جوائز', 'أيزو'],
     rootNodeId: 'tmpl_ab_cert_root',
     nodes: {
-      'tmpl_ab_cert_root': {
+      tmpl_ab_cert_root: {
         id: 'tmpl_ab_cert_root',
         name: 'قسم الاعتمادات والجوائز',
         type: 'features',
@@ -5195,9 +8270,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmpl_abcert_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#0f172a', textColor: '#ffffff', paddingTop: '64px', paddingBottom: '64px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#0f172a',
+            textColor: '#ffffff',
+            paddingTop: '64px',
+            paddingBottom: '64px',
+          },
+        },
       },
-      'tmpl_abcert_box': {
+      tmpl_abcert_box: {
         id: 'tmpl_abcert_box',
         name: 'حاوية الاعتمادات',
         type: 'container',
@@ -5205,9 +8289,20 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_ab_cert_root',
         childrenIds: ['tmpl_abcert_head', 'tmpl_abcert_grid'],
         props: {},
-        styles: { desktop: { maxWidth: '1200px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px', display: 'flex', flexDirection: 'column', gap: '32px' } },
+        styles: {
+          desktop: {
+            maxWidth: '1200px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '32px',
+          },
+        },
       },
-      'tmpl_abcert_head': {
+      tmpl_abcert_head: {
         id: 'tmpl_abcert_head',
         name: 'عنوان الاعتمادات',
         type: 'flex',
@@ -5217,11 +8312,19 @@ export const sectionTemplates: SectionTemplate[] = [
         props: {
           badge: '🏅 جودة وضمان موثق',
           title: 'شهادات واعتمادات دولية تعزز ثقتكم',
-          subtitle: 'نطبق معايير إدارة الجودة العالمية مع فحص ميكانيكي معتمد من أكثر من 150 نقطة دقيقة.',
+          subtitle:
+            'نطبق معايير إدارة الجودة العالمية مع فحص ميكانيكي معتمد من أكثر من 150 نقطة دقيقة.',
         },
-        styles: { desktop: { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' } },
+        styles: {
+          desktop: {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+          },
+        },
       },
-      'tmpl_abcert_grid': {
+      tmpl_abcert_grid: {
         id: 'tmpl_abcert_grid',
         name: 'شبكة بطاقات الشهادات',
         type: 'grid',
@@ -5229,37 +8332,78 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmpl_abcert_box',
         childrenIds: ['tmpl_abc_c1', 'tmpl_abc_c2', 'tmpl_abc_c3'],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' } },
+        styles: {
+          desktop: { display: 'grid', gridColumns: 'repeat(3, minmax(0, 1fr))', gap: '24px' },
+        },
       },
-      'tmpl_abc_c1': {
+      tmpl_abc_c1: {
         id: 'tmpl_abc_c1',
         name: 'بطاقة الأيزو',
         type: 'card',
         category: 'section',
         parentId: 'tmpl_abcert_grid',
         childrenIds: [],
-        props: { badge: 'ISO 9001:2015', title: 'شهادة الجودة العالمية', description: 'اعتماد رسمي لنظام إدارة الجودة ورضا العملاء في تجارة السيارات الفارهة.' },
-        styles: { desktop: { backgroundColor: '#1e293b', padding: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#334155' } },
+        props: {
+          badge: 'ISO 9001:2015',
+          title: 'شهادة الجودة العالمية',
+          description: 'اعتماد رسمي لنظام إدارة الجودة ورضا العملاء في تجارة السيارات الفارهة.',
+        },
+        styles: {
+          desktop: {
+            backgroundColor: '#1e293b',
+            padding: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#334155',
+          },
+        },
       },
-      'tmpl_abc_c2': {
+      tmpl_abc_c2: {
         id: 'tmpl_abc_c2',
         name: 'بطاقة الفحص الألماني',
         type: 'card',
         category: 'section',
         parentId: 'tmpl_abcert_grid',
         childrenIds: [],
-        props: { badge: 'TÜV Certified', title: 'بروتوكول فحص 150+ نقطة', description: 'فحص ميكانيكي وهندسي معتمد يضمن سلامة الهيكل والمحرك والأنظمة الذكية.' },
-        styles: { desktop: { backgroundColor: '#1e293b', padding: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#334155' } },
+        props: {
+          badge: 'TÜV Certified',
+          title: 'بروتوكول فحص 150+ نقطة',
+          description: 'فحص ميكانيكي وهندسي معتمد يضمن سلامة الهيكل والمحرك والأنظمة الذكية.',
+        },
+        styles: {
+          desktop: {
+            backgroundColor: '#1e293b',
+            padding: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#334155',
+          },
+        },
       },
-      'tmpl_abc_c3': {
+      tmpl_abc_c3: {
         id: 'tmpl_abc_c3',
         name: 'بطاقة جائزة التميز',
         type: 'card',
         category: 'section',
         parentId: 'tmpl_abcert_grid',
         childrenIds: [],
-        props: { badge: 'Luxury Auto Awards', title: 'جائزة أفضل معرض فاره', description: 'تكريم لتميز صالات العرض وتجربة الضيافة وخدمات ما بعد البيع في مصر.' },
-        styles: { desktop: { backgroundColor: '#1e293b', padding: '24px', borderRadius: '16px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#334155' } },
+        props: {
+          badge: 'Luxury Auto Awards',
+          title: 'جائزة أفضل معرض فاره',
+          description: 'تكريم لتميز صالات العرض وتجربة الضيافة وخدمات ما بعد البيع في مصر.',
+        },
+        styles: {
+          desktop: {
+            backgroundColor: '#1e293b',
+            padding: '24px',
+            borderRadius: '16px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#334155',
+          },
+        },
       },
     },
   },
@@ -5276,11 +8420,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'modern',
     wireframeType: 'trust-badges-bar',
-    descriptionAr: 'أربع شارات ثقة أساسية للسوق المصري: دفع عند الاستلام، توصيل سريع، ضمان معتمد، ودعم واتساب مباشر.',
+    descriptionAr:
+      'أربع شارات ثقة أساسية للسوق المصري: دفع عند الاستلام، توصيل سريع، ضمان معتمد، ودعم واتساب مباشر.',
     tags: ['ثقة', 'دفع عند الاستلام', 'توصيل', 'ضمان', 'واتساب'],
     rootNodeId: 'tmplt_eg_trust_root',
     nodes: {
-      'tmplt_eg_trust_root': {
+      tmplt_eg_trust_root: {
         id: 'tmplt_eg_trust_root',
         name: 'قسم شارات الثقة',
         type: 'container',
@@ -5288,19 +8433,54 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmplt_eg_trust_box'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#f8fafc', paddingTop: '32px', paddingBottom: '32px', borderBottomWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0' }, mobile: { paddingTop: '20px', paddingBottom: '20px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#f8fafc',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            borderBottomWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+          },
+          mobile: { paddingTop: '20px', paddingBottom: '20px' },
+        },
       },
-      'tmplt_eg_trust_box': {
+      tmplt_eg_trust_box: {
         id: 'tmplt_eg_trust_box',
         name: 'شبكة الشارات',
         type: 'grid',
         category: 'layout',
         parentId: 'tmplt_eg_trust_root',
-        childrenIds: ['tmplt_eg_trust_c1', 'tmplt_eg_trust_c2', 'tmplt_eg_trust_c3', 'tmplt_eg_trust_c4'],
+        childrenIds: [
+          'tmplt_eg_trust_c1',
+          'tmplt_eg_trust_c2',
+          'tmplt_eg_trust_c3',
+          'tmplt_eg_trust_c4',
+        ],
         props: {},
-        styles: { desktop: { display: 'grid', gridColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px', maxWidth: '1200px', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '24px', paddingRight: '24px' }, mobile: { display: 'grid', gridColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px', paddingLeft: '14px', paddingRight: '14px' } },
+        styles: {
+          desktop: {
+            display: 'grid',
+            gridColumns: 'repeat(4, minmax(0, 1fr))',
+            gap: '16px',
+            maxWidth: '1200px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+          mobile: {
+            display: 'grid',
+            gridColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: '10px',
+            paddingLeft: '14px',
+            paddingRight: '14px',
+          },
+        },
       },
-      'tmplt_eg_trust_c1': {
+      tmplt_eg_trust_c1: {
         id: 'tmplt_eg_trust_c1',
         name: 'شارة دفع عند الاستلام',
         type: 'card',
@@ -5308,9 +8488,23 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_trust_box',
         childrenIds: ['tmplt_eg_trust_t1', 'tmplt_eg_trust_d1'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', borderRadius: '14px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', paddingTop: '18px', paddingBottom: '18px', paddingLeft: '16px', paddingRight: '16px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            borderRadius: '14px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            paddingTop: '18px',
+            paddingBottom: '18px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          },
+        },
       },
-      'tmplt_eg_trust_t1': {
+      tmplt_eg_trust_t1: {
         id: 'tmplt_eg_trust_t1',
         name: 'عنوان دفع عند الاستلام',
         type: 'heading',
@@ -5318,9 +8512,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_trust_c1',
         childrenIds: [],
         props: { text: '💵 دفع عند الاستلام' },
-        styles: { desktop: { fontSize: '15px', fontWeight: '800', textColor: '#0f172a', marginBottom: '4px' }, mobile: { fontSize: '13px' } },
+        styles: {
+          desktop: {
+            fontSize: '15px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            marginBottom: '4px',
+          },
+          mobile: { fontSize: '13px' },
+        },
       },
-      'tmplt_eg_trust_d1': {
+      tmplt_eg_trust_d1: {
         id: 'tmplt_eg_trust_d1',
         name: 'وصف دفع عند الاستلام',
         type: 'paragraph',
@@ -5328,9 +8530,12 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_trust_c1',
         childrenIds: [],
         props: { text: 'افحص طلبك وادفع كاش بعد التسليم' },
-        styles: { desktop: { fontSize: '12px', textColor: '#64748b', fontWeight: '600' }, mobile: { fontSize: '11px' } },
+        styles: {
+          desktop: { fontSize: '12px', textColor: '#64748b', fontWeight: '600' },
+          mobile: { fontSize: '11px' },
+        },
       },
-      'tmplt_eg_trust_c2': {
+      tmplt_eg_trust_c2: {
         id: 'tmplt_eg_trust_c2',
         name: 'شارة التوصيل',
         type: 'card',
@@ -5338,9 +8543,23 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_trust_box',
         childrenIds: ['tmplt_eg_trust_t2', 'tmplt_eg_trust_d2'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', borderRadius: '14px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', paddingTop: '18px', paddingBottom: '18px', paddingLeft: '16px', paddingRight: '16px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            borderRadius: '14px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            paddingTop: '18px',
+            paddingBottom: '18px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          },
+        },
       },
-      'tmplt_eg_trust_t2': {
+      tmplt_eg_trust_t2: {
         id: 'tmplt_eg_trust_t2',
         name: 'عنوان التوصيل',
         type: 'heading',
@@ -5348,9 +8567,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_trust_c2',
         childrenIds: [],
         props: { text: '🚚 توصيل لكل المحافظات' },
-        styles: { desktop: { fontSize: '15px', fontWeight: '800', textColor: '#0f172a', marginBottom: '4px' }, mobile: { fontSize: '13px' } },
+        styles: {
+          desktop: {
+            fontSize: '15px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            marginBottom: '4px',
+          },
+          mobile: { fontSize: '13px' },
+        },
       },
-      'tmplt_eg_trust_d2': {
+      tmplt_eg_trust_d2: {
         id: 'tmplt_eg_trust_d2',
         name: 'وصف التوصيل',
         type: 'paragraph',
@@ -5358,9 +8585,12 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_trust_c2',
         childrenIds: [],
         props: { text: 'شحن سريع من 2 إلى 4 أيام عمل' },
-        styles: { desktop: { fontSize: '12px', textColor: '#64748b', fontWeight: '600' }, mobile: { fontSize: '11px' } },
+        styles: {
+          desktop: { fontSize: '12px', textColor: '#64748b', fontWeight: '600' },
+          mobile: { fontSize: '11px' },
+        },
       },
-      'tmplt_eg_trust_c3': {
+      tmplt_eg_trust_c3: {
         id: 'tmplt_eg_trust_c3',
         name: 'شارة الضمان',
         type: 'card',
@@ -5368,9 +8598,23 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_trust_box',
         childrenIds: ['tmplt_eg_trust_t3', 'tmplt_eg_trust_d3'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', borderRadius: '14px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', paddingTop: '18px', paddingBottom: '18px', paddingLeft: '16px', paddingRight: '16px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            borderRadius: '14px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            paddingTop: '18px',
+            paddingBottom: '18px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          },
+        },
       },
-      'tmplt_eg_trust_t3': {
+      tmplt_eg_trust_t3: {
         id: 'tmplt_eg_trust_t3',
         name: 'عنوان الضمان',
         type: 'heading',
@@ -5378,9 +8622,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_trust_c3',
         childrenIds: [],
         props: { text: '🛡️ ضمان معتمد' },
-        styles: { desktop: { fontSize: '15px', fontWeight: '800', textColor: '#0f172a', marginBottom: '4px' }, mobile: { fontSize: '13px' } },
+        styles: {
+          desktop: {
+            fontSize: '15px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            marginBottom: '4px',
+          },
+          mobile: { fontSize: '13px' },
+        },
       },
-      'tmplt_eg_trust_d3': {
+      tmplt_eg_trust_d3: {
         id: 'tmplt_eg_trust_d3',
         name: 'وصف الضمان',
         type: 'paragraph',
@@ -5388,9 +8640,12 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_trust_c3',
         childrenIds: [],
         props: { text: 'منتجات أصلية بضمان رسمي موثق' },
-        styles: { desktop: { fontSize: '12px', textColor: '#64748b', fontWeight: '600' }, mobile: { fontSize: '11px' } },
+        styles: {
+          desktop: { fontSize: '12px', textColor: '#64748b', fontWeight: '600' },
+          mobile: { fontSize: '11px' },
+        },
       },
-      'tmplt_eg_trust_c4': {
+      tmplt_eg_trust_c4: {
         id: 'tmplt_eg_trust_c4',
         name: 'شارة الدعم',
         type: 'card',
@@ -5398,9 +8653,23 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_trust_box',
         childrenIds: ['tmplt_eg_trust_t4', 'tmplt_eg_trust_d4'],
         props: {},
-        styles: { desktop: { backgroundColor: '#ffffff', borderRadius: '14px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', paddingTop: '18px', paddingBottom: '18px', paddingLeft: '16px', paddingRight: '16px', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#ffffff',
+            borderRadius: '14px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            paddingTop: '18px',
+            paddingBottom: '18px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          },
+        },
       },
-      'tmplt_eg_trust_t4': {
+      tmplt_eg_trust_t4: {
         id: 'tmplt_eg_trust_t4',
         name: 'عنوان الدعم',
         type: 'heading',
@@ -5408,9 +8677,17 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_trust_c4',
         childrenIds: [],
         props: { text: '💬 دعم واتساب' },
-        styles: { desktop: { fontSize: '15px', fontWeight: '800', textColor: '#0f172a', marginBottom: '4px' }, mobile: { fontSize: '13px' } },
+        styles: {
+          desktop: {
+            fontSize: '15px',
+            fontWeight: '800',
+            textColor: '#0f172a',
+            marginBottom: '4px',
+          },
+          mobile: { fontSize: '13px' },
+        },
       },
-      'tmplt_eg_trust_d4': {
+      tmplt_eg_trust_d4: {
         id: 'tmplt_eg_trust_d4',
         name: 'وصف الدعم',
         type: 'paragraph',
@@ -5418,7 +8695,10 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_trust_c4',
         childrenIds: [],
         props: { text: 'فريق خدمة العملاء يرد عليك فوراً' },
-        styles: { desktop: { fontSize: '12px', textColor: '#64748b', fontWeight: '600' }, mobile: { fontSize: '11px' } },
+        styles: {
+          desktop: { fontSize: '12px', textColor: '#64748b', fontWeight: '600' },
+          mobile: { fontSize: '11px' },
+        },
       },
     },
   },
@@ -5430,11 +8710,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'clean',
     wireframeType: 'working-hours-card',
-    descriptionAr: 'بطاقة أوقات العمل اليومية مع أزرار اتصال وواتساب مباشرة — مناسبة للمحلات والعيادات والمطاعم.',
+    descriptionAr:
+      'بطاقة أوقات العمل اليومية مع أزرار اتصال وواتساب مباشرة — مناسبة للمحلات والعيادات والمطاعم.',
     tags: ['أوقات عمل', 'تواصل', 'واتساب', 'عيادات', 'محلات'],
     rootNodeId: 'tmplt_eg_hours_root',
     nodes: {
-      'tmplt_eg_hours_root': {
+      tmplt_eg_hours_root: {
         id: 'tmplt_eg_hours_root',
         name: 'قسم أوقات العمل',
         type: 'container',
@@ -5442,19 +8723,57 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmplt_eg_hours_card'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#ffffff', paddingTop: '56px', paddingBottom: '56px' }, mobile: { paddingTop: '28px', paddingBottom: '28px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            paddingTop: '56px',
+            paddingBottom: '56px',
+          },
+          mobile: { paddingTop: '28px', paddingBottom: '28px' },
+        },
       },
-      'tmplt_eg_hours_card': {
+      tmplt_eg_hours_card: {
         id: 'tmplt_eg_hours_card',
         name: 'بطاقة أوقات العمل',
         type: 'card',
         category: 'layout',
         parentId: 'tmplt_eg_hours_root',
-        childrenIds: ['tmplt_eg_hours_title', 'tmplt_eg_hours_sat_thu', 'tmplt_eg_hours_fri', 'tmplt_eg_hours_actions'],
+        childrenIds: [
+          'tmplt_eg_hours_title',
+          'tmplt_eg_hours_sat_thu',
+          'tmplt_eg_hours_fri',
+          'tmplt_eg_hours_actions',
+        ],
         props: {},
-        styles: { desktop: { maxWidth: '560px', marginLeft: 'auto', marginRight: 'auto', backgroundColor: '#f8fafc', borderRadius: '20px', borderWidth: '1px', borderStyle: 'solid', borderColor: '#e2e8f0', paddingTop: '32px', paddingBottom: '32px', paddingLeft: '28px', paddingRight: '28px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }, mobile: { marginLeft: '14px', marginRight: '14px', paddingTop: '22px', paddingBottom: '22px', paddingLeft: '18px', paddingRight: '18px' } },
+        styles: {
+          desktop: {
+            maxWidth: '560px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            backgroundColor: '#f8fafc',
+            borderRadius: '20px',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: '#e2e8f0',
+            paddingTop: '32px',
+            paddingBottom: '32px',
+            paddingLeft: '28px',
+            paddingRight: '28px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+          },
+          mobile: {
+            marginLeft: '14px',
+            marginRight: '14px',
+            paddingTop: '22px',
+            paddingBottom: '22px',
+            paddingLeft: '18px',
+            paddingRight: '18px',
+          },
+        },
       },
-      'tmplt_eg_hours_title': {
+      tmplt_eg_hours_title: {
         id: 'tmplt_eg_hours_title',
         name: 'عنوان أوقات العمل',
         type: 'heading',
@@ -5462,9 +8781,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_hours_card',
         childrenIds: [],
         props: { text: '🕐 مواعيد العمل' },
-        styles: { desktop: { fontSize: '22px', fontWeight: '900', textColor: '#0f172a', marginBottom: '16px', textAlign: 'center' }, mobile: { fontSize: '18px' } },
+        styles: {
+          desktop: {
+            fontSize: '22px',
+            fontWeight: '900',
+            textColor: '#0f172a',
+            marginBottom: '16px',
+            textAlign: 'center',
+          },
+          mobile: { fontSize: '18px' },
+        },
       },
-      'tmplt_eg_hours_sat_thu': {
+      tmplt_eg_hours_sat_thu: {
         id: 'tmplt_eg_hours_sat_thu',
         name: 'مواعيد السبت إلى الخميس',
         type: 'paragraph',
@@ -5472,9 +8800,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_hours_card',
         childrenIds: [],
         props: { text: 'السبت — الخميس: من 10 صباحاً حتى 10 مساءً' },
-        styles: { desktop: { fontSize: '14px', textColor: '#334155', fontWeight: '600', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' } },
+        styles: {
+          desktop: {
+            fontSize: '14px',
+            textColor: '#334155',
+            fontWeight: '600',
+            marginBottom: '8px',
+            display: 'flex',
+            justifyContent: 'space-between',
+          },
+        },
       },
-      'tmplt_eg_hours_fri': {
+      tmplt_eg_hours_fri: {
         id: 'tmplt_eg_hours_fri',
         name: 'مواعيد الجمعة',
         type: 'paragraph',
@@ -5482,9 +8819,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_hours_card',
         childrenIds: [],
         props: { text: 'الجمعة: من 2 ظهراً حتى 10 مساءً' },
-        styles: { desktop: { fontSize: '14px', textColor: '#334155', fontWeight: '600', marginBottom: '20px', display: 'flex', justifyContent: 'space-between' } },
+        styles: {
+          desktop: {
+            fontSize: '14px',
+            textColor: '#334155',
+            fontWeight: '600',
+            marginBottom: '20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+          },
+        },
       },
-      'tmplt_eg_hours_actions': {
+      tmplt_eg_hours_actions: {
         id: 'tmplt_eg_hours_actions',
         name: 'أزرار التواصل',
         type: 'flex',
@@ -5492,9 +8838,18 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_hours_card',
         childrenIds: ['tmplt_eg_hours_call', 'tmplt_eg_hours_wa'],
         props: {},
-        styles: { desktop: { display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: '12px' }, mobile: { display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' } },
+        styles: {
+          desktop: { display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: '12px' },
+          mobile: {
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'center',
+            gap: '8px',
+            flexWrap: 'wrap',
+          },
+        },
       },
-      'tmplt_eg_hours_call': {
+      tmplt_eg_hours_call: {
         id: 'tmplt_eg_hours_call',
         name: 'زر الاتصال',
         type: 'button',
@@ -5502,9 +8857,28 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_hours_actions',
         childrenIds: [],
         props: { text: '📞 اتصل بينا', url: 'tel:' },
-        styles: { desktop: { backgroundColor: '#0f172a', textColor: '#ffffff', paddingLeft: '24px', paddingRight: '24px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '12px', fontWeight: '700', fontSize: '14px' }, mobile: { fontSize: '12px', paddingLeft: '16px', paddingRight: '16px', paddingTop: '10px', paddingBottom: '10px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#0f172a',
+            textColor: '#ffffff',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '12px',
+            fontWeight: '700',
+            fontSize: '14px',
+          },
+          mobile: {
+            fontSize: '12px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+          },
+        },
       },
-      'tmplt_eg_hours_wa': {
+      tmplt_eg_hours_wa: {
         id: 'tmplt_eg_hours_wa',
         name: 'زر واتساب',
         type: 'button',
@@ -5512,7 +8886,26 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: 'tmplt_eg_hours_actions',
         childrenIds: [],
         props: { text: '💬 كلمنا واتساب', iconName: 'MessageCircle' },
-        styles: { desktop: { backgroundColor: '#25D366', textColor: '#ffffff', paddingLeft: '24px', paddingRight: '24px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '12px', fontWeight: '700', fontSize: '14px' }, mobile: { fontSize: '12px', paddingLeft: '16px', paddingRight: '16px', paddingTop: '10px', paddingBottom: '10px' } },
+        styles: {
+          desktop: {
+            backgroundColor: '#25D366',
+            textColor: '#ffffff',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            borderRadius: '12px',
+            fontWeight: '700',
+            fontSize: '14px',
+          },
+          mobile: {
+            fontSize: '12px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+          },
+        },
       },
     },
   },
@@ -5524,11 +8917,12 @@ export const sectionTemplates: SectionTemplate[] = [
     activity: 'general',
     style: 'modern',
     wireframeType: 'promo-bar',
-    descriptionAr: 'شريط إعلاني رفيع أعلى الصفحة لعرض خطر خاص أو شحن مجاني — يلفت الانتباه فوراً بدون تشتيت.',
+    descriptionAr:
+      'شريط إعلاني رفيع أعلى الصفحة لعرض خطر خاص أو شحن مجاني — يلفت الانتباه فوراً بدون تشتيت.',
     tags: ['عروض', 'شريط علوي', 'شحن مجاني', 'خصم'],
     rootNodeId: 'tmplt_eg_promo_root',
     nodes: {
-      'tmplt_eg_promo_root': {
+      tmplt_eg_promo_root: {
         id: 'tmplt_eg_promo_root',
         name: 'شريط العروض العلوي',
         type: 'container',
@@ -5536,17 +8930,37 @@ export const sectionTemplates: SectionTemplate[] = [
         parentId: null,
         childrenIds: ['tmplt_eg_promo_text'],
         props: {},
-        styles: { desktop: { display: 'block', width: '100%', backgroundColor: '#0f172a', paddingTop: '10px', paddingBottom: '10px', textAlign: 'center' }, mobile: { paddingTop: '8px', paddingBottom: '8px' } },
+        styles: {
+          desktop: {
+            display: 'block',
+            width: '100%',
+            backgroundColor: '#0f172a',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+            textAlign: 'center',
+          },
+          mobile: { paddingTop: '8px', paddingBottom: '8px' },
+        },
       },
-      'tmplt_eg_promo_text': {
+      tmplt_eg_promo_text: {
         id: 'tmplt_eg_promo_text',
         name: 'نص العرض',
         type: 'paragraph',
         category: 'typography',
         parentId: 'tmplt_eg_promo_root',
         childrenIds: [],
-        props: { text: '🎉 خصم 20% على كل المنتجات + شحن مجاني للطلبات فوق 500 ج.م — دفع عند الاستلام متاح' },
-        styles: { desktop: { fontSize: '13px', fontWeight: '700', textColor: '#ffffff', textAlign: 'center' }, mobile: { fontSize: '11px', paddingLeft: '10px', paddingRight: '10px' } },
+        props: {
+          text: '🎉 خصم 20% على كل المنتجات + شحن مجاني للطلبات فوق 500 ج.م — دفع عند الاستلام متاح',
+        },
+        styles: {
+          desktop: {
+            fontSize: '13px',
+            fontWeight: '700',
+            textColor: '#ffffff',
+            textAlign: 'center',
+          },
+          mobile: { fontSize: '11px', paddingLeft: '10px', paddingRight: '10px' },
+        },
       },
     },
   },
@@ -5568,7 +8982,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['trust', 'cod', 'توصيل', 'ضمان', 'دفع عند الاستلام', 'شارات'],
     rootNodeId: 'tmplt_trust_root',
     nodes: {
-      'tmplt_trust_root': {
+      tmplt_trust_root: {
         id: 'tmplt_trust_root',
         name: 'شارات الثقة',
         type: 'trust-badges',
@@ -5604,7 +9018,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['testimonials', 'reviews', 'تقييمات', 'آراء', 'عملاء'],
     rootNodeId: 'tmplt_testimonials_root',
     nodes: {
-      'tmplt_testimonials_root': {
+      tmplt_testimonials_root: {
         id: 'tmplt_testimonials_root',
         name: 'آراء العملاء',
         type: 'testimonials',
@@ -5616,9 +9030,30 @@ export const sectionTemplates: SectionTemplate[] = [
           title: 'آراء عملائنا الكرام',
           subtitle: 'أكثر من ألف عميل وثقوا بنا — إليك ما قالوه',
           items: [
-            { id: 't1', author: 'أحمد محمود', role: 'عميل من القاهرة', rating: 5, quote: 'خدمة ممتازة والمنتجات وصلت في الوقت المحدد تماماً. التعامل كان راقي جداً وسهّلوا عليّ كل حاجة.' },
-            { id: 't2', author: 'سارة علي', role: 'عميلة من الإسكندرية', rating: 5, quote: 'أفضل تجربة شراء أونلاين جربتها في مصر. الجودة عالية والأسعار معقولة. هرجعلهم تاني بكل تأكيد.' },
-            { id: 't3', author: 'محمد حسن', role: 'عميل من الجيزة', rating: 5, quote: 'دفعت عند الاستلام وكل حاجة مضبوطة. المنتج بالضبط زي ما اتوصف. شكراً جداً على التعامل الراقي.' },
+            {
+              id: 't1',
+              author: 'أحمد محمود',
+              role: 'عميل من القاهرة',
+              rating: 5,
+              quote:
+                'خدمة ممتازة والمنتجات وصلت في الوقت المحدد تماماً. التعامل كان راقي جداً وسهّلوا عليّ كل حاجة.',
+            },
+            {
+              id: 't2',
+              author: 'سارة علي',
+              role: 'عميلة من الإسكندرية',
+              rating: 5,
+              quote:
+                'أفضل تجربة شراء أونلاين جربتها في مصر. الجودة عالية والأسعار معقولة. هرجعلهم تاني بكل تأكيد.',
+            },
+            {
+              id: 't3',
+              author: 'محمد حسن',
+              role: 'عميل من الجيزة',
+              rating: 5,
+              quote:
+                'دفعت عند الاستلام وكل حاجة مضبوطة. المنتج بالضبط زي ما اتوصف. شكراً جداً على التعامل الراقي.',
+            },
           ],
         },
         styles: {
@@ -5642,7 +9077,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['gallery', 'photos', 'معرض', 'صور', 'أعمال'],
     rootNodeId: 'tmplt_gallery_root',
     nodes: {
-      'tmplt_gallery_root': {
+      tmplt_gallery_root: {
         id: 'tmplt_gallery_root',
         name: 'معرض الصور',
         type: 'gallery',
@@ -5653,12 +9088,30 @@ export const sectionTemplates: SectionTemplate[] = [
           badge: 'أعمالنا',
           title: 'معرض صورنا وأعمالنا',
           images: [
-            { src: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&auto=format&fit=crop&q=80', alt: 'منتج 1' },
-            { src: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=600&auto=format&fit=crop&q=80', alt: 'منتج 2' },
-            { src: 'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?w=600&auto=format&fit=crop&q=80', alt: 'منتج 3' },
-            { src: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&auto=format&fit=crop&q=80', alt: 'منتج 4' },
-            { src: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=600&auto=format&fit=crop&q=80', alt: 'منتج 5' },
-            { src: 'https://images.unsplash.com/photo-1580913428706-c311e67898b3?w=600&auto=format&fit=crop&q=80', alt: 'منتج 6' },
+            {
+              src: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&auto=format&fit=crop&q=80',
+              alt: 'منتج 1',
+            },
+            {
+              src: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=600&auto=format&fit=crop&q=80',
+              alt: 'منتج 2',
+            },
+            {
+              src: 'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?w=600&auto=format&fit=crop&q=80',
+              alt: 'منتج 3',
+            },
+            {
+              src: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&auto=format&fit=crop&q=80',
+              alt: 'منتج 4',
+            },
+            {
+              src: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=600&auto=format&fit=crop&q=80',
+              alt: 'منتج 5',
+            },
+            {
+              src: 'https://images.unsplash.com/photo-1580913428706-c311e67898b3?w=600&auto=format&fit=crop&q=80',
+              alt: 'منتج 6',
+            },
           ],
         },
         styles: {
@@ -5682,7 +9135,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['stats', 'numbers', 'إحصائيات', 'أرقام', 'خبرة'],
     rootNodeId: 'tmplt_stats_root',
     nodes: {
-      'tmplt_stats_root': {
+      tmplt_stats_root: {
         id: 'tmplt_stats_root',
         name: 'إحصائياتنا',
         type: 'stats',
@@ -5694,9 +9147,24 @@ export const sectionTemplates: SectionTemplate[] = [
           title: 'إنجازاتنا بالأرقام الحقيقية',
           stats: [
             { id: 's1', value: '+5,000', label: 'عميل سعيد', description: 'من جميع أنحاء مصر' },
-            { id: 's2', value: '99%', label: 'نسبة الرضا', description: 'بناءً على تقييمات العملاء' },
-            { id: 's3', value: '+3', label: 'سنوات خبرة', description: 'في مجال التجارة الإلكترونية' },
-            { id: 's4', value: '24/7', label: 'دعم مستمر', description: 'واتساب وهاتف على مدار الساعة' },
+            {
+              id: 's2',
+              value: '99%',
+              label: 'نسبة الرضا',
+              description: 'بناءً على تقييمات العملاء',
+            },
+            {
+              id: 's3',
+              value: '+3',
+              label: 'سنوات خبرة',
+              description: 'في مجال التجارة الإلكترونية',
+            },
+            {
+              id: 's4',
+              value: '24/7',
+              label: 'دعم مستمر',
+              description: 'واتساب وهاتف على مدار الساعة',
+            },
           ],
         },
         styles: {
@@ -5720,7 +9188,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['faq', 'questions', 'أسئلة', 'استفسار', 'شائعة'],
     rootNodeId: 'tmplt_faq_root',
     nodes: {
-      'tmplt_faq_root': {
+      tmplt_faq_root: {
         id: 'tmplt_faq_root',
         name: 'الأسئلة الشائعة',
         type: 'faq',
@@ -5732,11 +9200,34 @@ export const sectionTemplates: SectionTemplate[] = [
           title: 'الأسئلة الأكثر شيوعاً',
           subtitle: 'إجابات واضحة لكل استفساراتكم',
           items: [
-            { id: 'q1', question: 'هل الدفع عند الاستلام متاح؟', answer: 'نعم، الدفع عند الاستلام متاح لجميع محافظات مصر بدون أي رسوم إضافية.' },
-            { id: 'q2', question: 'كم المدة المتوقعة للتوصيل؟', answer: 'يصل طلبك خلال 2 إلى 5 أيام عمل حسب محافظتك. القاهرة والجيزة من 1 إلى 2 يوم.' },
-            { id: 'q3', question: 'هل أقدر أرجّع المنتج لو مش مناسب؟', answer: 'طبعاً! بنقبل الاسترداد والاستبدال خلال 14 يوم من تاريخ الاستلام — المنتج لازم يكون بحالته الأصلية.' },
-            { id: 'q4', question: 'إزاي أتابع طلبيتي؟', answer: 'هتوصلك رسالة واتساب فيها بيانات الشحن فور شحن الطلب. تقدر تتابع عبر رابط التتبع.' },
-            { id: 'q5', question: 'هل في ضمان على المنتجات؟', answer: 'أيوه، جميع منتجاتنا أصلية ومضمونة. في حالة أي عيب مصنعي بنستبدل المنتج فوراً.' },
+            {
+              id: 'q1',
+              question: 'هل الدفع عند الاستلام متاح؟',
+              answer: 'نعم، الدفع عند الاستلام متاح لجميع محافظات مصر بدون أي رسوم إضافية.',
+            },
+            {
+              id: 'q2',
+              question: 'كم المدة المتوقعة للتوصيل؟',
+              answer: 'يصل طلبك خلال 2 إلى 5 أيام عمل حسب محافظتك. القاهرة والجيزة من 1 إلى 2 يوم.',
+            },
+            {
+              id: 'q3',
+              question: 'هل أقدر أرجّع المنتج لو مش مناسب؟',
+              answer:
+                'طبعاً! بنقبل الاسترداد والاستبدال خلال 14 يوم من تاريخ الاستلام — المنتج لازم يكون بحالته الأصلية.',
+            },
+            {
+              id: 'q4',
+              question: 'إزاي أتابع طلبيتي؟',
+              answer:
+                'هتوصلك رسالة واتساب فيها بيانات الشحن فور شحن الطلب. تقدر تتابع عبر رابط التتبع.',
+            },
+            {
+              id: 'q5',
+              question: 'هل في ضمان على المنتجات؟',
+              answer:
+                'أيوه، جميع منتجاتنا أصلية ومضمونة. في حالة أي عيب مصنعي بنستبدل المنتج فوراً.',
+            },
           ],
         },
         styles: {
@@ -5760,7 +9251,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['contact', 'phone', 'تواصل', 'واتساب', 'هاتف', 'عنوان'],
     rootNodeId: 'tmplt_contact_root',
     nodes: {
-      'tmplt_contact_root': {
+      tmplt_contact_root: {
         id: 'tmplt_contact_root',
         name: 'تواصل معنا',
         type: 'contact-section',
@@ -5795,7 +9286,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['services', 'خدمات', 'حجز', 'باقات'],
     rootNodeId: 'tmplt_services_root',
     nodes: {
-      'tmplt_services_root': {
+      tmplt_services_root: {
         id: 'tmplt_services_root',
         name: 'خدماتنا',
         type: 'services-grid',
@@ -5807,9 +9298,27 @@ export const sectionTemplates: SectionTemplate[] = [
           title: 'كل اللي تحتاجه في مكان واحد',
           subtitle: 'خدمات متنوعة بأسعار مناسبة وجودة مضمونة',
           services: [
-            { id: 'sv1', title: 'خدمة التوصيل السريع', description: 'توصيل لباب بيتك خلال يومين في القاهرة الكبرى', price: 'من 30 ج.م', ctaText: 'اطلب الآن' },
-            { id: 'sv2', title: 'خدمة التركيب', description: 'فريق محترف لتركيب المنتجات في منزلك', price: 'من 150 ج.م', ctaText: 'احجز موعد' },
-            { id: 'sv3', title: 'الصيانة والضمان', description: 'صيانة دورية وضمان على الأجهزة والمنتجات', price: 'مجاناً للعملاء', ctaText: 'تعرف أكثر' },
+            {
+              id: 'sv1',
+              title: 'خدمة التوصيل السريع',
+              description: 'توصيل لباب بيتك خلال يومين في القاهرة الكبرى',
+              price: 'من 30 ج.م',
+              ctaText: 'اطلب الآن',
+            },
+            {
+              id: 'sv2',
+              title: 'خدمة التركيب',
+              description: 'فريق محترف لتركيب المنتجات في منزلك',
+              price: 'من 150 ج.م',
+              ctaText: 'احجز موعد',
+            },
+            {
+              id: 'sv3',
+              title: 'الصيانة والضمان',
+              description: 'صيانة دورية وضمان على الأجهزة والمنتجات',
+              price: 'مجاناً للعملاء',
+              ctaText: 'تعرف أكثر',
+            },
           ],
         },
         styles: {
@@ -5833,7 +9342,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['before-after', 'قبل', 'بعد', 'مقارنة', 'تحويل', 'صالون'],
     rootNodeId: 'tmplt_ba_root',
     nodes: {
-      'tmplt_ba_root': {
+      tmplt_ba_root: {
         id: 'tmplt_ba_root',
         name: 'قبل وبعد',
         type: 'before-after',
@@ -5845,8 +9354,10 @@ export const sectionTemplates: SectionTemplate[] = [
           title: 'شوف الفرق بنفسك',
           beforeLabel: 'قبل',
           afterLabel: 'بعد',
-          beforeImage: 'https://images.unsplash.com/photo-1561043433-aaf687c4cf04?w=800&auto=format&fit=crop&q=80',
-          afterImage: 'https://images.unsplash.com/photo-1621607512022-6aecc4fed814?w=800&auto=format&fit=crop&q=80',
+          beforeImage:
+            'https://images.unsplash.com/photo-1561043433-aaf687c4cf04?w=800&auto=format&fit=crop&q=80',
+          afterImage:
+            'https://images.unsplash.com/photo-1621607512022-6aecc4fed814?w=800&auto=format&fit=crop&q=80',
         },
         styles: {
           desktop: { backgroundColor: '#ffffff', paddingTop: '64px', paddingBottom: '64px' },
@@ -5869,7 +9380,7 @@ export const sectionTemplates: SectionTemplate[] = [
     tags: ['whatsapp', 'واتساب', 'تواصل', 'float', 'عائم'],
     rootNodeId: 'tmplt_wa_float_root',
     nodes: {
-      'tmplt_wa_float_root': {
+      tmplt_wa_float_root: {
         id: 'tmplt_wa_float_root',
         name: 'زر واتساب عائم',
         type: 'whatsapp-float',
@@ -5884,4 +9395,3 @@ export const sectionTemplates: SectionTemplate[] = [
     },
   },
 ];
-

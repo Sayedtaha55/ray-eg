@@ -75,9 +75,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const existing = prev.find((i) => i.productId === product.id);
       if (existing) {
         return prev.map((i) =>
-          i.productId === product.id
-            ? { ...i, quantity: i.quantity + quantity }
-            : i
+          i.productId === product.id ? { ...i, quantity: i.quantity + quantity } : i
         );
       }
       const newItem: CartItem = {
@@ -109,7 +107,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
     setItems((prev) =>
-      prev.map((i) => (i.productId === productId ? { ...i, quantity } : i))
+      prev.map((i) => {
+        if (i.productId !== productId) return i;
+        // Never exceed the stock cap captured when the item was added.
+        const capped = i.maxQuantity != null ? Math.min(quantity, i.maxQuantity) : quantity;
+        return { ...i, quantity: Math.max(1, capped) };
+      })
     );
   }, []);
 
@@ -123,7 +126,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const totalPrice = items.reduce((s, i) => s + i.price * i.quantity, 0);
 
   const totalPriceByShop = useCallback(
-    (shopId: string) => items.filter((i) => i.shopId === shopId).reduce((s, i) => s + i.price * i.quantity, 0),
+    (shopId: string) =>
+      items.filter((i) => i.shopId === shopId).reduce((s, i) => s + i.price * i.quantity, 0),
     [items]
   );
 

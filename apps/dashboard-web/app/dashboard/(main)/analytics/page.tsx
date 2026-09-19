@@ -3,43 +3,152 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  BarChart3,
   TrendingUp,
-  TrendingDown,
-  ShoppingCart,
-  DollarSign,
   Users,
-  Eye,
   Activity,
-  Loader2,
-  Calendar,
-  Info,
-  Target,
-  BookOpen,
-  Zap,
-  Link2,
-  ChevronRight,
   ChevronLeft,
-  Lightbulb,
-  XCircle,
-  LayoutGrid,
   ChartPie,
-  PackageSearch,
   Boxes,
-  Heart,
-  MousePointerClick,
-  Undo2,
   Landmark,
-  Megaphone,
-  Workflow,
-  Banknote,
-  Truck,
+  Download,
+  RefreshCw,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
+import { INV_PAGE_FONT } from '@/components/inventory/InventoryShell';
 
 /* ============================================================
- * Analytics Hub — كل التحليلات
- * فهرس لكل صفحات التحليلات والتقارير (15 صفحة)
+ * Formatting & Helpers
+ * ============================================================ */
+
+const fmt = (n: number) =>
+  Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const fmt2 = (n: number) =>
+  Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+type PeriodKey = 'this_month' | 'last_month' | 'quarter' | 'this_year' | '7d' | '30d' | 'all';
+
+function periodRange(p: PeriodKey): { from: string; to: string; label: string } {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = (dt: Date) => dt.toISOString().split('T')[0];
+  switch (p) {
+    case '7d': {
+      const past = new Date(now.getTime() - 7 * 86400000);
+      return { from: d(past), to: d(now), label: 'آخر 7 أيام' };
+    }
+    case '30d': {
+      const past = new Date(now.getTime() - 30 * 86400000);
+      return { from: d(past), to: d(now), label: 'آخر 30 يوم' };
+    }
+    case 'this_month':
+      return { from: d(new Date(y, m, 1)), to: d(new Date(y, m + 1, 0)), label: 'هذا الشهر' };
+    case 'last_month':
+      return { from: d(new Date(y, m - 1, 1)), to: d(new Date(y, m, 0)), label: 'الشهر الماضي' };
+    case 'quarter': {
+      const q = Math.floor(m / 3) * 3;
+      return { from: d(new Date(y, q, 1)), to: d(new Date(y, q + 3, 0)), label: 'هذا الربع' };
+    }
+    case 'this_year':
+      return { from: d(new Date(y, 0, 1)), to: d(new Date(y, 11, 31)), label: 'هذه السنة' };
+    default:
+      return { from: '', to: d(now), label: 'كل الفترات' };
+  }
+}
+
+function prevRange(p: PeriodKey): { from: string; to: string } {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = (dt: Date) => dt.toISOString().split('T')[0];
+  switch (p) {
+    case '7d': {
+      const end = new Date(now.getTime() - 7 * 86400000);
+      const start = new Date(now.getTime() - 14 * 86400000);
+      return { from: d(start), to: d(end) };
+    }
+    case '30d': {
+      const end = new Date(now.getTime() - 30 * 86400000);
+      const start = new Date(now.getTime() - 60 * 86400000);
+      return { from: d(start), to: d(end) };
+    }
+    case 'this_month':
+      return { from: d(new Date(y, m - 1, 1)), to: d(new Date(y, m, 0)) };
+    case 'last_month': {
+      const pm = m - 2 < 0 ? 10 : m - 2;
+      return { from: d(new Date(y, pm, 1)), to: d(new Date(y, pm + 1, 0)) };
+    }
+    case 'quarter': {
+      const q = Math.floor(m / 3) * 3;
+      const pq = q - 3 < 0 ? 9 : q - 3;
+      const py = q - 3 < 0 ? y - 1 : y;
+      return { from: d(new Date(py, pq, 1)), to: d(new Date(py, pq + 3, 0)) };
+    }
+    case 'this_year':
+      return { from: d(new Date(y - 1, 0, 1)), to: d(new Date(y - 1, 11, 31)) };
+    default:
+      return { from: '', to: '' };
+  }
+}
+
+const PERIODS: { key: PeriodKey; label: string }[] = [
+  { key: '30d', label: 'آخر 30 يوم' },
+  { key: '7d', label: 'آخر 7 أيام' },
+  { key: 'this_month', label: 'هذا الشهر' },
+  { key: 'last_month', label: 'الشهر الماضي' },
+  { key: 'quarter', label: 'هذا الربع' },
+  { key: 'this_year', label: 'هذه السنة' },
+  { key: 'all', label: 'الكل' },
+];
+
+function downloadCSV(name: string, headers: string[], rows: (string | number)[][]) {
+  const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = name;
+  link.click();
+}
+
+/** شريط تقدم أفقي نظيف للإحصائيات والتوزيعات */
+function MiniBar({
+  label,
+  value,
+  max,
+  color = 'bg-slate-900',
+  suffix = '',
+}: {
+  label: string;
+  value: number;
+  max: number;
+  color?: string;
+  suffix?: string;
+}) {
+  const pct = max > 0 ? Math.min((Math.abs(value) / max) * 100, 100) : 0;
+  return (
+    <div className="py-2">
+      <div className="flex items-center justify-between mb-1">
+        <span className="font-bold text-slate-700 text-xs sm:text-sm truncate">{label}</span>
+        <span
+          className="font-mono tabular-nums font-black text-slate-900 text-xs sm:text-sm whitespace-nowrap"
+          dir="ltr"
+        >
+          {fmt2(value)}
+          {suffix}
+        </span>
+      </div>
+      <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${color}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+ * Hub Pages Links (Clean List)
  * ============================================================ */
 
 type HubPage = {
@@ -48,474 +157,237 @@ type HubPage = {
   desc: string;
   icon: React.ComponentType<{ size?: number | string; className?: string }>;
   href: string;
-  /** true = placeholder page under development */
   soon?: boolean;
-  tile: string; // icon tile colors
 };
 
 const ANALYTICS_PAGES: HubPage[] = [
   {
-    id: 'allAnalytics',
-    label: 'كل التحليلات',
-    desc: 'نظرة سريعة على أداء متجرك كله',
-    icon: LayoutGrid,
-    href: '/dashboard/analytics',
-    tile: 'bg-slate-100 text-slate-700',
-  },
-  {
     id: 'kpi',
-    label: 'المؤشرات',
-    desc: 'أهم الأرقام اللي بتقيس صحة متجرك',
+    label: 'المؤشرات الرئيسية',
+    desc: 'أهم الأرقام التي تقيس صحة متجرك ونشاطك',
     icon: Activity,
-    href: '/dashboard/analytics/kpi',
-    tile: 'bg-cyan-50 text-cyan-600',
+    href: '/dashboard/analytics/insights?tab=kpi',
   },
   {
     id: 'charts',
-    label: 'الرسوم البيانية',
-    desc: 'كل الرسوم والاتجاهات في شكل مرئي',
+    label: 'الرسوم البيانية المتقدمة',
+    desc: 'الاتجاهات والمنحنيات المقارنة في شكل مرئي',
     icon: ChartPie,
-    href: '/dashboard/analytics/charts',
-    tile: 'bg-violet-50 text-violet-600',
+    href: '/dashboard/analytics/insights?tab=charts',
   },
   {
     id: 'salesPerformance',
-    label: 'أداء المبيعات',
-    desc: 'مين بيبيع وإمتى وإيه أكتر الفترات ربحًا',
+    label: 'أداء المبيعات والمنتجات',
+    desc: 'المنتجات الأكثر مبيعاً وفترات الذروة',
     icon: TrendingUp,
-    href: '/dashboard/analytics/sales-performance',
-    tile: 'bg-green-50 text-green-600',
-  },
-  {
-    id: 'productPerformance',
-    label: 'أداء المنتجات',
-    desc: 'أكتر المنتجات مبيعًا والأقل مبيعًا',
-    icon: PackageSearch,
-    href: '/dashboard/analytics/product-performance',
-    tile: 'bg-indigo-50 text-indigo-600',
+    href: '/dashboard/analytics/performance?tab=sales',
   },
   {
     id: 'inventoryReports',
-    label: 'تقارير المخزون',
-    desc: 'المنتجات اللي قربت تخلص قبل ما تفقدها',
+    label: 'تقارير المخزون والعمليات',
+    desc: 'تنبيهات انخفاض المخزون والأصناف الراكدة',
     icon: Boxes,
-    href: '/dashboard/analytics/inventory',
-    tile: 'bg-amber-50 text-amber-600',
+    href: '/dashboard/analytics/operations?tab=operations?tab=inventory',
   },
   {
     id: 'customerInsights',
-    label: 'تحليلات العملاء',
-    desc: 'عرف عملاءك: الجدد والمتكررين وأكتر اللي بيشتروا',
+    label: 'تحليلات ونمو العملاء',
+    desc: 'سلوك العملاء: الجدد، المتكررون، والقيمة الدائمة',
     icon: Users,
-    href: '/dashboard/analytics/customer-insights',
-    tile: 'bg-purple-50 text-purple-600',
-  },
-  {
-    id: 'engagementAnalytics',
-    label: 'تحليلات المشاركة',
-    desc: 'تفاعل العملاء مع منتجاتك على الموقع',
-    icon: Heart,
-    href: '/dashboard/analytics/engagement',
-    soon: true,
-    tile: 'bg-fuchsia-50 text-fuchsia-600',
-  },
-  {
-    id: 'visitors',
-    label: 'الزوار',
-    desc: 'مين زار متجرك ومنين وفي أي وقت',
-    icon: Eye,
-    href: '/dashboard/analytics/visitors',
-    tile: 'bg-blue-50 text-blue-600',
-  },
-  {
-    id: 'conversions',
-    label: 'التحويلات',
-    desc: 'الزوار اللي بقوا عملاء — ونسبة التحويل',
-    icon: MousePointerClick,
-    href: '/dashboard/analytics/conversions',
-    tile: 'bg-teal-50 text-teal-600',
-  },
-  {
-    id: 'returnsReport',
-    label: 'تقارير المرتجعات',
-    desc: 'كل مرتجعات المتجر من الموقع والكاشير والفواتير',
-    icon: Undo2,
-    href: '/dashboard/analytics/returns',
-    tile: 'bg-orange-50 text-orange-600',
+    href: '/dashboard/analytics/customers?tab=insights',
   },
   {
     id: 'financeAnalytics',
-    label: 'تقارير المالية',
-    desc: 'الإيرادات والمصروفات والأرباح والتدفق النقدي',
+    label: 'التقارير المالية والمدفوعات',
+    desc: 'التدفق النقدي، طرق التحصيل، والمصروفات',
     icon: Landmark,
-    href: '/dashboard/analytics/finance',
-    soon: true,
-    tile: 'bg-emerald-50 text-emerald-600',
-  },
-  {
-    id: 'marketingAnalytics',
-    label: 'تحليلات التسويق',
-    desc: 'أداء الحملات والكوبونات والخصومات',
-    icon: Megaphone,
-    href: '/dashboard/analytics/marketing',
-    soon: true,
-    tile: 'bg-rose-50 text-rose-600',
-  },
-  {
-    id: 'operationsAnalytics',
-    label: 'تحليلات العمليات',
-    desc: 'أوقات الذروة وأداء الكاشير ودورة الطلب',
-    icon: Workflow,
-    href: '/dashboard/analytics/operations',
-    soon: true,
-    tile: 'bg-orange-50 text-orange-600',
-  },
-  {
-    id: 'paymentsAnalytics',
-    label: 'تقارير المدفوعات',
-    desc: 'طرق الدفع والتحصيلات والمعاملات',
-    icon: Banknote,
-    href: '/dashboard/analytics/payments',
-    soon: true,
-    tile: 'bg-lime-50 text-lime-600',
-  },
-  {
-    id: 'logisticsAnalytics',
-    label: 'تقارير اللوجستيات',
-    desc: 'الشحن والتوصيل والمخازن',
-    icon: Truck,
-    href: '/dashboard/analytics/logistics',
-    soon: true,
-    tile: 'bg-sky-50 text-sky-600',
+    href: '/dashboard/analytics/finance?tab=finance',
   },
 ];
 
 /* ============================================================
- * Analytics Guide System
+ * Main Unified Analytics & Reports Page
  * ============================================================ */
 
-type GuideStep = {
-  title: string;
-  description: string;
-};
+export default function AnalyticsUnifiedPage() {
+  const [period, setPeriod] = useState<PeriodKey>('30d');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'sales' | 'profits' | 'purchases' | 'aging' | 'cash' | 'inventory' | 'taxes'
+  >('overview');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-type GuideLink = {
-  label: string;
-  onClick?: () => void;
-};
-
-type AnalyticsGuideData = {
-  purpose: string;
-  whenToUse: string;
-  whatsInside: string[];
-  steps: GuideStep[];
-  bestPractices: string[];
-  tips: string[];
-  shortcuts: string[];
-  relatedLinks?: GuideLink[];
-};
-
-const GuideSectionBlock: React.FC<{
-  icon: any;
-  iconColor: string;
-  iconBg: string;
-  heading: string;
-  children: React.ReactNode;
-}> = ({ icon: Icon, iconColor, iconBg, heading, children }) => (
-  <div className="rounded-xl border border-slate-100 p-4 bg-white">
-    <div className="flex items-center gap-2.5 mb-3">
-      <div
-        className={`flex items-center justify-center w-8 h-8 rounded-lg ${iconBg} ${iconColor} shrink-0`}
-      >
-        <Icon size={16} />
-      </div>
-      <h4 className="font-bold text-slate-900 text-sm">{heading}</h4>
-    </div>
-    {children}
-  </div>
-);
-
-const AnalyticsGuideContent: React.FC<{ guide: AnalyticsGuideData }> = ({ guide }) => (
-  <div className="space-y-4">
-    <GuideSectionBlock
-      icon={Target}
-      iconColor="text-blue-600"
-      iconBg="bg-blue-50"
-      heading="وظيفة الصفحة / Page Purpose"
-    >
-      <p className="text-slate-600 text-sm leading-relaxed">{guide.purpose}</p>
-    </GuideSectionBlock>
-
-    <GuideSectionBlock
-      icon={Calendar}
-      iconColor="text-amber-600"
-      iconBg="bg-amber-50"
-      heading="متى تستخدمها / When to Use"
-    >
-      <p className="text-slate-600 text-sm leading-relaxed">{guide.whenToUse}</p>
-    </GuideSectionBlock>
-
-    <GuideSectionBlock
-      icon={BookOpen}
-      iconColor="text-purple-600"
-      iconBg="bg-purple-50"
-      heading="ماذا ستجد داخلها / What's Inside"
-    >
-      <ul className="space-y-1.5">
-        {guide.whatsInside.map((item, i) => (
-          <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-            <ChevronRight size={14} className="text-slate-300 mt-0.5 shrink-0" />
-            {item}
-          </li>
-        ))}
-      </ul>
-    </GuideSectionBlock>
-
-    {guide.steps.length > 0 && (
-      <GuideSectionBlock
-        icon={Zap}
-        iconColor="text-cyan-600"
-        iconBg="bg-cyan-50"
-        heading="خطوات الاستخدام / How to Use"
-      >
-        <ol className="space-y-2">
-          {guide.steps.map((step, i) => (
-            <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-xs font-bold shrink-0">
-                {i + 1}
-              </span>
-              <div>
-                <div className="font-semibold text-slate-900">{step.title}</div>
-                <div className="text-slate-500">{step.description}</div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </GuideSectionBlock>
-    )}
-
-    {guide.bestPractices.length > 0 && (
-      <GuideSectionBlock
-        icon={Target}
-        iconColor="text-green-600"
-        iconBg="bg-green-50"
-        heading="أفضل الممارسات / Best Practices"
-      >
-        <ul className="space-y-1.5">
-          {guide.bestPractices.map((practice, i) => (
-            <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-              <TrendingUp size={14} className="text-green-500 mt-0.5 shrink-0" />
-              {practice}
-            </li>
-          ))}
-        </ul>
-      </GuideSectionBlock>
-    )}
-
-    {guide.tips.length > 0 && (
-      <GuideSectionBlock
-        icon={Lightbulb}
-        iconColor="text-amber-600"
-        iconBg="bg-amber-50"
-        heading="نصائح / Tips"
-      >
-        <ul className="space-y-1.5">
-          {guide.tips.map((tip, i) => (
-            <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-              <Zap size={14} className="text-amber-500 mt-0.5 shrink-0" />
-              {tip}
-            </li>
-          ))}
-        </ul>
-      </GuideSectionBlock>
-    )}
-
-    {guide.shortcuts.length > 0 && (
-      <GuideSectionBlock
-        icon={Link2}
-        iconColor="text-indigo-600"
-        iconBg="bg-indigo-50"
-        heading="اختصارات / Shortcuts"
-      >
-        <ul className="space-y-1.5">
-          {guide.shortcuts.map((shortcut, i) => (
-            <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-              <ChevronRight size={14} className="text-indigo-400 mt-0.5 shrink-0" />
-              {shortcut}
-            </li>
-          ))}
-        </ul>
-      </GuideSectionBlock>
-    )}
-
-    {guide.relatedLinks && guide.relatedLinks.length > 0 && (
-      <GuideSectionBlock
-        icon={Link2}
-        iconColor="text-slate-600"
-        iconBg="bg-slate-100"
-        heading="روابط ذات صلة / Related Links"
-      >
-        <div className="flex flex-wrap gap-2">
-          {guide.relatedLinks.map((link, i) => (
-            <button
-              key={i}
-              onClick={link.onClick}
-              className="px-3 py-1.5 rounded-lg bg-slate-50 text-slate-700 text-xs font-semibold hover:bg-slate-100 transition-all"
-            >
-              {link.label}
-            </button>
-          ))}
-        </div>
-      </GuideSectionBlock>
-    )}
-  </div>
-);
-
-const InfoDrawer: React.FC<{
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}> = ({ title, onClose, children }) => (
-  <div className="fixed inset-0 z-50 flex" onClick={onClose}>
-    <div className="absolute inset-0 bg-black/40 animate-[fadeIn_0.15s_ease-out]" />
-    <div
-      className="relative ml-auto h-full w-full max-w-md bg-white shadow-2xl overflow-y-auto"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between z-10">
-        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-          <Info size={20} className="text-slate-400" />
-          {title}
-        </h3>
-        <button
-          onClick={onClose}
-          className="p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all"
-        >
-          <XCircle size={20} />
-        </button>
-      </div>
-      <div className="px-6 py-5 space-y-5 text-sm text-slate-600 leading-relaxed">{children}</div>
-      <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-3">
-        <button
-          onClick={onClose}
-          className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors"
-        >
-          حسناً
-        </button>
-      </div>
-    </div>
-  </div>
-);
-
-export default function AnalyticsPage() {
+  // States
   const [analytics, setAnalytics] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [customerStats, setCustomerStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [range, setRange] = useState<'7d' | '30d' | '6m' | '12m'>('30d');
-  const [guideOpen, setGuideOpen] = useState(false);
+  const [reportsData, setReportsData] = useState<any>({});
 
-  const analyticsGuide: AnalyticsGuideData = {
-    purpose: 'لوحة تحليلية شاملة لتتبع أداء المتجر والمبيعات والعملاء مع رسوم بيانية تفاعلية.',
-    whenToUse:
-      'استخدم هذه الصفحة يومياً لمتابعة أداء المتجر، تحليل المبيعات، واتخاذ قرارات مبنية على البيانات.',
-    whatsInside: [
-      'إحصائيات المبيعات الرئيسية',
-      'رسوم بيانية تفاعلية',
-      'تحليل أداء الطلبات',
-      'إحصائيات العملاء',
-      'تصفية حسب الفترة الزمنية',
-      'مقارنات الأداء',
-    ],
-    steps: [
-      {
-        title: 'اختر الفترة',
-        description: 'حدد الفترة الزمنية لعرض التحليلات (7 أيام، 30 يوم، 6 أشهر، سنة)',
-      },
-      { title: 'راجع الإحصائيات', description: 'اطلع على إجمالي الطلبات والإيرادات ومتوسط الطلب' },
-      {
-        title: 'حلل الرسوم البيانية',
-        description: 'دراسة الرسوم البيانية لفهم الاتجاهات والأنماط',
-      },
-      { title: 'قارن الأداء', description: 'قارن بين الفترات المختلفة لقياس التقدم' },
-    ],
-    bestPractices: [
-      'راجع التحليلات يومياً أو أسبوعياً',
-      'قارن بين الفترات المختلفة',
-      'ركز على المؤشرات الرئيسية',
-      'استخدم البيانات لاتخاذ قرارات',
-    ],
-    tips: [
-      'الرسوم البيانية تفاعلية - مرر عليها للتفاصيل',
-      'يمكنك تصفية البيانات حسب الفترة',
-      'الألوان المختلفة تشير إلى مؤشرات مختلفة',
-    ],
-    shortcuts: ['اضغط على الأزرار لتغيير الفترة الزمنية', 'استخدم F5 لتحديث البيانات'],
-    relatedLinks: [
-      { label: 'المؤشرات', onClick: () => (window.location.href = '/dashboard/analytics/kpi') },
-      {
-        label: 'الرسوم البيانية',
-        onClick: () => (window.location.href = '/dashboard/analytics/charts'),
-      },
-      {
-        label: 'أداء المبيعات',
-        onClick: () => (window.location.href = '/dashboard/analytics/sales-performance'),
-      },
-      { label: 'الزوار', onClick: () => (window.location.href = '/dashboard/analytics/visitors') },
-    ],
-  };
+  const curRange = useMemo(() => periodRange(period), [period]);
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const shopData = await apiRequest('/shops/me');
-        const sid = shopData?.id;
-        if (!sid) {
-          setError('لم يتم العثور على المتجر');
-          setLoading(false);
-          return;
-        }
-        const [analyticsRes, ordersRes, customerRes] = await Promise.allSettled([
-          apiRequest(`/analytics/shop/${sid}`),
-          apiRequest('/orders/me'),
-          apiRequest(`/analytics/shop/${sid}/customer-insights`),
-        ]);
-        if (analyticsRes.status === 'fulfilled') setAnalytics(analyticsRes.value || {});
-        if (ordersRes.status === 'fulfilled') {
-          const list = Array.isArray(ordersRes.value)
-            ? ordersRes.value
-            : ordersRes.value?.orders || [];
-          setOrders(Array.isArray(list) ? list : []);
-        }
-        if (customerRes.status === 'fulfilled') setCustomerStats(customerRes.value);
-      } catch (err: any) {
-        setError(err?.message || 'فشل تحميل التحليلات');
-      } finally {
+  const loadAll = useCallback(async (p: PeriodKey) => {
+    setLoading(true);
+    setRefreshing(true);
+    setError(null);
+    try {
+      const shopData = await apiRequest('/shops/me');
+      const sid = shopData?.id;
+      if (!sid) {
+        setError('لم يتم العثور على المتجر');
         setLoading(false);
+        setRefreshing(false);
+        return;
       }
-    })();
+
+      const cur = periodRange(p);
+      const prev = prevRange(p);
+      const q = (f: string, t: string) => {
+        const ps = new URLSearchParams();
+        if (f) ps.set('from', f);
+        if (t) ps.set('to', t);
+        return ps.toString();
+      };
+
+      const [
+        analyticsRes,
+        customerRes,
+        ordersRes,
+        revRes,
+        prevRevRes,
+        expRes,
+        profitRes,
+        cashRes,
+        prevCashRes,
+        accInvRes,
+        walletsRes,
+        transRes,
+        agingRes,
+        taxRatesRes,
+        taxReturnsRes,
+        productsRes,
+        suppliersRes,
+      ] = await Promise.allSettled([
+        apiRequest(`/analytics/shop/${sid}`).catch(() => null),
+        apiRequest(`/analytics/shop/${sid}/customer-insights`).catch(() => null),
+        apiRequest('/orders/me').catch(() => ({ orders: [] })),
+        apiRequest(`/finance/reports/revenue/shop/${sid}?${q(cur.from, cur.to)}`).catch(() => null),
+        prev.from
+          ? apiRequest(`/finance/reports/revenue/shop/${sid}?${q(prev.from, prev.to)}`).catch(
+              () => null
+            )
+          : Promise.resolve(null),
+        apiRequest(`/finance/expenses/shop/${sid}`).catch(() => ({ data: [] })),
+        apiRequest(`/finance/reports/profit/shop/${sid}?${q(cur.from, cur.to)}`).catch(() => null),
+        apiRequest(`/finance/reports/cashflow/shop/${sid}?${q(cur.from, cur.to)}`).catch(
+          () => null
+        ),
+        prev.from
+          ? apiRequest(`/finance/reports/cashflow/shop/${sid}?${q(prev.from, prev.to)}`).catch(
+              () => null
+            )
+          : Promise.resolve(null),
+        apiRequest(`/accounting/invoices/shop/${sid}`).catch(() => ({ data: [] })),
+        apiRequest(`/finance/wallets/shop/${sid}`).catch(() => ({ data: [] })),
+        apiRequest(`/finance/transactions/shop/${sid}`).catch(() => ({ data: [] })),
+        apiRequest(`/accounting/aging/shop/${sid}`).catch(() => ({ data: [] })),
+        apiRequest(`/accounting/tax-rates/shop/${sid}`).catch(() => ({ data: [] })),
+        apiRequest(`/accounting/tax-returns/shop/${sid}`).catch(() => ({ data: [] })),
+        apiRequest(`/products/manage/by-shop/${sid}?limit=200`).catch(() => ({ data: [] })),
+        apiRequest(`/suppliers/shop/${sid}`).catch(() => ({ data: [] })),
+      ]);
+
+      const get = (r: PromiseSettledResult<any>, fallback: any = null) =>
+        r.status === 'fulfilled'
+          ? r.value?.data !== undefined
+            ? r.value.data
+            : r.value
+          : fallback;
+      const list = (r: PromiseSettledResult<any>) => {
+        const v = get(r);
+        return Array.isArray(v)
+          ? v
+          : Array.isArray(v?.orders)
+            ? v.orders
+            : Array.isArray(v?.data)
+              ? v.data
+              : [];
+      };
+
+      if (analyticsRes.status === 'fulfilled' && analyticsRes.value) {
+        setAnalytics(analyticsRes.value);
+      }
+      if (customerRes.status === 'fulfilled' && customerRes.value) {
+        setCustomerStats(customerRes.value);
+      }
+      const allOrders = list(ordersRes);
+      setOrders(allOrders);
+
+      setReportsData({
+        revenue: get(revRes),
+        prevRevenue: get(prevRevRes),
+        expenses: list(expRes),
+        profit: get(profitRes),
+        cash: get(cashRes),
+        prevCash: get(prevCashRes),
+        orders: allOrders,
+        accInvoices: list(accInvRes),
+        wallets: list(walletsRes),
+        transactions: list(transRes),
+        aging: list(agingRes),
+        taxRates: list(taxRatesRes),
+        taxReturns: list(taxReturnsRes),
+        products: list(productsRes),
+        suppliers: list(suppliersRes),
+        range: cur,
+      });
+    } catch (err: any) {
+      setError(err?.message || 'تعذر تحميل بيانات التحليلات');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
+  useEffect(() => {
+    loadAll(period);
+  }, [period, loadAll]);
+
+  const inPeriod = useCallback((d: string, range?: { from: string; to: string }) => {
+    if (!range) return true;
+    const day = String(d || '').split('T')[0];
+    if (range.from && day < range.from) return false;
+    if (range.to && day > range.to) return false;
+    return true;
+  }, []);
+
+  // Filtered orders in period
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o: any) => inPeriod(o.createdAt || o.created_at || o.date, curRange));
+  }, [orders, inPeriod, curRange]);
+
+  // Order stats
   const orderStats = useMemo(() => {
-    const total = orders.length;
-    const revenue = orders.reduce((s, o) => s + Number(o.total || 0), 0);
-    const delivered = orders.filter((o) => String(o.status).toUpperCase() === 'DELIVERED').length;
-    const cancelled = orders.filter((o) => String(o.status).toUpperCase() === 'CANCELLED').length;
+    const list = filteredOrders.length > 0 ? filteredOrders : orders;
+    const total = list.length;
+    const revenue = list.reduce((s, o) => s + Number(o.total || o.total_amount || 0), 0);
+    const delivered = list.filter((o) => String(o.status).toUpperCase() === 'DELIVERED').length;
+    const cancelled = list.filter((o) => String(o.status).toUpperCase() === 'CANCELLED').length;
     const avgOrder = total > 0 ? revenue / total : 0;
     return { total, revenue, delivered, cancelled, avgOrder };
-  }, [orders]);
+  }, [filteredOrders, orders]);
 
+  // Daily chart data
   const chartData = useMemo(() => {
     const chart = analytics?.chartData;
     if (Array.isArray(chart) && chart.length > 0) return chart;
-    if (orders.length === 0) return [];
+    const targetOrders = filteredOrders.length > 0 ? filteredOrders : orders;
+    if (targetOrders.length === 0) return [];
     const byDate: Record<string, number> = {};
-    orders.forEach((o) => {
+    targetOrders.forEach((o) => {
       const d = new Date(o.createdAt || o.created_at || Date.now());
       const key = `${d.getMonth() + 1}/${d.getDate()}`;
-      byDate[key] = (byDate[key] || 0) + Number(o.total || 0);
+      byDate[key] = (byDate[key] || 0) + Number(o.total || o.total_amount || 0);
     });
     return Object.entries(byDate)
       .sort((a, b) => {
@@ -523,231 +395,745 @@ export default function AnalyticsPage() {
         const [bm, bd] = b[0].split('/').map(Number);
         return am === bm ? ad - bd : am - bm;
       })
-      .slice(-12)
+      .slice(-14)
       .map(([name, sales]) => ({ name, sales }));
-  }, [analytics, orders]);
+  }, [analytics, filteredOrders, orders]);
 
   const maxChart = Math.max(...chartData.map((d: any) => Number(d.sales || 0)), 1);
 
+  // Financial KPIs
+  const kpis = useMemo(() => {
+    const revenue =
+      Number(reportsData.revenue?.total_revenue ?? reportsData.revenue?.net_profit ?? 0) ||
+      orderStats.revenue;
+    const prevRevenue = Number(reportsData.prevRevenue?.total_revenue ?? 0);
+    const expenses = (reportsData.expenses || [])
+      .filter((e: any) => inPeriod(e.date, curRange))
+      .reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+    const netProfit = Number(
+      reportsData.profit?.net_profit ?? reportsData.profit?.profit ?? revenue - expenses
+    );
+    const revGrowth = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : 0;
+    const profitMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+    return { revenue, prevRevenue, expenses, netProfit, revGrowth, profitMargin };
+  }, [reportsData, inPeriod, curRange, orderStats.revenue]);
+
+  // Breakdown sections
+  const sections = useMemo(() => {
+    // Payment method breakdown
+    const byPayment = new Map<string, number>();
+    filteredOrders.forEach((o) => {
+      const pm = String(o.payment_method || o.paymentMethod || 'الدفع عند الاستلام');
+      byPayment.set(pm, (byPayment.get(pm) || 0) + Number(o.total || o.total_amount || 0));
+    });
+
+    // Purchases
+    const accInv: any[] = reportsData.accInvoices || [];
+    const purchases = accInv.filter(
+      (i: any) => String(i.invoice_type || i.invoiceType) === 'purchase'
+    );
+    const purchasesTotal = purchases.reduce(
+      (s, i) => s + Number(i.total_amount || i.total || 0),
+      0
+    );
+    const purchasesPaid = purchases.reduce(
+      (s, i) => s + Number(i.paid_amount || i.paidAmount || i.paid || 0),
+      0
+    );
+    const bySupplier = new Map<string, number>();
+    purchases.forEach((i) => {
+      const n = i.entity_name || i.entityName || '—';
+      bySupplier.set(n, (bySupplier.get(n) || 0) + Number(i.total_amount || i.total || 0));
+    });
+
+    // Expenses by category
+    const expenses: any[] = (reportsData.expenses || []).filter((e: any) =>
+      inPeriod(e.date, curRange)
+    );
+    const expByCategory = new Map<string, number>();
+    expenses.forEach((e) => {
+      const c = e.category || 'عام وإداري';
+      expByCategory.set(c, (expByCategory.get(c) || 0) + Number(e.amount || 0));
+    });
+
+    // Aging debts
+    const aging: any[] = reportsData.aging || [];
+    const customerDues = aging.filter(
+      (a: any) => String(a.entity_type || a.entityType || 'customer') === 'customer'
+    );
+    const vendorDues = aging.filter((a: any) => String(a.entity_type || a.entityType) === 'vendor');
+    const totalCustomerDue = (customerDues.length ? customerDues : aging).reduce(
+      (s, a) => s + Number(a.total_outstanding ?? a.total ?? a.outstanding ?? 0),
+      0
+    );
+    const totalVendorDue = (vendorDues.length ? vendorDues : []).reduce(
+      (s, a) => s + Number(a.total_outstanding ?? a.total ?? a.outstanding ?? 0),
+      0
+    );
+
+    // Wallets
+    const wallets: any[] = reportsData.wallets || [];
+    const totalLiquidity = wallets.reduce((s, w) => s + Number(w.balance || 0), 0);
+
+    // Products & Stock
+    const products: any[] = reportsData.products || [];
+    const lowStock = products.filter(
+      (p) => Number(p.stock || p.quantity || 0) <= 5 && Number(p.stock || p.quantity || 0) > 0
+    ).length;
+    const outStock = products.filter((p) => Number(p.stock || p.quantity || 0) <= 0).length;
+    const stockValue = products.reduce(
+      (s, p) =>
+        s + Number(p.costPrice || p.cost || p.price || 0) * Number(p.stock || p.quantity || 0),
+      0
+    );
+
+    return {
+      byPayment,
+      purchasesTotal,
+      purchasesPaid,
+      bySupplier,
+      expByCategory,
+      totalCustomerDue,
+      totalVendorDue,
+      wallets,
+      totalLiquidity,
+      products,
+      lowStock,
+      outStock,
+      stockValue,
+      suppliers: reportsData.suppliers || [],
+    };
+  }, [filteredOrders, reportsData, inPeriod, curRange]);
+
+  const handleExportCSV = () => {
+    downloadCSV(
+      `analytics-${period}-${new Date().toISOString().split('T')[0]}.csv`,
+      ['المؤشر', 'القيمة'],
+      [
+        ['إجمالي الطلبات', orderStats.total],
+        ['إجمالي الإيرادات', kpis.revenue.toFixed(2)],
+        ['صافي الربح', kpis.netProfit.toFixed(2)],
+        ['المصروفات', kpis.expenses.toFixed(2)],
+        ['متوسط قيمة الطلب', orderStats.avgOrder.toFixed(2)],
+        ['الطلبات المكتملة', orderStats.delivered],
+        ['الطلبات الملغاة', orderStats.cancelled],
+        ['إجمالي السيولة النقدية', sections.totalLiquidity.toFixed(2)],
+        ['مديونيات العملاء المستحقة', sections.totalCustomerDue.toFixed(2)],
+        ['مستحقات الموردين', sections.totalVendorDue.toFixed(2)],
+        ['قيمة المخزون الإجمالية', sections.stockValue.toFixed(2)],
+      ]
+    );
+  };
+
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-row-reverse">
-        <div className="flex items-center gap-4 flex-row-reverse">
-          <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-            <BarChart3 size={24} className="text-[#00E5FF]" />
+    <div className="min-h-full text-slate-900 space-y-6" style={INV_PAGE_FONT} dir="rtl">
+      {/* Header bar */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              التحليلات والتقارير
+            </h1>
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
+              {curRange.label}
+            </span>
           </div>
-          <div className="text-right">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900">كل التحليلات</h1>
-              <button
-                onClick={() => setGuideOpen(true)}
-                className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all"
-                title="معلومات / Info"
-              >
-                <Info size={18} />
-              </button>
-            </div>
-            <p className="text-sm font-bold text-slate-400 mt-1">
-              كل صفحات التحليلات والتقارير في مكان واحد
-            </p>
-          </div>
+          <p className="text-xs sm:text-sm font-semibold text-slate-400">
+            لوحة موحدة لكل مؤشرات الأداء والتقارير المالية والتشغيلية المباشرة
+          </p>
         </div>
-        <div className="flex gap-2">
-          {[
-            { id: '7d', label: '7 أيام' },
-            { id: '30d', label: '30 يوم' },
-            { id: '6m', label: '6 أشهر' },
-            { id: '12m', label: 'سنة' },
-          ].map((r) => (
-            <button
-              key={r.id}
-              onClick={() => setRange(r.id as any)}
-              className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
-                range === r.id
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-white text-slate-600 border border-slate-200'
-              }`}
-            >
-              {r.label}
-            </button>
-          ))}
+
+        {/* Filter & Actions */}
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as PeriodKey)}
+            className="h-10 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white shadow-xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-900/5 transition-all cursor-pointer"
+            title="فترة التحليلات"
+          >
+            {PERIODS.map((p) => (
+              <option key={p.key} value={p.key}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={() => loadAll(period)}
+            disabled={refreshing}
+            className="h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+            title="تحديث البيانات"
+          >
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+            <span className="hidden sm:inline">تحديث</span>
+          </button>
+
+          <button
+            onClick={handleExportCSV}
+            className="h-10 px-4 rounded-xl bg-slate-900 text-white hover:bg-black font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+            title="تصدير تقرير CSV"
+          >
+            <Download size={14} />
+            <span>تصدير CSV</span>
+          </button>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-bold text-right">
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs sm:text-sm font-bold text-right">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
+        <div className="flex flex-col items-center justify-center min-h-[45vh] bg-white rounded-2xl border border-slate-200/80 p-12">
+          <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin mb-3" />
+          <p className="text-xs font-bold text-slate-400">جاري تجميع كافة التقارير والبيانات...</p>
         </div>
       ) : (
         <>
-          {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 bg-blue-50 text-blue-600">
-                <ShoppingCart size={20} />
-              </div>
-              <span className="text-slate-500 font-semibold text-xs mb-1">إجمالي الطلبات</span>
-              <span className="text-xl sm:text-2xl font-bold text-slate-900">
+          {/* ============================================================
+           * Clean Minimalist Stat Cards (NO annoying square icon badges!)
+           * ============================================================ */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+            {/* Card 1: إجمالي الطلبات */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs text-right transition-all hover:border-slate-300">
+              <span className="text-slate-400 font-bold text-xs block mb-1">إجمالي الطلبات</span>
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight tabular-nums">
                 {orderStats.total}
-              </span>
-            </div>
-            <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 bg-green-50 text-green-600">
-                <DollarSign size={20} />
               </div>
-              <span className="text-slate-500 font-semibold text-xs mb-1">إجمالي الإيرادات</span>
-              <span className="text-xl sm:text-2xl font-bold text-slate-900">
-                ج.م {orderStats.revenue.toLocaleString()}
-              </span>
-            </div>
-            <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 bg-cyan-50 text-cyan-600">
-                <TrendingUp size={20} />
+              <div className="text-[11px] text-slate-500 font-semibold mt-1">
+                {orderStats.delivered} مكتمل · {orderStats.cancelled} ملغي
               </div>
-              <span className="text-slate-500 font-semibold text-xs mb-1">متوسط الطلب</span>
-              <span className="text-xl sm:text-2xl font-bold text-slate-900">
-                ج.م {Math.round(orderStats.avgOrder).toLocaleString()}
-              </span>
             </div>
-            <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 bg-purple-50 text-purple-600">
-                <Users size={20} />
+
+            {/* Card 2: إجمالي الإيرادات */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs text-right transition-all hover:border-slate-300">
+              <span className="text-slate-400 font-bold text-xs block mb-1">إجمالي الإيرادات</span>
+              <div
+                className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums"
+                dir="ltr"
+              >
+                ج.م {fmt(kpis.revenue)}
               </div>
-              <span className="text-slate-500 font-semibold text-xs mb-1">العملاء</span>
-              <span className="text-xl sm:text-2xl font-bold text-slate-900">
+              <div className="text-[11px] font-semibold mt-1 text-slate-500">
+                {kpis.revGrowth !== 0 ? (
+                  <span className={kpis.revGrowth > 0 ? 'text-emerald-600' : 'text-rose-600'}>
+                    {kpis.revGrowth > 0 ? '↑ ' : '↓ '}
+                    {Math.abs(kpis.revGrowth).toFixed(1)}% مقارنة
+                  </span>
+                ) : (
+                  'مبيعات الفترة'
+                )}
+              </div>
+            </div>
+
+            {/* Card 3: صافي الأرباح */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs text-right transition-all hover:border-slate-300">
+              <span className="text-slate-400 font-bold text-xs block mb-1">صافي الأرباح</span>
+              <div
+                className={`text-xl sm:text-2xl font-black tracking-tight tabular-nums ${
+                  kpis.netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                }`}
+                dir="ltr"
+              >
+                ج.م {fmt(kpis.netProfit)}
+              </div>
+              <div className="text-[11px] text-slate-500 font-semibold mt-1">
+                هامش: {kpis.profitMargin.toFixed(1)}%
+              </div>
+            </div>
+
+            {/* Card 4: متوسط الطلب */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs text-right transition-all hover:border-slate-300">
+              <span className="text-slate-400 font-bold text-xs block mb-1">متوسط الطلب</span>
+              <div
+                className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums"
+                dir="ltr"
+              >
+                ج.م {fmt(Math.round(orderStats.avgOrder))}
+              </div>
+              <div className="text-[11px] text-slate-500 font-semibold mt-1">لكل عملية بيع</div>
+            </div>
+
+            {/* Card 5: المصروفات */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs text-right transition-all hover:border-slate-300">
+              <span className="text-slate-400 font-bold text-xs block mb-1">المصروفات</span>
+              <div
+                className="text-xl sm:text-2xl font-black text-rose-600 tracking-tight tabular-nums"
+                dir="ltr"
+              >
+                ج.م {fmt(kpis.expenses)}
+              </div>
+              <div className="text-[11px] text-slate-500 font-semibold mt-1">مصاريف التشغيل</div>
+            </div>
+
+            {/* Card 6: العملاء */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs text-right transition-all hover:border-slate-300">
+              <span className="text-slate-400 font-bold text-xs block mb-1">العملاء</span>
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight tabular-nums">
                 {customerStats?.totalCustomers || analytics?.totalCustomers || 0}
-              </span>
+              </div>
+              <div className="text-[11px] text-slate-500 font-semibold mt-1">قاعدة العملاء</div>
             </div>
           </div>
 
-          {/* Chart */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <div className="flex items-center gap-2 mb-6 flex-row-reverse">
-              <Activity size={18} className="text-slate-400" />
-              <h2 className="font-bold text-slate-900 text-sm">مبيعات يومية</h2>
+          {/* ============================================================
+           * Navigation Tabs (All Reports Under One Roof)
+           * ============================================================ */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            {/* Tab navigation pills */}
+            <div className="flex items-center gap-1.5 p-2 border-b border-slate-100 overflow-x-auto no-scrollbar">
+              {[
+                { id: 'overview', label: 'نظرة عامة ورسوم' },
+                { id: 'sales', label: 'المبيعات والطلبات' },
+                { id: 'profits', label: 'الأرباح والمصروفات' },
+                { id: 'purchases', label: 'المشتريات والموردين' },
+                { id: 'aging', label: 'الديون والمستحقات' },
+                { id: 'cash', label: 'الخزائن والسيولة' },
+                { id: 'inventory', label: 'المنتجات والمخزون' },
+                { id: 'taxes', label: 'الضرائب' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
-            {chartData.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 font-bold text-sm">
-                لا توجد بيانات كافية
-              </div>
-            ) : (
-              <div className="flex items-end gap-2 h-40 sm:h-48">
-                {chartData.map((d: any, i: number) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                    <div
-                      className="w-full rounded-t bg-gradient-to-t from-slate-800 to-slate-900 transition-all hover:from-[#00E5FF] hover:to-[#00B8D9]"
-                      style={{ height: `${Math.max((Number(d.sales || 0) / maxChart) * 100, 3)}%` }}
-                      title={`${d.name}: ج.م ${Number(d.sales || 0).toLocaleString()}`}
-                    />
-                    <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap">
-                      {d.name}
-                    </span>
+
+            {/* Tab Contents */}
+            <div className="p-5 sm:p-6">
+              {/* TAB 1: OVERVIEW */}
+              {activeTab === 'overview' && (
+                <div className="space-y-6">
+                  {/* Daily Sales Chart */}
+                  <div className="rounded-xl border border-slate-100 p-5 bg-slate-50/50">
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-2">
+                        <Activity size={16} className="text-slate-500" />
+                        <h2 className="font-black text-slate-900 text-sm">مبيعات يومية</h2>
+                      </div>
+                      <span className="text-xs font-bold text-slate-400">
+                        إجمالي الفترة: ج.م {fmt(orderStats.revenue)}
+                      </span>
+                    </div>
+
+                    {chartData.length === 0 ? (
+                      <div className="text-center py-12 text-slate-400 font-bold text-sm">
+                        لا توجد حركة مبيعات مسجلة في هذه الفترة
+                      </div>
+                    ) : (
+                      <div className="flex items-end gap-2 sm:gap-3 h-44 sm:h-52 pt-4">
+                        {chartData.map((d: any, i: number) => (
+                          <div
+                            key={i}
+                            className="flex-1 flex flex-col items-center gap-2 h-full justify-end"
+                          >
+                            <div
+                              className="w-full max-w-[40px] rounded-t-lg bg-slate-900 transition-all hover:bg-cyan-500 cursor-pointer"
+                              style={{
+                                height: `${Math.max((Number(d.sales || 0) / maxChart) * 100, 4)}%`,
+                              }}
+                              title={`${d.name}: ج.م ${Number(d.sales || 0).toLocaleString()}`}
+                            />
+                            <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
+                              {d.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
+
+                  {/* Secondary stats row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="bg-slate-50/60 rounded-xl border border-slate-100 p-4 text-right">
+                      <span className="text-xs font-bold text-slate-400 block mb-1">
+                        نسبة إكمال الطلبات
+                      </span>
+                      <div className="text-xl font-black text-slate-900">
+                        {orderStats.total > 0
+                          ? Math.round((orderStats.delivered / orderStats.total) * 100)
+                          : 0}
+                        %
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-semibold mt-1">
+                        {orderStats.delivered} من أصل {orderStats.total} طلب
+                      </p>
+                    </div>
+
+                    <div className="bg-slate-50/60 rounded-xl border border-slate-100 p-4 text-right">
+                      <span className="text-xs font-bold text-slate-400 block mb-1">
+                        نسبة الإلغاء
+                      </span>
+                      <div className="text-xl font-black text-slate-900">
+                        {orderStats.total > 0
+                          ? Math.round((orderStats.cancelled / orderStats.total) * 100)
+                          : 0}
+                        %
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-semibold mt-1">
+                        {orderStats.cancelled} طلبات ملغاة
+                      </p>
+                    </div>
+
+                    <div className="bg-slate-50/60 rounded-xl border border-slate-100 p-4 text-right">
+                      <span className="text-xs font-bold text-slate-400 block mb-1">
+                        إجمالي الزوار
+                      </span>
+                      <div className="text-xl font-black text-slate-900">
+                        {analytics?.visitors || 0}
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-semibold mt-1">
+                        زيارات المتجر والموقع
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: SALES & ORDERS */}
+              {activeTab === 'sales' && (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">إجمالي المبيعات</span>
+                      <div className="text-lg font-black text-slate-900 mt-1">
+                        ج.م {fmt2(orderStats.revenue)}
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">الطلبات المسجلة</span>
+                      <div className="text-lg font-black text-slate-900 mt-1">
+                        {orderStats.total} طلب
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">متوسط السلة</span>
+                      <div className="text-lg font-black text-slate-900 mt-1">
+                        ج.م {fmt2(orderStats.avgOrder)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs font-black text-slate-800 mb-3">
+                      توزيع المبيعات حسب طريقة الدفع
+                    </h3>
+                    {sections.byPayment.size === 0 ? (
+                      <p className="text-slate-400 text-xs font-bold py-4">
+                        لا توجد طلبات في هذه الفترة
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {[...sections.byPayment.entries()].map(([method, total]) => (
+                          <MiniBar
+                            key={method}
+                            label={method}
+                            value={total}
+                            max={Math.max(1, ...sections.byPayment.values())}
+                            color="bg-slate-900"
+                            suffix=" ج.م"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: PROFITS & EXPENSES */}
+              {activeTab === 'profits' && (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">الإيرادات</span>
+                      <div className="text-lg font-black text-emerald-700 mt-1">
+                        ج.م {fmt2(kpis.revenue)}
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">المصروفات</span>
+                      <div className="text-lg font-black text-rose-700 mt-1">
+                        ج.م {fmt2(kpis.expenses)}
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">صافي الربح</span>
+                      <div className="text-lg font-black text-slate-900 mt-1">
+                        ج.م {fmt2(kpis.netProfit)}
+                      </div>
+                    </div>
+                    <div className="bg-slate-900 rounded-xl p-4 text-center text-white">
+                      <span className="text-xs font-bold text-slate-300">هامش الربح</span>
+                      <div className="text-lg font-black mt-1">{kpis.profitMargin.toFixed(1)}%</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs font-black text-slate-800 mb-3">
+                      تفصيل المصروفات حسب التصنيف
+                    </h3>
+                    {sections.expByCategory.size === 0 ? (
+                      <p className="text-slate-400 text-xs font-bold py-4">
+                        لا توجد بنود مصروفات مسجلة في الفترة
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {[...sections.expByCategory.entries()].map(([cat, amount]) => (
+                          <MiniBar
+                            key={cat}
+                            label={cat}
+                            value={amount}
+                            max={Math.max(1, ...sections.expByCategory.values())}
+                            color="bg-rose-500"
+                            suffix=" ج.م"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: PURCHASES & SUPPLIERS */}
+              {activeTab === 'purchases' && (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">إجمالي المشتريات</span>
+                      <div className="text-lg font-black text-slate-900 mt-1">
+                        ج.م {fmt2(sections.purchasesTotal)}
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">المسدد للموردين</span>
+                      <div className="text-lg font-black text-emerald-700 mt-1">
+                        ج.م {fmt2(sections.purchasesPaid)}
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">المستحق للدفع</span>
+                      <div className="text-lg font-black text-rose-700 mt-1">
+                        ج.م {fmt2(Math.max(sections.purchasesTotal - sections.purchasesPaid, 0))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs font-black text-slate-800 mb-3">
+                      أعلى الموردين من حيث حجم التعامل
+                    </h3>
+                    {sections.bySupplier.size === 0 ? (
+                      <p className="text-slate-400 text-xs font-bold py-4">
+                        لا توجد فواتير مشتريات مسجلة في الفترة الحالية
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {[...sections.bySupplier.entries()].map(([supplier, amount]) => (
+                          <MiniBar
+                            key={supplier}
+                            label={supplier}
+                            value={amount}
+                            max={Math.max(1, ...sections.bySupplier.values())}
+                            color="bg-amber-500"
+                            suffix=" ج.م"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: AGING & DEBTS */}
+              {activeTab === 'aging' && (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">
+                        مديونيات العملاء المستحقة
+                      </span>
+                      <div className="text-lg font-black text-rose-700 mt-1">
+                        ج.م {fmt2(sections.totalCustomerDue)}
+                      </div>
+                      <Link
+                        href="/dashboard/finance/receivables"
+                        className="text-xs font-bold text-slate-700 hover:underline inline-block mt-2"
+                      >
+                        فتح سجل العملاء والمدينون ←
+                      </Link>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">
+                        مستحقات الموردين المؤجلة
+                      </span>
+                      <div className="text-lg font-black text-rose-700 mt-1">
+                        ج.م {fmt2(sections.totalVendorDue)}
+                      </div>
+                      <Link
+                        href="/dashboard/finance/payables"
+                        className="text-xs font-bold text-slate-700 hover:underline inline-block mt-2"
+                      >
+                        فتح سجل الموردون والدائنون ←
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 6: CASH & WALLETS */}
+              {activeTab === 'cash' && (
+                <div className="space-y-5">
+                  <div className="bg-slate-50 rounded-xl p-4 text-center">
+                    <span className="text-xs font-bold text-slate-400">
+                      إجمالي السيولة النقدية الحالية
+                    </span>
+                    <div className="text-2xl font-black text-slate-900 mt-1">
+                      ج.م {fmt2(sections.totalLiquidity)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs font-black text-slate-800 mb-3">
+                      الأرصدة بالخزائن والمحافظ والبنوك
+                    </h3>
+                    {sections.wallets.length === 0 ? (
+                      <p className="text-slate-400 text-xs font-bold py-4">
+                        لم يتم تسجيل حسابات مالية بعد
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {sections.wallets.map((w: any) => (
+                          <MiniBar
+                            key={w.id || w.name}
+                            label={w.name || 'حساب نقدية'}
+                            value={Number(w.balance || 0)}
+                            max={Math.max(
+                              1,
+                              ...sections.wallets.map((x: any) => Number(x.balance || 0))
+                            )}
+                            color="bg-teal-600"
+                            suffix=" ج.م"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 7: INVENTORY & PRODUCTS */}
+              {activeTab === 'inventory' && (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">إجمالي قيمة المخزون</span>
+                      <div className="text-lg font-black text-slate-900 mt-1">
+                        ج.م {fmt2(sections.stockValue)}
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">عدد الأصناف</span>
+                      <div className="text-lg font-black text-slate-900 mt-1">
+                        {sections.products.length} صنف
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">منخفض المخزون</span>
+                      <div className="text-lg font-black text-amber-600 mt-1">
+                        {sections.lowStock} صنف
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">نافد تماماً</span>
+                      <div className="text-lg font-black text-rose-600 mt-1">
+                        {sections.outStock} صنف
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Link
+                      href="/dashboard/inventory"
+                      className="text-xs font-black text-slate-800 hover:underline"
+                    >
+                      الانتقال إلى لوحة إدارة المخزون الكاملة ←
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 8: TAXES */}
+              {activeTab === 'taxes' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">الضرائب النشطة</span>
+                      <div className="text-lg font-black text-slate-900 mt-1">
+                        {(reportsData.taxRates || []).length} معدلات
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">الإقرارات المقدمة</span>
+                      <div className="text-lg font-black text-slate-900 mt-1">
+                        {(reportsData.taxReturns || []).length} إقرار
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 text-center">
+                      <span className="text-xs font-bold text-slate-400">تفاصيل المحاسبة</span>
+                      <Link
+                        href="/dashboard/finance/taxes"
+                        className="text-xs font-black text-slate-800 hover:underline block mt-2"
+                      >
+                        سجل الضرائب والإقرارات ←
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Secondary stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-5 text-right">
-              <div className="flex items-center gap-2 mb-3 flex-row-reverse">
-                <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center">
-                  <TrendingUp size={16} />
-                </div>
-                <span className="font-bold text-slate-900 text-sm">طلبات مكتملة</span>
-              </div>
-              <div className="text-2xl font-black text-slate-900">{orderStats.delivered}</div>
-              <div className="text-xs text-slate-500 mt-1">
-                {orderStats.total > 0
-                  ? `${Math.round((orderStats.delivered / orderStats.total) * 100)}%`
-                  : '0%'}{' '}
-                من الإجمالي
-              </div>
-            </div>
-            <div className="bg-white rounded-xl border border-slate-200 p-5 text-right">
-              <div className="flex items-center gap-2 mb-3 flex-row-reverse">
-                <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
-                  <TrendingDown size={16} />
-                </div>
-                <span className="font-bold text-slate-900 text-sm">طلبات ملغاة</span>
-              </div>
-              <div className="text-2xl font-black text-slate-900">{orderStats.cancelled}</div>
-              <div className="text-xs text-slate-500 mt-1">
-                {orderStats.total > 0
-                  ? `${Math.round((orderStats.cancelled / orderStats.total) * 100)}%`
-                  : '0%'}{' '}
-                من الإجمالي
-              </div>
-            </div>
-            <div className="bg-white rounded-xl border border-slate-200 p-5 text-right">
-              <div className="flex items-center gap-2 mb-3 flex-row-reverse">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <Eye size={16} />
-                </div>
-                <span className="font-bold text-slate-900 text-sm">زوار المتجر</span>
-              </div>
-              <div className="text-2xl font-black text-slate-900">{analytics?.visitors || 0}</div>
-              <div className="text-xs text-slate-500 mt-1">إجمالي الزوار</div>
-            </div>
-          </div>
-
-          {/* استكشف كل التحليلات — فهرس كل صفحات التحليلات */}
+          {/* ============================================================
+           * Clean Sub-Analytics Pages Quick Links
+           * ============================================================ */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <LayoutGrid size={16} className="text-fuchsia-500" />
-              <h2 className="font-black text-slate-900 text-base">استكشف كل التحليلات</h2>
-              <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 border border-slate-100 rounded px-2 py-0.5 tabular-nums">
-                {ANALYTICS_PAGES.length} صفحة
-              </span>
+              <h2 className="font-black text-slate-900 text-sm">صفحات التحليلات التخصصية</h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {ANALYTICS_PAGES.map((p) => (
                 <Link
                   key={p.id}
                   href={p.href}
-                  className="group bg-white border border-slate-200 rounded-xl p-4 text-right hover:border-slate-300 hover:shadow-sm transition-all"
+                  className="group bg-white border border-slate-200/80 rounded-xl p-4 text-right hover:border-slate-300 hover:shadow-xs transition-all flex items-center justify-between"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${p.tile}`}
-                    >
-                      <p.icon size={18} />
-                    </div>
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      {p.soon && (
-                        <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[8px] font-black leading-none shrink-0">
-                          قيد التطوير
-                        </span>
-                      )}
-                      <ChevronLeft
-                        size={14}
-                        className="text-slate-300 group-hover:text-slate-500 transition-colors shrink-0"
-                      />
-                    </div>
+                  <div className="min-w-0">
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-slate-950 transition-colors">
+                      {p.label}
+                    </h3>
+                    <p className="text-[11px] text-slate-400 font-semibold mt-0.5 truncate">
+                      {p.desc}
+                    </p>
                   </div>
-                  <h3 className="text-sm font-bold text-slate-900 mt-3">{p.label}</h3>
-                  <p className="text-[11px] text-slate-400 font-semibold mt-1 leading-relaxed">
-                    {p.desc}
-                  </p>
+                  <ChevronLeft
+                    size={16}
+                    className="text-slate-300 group-hover:text-slate-600 transition-colors shrink-0 mr-2"
+                  />
                 </Link>
               ))}
             </div>
           </div>
         </>
-      )}
-
-      {guideOpen && (
-        <InfoDrawer title="كل التحليلات" onClose={() => setGuideOpen(false)}>
-          <AnalyticsGuideContent guide={analyticsGuide} />
-        </InfoDrawer>
       )}
     </div>
   );

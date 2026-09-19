@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/db"
+	"github.com/google/uuid"
 )
 
 // Repository handles database operations for map pins
@@ -122,4 +123,62 @@ func (r *Repository) SetListingStatus(ctx context.Context, id, status, note, adm
 		SET status = $1::"MapListingStatus", review_note = $2, reviewed_by_admin_id = NULLIF($3, ''), reviewed_at = NOW(), updated_at = NOW()
 		WHERE id = $4`, status, note, adminID, id)
 	return err
+}
+
+// CreateListing inserts a new map listing and its primary branch atomically.
+// The listing is created with status 'PENDING' and must be approved by an
+// admin before it appears on the public map.
+func (r *Repository) CreateListing(ctx context.Context, req SubmitListingRequest) (string, error) {
+	listingID := uuid.NewString()
+	branchID := uuid.NewString()
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return "", fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Insert the listing (linked_shop_id left NULL for standalone submissions)
+	_, err = tx.Exec(ctx, `
+		INSERT INTO map_listings (
+			id, linked_shop_id, title, category, description,
+			website_url, phone, whatsapp, social_links,
+			logo_url, cover_url, status, created_at, updated_at
+		) VALUES (
+			$1, NULLIF($2, ''), $3, NULLIF($4, ''), NULLIF($5, ''),
+			NULLIF($6, ''), NULLIF($7, ''), NULLIF($8, ''), $9,
+			NULLIF($10, ''), NULLIF($11, ''), 'PENDING', NOW(), NOW()
+		)`,
+		listingID, req.LinkedShopId, req.Title, req.Category, req.Description,
+		req.WebsiteUrl, req.Phone, req.Whatsapp, req.SocialLinks,
+		req.LogoUrl, req.CoverUrl,
+	)
+	if err != nil {
+		return "", fmt.Errorf("insert map_listings: %w", err)
+	}
+
+	// Insert the primary branch
+	_, err = tx.Exec(ctx, `
+		INSERT INTO map_listing_branches (
+			id, listing_id, name, latitude, longitude,
+			address_label, governorate, city, phone, is_primary,
+			created_at, updated_at
+		) VALUES (
+			$1, $2, NULLIF($3, ''), $4, $5,
+			NULLIF($6, ''), NULLIF($7, ''), NULLIF($8, ''), NULLIF($9, ''), true,
+			NOW(), NOW()
+		)`,
+		branchID, listingID,
+		req.Branch.Name, req.Branch.Latitude, req.Branch.Longitude,
+		req.Branch.AddressLabel, req.Branch.Governorate, req.Branch.City, req.Branch.Phone,
+	)
+	if err != nil {
+		return "", fmt.Errorf("insert map_listing_branches: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return "", fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return listingID, nil
 }

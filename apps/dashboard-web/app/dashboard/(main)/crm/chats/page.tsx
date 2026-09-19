@@ -1,9 +1,27 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { MessageSquare, Search, Loader2, Plus, Edit, Trash2, Download, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info, Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, Send, User, Eye, MoreHorizontal } from 'lucide-react';
+import {
+  MessageSquare,
+  Plus,
+  Edit,
+  Trash2,
+  Download,
+  ChevronUp,
+  ChevronDown,
+  Check,
+  X,
+  Info,
+  User,
+} from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import {
+  InventoryPage,
+  InvToolButton,
+  InvPagination,
+  InvEmpty,
+} from '@/components/inventory/InventoryShell';
 
 type Chat = {
   id: string;
@@ -56,54 +74,80 @@ export default function ChatsPage() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const res = await apiRequest(`/chats/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
-      setChats(data.map((c: any) => ({
-        id: String(c.id),
-        customerName: c.customerName || c.customer_name || '---',
-        customerEmail: c.customerEmail || c.customer_email || '---',
-        customerPhone: c.customerPhone || c.customer_phone || '---',
-        lastMessage: c.lastMessage || c.last_message || '---',
-        lastMessageTime: c.lastMessageTime || c.last_message_time || new Date().toISOString(),
-        status: c.status || 'open',
-        assignedTo: c.assignedTo || c.assigned_to || '---',
-        unreadCount: Number(c.unreadCount || c.unread_count || 0),
-        messageCount: Number(c.messageCount || c.message_count || 0),
-        channel: c.channel || 'web',
-        priority: c.priority || 'medium',
-        tags: c.tags || [],
-        createdAt: c.createdAt || new Date().toISOString(),
-        updatedAt: c.updatedAt || new Date().toISOString(),
-      })));
-    } catch { setChats([]); } finally { setLoading(false); }
+      const data = Array.isArray(res) ? res : res?.data || [];
+      setChats(
+        data.map((c: any) => ({
+          id: String(c.id),
+          customerName: c.customerName || c.customer_name || '---',
+          customerEmail: c.customerEmail || c.customer_email || '---',
+          customerPhone: c.customerPhone || c.customer_phone || '---',
+          lastMessage: c.lastMessage || c.last_message || '---',
+          lastMessageTime: c.lastMessageTime || c.last_message_time || new Date().toISOString(),
+          status: c.status || 'open',
+          assignedTo: c.assignedTo || c.assigned_to || '---',
+          unreadCount: Number(c.unreadCount || c.unread_count || 0),
+          messageCount: Number(c.messageCount || c.message_count || 0),
+          channel: c.channel || 'web',
+          priority: c.priority || 'medium',
+          tags: c.tags || [],
+          createdAt: c.createdAt || new Date().toISOString(),
+          updatedAt: c.updatedAt || new Date().toISOString(),
+        }))
+      );
+    } catch {
+      setChats([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadChats(); }, [loadChats]);
+  useEffect(() => {
+    loadChats();
+  }, [loadChats]);
 
   const filtered = useMemo(() => {
-    let result = chats.filter(c =>
-      c.customerName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      c.customerEmail.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      c.customerPhone.includes(debouncedSearch) ||
-      c.lastMessage.toLowerCase().includes(debouncedSearch.toLowerCase())
+    let result = chats.filter(
+      (c) =>
+        c.customerName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        c.customerEmail.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        c.customerPhone.includes(debouncedSearch) ||
+        c.lastMessage.toLowerCase().includes(debouncedSearch.toLowerCase())
     );
 
     if (filterStatus !== 'all') {
-      result = result.filter(c => c.status === filterStatus);
+      result = result.filter((c) => c.status === filterStatus);
     }
 
     if (filterChannel !== 'all') {
-      result = result.filter(c => c.channel === filterChannel);
+      result = result.filter((c) => c.channel === filterChannel);
     }
 
     if (filterPriority !== 'all') {
-      result = result.filter(c => c.priority === filterPriority);
+      result = result.filter((c) => c.priority === filterPriority);
     }
 
     result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'customerName' ? a.customerName : sortBy === 'unreadCount' ? a.unreadCount : sortBy === 'messageCount' ? a.messageCount : a.updatedAt;
-      const bVal = sortBy === 'customerName' ? b.customerName : sortBy === 'unreadCount' ? b.unreadCount : sortBy === 'messageCount' ? b.messageCount : b.updatedAt;
+      const aVal =
+        sortBy === 'customerName'
+          ? a.customerName
+          : sortBy === 'unreadCount'
+            ? a.unreadCount
+            : sortBy === 'messageCount'
+              ? a.messageCount
+              : a.updatedAt;
+      const bVal =
+        sortBy === 'customerName'
+          ? b.customerName
+          : sortBy === 'unreadCount'
+            ? b.unreadCount
+            : sortBy === 'messageCount'
+              ? b.messageCount
+              : b.updatedAt;
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
@@ -127,12 +171,12 @@ export default function ChatsPage() {
     if (selectedIds.size === paginatedChats.length && paginatedChats.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(paginatedChats.map(c => c.id)));
+      setSelectedIds(new Set(paginatedChats.map((c) => c.id)));
     }
   }, [paginatedChats, selectedIds.size]);
 
   const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -154,8 +198,22 @@ export default function ChatsPage() {
   }, [selectedIds, loadChats]);
 
   const exportCSV = useCallback(() => {
-    const headers = ['Customer Name', 'Customer Email', 'Customer Phone', 'Last Message', 'Last Message Time', 'Status', 'Assigned To', 'Unread Count', 'Message Count', 'Channel', 'Priority', 'Tags', 'Created At'];
-    const rows = filtered.map(c => [
+    const headers = [
+      'Customer Name',
+      'Customer Email',
+      'Customer Phone',
+      'Last Message',
+      'Last Message Time',
+      'Status',
+      'Assigned To',
+      'Unread Count',
+      'Message Count',
+      'Channel',
+      'Priority',
+      'Tags',
+      'Created At',
+    ];
+    const rows = filtered.map((c) => [
       c.customerName,
       c.customerEmail,
       c.customerPhone,
@@ -168,9 +226,9 @@ export default function ChatsPage() {
       c.channel,
       c.priority,
       c.tags.join(', '),
-      c.createdAt
+      c.createdAt,
     ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -188,11 +246,23 @@ export default function ChatsPage() {
         body: JSON.stringify({
           ...formData,
           shopId: sid,
-          tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
+          tags: formData.tags
+            .split(',')
+            .map((t) => t.trim())
+            .filter((t) => t),
         }),
       });
       setAddModal(false);
-      setFormData({ customerName: '', customerEmail: '', customerPhone: '', status: 'open', assignedTo: '', channel: 'web', priority: 'medium', tags: '' });
+      setFormData({
+        customerName: '',
+        customerEmail: '',
+        customerPhone: '',
+        status: 'open',
+        assignedTo: '',
+        channel: 'web',
+        priority: 'medium',
+        tags: '',
+      });
       loadChats();
     } catch (error) {
       alert('حدث خطأ أثناء إضافة المحادثة');
@@ -206,27 +276,42 @@ export default function ChatsPage() {
         method: 'PUT',
         body: JSON.stringify({
           ...formData,
-          tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
+          tags: formData.tags
+            .split(',')
+            .map((t) => t.trim())
+            .filter((t) => t),
         }),
       });
       setEditModal(false);
       setEditChat(null);
-      setFormData({ customerName: '', customerEmail: '', customerPhone: '', status: 'open', assignedTo: '', channel: 'web', priority: 'medium', tags: '' });
+      setFormData({
+        customerName: '',
+        customerEmail: '',
+        customerPhone: '',
+        status: 'open',
+        assignedTo: '',
+        channel: 'web',
+        priority: 'medium',
+        tags: '',
+      });
       loadChats();
     } catch (error) {
       alert('حدث خطأ أثناء تعديل المحادثة');
     }
   }, [editChat, formData, loadChats]);
 
-  const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذه المحادثة؟')) return;
-    try {
-      await apiRequest(`/chats/${id}`, { method: 'DELETE' });
-      loadChats();
-    } catch (error) {
-      alert('حدث خطأ أثناء الحذف');
-    }
-  }, [loadChats]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!confirm('هل أنت متأكد من حذف هذه المحادثة؟')) return;
+      try {
+        await apiRequest(`/chats/${id}`, { method: 'DELETE' });
+        loadChats();
+      } catch (error) {
+        alert('حدث خطأ أثناء الحذف');
+      }
+    },
+    [loadChats]
+  );
 
   const openEditModal = useCallback((chat: Chat) => {
     setEditChat(chat);
@@ -264,163 +349,140 @@ export default function ChatsPage() {
     urgent: { label: 'عاجل', color: 'bg-red-50 text-red-600' },
   };
 
-  const stats = useMemo(() => {
-    const total = chats.length;
-    const open = chats.filter(c => c.status === 'open').length;
-    const pending = chats.filter(c => c.status === 'pending').length;
-    const totalUnread = chats.reduce((sum, c) => sum + c.unreadCount, 0);
-    const totalMessages = chats.reduce((sum, c) => sum + c.messageCount, 0);
-    const urgent = chats.filter(c => c.priority === 'urgent').length;
-    return [
-      { label: 'إجمالي المحادثات', value: total, icon: MessageSquare, color: 'bg-blue-50 text-blue-600' },
-      { label: 'مفتوح', value: open, icon: CheckCircle2, color: 'bg-green-50 text-green-600' },
-      { label: 'معلق', value: pending, icon: Clock, color: 'bg-amber-50 text-amber-600' },
-      { label: 'غير مقروء', value: totalUnread, icon: Eye, color: 'bg-purple-50 text-purple-600' },
-      { label: 'إجمالي الرسائل', value: totalMessages, icon: Send, color: 'bg-cyan-50 text-cyan-600' },
-      { label: 'عاجل', value: urgent, icon: AlertTriangle, color: 'bg-red-50 text-red-600' },
-    ];
-  }, [chats]);
+  const statusTabs = [
+    { id: 'all', label: 'الكل', count: chats.length },
+    { id: 'open', label: 'مفتوح', count: chats.filter((c) => c.status === 'open').length },
+    { id: 'pending', label: 'معلق', count: chats.filter((c) => c.status === 'pending').length },
+    {
+      id: 'resolved',
+      label: 'تم الحل',
+      count: chats.filter((c) => c.status === 'resolved').length,
+    },
+    { id: 'closed', label: 'مغلق', count: chats.filter((c) => c.status === 'closed').length },
+  ];
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <MessageSquare size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">المحادثات</h1>
-            <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-              <Info size={18} />
+    <>
+      <InventoryPage
+        title="المحادثات"
+        subtitle="إدارة محادثات العملاء عبر القنوات المختلفة"
+        onInfo={() => setGuideOpen(true)}
+        actions={
+          <>
+            <InvToolButton primary onClick={() => setAddModal(true)}>
+              <Plus size={14} /> محادثة جديدة
+            </InvToolButton>
+            <InvToolButton onClick={exportCSV}>
+              <Download size={14} /> تصدير CSV
+            </InvToolButton>
+          </>
+        }
+        tabs={statusTabs}
+        activeTab={filterStatus}
+        onTabChange={(id) => {
+          setFilterStatus(id);
+          setCurrentPage(1);
+        }}
+        search={search}
+        onSearchChange={(v) => {
+          setSearch(v);
+          setCurrentPage(1);
+        }}
+        searchPlaceholder="بحث بالعميل أو الرسالة…"
+        filters={
+          <>
+            <select
+              value={filterChannel}
+              onChange={(e) => {
+                setFilterChannel(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none"
+            >
+              <option value="all">كل القنوات</option>
+              <option value="web">ويب</option>
+              <option value="mobile">موبايل</option>
+              <option value="email">إيميل</option>
+              <option value="social">سوشيال</option>
+            </select>
+            <select
+              value={filterPriority}
+              onChange={(e) => {
+                setFilterPriority(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none"
+            >
+              <option value="all">كل الأولويات</option>
+              <option value="low">منخفض</option>
+              <option value="medium">متوسط</option>
+              <option value="high">عالي</option>
+              <option value="urgent">عاجل</option>
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none"
+            >
+              <option value="customerName">العميل</option>
+              <option value="unreadCount">غير مقروء</option>
+              <option value="messageCount">الرسائل</option>
+              <option value="updatedAt">آخر تحديث</option>
+            </select>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all"
+              title={sortOrder === 'asc' ? 'تصاعدي' : 'تنازلي'}
+            >
+              {sortOrder === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
-          </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">إدارة محادثات العملاء</p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        {stats.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
-            <div className={`p-2 rounded-xl ${s.color}`}><s.icon size={20} /></div>
-            <div><p className="text-xs font-bold text-slate-400">{s.label}</p><p className="text-lg font-black text-slate-900">{s.value}</p></div>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex flex-wrap gap-3">
-          <button onClick={() => setAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all">
-            <Plus size={18} />
-            محادثة جديدة
-          </button>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
-            <Download size={18} />
-            تصدير CSV
-          </button>
-        </div>
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900">{selectedIds.size} محدد</span>
-            <button onClick={bulkDelete} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-700 font-bold text-xs hover:bg-red-100 transition-all">
-              <Trash2 size={14} />
-              حذف
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute top-1/2 -translate-y-1/2 right-3 text-slate-300" size={18} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالعميل أو الرسالة..." className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-white border border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الحالة:</span>
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="open">مفتوح</option>
-            <option value="closed">مغلق</option>
-            <option value="pending">معلق</option>
-            <option value="resolved">تم الحل</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">القناة:</span>
-          <select
-            value={filterChannel}
-            onChange={e => setFilterChannel(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="web">ويب</option>
-            <option value="mobile">موبايل</option>
-            <option value="email">إيميل</option>
-            <option value="social">سوشيال</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الأولوية:</span>
-          <select
-            value={filterPriority}
-            onChange={e => setFilterPriority(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="low">منخفض</option>
-            <option value="medium">متوسط</option>
-            <option value="high">عالي</option>
-            <option value="urgent">عاجل</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الترتيب:</span>
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="customerName">العميل</option>
-            <option value="unreadCount">غير مقروء</option>
-            <option value="messageCount">الرسائل</option>
-            <option value="updatedAt">آخر تحديث</option>
-          </select>
-        </div>
-        <button
-          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
-        >
-          {sortOrder === 'asc' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-      </div>
-
-      {/* Chats List */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <MessageSquare size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm">لا توجد محادثات حالياً</p>
-        </div>
-      ) : (
-        <div className="hidden md:block overflow-x-auto touch-auto">
+          </>
+        }
+        loading={loading}
+        empty={
+          filtered.length === 0 ? (
+            <InvEmpty icon={MessageSquare} title="لا توجد محادثات حالياً">
+              <InvToolButton primary onClick={() => setAddModal(true)}>
+                <Plus size={14} /> محادثة جديدة
+              </InvToolButton>
+            </InvEmpty>
+          ) : undefined
+        }
+        footer={
+          <>
+            {selectedIds.size > 0 && (
+              <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-[12px] font-bold">
+                <span>{selectedIds.size} محادثة محددة</span>
+                <button
+                  onClick={bulkDelete}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-all"
+                >
+                  <Trash2 size={14} /> حذف
+                </button>
+              </div>
+            )}
+            <InvPagination
+              page={currentPage}
+              totalPages={totalPages}
+              total={filtered.length}
+              perPage={itemsPerPage}
+              onPage={(p) => setCurrentPage(p)}
+              label="محادثة"
+            />
+          </>
+        }
+      >
+        <div className="hidden md:block overflow-x-auto touch-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-right border-collapse min-w-[1400px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="p-4 w-10">
                   <button onClick={toggleSelectAll} className="p-1">
-                    {selectedIds.size === paginatedChats.length && paginatedChats.length > 0 ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
+                    {selectedIds.size === paginatedChats.length && paginatedChats.length > 0 ? (
+                      <Check size={18} className="text-[#00E5FF]" />
+                    ) : (
+                      <div className="w-4 h-4 border-2 border-slate-300 rounded" />
+                    )}
                   </button>
                 </th>
                 <th className="p-4 text-xs font-semibold text-slate-500">العميل</th>
@@ -444,7 +506,11 @@ export default function ChatsPage() {
                   <tr key={chat.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                     <td className="p-4">
                       <button onClick={() => toggleSelect(chat.id)} className="p-1">
-                        {selectedIds.has(chat.id) ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
+                        {selectedIds.has(chat.id) ? (
+                          <Check size={18} className="text-[#00E5FF]" />
+                        ) : (
+                          <div className="w-4 h-4 border-2 border-slate-300 rounded" />
+                        )}
                       </button>
                     </td>
                     <td className="p-4">
@@ -453,20 +519,28 @@ export default function ChatsPage() {
                       <div className="text-slate-500 text-xs">{chat.customerPhone}</div>
                     </td>
                     <td className="p-4">
-                      <div className="text-slate-600 text-sm truncate max-w-xs">{chat.lastMessage}</div>
+                      <div className="text-slate-600 text-sm truncate max-w-xs">
+                        {chat.lastMessage}
+                      </div>
                     </td>
                     <td className="p-4">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${statusConfig.color}`}>
+                      <span
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold ${statusConfig.color}`}
+                      >
                         {statusConfig.label}
                       </span>
                     </td>
                     <td className="p-4">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${channelConfig.color}`}>
+                      <span
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold ${channelConfig.color}`}
+                      >
                         {channelConfig.label}
                       </span>
                     </td>
                     <td className="p-4">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${priorityConfig.color}`}>
+                      <span
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold ${priorityConfig.color}`}
+                      >
                         {priorityConfig.label}
                       </span>
                     </td>
@@ -483,14 +557,24 @@ export default function ChatsPage() {
                       <div className="font-bold text-slate-900 text-sm">{chat.messageCount}</div>
                     </td>
                     <td className="p-4">
-                      <div className="text-slate-600 text-sm">{new Date(chat.lastMessageTime).toLocaleDateString('ar-EG')}</div>
+                      <div className="text-slate-600 text-sm">
+                        {new Date(chat.lastMessageTime).toLocaleDateString('ar-EG')}
+                      </div>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => openEditModal(chat)} className="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all" title="تعديل">
+                        <button
+                          onClick={() => openEditModal(chat)}
+                          className="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all"
+                          title="تعديل"
+                        >
                           <Edit size={14} />
                         </button>
-                        <button onClick={() => handleDelete(chat.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all" title="حذف">
+                        <button
+                          onClick={() => handleDelete(chat.id)}
+                          className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all"
+                          title="حذف"
+                        >
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -501,15 +585,26 @@ export default function ChatsPage() {
             </tbody>
           </table>
         </div>
-      )}
+      </InventoryPage>
 
       {/* Add Modal */}
       {addModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setAddModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setAddModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
               <h2 className="text-xl font-black text-slate-900">محادثة جديدة</h2>
-              <button onClick={() => setAddModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+              <button
+                onClick={() => setAddModal(false)}
+                className="p-2 hover:bg-slate-50 rounded-lg"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
             <div className="space-y-4">
               <div>
@@ -517,7 +612,7 @@ export default function ChatsPage() {
                 <input
                   type="text"
                   value={formData.customerName}
-                  onChange={e => setFormData({ ...formData, customerName: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                   placeholder="Customer Name"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -527,7 +622,7 @@ export default function ChatsPage() {
                 <input
                   type="email"
                   value={formData.customerEmail}
-                  onChange={e => setFormData({ ...formData, customerEmail: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
                   placeholder="email@example.com"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -537,7 +632,7 @@ export default function ChatsPage() {
                 <input
                   type="text"
                   value={formData.customerPhone}
-                  onChange={e => setFormData({ ...formData, customerPhone: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
                   placeholder="+20 123 456 7890"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -546,7 +641,7 @@ export default function ChatsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الحالة</label>
                 <select
                   value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="open">مفتوح</option>
@@ -560,7 +655,7 @@ export default function ChatsPage() {
                 <input
                   type="text"
                   value={formData.assignedTo}
-                  onChange={e => setFormData({ ...formData, assignedTo: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
                   placeholder="اسم الموظف"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -569,7 +664,7 @@ export default function ChatsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">القناة</label>
                 <select
                   value={formData.channel}
-                  onChange={e => setFormData({ ...formData, channel: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, channel: e.target.value as any })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="web">ويب</option>
@@ -582,7 +677,7 @@ export default function ChatsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الأولوية</label>
                 <select
                   value={formData.priority}
-                  onChange={e => setFormData({ ...formData, priority: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="low">منخفض</option>
@@ -592,11 +687,13 @@ export default function ChatsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الوسوم (مفصولة بفاصلة)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  الوسوم (مفصولة بفاصلة)
+                </label>
                 <input
                   type="text"
                   value={formData.tags}
-                  onChange={e => setFormData({ ...formData, tags: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                   placeholder="tag1, tag2, tag3"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -614,11 +711,22 @@ export default function ChatsPage() {
 
       {/* Edit Modal */}
       {editModal && editChat && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setEditModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
               <h2 className="text-xl font-black text-slate-900">تعديل المحادثة</h2>
-              <button onClick={() => setEditModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+              <button
+                onClick={() => setEditModal(false)}
+                className="p-2 hover:bg-slate-50 rounded-lg"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
             <div className="space-y-4">
               <div>
@@ -626,7 +734,7 @@ export default function ChatsPage() {
                 <input
                   type="text"
                   value={formData.customerName}
-                  onChange={e => setFormData({ ...formData, customerName: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -635,7 +743,7 @@ export default function ChatsPage() {
                 <input
                   type="email"
                   value={formData.customerEmail}
-                  onChange={e => setFormData({ ...formData, customerEmail: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -644,7 +752,7 @@ export default function ChatsPage() {
                 <input
                   type="text"
                   value={formData.customerPhone}
-                  onChange={e => setFormData({ ...formData, customerPhone: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -652,7 +760,7 @@ export default function ChatsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الحالة</label>
                 <select
                   value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="open">مفتوح</option>
@@ -666,7 +774,7 @@ export default function ChatsPage() {
                 <input
                   type="text"
                   value={formData.assignedTo}
-                  onChange={e => setFormData({ ...formData, assignedTo: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -674,7 +782,7 @@ export default function ChatsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">القناة</label>
                 <select
                   value={formData.channel}
-                  onChange={e => setFormData({ ...formData, channel: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, channel: e.target.value as any })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="web">ويب</option>
@@ -687,7 +795,7 @@ export default function ChatsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الأولوية</label>
                 <select
                   value={formData.priority}
-                  onChange={e => setFormData({ ...formData, priority: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="low">منخفض</option>
@@ -697,11 +805,13 @@ export default function ChatsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الوسوم (مفصولة بفاصلة)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  الوسوم (مفصولة بفاصلة)
+                </label>
                 <input
                   type="text"
                   value={formData.tags}
-                  onChange={e => setFormData({ ...formData, tags: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -718,19 +828,38 @@ export default function ChatsPage() {
 
       {/* Guide Modal */}
       {guideOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setGuideOpen(false)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setGuideOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
               <h2 className="text-xl font-black text-slate-900">دليل المحادثات</h2>
-              <button onClick={() => setGuideOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+              <button
+                onClick={() => setGuideOpen(false)}
+                className="p-2 hover:bg-slate-50 rounded-lg"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
             <div className="space-y-6 text-right">
               <div>
-                <div className="flex items-center gap-2 mb-2"><Info size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">وظيفة الصفحة</h3></div>
-                <p className="text-sm text-slate-600 leading-relaxed">إدارة محادثات العملاء عبر القنوات المختلفة.</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <Info size={18} className="text-slate-700" />
+                  <h3 className="font-bold text-slate-900">وظيفة الصفحة</h3>
+                </div>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  إدارة محادثات العملاء عبر القنوات المختلفة.
+                </p>
               </div>
               <div>
-                <div className="flex items-center gap-2 mb-2"><MessageSquare size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">الميزات</h3></div>
+                <div className="flex items-center gap-2 mb-2">
+                  <MessageSquare size={18} className="text-slate-700" />
+                  <h3 className="font-bold text-slate-900">الميزات</h3>
+                </div>
                 <ul className="text-sm text-slate-600 space-y-1.5 pr-4">
                   <li>• إضافة وتعديل وحذف المحادثات</li>
                   <li>• قنوات متعددة (ويب، موبايل، إيميل، سوشيال)</li>
@@ -743,6 +872,6 @@ export default function ChatsPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

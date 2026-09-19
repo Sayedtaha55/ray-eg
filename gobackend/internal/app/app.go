@@ -134,9 +134,11 @@ func New(cfg *config.Config) (*App, error) {
 		defer cancel()
 		pool, err = db.New(ctx, cfg.DB, log)
 		if err != nil {
-			log.Error("database connection failed", zap.Error(err))
-			// In production a missing DB is fatal; in development we continue so the
-			// server can be started without a database.
+			// db.New may still return a usable pool (e.g. connect worked but the
+			// schema is incomplete), so keep it for development.
+			log.Error("database initialization failed", zap.Error(err))
+			// In production a missing/unmigrated DB is fatal; in development we
+			// continue so the server can be started without a database.
 			if cfg.IsProduction() {
 				return nil, err
 			}
@@ -260,15 +262,8 @@ reportsHandler          *reports.Handler
 		usersSvc := users.NewService(usersRepo)
 		usersHandler = users.NewHandler(usersSvc, cfg)
 
-		shopsRepo := shops.NewRepository(pool)
-		shopsSvc := shops.NewService(cfg, shopsRepo, appMailer)
-		shopsHandler = shops.NewHandler(shopsSvc, cfg)
-
-		productsRepo := products.NewRepository(pool)
-		productsSvc := products.NewService(productsRepo, compressionService)
-		productsHandler = products.NewHandler(productsSvc, cfg)
-
-		// Initialize notification service
+		// Initialize notification service before shops/orders — both services
+		// fan out notifications (new shop → admins, new order → shop + admins).
 		notificationRepo := notification.NewRepository(pool)
 		webPushService := notification.NewWebPushService(
 			cfg.External.VAPIDSubject,
@@ -277,6 +272,14 @@ reportsHandler          *reports.Handler
 		)
 		notificationSvc := notification.NewService(notificationRepo, webPushService, jobsClient)
 		notificationHandler = notification.NewHandler(notificationSvc, cfg)
+
+		shopsRepo := shops.NewRepository(pool)
+		shopsSvc := shops.NewService(cfg, shopsRepo, appMailer, notificationSvc)
+		shopsHandler = shops.NewHandler(shopsSvc, cfg)
+
+		productsRepo := products.NewRepository(pool)
+		productsSvc := products.NewService(productsRepo, compressionService)
+		productsHandler = products.NewHandler(productsSvc, cfg)
 
 		ordersRepo := orders.NewRepository(pool)
 		ordersSvc := orders.NewService(cfg, ordersRepo, notificationSvc)

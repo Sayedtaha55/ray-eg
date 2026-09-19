@@ -261,6 +261,69 @@ func (s *Service) NotifyNewOrder(ctx context.Context, shopID string, orderID str
 	return err
 }
 
+// NotifyAdminsNewOrder notifies every active admin that a new order was
+// placed on the platform (user-channel rows — visible in the admin panel bell).
+func (s *Service) NotifyAdminsNewOrder(ctx context.Context, shopName string, orderID string, orderNumber string, total float64) error {
+	adminIDs, err := s.repo.GetActiveAdminIDs(ctx)
+	if err != nil {
+		return err
+	}
+	for _, adminID := range adminIDs {
+		id := adminID
+		data := &NotificationData{
+			Type:     NotificationTypeNewOrder,
+			Title:    "🔔 طلب جديد على المنصة",
+			Content:  fmt.Sprintf("طلب جديد #%s بقيمة %.2f جنيه من متجر %s", orderNumber, total, shopName),
+			UserID:   &id,
+			OrderID:  &orderID,
+			Priority: NotificationPriorityHigh,
+			Channels: []NotificationChannel{NotificationChannelInApp},
+			Metadata: map[string]interface{}{
+				"order_id":     orderID,
+				"order_number": orderNumber,
+				"shop_name":    shopName,
+				"total":        total,
+				"audience":     "admin",
+			},
+		}
+		if _, err := s.CreateNotification(ctx, data); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// NotifyAdminsNewShop notifies every active admin that a new merchant shop
+// was registered (self-serve onboarding) so the panel can review it.
+func (s *Service) NotifyAdminsNewShop(ctx context.Context, shopID string, shopName string, ownerName string) error {
+	adminIDs, err := s.repo.GetActiveAdminIDs(ctx)
+	if err != nil {
+		return err
+	}
+	for _, adminID := range adminIDs {
+		id := adminID
+		data := &NotificationData{
+			Type:     NotificationTypeNewShop,
+			Title:    "🏪 متجر جديد انضم للمنصة",
+			Content:  fmt.Sprintf("المتجر \"%s\" (المالك: %s) سجل للتو — راجع بياناته من لوحة الأدمن", shopName, ownerName),
+			UserID:   &id,
+			ShopID:   &shopID,
+			Priority: NotificationPriorityMedium,
+			Channels: []NotificationChannel{NotificationChannelInApp},
+			Metadata: map[string]interface{}{
+				"shop_id":    shopID,
+				"shop_name":  shopName,
+				"owner_name": ownerName,
+				"audience":   "admin",
+			},
+		}
+		if _, err := s.CreateNotification(ctx, data); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // NotifyOrderStatusChanged sends a notification when order status changes
 func (s *Service) NotifyOrderStatusChanged(ctx context.Context, userID string, orderID string, orderNumber string, status string) error {
 	data := &NotificationData{

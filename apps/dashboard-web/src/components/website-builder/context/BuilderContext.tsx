@@ -1900,6 +1900,77 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
         };
       }
 
+      // If product page template selected
+      if (pageTemplate === 'product_page') {
+        const productShowcaseId = `pdetail_${newPageId}`;
+        const specsId = `pspecs_${newPageId}`;
+        pageSectionIds.push(productShowcaseId, specsId);
+
+        newComponents[productShowcaseId] = {
+          id: productShowcaseId,
+          name: 'عرض وشراء المنتج',
+          type: 'card',
+          category: 'commerce',
+          parentId: rootId,
+          childrenIds: [],
+          props: {
+            title: name,
+            description: dropdownDescription || 'تفاصيل ومواصفات المنتج مع الشحن السريع والضمان.',
+            price: '450 ج.م',
+            badge: 'متاح للطلب الفوري',
+            image:
+              'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80',
+            hoverImage:
+              'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80',
+            specs: [
+              'ضمان استبدال واسترجاع لمدة 14 يوم',
+              'معاينة وفحص المنتج قبل الدفع',
+              'شحن سريع لجميع المحافظات',
+            ],
+            buyButtonText: 'أضف للسلة الآن',
+            ctaText: 'اطلب عبر واتساب',
+          },
+          styles: {
+            desktop: {
+              display: 'block',
+              width: '100%',
+              maxWidth: '1100px',
+              margin: '32px auto',
+              padding: '32px',
+              backgroundColor: '#ffffff',
+              borderRadius: '24px',
+              borderWidth: '1px',
+              borderColor: '#e2e8f0',
+              boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.05)',
+            },
+          },
+        };
+
+        newComponents[specsId] = {
+          id: specsId,
+          name: 'المواصفات والشحن',
+          type: 'bento',
+          category: 'section',
+          parentId: rootId,
+          childrenIds: [],
+          props: {
+            title: 'المواصفات والضمان وتفاصيل التوصيل',
+            subtitle: 'جميع المعلومات المعتمدة للطلب والشحن وخدمة ما بعد البيع.',
+            icon: 'ShieldCheck',
+            badge: 'معتمد',
+          },
+          styles: {
+            desktop: {
+              display: 'block',
+              width: '100%',
+              backgroundColor: '#f8fafc',
+              paddingTop: '48px',
+              paddingBottom: '48px',
+            },
+          },
+        };
+      }
+
       // Root children
       const rootChildrenIds: string[] = [];
       if (includeHeaderFooter && newComponents['comp_header']) {

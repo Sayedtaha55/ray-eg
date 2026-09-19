@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { X, PartyPopper } from 'lucide-react';
+import { X, PartyPopper, Trash2 } from 'lucide-react';
 
 const FLAG_KEY = 'mnmknk_welcome';
 
 interface WelcomeData {
-  type: 'login' | 'signup';
+  type: 'login' | 'signup' | 'deleted';
   name?: string;
 }
 
@@ -23,6 +23,16 @@ export function WelcomeToast() {
   useEffect(() => {
     let cancelled = false;
     try {
+      // Account deletion confirmation — settings redirects here with ?deleted=1
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('deleted') === '1') {
+        window.history.replaceState({}, '', '/');
+        setData({ type: 'deleted' });
+        setVisible(true);
+        timerRef.current = setTimeout(() => setVisible(false), 9000);
+        return;
+      }
+
       const raw = sessionStorage.getItem(FLAG_KEY);
       if (!raw) return;
       sessionStorage.removeItem(FLAG_KEY);
@@ -61,6 +71,7 @@ export function WelcomeToast() {
   if (!data || !visible) return null;
 
   const isSignup = data.type === 'signup';
+  const isDeleted = data.type === 'deleted';
   const firstName = data.name ? data.name.split(' ')[0] : '';
 
   return (
@@ -68,24 +79,45 @@ export function WelcomeToast() {
       <div
         role="status"
         aria-live="polite"
-        className="pointer-events-auto w-full max-w-sm flex items-start gap-3 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/30 shadow-2xl p-4 animate-slide-down"
+        className={`pointer-events-auto w-full max-w-sm flex items-start gap-3 rounded-2xl bg-white dark:bg-slate-900 shadow-2xl p-4 animate-slide-down ${
+          isDeleted
+            ? 'border border-amber-200 dark:border-amber-500/30'
+            : 'border border-emerald-200 dark:border-emerald-500/30'
+        }`}
       >
-        <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
-          <PartyPopper className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+        <div
+          className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDeleted ? 'bg-amber-100 dark:bg-amber-500/15' : 'bg-emerald-100 dark:bg-emerald-500/15'}`}
+        >
+          {isDeleted ? (
+            <Trash2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+          ) : (
+            <PartyPopper className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-sm text-slate-900 dark:text-white">
-            {isSignup
-              ? 'تم إنشاء حسابك بنجاح 🎉'
-              : firstName
-                ? `أهلاً بعودتك يا ${firstName} 👋`
-                : 'أهلاً بعودتك 👋'}
-          </p>
-          <p className="mt-0.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
-            {isSignup
-              ? 'سجل دخولك الآن وابدأ التسوق من مكانك'
-              : 'سعداء برؤيتك مجدداً في من مكانك'}
-          </p>
+          {isDeleted ? (
+            <>
+              <p className="font-bold text-sm text-slate-900 dark:text-white">تم جدولة حذف حسابك</p>
+              <p className="mt-0.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                هتقدر ترجع بسهولة — سجل دخولك تاني خلال 30 يوم والحذف بيتلغى تلقائياً
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-bold text-sm text-slate-900 dark:text-white">
+                {isSignup
+                  ? 'تم إنشاء حسابك بنجاح 🎉'
+                  : firstName
+                    ? `أهلاً بعودتك يا ${firstName} 👋`
+                    : 'أهلاً بعودتك 👋'}
+              </p>
+              <p className="mt-0.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                {isSignup
+                  ? 'سجل دخولك الآن وابدأ التسوق من مكانك'
+                  : 'سعداء برؤيتك مجدداً في من مكانك'}
+              </p>
+            </>
+          )}
         </div>
         <button
           type="button"

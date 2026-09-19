@@ -20,6 +20,50 @@ interface Props {
 export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
   const type = template.wireframeType || template.id;
 
+  // 0. PRODUCT DETAIL WIREFRAMES (معاينة أقسام صفحة المنتج)
+  if (template.category === 'product_detail') {
+    if (type === 'product-detail-showcase') {
+      return (
+        <div className="w-full bg-white border border-slate-300 rounded-lg p-3 flex gap-2.5 shadow-xs">
+          <div className="w-16 h-16 rounded-md bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5 text-blue-500" />
+          </div>
+          <div className="flex-1 flex flex-col justify-between py-0.5">
+            <div className="space-y-1">
+              <div className="h-2.5 bg-slate-300 rounded-full w-4/5" />
+              <div className="h-2 bg-slate-200 rounded-full w-1/2" />
+            </div>
+            <div className="flex items-center gap-1.5 pt-1">
+              <div className="h-4 px-2 bg-blue-600 rounded text-[8px] font-bold text-white flex items-center">
+                أضف للسلة
+              </div>
+              <div className="h-4 px-1.5 bg-slate-100 rounded text-[8px] text-slate-600 flex items-center">
+                واتساب
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (type === 'product-specs-table') {
+      return (
+        <div className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 space-y-1.5 shadow-xs">
+          <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+            <span className="text-[9px] font-bold text-slate-700">المواصفات والضمان</span>
+            <Check className="w-3 h-3 text-emerald-600" />
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            <div className="h-2 bg-slate-200 rounded" />
+            <div className="h-2 bg-slate-200 rounded" />
+            <div className="h-2 bg-slate-200 rounded" />
+            <div className="h-2 bg-slate-200 rounded" />
+          </div>
+        </div>
+      );
+    }
+  }
+
   // 1. NAVBAR WIREFRAMES (Matching Image 3)
   if (template.category === 'navbar') {
     if (type === 'navbar-composition') {
@@ -51,7 +95,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
       return (
         <div className="w-full bg-white border border-slate-300 rounded-lg p-2 flex items-center justify-between text-[10px] text-slate-700 shadow-xs">
           <div className="flex items-center gap-1.5">
-            <span className="bg-lime-600 text-white text-[9px] font-bold px-2 py-0.5 rounded">احجز</span>
+            <span className="bg-lime-600 text-white text-[9px] font-bold px-2 py-0.5 rounded">
+              احجز
+            </span>
             <Menu className="w-3.5 h-3.5 text-slate-700" />
           </div>
           <span className="font-bold text-slate-800">الشعار</span>
@@ -187,9 +233,7 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
           </div>
 
           {/* Headline */}
-          <h4 className="text-xs font-bold text-white z-10">
-            استشارات رياضية مع مدربين متخصصين
-          </h4>
+          <h4 className="text-xs font-bold text-white z-10">استشارات رياضية مع مدربين متخصصين</h4>
           <p className="text-[9px] text-zinc-300 mt-1 max-w-[200px] z-10 line-clamp-1">
             خطط تدريب وتغذية مدروسة تناسب مستوى لياقتك وأهدافك
           </p>
@@ -217,11 +261,19 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
     if (type === 'features-bento') {
       return (
         <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5 text-right">
-          <div className="text-center font-bold text-[10px] text-slate-800">شبكة بينتو المميزات</div>
+          <div className="text-center font-bold text-[10px] text-slate-800">
+            شبكة بينتو المميزات
+          </div>
           <div className="grid grid-cols-3 gap-1">
-            <div className="bg-sky-50 border border-sky-200 rounded p-1 text-[8px] text-sky-800 font-bold">🔍 فحص 250+</div>
-            <div className="bg-pink-50 border border-pink-200 rounded p-1 text-[8px] text-pink-800 font-bold">💳 تمويل فوري</div>
-            <div className="bg-emerald-50 border border-emerald-200 rounded p-1 text-[8px] text-emerald-800 font-bold">🚚 تسليم فوري</div>
+            <div className="bg-sky-50 border border-sky-200 rounded p-1 text-[8px] text-sky-800 font-bold">
+              🔍 فحص 250+
+            </div>
+            <div className="bg-pink-50 border border-pink-200 rounded p-1 text-[8px] text-pink-800 font-bold">
+              💳 تمويل فوري
+            </div>
+            <div className="bg-emerald-50 border border-emerald-200 rounded p-1 text-[8px] text-emerald-800 font-bold">
+              🚚 تسليم فوري
+            </div>
           </div>
         </div>
       );
@@ -234,15 +286,21 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
         </div>
         <div className="grid grid-cols-3 gap-1.5 text-center">
           <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-xs">
-            <div className="w-5 h-5 mx-auto bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-[10px]">★</div>
+            <div className="w-5 h-5 mx-auto bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-[10px]">
+              ★
+            </div>
             <span className="text-[9px] font-bold text-slate-700 block mt-1">سرعة وأمان</span>
           </div>
           <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-xs">
-            <div className="w-5 h-5 mx-auto bg-green-100 text-green-600 rounded-full flex items-center justify-center text-[10px]">✓</div>
+            <div className="w-5 h-5 mx-auto bg-green-100 text-green-600 rounded-full flex items-center justify-center text-[10px]">
+              ✓
+            </div>
             <span className="text-[9px] font-bold text-slate-700 block mt-1">دقة عالية</span>
           </div>
           <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-xs">
-            <div className="w-5 h-5 mx-auto bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px]">⚡</div>
+            <div className="w-5 h-5 mx-auto bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-[10px]">
+              ⚡
+            </div>
             <span className="text-[9px] font-bold text-slate-700 block mt-1">دعم متواصل</span>
           </div>
         </div>
@@ -281,7 +339,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
   if (template.category === 'steps') {
     return (
       <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5 text-right">
-        <span className="text-[10px] font-bold text-slate-800 block text-center">رحلة الحجز في 3 خطوات</span>
+        <span className="text-[10px] font-bold text-slate-800 block text-center">
+          رحلة الحجز في 3 خطوات
+        </span>
         <div className="grid grid-cols-3 gap-1 text-center">
           <div className="bg-white p-1 rounded border border-slate-200">
             <span className="text-[10px] font-black text-blue-600 block">01</span>
@@ -304,7 +364,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
   if (template.category === 'logos') {
     return (
       <div className="w-full bg-white border border-slate-200 rounded-xl p-2 space-y-1 text-center">
-        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">العلامات والشركاء المعتمدين</span>
+        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">
+          العلامات والشركاء المعتمدين
+        </span>
         <div className="flex items-center justify-center gap-2 text-[8px] font-extrabold text-slate-600 flex-wrap">
           <span>MERCEDES</span>
           <span>•</span>
@@ -323,11 +385,15 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
     if (type === 'gallery-fleet') {
       return (
         <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5">
-          <span className="text-[10px] font-bold text-slate-800 block text-center">أسطول السيارات الفاخرة المتاح</span>
+          <span className="text-[10px] font-bold text-slate-800 block text-center">
+            أسطول السيارات الفاخرة المتاح
+          </span>
           <div className="grid grid-cols-3 gap-1 text-right">
             <div className="bg-white rounded border border-slate-200 p-1">
               <div className="h-7 bg-slate-200 rounded-xs mb-1" />
-              <span className="text-[8px] font-bold text-slate-800 block truncate">Porsche 911</span>
+              <span className="text-[8px] font-bold text-slate-800 block truncate">
+                Porsche 911
+              </span>
               <span className="text-[8px] font-extrabold text-blue-600 block">950,000 ج.م</span>
             </div>
             <div className="bg-white rounded border border-slate-200 p-1">
@@ -337,7 +403,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
             </div>
             <div className="bg-white rounded border border-slate-200 p-1">
               <div className="h-7 bg-slate-200 rounded-xs mb-1" />
-              <span className="text-[8px] font-bold text-slate-800 block truncate">Range Rover</span>
+              <span className="text-[8px] font-bold text-slate-800 block truncate">
+                Range Rover
+              </span>
               <span className="text-[8px] font-extrabold text-blue-600 block">460,000 ج.م</span>
             </div>
           </div>
@@ -347,7 +415,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
 
     return (
       <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5">
-        <span className="text-[10px] font-bold text-slate-800 block text-center">معرض الأعمال والمشاريع</span>
+        <span className="text-[10px] font-bold text-slate-800 block text-center">
+          معرض الأعمال والمشاريع
+        </span>
         <div className="grid grid-cols-3 gap-1.5">
           <div className="h-12 bg-slate-300 rounded-md" />
           <div className="h-12 bg-slate-400 rounded-md" />
@@ -362,7 +432,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
     if (type === 'pricing-luxury-vip') {
       return (
         <div className="w-full bg-slate-950 border border-amber-500/30 rounded-xl p-2.5 space-y-1.5 text-center text-white">
-          <span className="text-[10px] font-bold text-amber-400 block">باقات العضوية الحصرية VIP</span>
+          <span className="text-[10px] font-bold text-amber-400 block">
+            باقات العضوية الحصرية VIP
+          </span>
           <div className="grid grid-cols-2 gap-1.5 text-right">
             <div className="bg-slate-900 border border-amber-500/20 rounded p-1.5">
               <span className="text-[8px] font-bold text-amber-400">نادي النخبة</span>
@@ -379,7 +451,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
 
     return (
       <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
-        <span className="text-[10px] font-bold text-slate-800 block text-center">خطط وباقات الأسعار</span>
+        <span className="text-[10px] font-bold text-slate-800 block text-center">
+          خطط وباقات الأسعار
+        </span>
         <div className="grid grid-cols-3 gap-1 text-center">
           <div className="bg-white p-1.5 rounded-lg border border-slate-200">
             <span className="text-[8px] font-bold text-slate-600 block">أساسية</span>
@@ -402,7 +476,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
   if (template.category === 'team') {
     return (
       <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
-        <span className="text-[10px] font-bold text-slate-800 block text-center">فريق العمل والخبراء</span>
+        <span className="text-[10px] font-bold text-slate-800 block text-center">
+          فريق العمل والخبراء
+        </span>
         <div className="grid grid-cols-3 gap-2 text-center">
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex flex-col items-center">
@@ -420,9 +496,15 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
     return (
       <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-2">
         <div className="flex justify-center gap-1">
-          <span className="bg-blue-600 text-white text-[8px] font-bold px-2 py-0.5 rounded">التبويب الأول</span>
-          <span className="bg-slate-200 text-slate-700 text-[8px] px-2 py-0.5 rounded">التبويب الثاني</span>
-          <span className="bg-slate-200 text-slate-700 text-[8px] px-2 py-0.5 rounded">التبويب الثالث</span>
+          <span className="bg-blue-600 text-white text-[8px] font-bold px-2 py-0.5 rounded">
+            التبويب الأول
+          </span>
+          <span className="bg-slate-200 text-slate-700 text-[8px] px-2 py-0.5 rounded">
+            التبويب الثاني
+          </span>
+          <span className="bg-slate-200 text-slate-700 text-[8px] px-2 py-0.5 rounded">
+            التبويب الثالث
+          </span>
         </div>
         <div className="bg-white p-2 rounded-lg border border-slate-200 text-[9px] text-slate-500 text-center">
           محتوى تفاعلي يتبدل حسب التبويب النشط
@@ -436,10 +518,16 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
     if (type === 'accordion-2-col') {
       return (
         <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1 text-right">
-          <span className="text-[10px] font-bold text-slate-800 block text-center">الأسئلة الشائعة في عمودين</span>
+          <span className="text-[10px] font-bold text-slate-800 block text-center">
+            الأسئلة الشائعة في عمودين
+          </span>
           <div className="grid grid-cols-2 gap-1 text-[8px]">
-            <div className="bg-white p-1 rounded border border-slate-200 font-bold text-slate-700">شروط الاستئجار ▾</div>
-            <div className="bg-white p-1 rounded border border-slate-200 font-bold text-slate-700">تأمين المركبات ▸</div>
+            <div className="bg-white p-1 rounded border border-slate-200 font-bold text-slate-700">
+              شروط الاستئجار ▾
+            </div>
+            <div className="bg-white p-1 rounded border border-slate-200 font-bold text-slate-700">
+              تأمين المركبات ▸
+            </div>
           </div>
         </div>
       );
@@ -471,7 +559,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
           <Star className="w-3 h-3 fill-amber-400" />
         </div>
         <p className="text-[9px] text-slate-600 italic">"خدمة استثنائية وسرعة فائقة في التنفيذ"</p>
-        <span className="text-[8px] font-bold text-slate-900 block">عبدالله السالم - عميل موثق</span>
+        <span className="text-[8px] font-bold text-slate-900 block">
+          عبدالله السالم - عميل موثق
+        </span>
       </div>
     );
   }
@@ -481,10 +571,16 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
     if (type === 'contact-booking') {
       return (
         <div className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 space-y-1 text-right text-white">
-          <span className="text-[10px] font-bold text-slate-200 block text-center">نموذج حجز تجربة قيادة</span>
+          <span className="text-[10px] font-bold text-slate-200 block text-center">
+            نموذج حجز تجربة قيادة
+          </span>
           <div className="grid grid-cols-2 gap-1 text-[8px]">
-            <div className="h-4 bg-white/10 rounded px-1 flex items-center text-slate-300">الاسم</div>
-            <div className="h-4 bg-white/10 rounded px-1 flex items-center text-slate-300">الجوال</div>
+            <div className="h-4 bg-white/10 rounded px-1 flex items-center text-slate-300">
+              الاسم
+            </div>
+            <div className="h-4 bg-white/10 rounded px-1 flex items-center text-slate-300">
+              الجوال
+            </div>
           </div>
           <div className="h-4 bg-blue-600 rounded text-[8px] font-bold flex items-center justify-center text-white">
             تأكيد موعد التجربة
@@ -495,11 +591,19 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
 
     return (
       <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5">
-        <span className="text-[10px] font-bold text-slate-800 block text-center">تواصل معنا واستفسر الآن</span>
+        <span className="text-[10px] font-bold text-slate-800 block text-center">
+          تواصل معنا واستفسر الآن
+        </span>
         <div className="space-y-1">
-          <div className="h-5 bg-white border border-slate-200 rounded px-1.5 text-[8px] text-slate-400 flex items-center">الاسم الكامل</div>
-          <div className="h-5 bg-white border border-slate-200 rounded px-1.5 text-[8px] text-slate-400 flex items-center">رقم الجوال</div>
-          <div className="h-5 bg-blue-600 rounded text-white text-[8px] font-bold flex items-center justify-center">إرسال الرسالة</div>
+          <div className="h-5 bg-white border border-slate-200 rounded px-1.5 text-[8px] text-slate-400 flex items-center">
+            الاسم الكامل
+          </div>
+          <div className="h-5 bg-white border border-slate-200 rounded px-1.5 text-[8px] text-slate-400 flex items-center">
+            رقم الجوال
+          </div>
+          <div className="h-5 bg-blue-600 rounded text-white text-[8px] font-bold flex items-center justify-center">
+            إرسال الرسالة
+          </div>
         </div>
       </div>
     );
@@ -551,7 +655,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
         <div className="w-full bg-zinc-950 text-slate-400 rounded-xl p-2.5 space-y-2 text-right text-[8px] border border-zinc-800">
           {/* Newsletter Box */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-1.5 flex items-center justify-between">
-            <span className="text-[7px] text-blue-400 font-bold bg-blue-950/80 px-1.5 py-0.5 rounded">اشتراك</span>
+            <span className="text-[7px] text-blue-400 font-bold bg-blue-950/80 px-1.5 py-0.5 rounded">
+              اشتراك
+            </span>
             <span className="text-[8px] text-white font-bold">📩 النشرة البريدية الحصرية</span>
           </div>
           {/* 4 Columns */}
@@ -573,7 +679,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
               <span className="text-zinc-500 block">س.ت 101089</span>
             </div>
           </div>
-          <div className="text-center text-[7px] text-zinc-600">جميع الحقوق محفوظة © 2025 شركة المجد للسيارات</div>
+          <div className="text-center text-[7px] text-zinc-600">
+            جميع الحقوق محفوظة © 2025 شركة المجد للسيارات
+          </div>
         </div>
       );
     }
@@ -635,7 +743,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
       return (
         <div className="w-full bg-white text-slate-700 rounded-xl p-2.5 space-y-1.5 text-right text-[8px] border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between border-b border-slate-100 pb-1">
-            <span className="bg-emerald-500 text-white text-[7px] font-bold px-1.5 py-0.5 rounded">واتساب 💬</span>
+            <span className="bg-emerald-500 text-white text-[7px] font-bold px-1.5 py-0.5 rounded">
+              واتساب 💬
+            </span>
             <span className="font-extrabold text-[9px] text-slate-900">المجد للسيارات</span>
           </div>
           <div className="grid grid-cols-2 gap-1 text-[7px]">
@@ -648,7 +758,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
               <span className="text-slate-500 block">الرئيسية • الأسطول • من نحن</span>
             </div>
           </div>
-          <div className="text-center text-[7px] text-slate-400 pt-0.5">جميع الحقوق محفوظة © 2025</div>
+          <div className="text-center text-[7px] text-slate-400 pt-0.5">
+            جميع الحقوق محفوظة © 2025
+          </div>
         </div>
       );
     }
@@ -685,13 +797,17 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
       return (
         <div className="w-full bg-slate-950 text-slate-300 rounded-xl p-2.5 space-y-1.5 text-center text-[8px] border border-slate-800">
           <div className="bg-indigo-950/80 border border-indigo-800 rounded p-1 flex justify-between items-center text-[7px] px-1.5">
-            <span className="bg-indigo-600 text-white font-bold px-1.5 py-0.5 rounded">اتصل الآن</span>
+            <span className="bg-indigo-600 text-white font-bold px-1.5 py-0.5 rounded">
+              اتصل الآن
+            </span>
             <span className="text-white font-bold">✨ تبحث عن سيارة نادرة بمواصفات خاصة؟</span>
           </div>
           <div className="bg-slate-900 py-1 rounded-full text-[7px] text-indigo-300 font-semibold">
             𝕏 تويتر • 📸 انستغرام • 💼 لينكد إن • ▶️ يوتيوب
           </div>
-          <span className="text-[7px] text-slate-500 block">شركة المجد للسيارات الفاخرة © 2025</span>
+          <span className="text-[7px] text-slate-500 block">
+            شركة المجد للسيارات الفاخرة © 2025
+          </span>
         </div>
       );
     }
@@ -713,8 +829,12 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
       return (
         <div className="w-full bg-white border border-slate-300 rounded-xl p-2.5 space-y-2 text-right text-[8px]">
           <div className="text-center space-y-0.5">
-            <span className="text-[7px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">✨ مسيرة التميز</span>
-            <span className="text-[9px] font-extrabold text-slate-800 block">عقد من الريادة والتميز</span>
+            <span className="text-[7px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
+              ✨ مسيرة التميز
+            </span>
+            <span className="text-[9px] font-extrabold text-slate-800 block">
+              عقد من الريادة والتميز
+            </span>
           </div>
           <div className="grid grid-cols-3 gap-1 text-[7px] text-center">
             <div className="bg-slate-50 border border-slate-200 rounded p-1">
@@ -739,7 +859,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
         <div className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl p-2.5 space-y-1.5 text-right text-[8px]">
           <div className="grid grid-cols-2 gap-2 items-center">
             <div className="space-y-1">
-              <span className="text-[7px] font-bold text-blue-400 bg-blue-950 px-1.5 py-0.5 rounded-full">🏛️ رسالة القيادة</span>
+              <span className="text-[7px] font-bold text-blue-400 bg-blue-950 px-1.5 py-0.5 rounded-full">
+                🏛️ رسالة القيادة
+              </span>
               <span className="text-[8px] font-bold text-white block">« شغف بالفخامة والثقة »</span>
               <span className="text-[7px] text-slate-400 block font-light">م. سلطان الهذلول</span>
             </div>
@@ -755,7 +877,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
       return (
         <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1.5 text-right text-[8px]">
           <div className="text-center space-y-0.5">
-            <span className="text-[7px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">🛡️ الركائز الثلاث</span>
+            <span className="text-[7px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+              🛡️ الركائز الثلاث
+            </span>
             <span className="text-[9px] font-bold text-slate-800 block">قيم تحكم كل خطوة</span>
           </div>
           <div className="grid grid-cols-3 gap-1 text-[7px] text-center">
@@ -780,7 +904,9 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
       return (
         <div className="w-full bg-white border border-slate-300 rounded-xl p-2.5 space-y-1.5 text-right text-[8px]">
           <div className="text-center">
-            <span className="text-[7px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded-full">📍 صالات المملكة</span>
+            <span className="text-[7px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded-full">
+              📍 صالات المملكة
+            </span>
             <span className="text-[9px] font-bold text-slate-800 block">الرياض • جدة • الخبر</span>
           </div>
           <div className="grid grid-cols-3 gap-1 text-[7px] text-center">
@@ -805,8 +931,12 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
       return (
         <div className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl p-2.5 space-y-1.5 text-right text-[8px]">
           <div className="text-center">
-            <span className="text-[7px] font-bold text-emerald-400 bg-emerald-950 px-1.5 py-0.5 rounded-full">🏅 اعتمادات رسمية</span>
-            <span className="text-[9px] font-bold text-white block">شهادات الأيزو والفحص الألماني</span>
+            <span className="text-[7px] font-bold text-emerald-400 bg-emerald-950 px-1.5 py-0.5 rounded-full">
+              🏅 اعتمادات رسمية
+            </span>
+            <span className="text-[9px] font-bold text-white block">
+              شهادات الأيزو والفحص الألماني
+            </span>
           </div>
           <div className="grid grid-cols-3 gap-1 text-[7px] text-center">
             <div className="bg-slate-800 border border-slate-700 rounded p-1">

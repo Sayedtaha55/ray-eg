@@ -58,7 +58,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const c = site.config || {};
   const website: Website | undefined = c.website;
-  const homeMeta = website?.pages?.find((p) => p.metadata?.isHomePage)?.metadata || website?.pages?.[0]?.metadata;
+  const homeMeta =
+    website?.pages?.find((p) => p.metadata?.isHomePage)?.metadata || website?.pages?.[0]?.metadata;
 
   const title = `${homeMeta?.ogTitle || homeMeta?.title || site.shop.name} | ${siteConfig.name}`;
   const description =
@@ -92,8 +93,19 @@ export default async function PublishedSitePage({ params }: Props) {
   const c = site.config || {};
   const website: Website | undefined = c.website;
 
-  const products = await getProducts(site.shop.id, 24);
-  const siteProducts: SiteProduct[] = (products || []).map(mapSiteProduct);
+  const products = await getProducts(site.shop.id, 100);
+  // عرض المنتجات النشطة فقط والتي لم يقم التاجر بإخفائها من صفحة المنتجات
+  const activeOnlyProducts = (products || []).filter(
+    (p: any) => p.isActive !== false && p.is_active !== false
+  );
+  const siteProducts: SiteProduct[] = activeOnlyProducts.map((p: any) =>
+    mapSiteProduct({
+      ...p,
+      shopId: site.shop.id,
+      shopSlug: site.shop.slug,
+      shopName: site.shop.name,
+    })
+  );
 
   const shopCtx = {
     id: site.shop.id,
@@ -148,7 +160,8 @@ function LegacyPublishedSiteView({
   const rLg = tRadius.lg || '16px';
   const rXl = tRadius.xl || '24px';
   const shadowSm = tShadows.sm || '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
-  const shadowMd = tShadows.md || '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)';
+  const shadowMd =
+    tShadows.md || '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)';
   const cardRadius = c.productsLayout === 'horizontal' ? rLg : rMd;
 
   const waPhone = (site.shop.phone || '').replace(/[^0-9]/g, '');
@@ -184,7 +197,10 @@ function LegacyPublishedSiteView({
           `,
         }}
       />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
       {/* Header */}
       <header
