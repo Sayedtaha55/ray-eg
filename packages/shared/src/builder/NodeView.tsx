@@ -1022,42 +1022,43 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
                       )}
 
                       <div className="grid grid-cols-2 gap-2 pt-2">
-                        {!hideBuyBtn && (matchedRealProduct && ctx.onAddToCart ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              ctx.onAddToCart?.(matchedRealProduct);
-                            }}
-                            className="py-2.5 px-3 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 active:scale-95"
-                            style={{ backgroundColor: theme.colors.primary }}
-                          >
-                            <ShoppingCart className="w-3.5 h-3.5" />
-                            <span>أضف للسلة</span>
-                          </button>
-                        ) : (
-                          <a
-                            href={orderHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="py-2.5 px-3 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 active:scale-98"
-                            style={{ backgroundColor: theme.colors.primary }}
-                          >
-                            {buyBtnIcon === 'ShoppingCart' ? (
+                        {!hideBuyBtn &&
+                          (matchedRealProduct && ctx.onAddToCart ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                ctx.onAddToCart?.(matchedRealProduct);
+                              }}
+                              className="py-2.5 px-3 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 active:scale-95"
+                              style={{ backgroundColor: theme.colors.primary }}
+                            >
                               <ShoppingCart className="w-3.5 h-3.5" />
-                            ) : buyBtnIcon === 'Zap' ? (
-                              <Zap className="w-3.5 h-3.5" />
-                            ) : buyBtnIcon === 'Sparkles' ? (
-                              <Sparkles className="w-3.5 h-3.5" />
-                            ) : buyBtnIcon === 'Tag' ? (
-                              <Tag className="w-3.5 h-3.5" />
-                            ) : (
-                              <ShoppingBag className="w-3.5 h-3.5" />
-                            )}
-                            <span>{buyBtnText}</span>
-                          </a>
-                        ))}
+                              <span>أضف للسلة</span>
+                            </button>
+                          ) : (
+                            <a
+                              href={orderHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="py-2.5 px-3 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 active:scale-98"
+                              style={{ backgroundColor: theme.colors.primary }}
+                            >
+                              {buyBtnIcon === 'ShoppingCart' ? (
+                                <ShoppingCart className="w-3.5 h-3.5" />
+                              ) : buyBtnIcon === 'Zap' ? (
+                                <Zap className="w-3.5 h-3.5" />
+                              ) : buyBtnIcon === 'Sparkles' ? (
+                                <Sparkles className="w-3.5 h-3.5" />
+                              ) : buyBtnIcon === 'Tag' ? (
+                                <Tag className="w-3.5 h-3.5" />
+                              ) : (
+                                <ShoppingBag className="w-3.5 h-3.5" />
+                              )}
+                              <span>{buyBtnText}</span>
+                            </a>
+                          ))}
 
                         <a
                           href={
@@ -1214,7 +1215,12 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
     case 'products': {
       const productsList = boundProducts;
       return (
-        <section id={node.id} style={getComputedStyles()} className="transition-all">
+        <section
+          id={node.id}
+          data-section="products"
+          style={getComputedStyles()}
+          className="transition-all"
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
             {(node.props.title || node.props.badge) && (
               <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
@@ -2567,6 +2573,115 @@ const NodeViewInner: React.FC<{ node: ComponentNode; ctx: NodeViewContext }> = (
 
     case 'spacer': {
       return <div id={node.id} style={getComputedStyles()} aria-hidden="true" />;
+    }
+
+    // ------------------------------------------------------- mobile footer bar
+    case 'mobile_footer': {
+      // A fixed bottom navigation bar for phones (hidden on ≥md screens).
+      // Buttons come from node.props.buttons; the cart button opens the host
+      // app's unified cart drawer when the host wires onOpenCart.
+      const rawButtons: string[] = Array.isArray(node.props.buttons)
+        ? node.props.buttons
+        : ['home', 'products', 'cart', 'whatsapp'];
+      const barBg = node.props.bgColor || '#0f172a';
+      const activeColor = node.props.accentColor || theme.colors.primary || '#22d3ee';
+
+      const scrollToProducts = () => {
+        const el =
+          document.querySelector('[data-section="products"]') ||
+          document.getElementById('products');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+        else ctx.onNavigatePage?.(ctx.activePage.id);
+      };
+
+      const renderBtn = (key: string) => {
+        switch (key) {
+          case 'home':
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 text-white/80 hover:text-white transition-colors"
+              >
+                <Home className="w-5 h-5" />
+                <span className="text-[9px] font-bold">الرئيسية</span>
+              </button>
+            );
+          case 'products':
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={scrollToProducts}
+                className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 text-white/80 hover:text-white transition-colors"
+              >
+                <LayoutGrid className="w-5 h-5" />
+                <span className="text-[9px] font-bold">المنتجات</span>
+              </button>
+            );
+          case 'cart':
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => ctx.onOpenCart?.()}
+                className="relative flex flex-col items-center justify-center gap-0.5 flex-1 py-1 text-white/80 hover:text-white transition-colors"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                <span className="text-[9px] font-bold">السلة</span>
+                {(ctx.cartCount || 0) > 0 && (
+                  <span className="absolute top-0 left-1/2 translate-x-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">
+                    {ctx.cartCount! > 9 ? '9+' : ctx.cartCount}
+                  </span>
+                )}
+              </button>
+            );
+          case 'whatsapp': {
+            const href = waLink(`مرحبًا، أريد التواصل مع ${shop.name || 'المتجر'}`);
+            if (!href) return null;
+            return (
+              <a
+                key={key}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
+                <MessageCircle className="w-5 h-5" />
+                <span className="text-[9px] font-bold">واتساب</span>
+              </a>
+            );
+          }
+          case 'phone': {
+            if (!shop.phone) return null;
+            return (
+              <a
+                key={key}
+                href={`tel:${shop.phone}`}
+                className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 text-white/80 hover:text-white transition-colors"
+              >
+                <Phone className="w-5 h-5" />
+                <span className="text-[9px] font-bold">اتصال</span>
+              </a>
+            );
+          }
+          default:
+            return null;
+        }
+      };
+
+      return (
+        <div
+          id={node.id}
+          className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 backdrop-blur-md"
+          style={{ backgroundColor: barBg }}
+        >
+          <div className="flex items-stretch justify-around pb-[env(safe-area-inset-bottom)]">
+            {rawButtons.map(renderBtn)}
+          </div>
+        </div>
+      );
     }
 
     // ----------------------------------------------------- whatsapp-float button
