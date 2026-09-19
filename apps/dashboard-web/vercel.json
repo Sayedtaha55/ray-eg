@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://api.mnmknk.com/api/:path*"
+      "destination": "https://api2.mnmknk.com/api/:path*"
     }
   ],
   "headers": [
