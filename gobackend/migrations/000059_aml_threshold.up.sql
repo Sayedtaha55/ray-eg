@@ -1,6 +1,6 @@
 -- AML: function to check merchant 24h transaction volume
 CREATE OR REPLACE FUNCTION check_merchant_24h_volume(p_shop_id TEXT, p_threshold DECIMAL DEFAULT 100000)
-RETURNS TABLE(total_volume DECIMAL, exceeded BOOLEAN) AS 
+RETURNS TABLE(total_volume DECIMAL, exceeded BOOLEAN) AS $$
 BEGIN
     RETURN QUERY
     SELECT
@@ -12,4 +12,4 @@ BEGIN
       AND o.created_at >= NOW() - INTERVAL '24 hours'
       AND o.status NOT IN ('cancelled', 'refunded');
 END;
- LANGUAGE plpgsql STABLE;
+$$ LANGUAGE plpgsql STABLE;
