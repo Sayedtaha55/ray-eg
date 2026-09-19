@@ -28,15 +28,26 @@ if (!PASSWORD) {
   process.exit(1);
 }
 
+// CSRF support: the backend double-submits a token via the ray_csrf cookie and
+// the X-CSRF-Token header. Node's fetch keeps no cookie jar, so track the token
+// here and send it back as both cookie and header on unsafe methods. The token
+// rotates after every successful mutation — each response refreshes it.
+let csrfToken = '';
+
 async function api(path, { method = 'GET', token, body } = {}) {
+  const unsafe = method !== 'GET' && method !== 'HEAD';
   const res = await fetch(`${API}/api/v1${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(csrfToken ? { Cookie: `ray_csrf=${csrfToken}` } : {}),
+      ...(unsafe && csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
   });
+  const rotated = res.headers.get('x-csrf-token');
+  if (rotated) csrfToken = rotated;
   let json = null;
   try {
     json = await res.json();
