@@ -24,8 +24,15 @@ const nextConfig = {
       .trim()
       .replace(/\r|\n/g, '')
       .replace(/\/+$/, '');
-    console.log('Backend URL configured:', backendUrl);
-    return [{ source: '/api/:path*', destination: `${backendUrl}/api/:path*` }];
+    // Tolerate scheme-less values (e.g. "api2.mnmknk.com") so the rewrite
+    // destination always satisfies Vercel's validator.
+    const backendOrigin = backendUrl
+      ? backendUrl.startsWith('http')
+        ? backendUrl
+        : `https://${backendUrl}`
+      : 'http://localhost:4000';
+    console.log('Backend URL configured:', backendOrigin);
+    return [{ source: '/api/:path*', destination: `${backendOrigin}/api/:path*` }];
   },
   async headers() {
     const headers = [
