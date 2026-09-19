@@ -17,7 +17,6 @@ import (
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/bookings"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/cartevent"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/chat"
-	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/courier"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/customers"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/dashboard"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/feedback"
@@ -49,6 +48,7 @@ import (
 "github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/breach"
 "github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/reports"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/users"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/cache"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/compression"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/db"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/jobs"
@@ -93,7 +93,6 @@ type App struct {
 	invoiceHandler        *invoice.Handler
 	accountingHandler     *accounting.Handler
 	supportHandler        *support.Handler
-	courierHandler        *courier.Handler
 	customersHandler      *customers.Handler
 	galleryHandler        *gallery.Handler
 	feedbackHandler       *feedback.Handler
@@ -205,7 +204,6 @@ func New(cfg *config.Config) (*App, error) {
 		invoiceHandler        *invoice.Handler
 		accountingHandler     *accounting.Handler
 		supportHandler        *support.Handler
-		courierHandler        *courier.Handler
 		customersHandler      *customers.Handler
 		galleryHandler        *gallery.Handler
 		feedbackHandler       *feedback.Handler
@@ -273,12 +271,16 @@ reportsHandler          *reports.Handler
 		notificationSvc := notification.NewService(notificationRepo, webPushService, jobsClient)
 		notificationHandler = notification.NewHandler(notificationSvc, cfg)
 
+		// Shared in-process TTL cache for hot public reads (shops/products/
+		// offers lists) — absorbs repeated homepage/catalog queries.
+		hotReadCache := cache.New()
+
 		shopsRepo := shops.NewRepository(pool)
-		shopsSvc := shops.NewService(cfg, shopsRepo, appMailer, notificationSvc)
+		shopsSvc := shops.NewService(cfg, shopsRepo, appMailer, notificationSvc, hotReadCache)
 		shopsHandler = shops.NewHandler(shopsSvc, cfg)
 
 		productsRepo := products.NewRepository(pool)
-		productsSvc := products.NewService(productsRepo, compressionService)
+		productsSvc := products.NewService(productsRepo, compressionService, hotReadCache)
 		productsHandler = products.NewHandler(productsSvc, cfg)
 
 		ordersRepo := orders.NewRepository(pool)
@@ -293,7 +295,7 @@ reportsHandler          *reports.Handler
 		mediaHandler = media.NewHandler(mediaSvc, cfg)
 
 		offersRepo := offers.NewRepository(pool)
-		offersSvc := offers.NewService(offersRepo)
+		offersSvc := offers.NewService(offersRepo, hotReadCache)
 		offersHandler = offers.NewHandler(offersSvc, cfg)
 
 		// Initialize analytics service
@@ -353,12 +355,7 @@ reportsHandler          *reports.Handler
 	reportsSvc := reports.NewService(reportsRepo)
 	reportsHandler = reports.NewHandler(reportsSvc, cfg)
 
-		// Initialize courier service
-		courierRepo := courier.NewRepository(pool)
-		courierSvc := courier.NewService(courierRepo)
-		courierHandler = courier.NewHandler(courierSvc, cfg)
-
-		// Initialize customers service
+	// Initialize customers service
 		customersRepo := customers.NewRepository(pool)
 		customersSvc := customers.NewService(customersRepo)
 		customersHandler = customers.NewHandler(customersSvc, cfg)
@@ -384,7 +381,7 @@ reportsHandler          *reports.Handler
 
 		// Initialize seasonal offers service
 		seasonalOffersRepo := seasonaloffers.NewRepository(pool)
-		seasonalOffersSvc := seasonaloffers.NewService(seasonalOffersRepo)
+		seasonalOffersSvc := seasonaloffers.NewService(seasonalOffersRepo, hotReadCache)
 		seasonalOffersHandler = seasonaloffers.NewHandler(seasonalOffersSvc, cfg)
 
 		// Initialize map service
@@ -488,7 +485,6 @@ reportsHandler          *reports.Handler
 		invoiceHandler:        invoiceHandler,
 		accountingHandler:     accountingHandler,
 		supportHandler:        supportHandler,
-		courierHandler:        courierHandler,
 		customersHandler:      customersHandler,
 		galleryHandler:        galleryHandler,
 		feedbackHandler:       feedbackHandler,
@@ -684,11 +680,6 @@ func (a *App) registerRoutes() {
 		a.reportsHandler.RegisterRoutes(api)
 	}
 
-	// Courier domain routes.
-	if a.courierHandler != nil {
-		a.courierHandler.RegisterRoutes(api)
-	}
-
 	// Customers domain routes.
 	if a.customersHandler != nil {
 		a.customersHandler.RegisterRoutes(api)
@@ -786,7 +777,6 @@ func (a *App) statusHandler(c *fiber.Ctx) error {
 		"bookings":       a.bookingsHandler != nil,
 		"cartEvents":     a.cartEventHandler != nil,
 		"chat":           a.chatHandler != nil,
-		"courier":        a.courierHandler != nil,
 		"customers":      a.customersHandler != nil,
 		"dashboard":       a.dashboardHandler != nil,
 		"feedback":       a.feedbackHandler != nil,

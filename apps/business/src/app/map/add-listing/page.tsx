@@ -3,13 +3,21 @@
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  MapPin, Globe, Phone, MessageCircle, Store,
-  ChevronLeft, ChevronRight, Check, Loader2, Home,
+  MapPin,
+  Globe,
+  Phone,
+  MessageCircle,
+  Store,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  Loader2,
+  Home,
 } from 'lucide-react';
 
 type Step = 1 | 2 | 3;
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.mnmknk.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api2.mnmknk.com';
 
 export default function AddMapListingPage() {
   const [step, setStep] = useState<Step>(1);
@@ -49,7 +57,7 @@ export default function AddMapListingPage() {
         setError('تعذّر تحديد موقعك — تأكد من السماح بالوصول للموقع');
         setPickingLocation(false);
       },
-      { enableHighAccuracy: true, timeout: 15000 },
+      { enableHighAccuracy: true, timeout: 15000 }
     );
   }, []);
 
@@ -166,7 +174,9 @@ export default function AddMapListingPage() {
                 {step > s ? <Check size={14} /> : s}
               </div>
               {s < 3 && (
-                <div className={`flex-1 h-1 rounded-full ${step > s ? 'bg-slate-900' : 'bg-slate-100'}`} />
+                <div
+                  className={`flex-1 h-1 rounded-full ${step > s ? 'bg-slate-900' : 'bg-slate-100'}`}
+                />
               )}
             </div>
           ))}
@@ -184,7 +194,10 @@ export default function AddMapListingPage() {
             <div>
               <label className="block text-sm font-black text-slate-700 mb-2">اسم النشاط *</label>
               <div className="relative">
-                <Store className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Store
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={18}
+                />
                 <input
                   type="text"
                   value={title}
@@ -221,7 +234,10 @@ export default function AddMapListingPage() {
               <div>
                 <label className="block text-sm font-black text-slate-700 mb-2">الهاتف</label>
                 <div className="relative">
-                  <Phone className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <Phone
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={18}
+                  />
                   <input
                     type="tel"
                     value={phone}
@@ -234,7 +250,10 @@ export default function AddMapListingPage() {
               <div>
                 <label className="block text-sm font-black text-slate-700 mb-2">واتساب</label>
                 <div className="relative">
-                  <MessageCircle className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <MessageCircle
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={18}
+                  />
                   <input
                     type="tel"
                     value={whatsapp}
@@ -247,9 +266,14 @@ export default function AddMapListingPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-black text-slate-700 mb-2">الموقع الإلكتروني</label>
+              <label className="block text-sm font-black text-slate-700 mb-2">
+                الموقع الإلكتروني
+              </label>
               <div className="relative">
-                <Globe className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Globe
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={18}
+                />
                 <input
                   type="url"
                   value={websiteUrl}
@@ -277,7 +301,9 @@ export default function AddMapListingPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-black text-slate-700 mb-2">تحديد الموقع على الخريطة *</label>
+              <label className="block text-sm font-black text-slate-700 mb-2">
+                تحديد الموقع على الخريطة *
+              </label>
               <button
                 onClick={handlePickLocation}
                 disabled={pickingLocation}
@@ -366,7 +392,9 @@ export default function AddMapListingPage() {
                 {websiteUrl && (
                   <div className="flex justify-between">
                     <span className="text-slate-500 font-bold">الموقع</span>
-                    <span className="font-black text-slate-900 truncate max-w-[200px]">{websiteUrl}</span>
+                    <span className="font-black text-slate-900 truncate max-w-[200px]">
+                      {websiteUrl}
+                    </span>
                   </div>
                 )}
               </div>

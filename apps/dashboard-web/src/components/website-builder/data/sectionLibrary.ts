@@ -18,7 +18,8 @@ export type SectionCategory =
   | 'contact'
   | 'cta'
   | 'content'
-  | 'footer';
+  | 'footer'
+  | 'mobile_footer';
 
 export interface SectionCategoryDef {
   id: SectionCategory;
@@ -45,6 +46,7 @@ export const sectionCategoriesList: SectionCategoryDef[] = [
   { id: 'cta', nameAr: 'اتخاذ إجراء وعروض حصرية', nameEn: 'Call to Action' },
   { id: 'content', nameAr: 'المحتوى والقصة', nameEn: 'Content' },
   { id: 'footer', nameAr: 'ذيل الصفحة (الفوتر)', nameEn: 'Footer' },
+  { id: 'mobile_footer', nameAr: 'فوتر الموبايل (شريط سفلي ثابت)', nameEn: 'Mobile Footer' },
 ];
 
 export interface SectionTemplate {
@@ -9389,6 +9391,40 @@ export const sectionTemplates: SectionTemplate[] = [
         childrenIds: [],
         props: {
           message: 'مرحبًا، أريد الاستفسار عن المنتجات والأسعار 😊',
+        },
+        styles: { desktop: {}, mobile: {} },
+      },
+    },
+  },
+
+  // فوتر الموبايل — شريط تنقل سفلي ثابت للهواتف
+  {
+    id: 'mobile-footer-bar',
+    name: 'mobile-footer-bar',
+    nameAr: 'شريط سفلي ثابت للموبايل (الرئيسية / المنتجات / السلة / واتساب)',
+    category: 'mobile_footer',
+    activity: 'general',
+    style: 'modern',
+    wireframeType: 'mobile-footer-bar',
+    descriptionAr:
+      'شريط ثابت أسفل شاشة الموبايل في موقعك: الرئيسية، المنتجات، السلة (بتفتح سلة المنصة الموحدة وعدّاد مباشر) وواتساب — يظهر على الموبايل فقط.',
+    tags: ['mobile', 'فوتر', 'موبايل', 'سلة', 'تنقل', 'ثابت', 'sticky'],
+    rootNodeId: 'tmpl_mobile_footer_root',
+    nodes: {
+      tmpl_mobile_footer_root: {
+        id: 'tmpl_mobile_footer_root',
+        name: 'فوتر الموبايل الثابت',
+        type: 'mobile_footer',
+        category: 'section',
+        parentId: null,
+        childrenIds: [],
+        props: {
+          // أزرار الشريط بالترتيب — المتاح: home, products, cart, whatsapp, phone
+          buttons: ['home', 'products', 'cart', 'whatsapp'],
+          bgColor: '#0f172a',
+          // التاجر يكبط رقم واتساب/هاتفه هنا (اختياري) عشان يظهر زر الاتصال
+          whatsapp: '',
+          phone: '',
         },
         styles: { desktop: {}, mobile: {} },
       },

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -392,12 +393,13 @@ export default function CheckoutPage() {
                   <div className="space-y-2">
                     {shopItems.map((item) => (
                       <div key={item.id} className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
-                          <img
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
+                          <Image
                             src={item.image}
                             alt={item.name}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
+                            fill
+                            sizes="48px"
+                            className="object-cover"
                           />
                         </div>
                         <div className="flex-1 min-w-0">

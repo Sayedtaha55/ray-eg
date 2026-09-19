@@ -1,7 +1,7 @@
 const RAW_BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.BACKEND_URL ||
-  (process.env.NODE_ENV === 'production' ? 'https://api.mnmknk.com' : 'http://localhost:4000');
+  (process.env.NODE_ENV === 'production' ? 'https://api2.mnmknk.com' : 'http://localhost:4000');
 
 const DEFAULT_API_TIMEOUT_MS = 15_000;
 const API_TIMEOUT_MS = parsePositiveInteger(
@@ -54,7 +54,12 @@ async function fetchWithTimeout(
   }
 }
 
-const BACKEND_URL = RAW_BACKEND_URL.replace(/\/+$/, '');
+// Strip invisible characters (BOM, zero-width, RTL/LTR marks) that sneak in
+// via copy-paste from rich-text sources and break fetch silently.
+const BACKEND_URL = RAW_BACKEND_URL.replace(
+  /[\u200B-\u200F\u202A-\u202E\u2060\u2066-\u2069\uFEFF]/g,
+  ''
+).replace(/\/+$/, '');
 
 export class ApiError extends Error {
   status: number;

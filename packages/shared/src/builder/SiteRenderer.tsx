@@ -12,6 +12,8 @@ interface SiteRendererProps {
   /** Wire the published site into the host app's unified cart (optional). */
   onAddToCart?: (product: SiteProduct) => void;
   onOpenCart?: () => void;
+  /** Current unified-cart item count (badges on the mobile footer bar). */
+  cartCount?: number;
 }
 
 /**
@@ -25,6 +27,7 @@ export const SiteRenderer: React.FC<SiteRendererProps> = ({
   products,
   onAddToCart,
   onOpenCart,
+  cartCount,
 }) => {
   const pages = website.pages || [];
   const homePage = useMemo(
@@ -112,6 +115,7 @@ export const SiteRenderer: React.FC<SiteRendererProps> = ({
     waLink,
     onAddToCart,
     onOpenCart,
+    cartCount,
   };
 
   return (

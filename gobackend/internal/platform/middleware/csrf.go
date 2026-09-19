@@ -37,9 +37,12 @@ func CSRF(cfg *config.Config) fiber.Handler {
 		method := strings.ToUpper(c.Method())
 		path := strings.ToLower(c.Path())
 
-		// Always set or refresh the CSRF cookie and expose the token header.
+		// Set the CSRF cookie only when the client does not have one yet (or it
+		// was rotated after a verified mutation). Re-issuing it on every response
+		// would force Set-Cookie onto cacheable public GETs and defeat HTTP
+		// caching; token verification is unaffected (dev/CSRF-disabled bypass it).
 		cookieToken := c.Cookies(csrfCookieName)
-		if cookieToken == "" || cfg.IsDevelopment() || cfg.Security.CSRFDisabled {
+		if cookieToken == "" {
 			cookieToken = generateCSRFToken()
 			setCSRFCookie(c, cookieToken, cfg)
 		}

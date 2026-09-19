@@ -6,12 +6,8 @@ import { api } from '@/lib/api';
 import { getProducts } from '@/lib/services';
 import { ProductCard } from '@/components/ProductCard';
 import { siteConfig } from '@/lib/config';
-import {
-  SiteRenderer,
-  mapSiteProduct,
-  type SiteProduct,
-  type Website,
-} from '@ray-eg/shared/builder';
+import { mapSiteProduct, type SiteProduct, type Website } from '@ray-eg/shared/builder';
+import { SiteCartBridge } from '@/components/SiteCartBridge';
 
 export const revalidate = 120;
 
@@ -120,7 +116,7 @@ export default async function PublishedSitePage({ params }: Props) {
 
   // New-generation sites: render the exact builder component tree.
   if (website?.pages?.length && website?.components && Object.keys(website.components).length > 0) {
-    return <SiteRenderer website={website} shop={shopCtx} products={siteProducts} />;
+    return <SiteCartBridge website={website} shop={shopCtx} products={siteProducts} />;
   }
 
   // Legacy sites (flat banner/keys config) keep the classic template.

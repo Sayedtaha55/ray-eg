@@ -10,6 +10,7 @@ const nextConfig = {
   },
   async rewrites() {
     const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000')
+      .replace(/[\u200B-\u200F\u202A-\u202E\u2060\u2066-\u2069\uFEFF]/g, '')
       .trim()
       .replace(/^\uFEFF/, '');
     return [{ source: '/api/:path*', destination: `${backendUrl}/api/:path*` }];

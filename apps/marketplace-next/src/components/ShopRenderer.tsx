@@ -54,7 +54,7 @@ export default function ShopRenderer({ shop, products }: ShopRendererProps) {
 
   // If the shop was designed with the builder, use the tree renderer
   if (config.website?.components && config.website?.pages?.length) {
-    return <BuilderTreeRenderer website={config.website} />;
+    return <BuilderTreeRenderer website={config.website} shop={shop} products={products} />;
   }
 
   // Legacy fallback

@@ -1,11 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
-  Package, Truck, CheckCircle, Clock, MapPin, Store, Phone, ArrowLeft,
-  Loader2, XCircle, AlertCircle,
+  Package,
+  Truck,
+  CheckCircle,
+  Clock,
+  MapPin,
+  Store,
+  Phone,
+  ArrowLeft,
+  Loader2,
+  XCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { jsonRequest } from '@/lib/api';
 import { formatPrice, formatDate } from '@/lib/utils';
@@ -115,7 +125,9 @@ export default function TrackOrderPage() {
     <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-12">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-6">
-        <Link href="/" className="hover:text-brand-cyan">الرئيسية</Link>
+        <Link href="/" className="hover:text-brand-cyan">
+          الرئيسية
+        </Link>
         <span>/</span>
         <span className="text-slate-600 dark:text-slate-300">تتبع الطلب</span>
       </nav>
@@ -125,7 +137,10 @@ export default function TrackOrderPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-xl md:text-2xl font-bold">
-              طلب #{String(order.id || order.orderNumber || '').slice(0, 8).toUpperCase()}
+              طلب #
+              {String(order.id || order.orderNumber || '')
+                .slice(0, 8)
+                .toUpperCase()}
             </h1>
             <p className="text-slate-500 text-sm font-semibold mt-1">
               {formatDate(order.createdAt)}
@@ -159,11 +174,15 @@ export default function TrackOrderPage() {
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                         isDone
-                          ? step.color === 'amber' ? 'bg-amber-500 text-white'
-                          : step.color === 'blue' ? 'bg-blue-500 text-white'
-                          : step.color === 'purple' ? 'bg-purple-500 text-white'
-                          : step.color === 'cyan' ? 'bg-cyan-500 text-white'
-                          : 'bg-green-500 text-white'
+                          ? step.color === 'amber'
+                            ? 'bg-amber-500 text-white'
+                            : step.color === 'blue'
+                              ? 'bg-blue-500 text-white'
+                              : step.color === 'purple'
+                                ? 'bg-purple-500 text-white'
+                                : step.color === 'cyan'
+                                  ? 'bg-cyan-500 text-white'
+                                  : 'bg-green-500 text-white'
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
                       } ${isCurrent ? 'ring-4 ring-brand-cyan/20' : ''}`}
                     >
@@ -199,7 +218,10 @@ export default function TrackOrderPage() {
             <div>
               <p className="font-bold text-sm">المندوب: {order.courier.name}</p>
               {order.courier.phone && (
-                <a href={`tel:${order.courier.phone}`} className="text-cyan-500 text-xs font-bold hover:underline">
+                <a
+                  href={`tel:${order.courier.phone}`}
+                  className="text-cyan-500 text-xs font-bold hover:underline"
+                >
                   {order.courier.phone}
                 </a>
               )}
@@ -216,7 +238,10 @@ export default function TrackOrderPage() {
             <Store className="w-4 h-4 text-brand-purple" />
             <span className="font-bold text-sm">{order.shop.name}</span>
             {order.shop.phone && (
-              <a href={`tel:${order.shop.phone}`} className="mr-auto text-slate-400 hover:text-brand-cyan">
+              <a
+                href={`tel:${order.shop.phone}`}
+                className="mr-auto text-slate-400 hover:text-brand-cyan"
+              >
                 <Phone className="w-4 h-4" />
               </a>
             )}
@@ -225,14 +250,22 @@ export default function TrackOrderPage() {
         <div className="space-y-3">
           {(order.items || []).map((item, idx) => (
             <div key={idx} className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
+              <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
                 {item.image && (
-                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                  <Image
+                    src={item.image}
+                    alt={item.name}
+                    fill
+                    sizes="56px"
+                    className="object-cover"
+                  />
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm line-clamp-1">{item.name}</p>
-                <p className="text-xs text-slate-500">{item.quantity} × {formatPrice(item.price)}</p>
+                <p className="text-xs text-slate-500">
+                  {item.quantity} × {formatPrice(item.price)}
+                </p>
               </div>
               <span className="font-bold text-sm">{formatPrice(item.price * item.quantity)}</span>
             </div>
@@ -262,18 +295,37 @@ export default function TrackOrderPage() {
             بيانات التوصيل
           </h2>
           <div className="space-y-2 text-sm font-semibold">
-            <div className="flex gap-2"><span className="text-slate-500">الاسم:</span><span>{order.customer.name}</span></div>
-            <div className="flex gap-2"><span className="text-slate-500">الهاتف:</span><span dir="ltr">{order.customer.phone}</span></div>
-            <div className="flex gap-2"><span className="text-slate-500">العنوان:</span><span>{order.customer.city}{order.customer.district ? ` - ${order.customer.district}` : ''} - {order.customer.address}</span></div>
+            <div className="flex gap-2">
+              <span className="text-slate-500">الاسم:</span>
+              <span>{order.customer.name}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="text-slate-500">الهاتف:</span>
+              <span dir="ltr">{order.customer.phone}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="text-slate-500">العنوان:</span>
+              <span>
+                {order.customer.city}
+                {order.customer.district ? ` - ${order.customer.district}` : ''} -{' '}
+                {order.customer.address}
+              </span>
+            </div>
             {order.customer.notes && (
-              <div className="flex gap-2"><span className="text-slate-500">ملاحظات:</span><span>{order.customer.notes}</span></div>
+              <div className="flex gap-2">
+                <span className="text-slate-500">ملاحظات:</span>
+                <span>{order.customer.notes}</span>
+              </div>
             )}
           </div>
         </div>
       )}
 
       <div className="text-center">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-cyan">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-cyan"
+        >
           <ArrowLeft className="w-4 h-4" />
           العودة للرئيسية
         </Link>

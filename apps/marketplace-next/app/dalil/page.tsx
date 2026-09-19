@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Store } from 'lucide-react';
 import { getShops } from '@/lib/services';
@@ -68,13 +69,12 @@ export default async function DalilPage() {
             href={`/activity/${a.id}`}
             className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5"
           >
-            <img
+            <Image
               src={a.image}
               alt=""
               width={16}
               height={16}
               className="w-4 h-4 rounded object-cover"
-              loading="lazy"
             />
             {a.label.ar}
           </Link>

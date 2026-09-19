@@ -97,7 +97,7 @@ const ACTIVITIES: ActivityWithGroup[] = BUSINESS_ACTIVITIES;
 const API_BASE =
   process.env.NODE_ENV === 'development'
     ? ''
-    : process.env.NEXT_PUBLIC_API_URL || 'https://api.mnmknk.com';
+    : process.env.NEXT_PUBLIC_API_URL || 'https://api2.mnmknk.com';
 
 function SignupContent() {
   const router = useRouter();

@@ -16,11 +16,14 @@ const nextConfig = {
   async rewrites() {
     const rawBackendUrl =
       process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+    // Strip invisible characters (BOM, zero-width, RTL/LTR marks) that sneak in
+    // when the value is copy-pasted from rich-text sources — any of them makes
+    // the rewrite destination invalid.
     const backendUrl = rawBackendUrl
+      .replace(/[\u200B-\u200F\u202A-\u202E\u2060\u2066-\u2069\uFEFF]/g, '')
       .trim()
-      .replace(/^\uFEFF/, '')
       .replace(/\r|\n/g, '')
-      .replace(/\/$/, '');
+      .replace(/\/+$/, '');
     console.log('Backend URL configured:', backendUrl);
     return [{ source: '/api/:path*', destination: `${backendUrl}/api/:path*` }];
   },

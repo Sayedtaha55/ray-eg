@@ -1,9 +1,34 @@
 ﻿package middleware
 
 import (
+	"strings"
+
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
 	"github.com/gofiber/fiber/v2"
 )
+
+// publicCachePrefixes lists API path prefixes whose GET responses are public
+// catalog data (marketplace homepage, shops, products, offers, blog, search).
+// Everything else under /api/v1 keeps no-store.
+var publicCachePrefixes = []string{
+	"/api/v1/shops",
+	"/api/v1/products",
+	"/api/v1/offers",
+	"/api/v1/marketing/seasonal-offers/public",
+	"/api/v1/blog",
+	"/api/v1/search",
+	"/api/v1/productcategories",
+	"/api/v1/builder/published-slugs",
+}
+
+func isPublicCachePath(path string) bool {
+	for _, p := range publicCachePrefixes {
+		if strings.HasPrefix(path, p) {
+			return true
+		}
+	}
+	return false
+}
 
 // SecurityHeaders applies a hardened set of HTTP response headers. CSP is kept
 // permissive enough for SPAs and WebSocket connections, and tightened via env.
@@ -28,16 +53,31 @@ func SecurityHeaders(cfg *config.Config) fiber.Handler {
 		csp := buildCSP(isDev, frontend)
 		c.Set("Content-Security-Policy", csp)
 
-	// X-Powered-By removal
-	c.Set("X-Powered-By", "")
+		// X-Powered-By removal
+		c.Set("X-Powered-By", "")
 
-	// Cache-Control: no-store for API responses (prevents caching of sensitive data)
-	path := c.Path()
-	if len(path) >= 8 && path[:8] == "/api/v1/" {
-		c.Set("Cache-Control", "no-store")
-	}
+		// Cache-Control: anonymous GETs of public catalog paths get a short
+		// shared-cache TTL; everything else (authenticated, mutations, cookies
+		// in the response) must never be cached. Evaluated after the handler so
+		// a Set-Cookie emitted downstream downgrades the response to no-store.
+		path := c.Path()
+		anonymousGET := c.Method() == fiber.MethodGet &&
+			c.Get("Authorization") == "" &&
+			c.Cookies("ray_session") == "" &&
+			c.Cookies("ray_access") == ""
+		cacheable := anonymousGET && isPublicCachePath(path)
 
-	return c.Next()
+		err := c.Next()
+
+		if strings.HasPrefix(path, "/api/v1/") {
+			if cacheable && c.GetRespHeader("Set-Cookie") == "" {
+				c.Set("Cache-Control", "public, max-age=15, stale-while-revalidate=300")
+			} else {
+				c.Set("Cache-Control", "no-store")
+			}
+		}
+
+		return err
 	}
 }
 

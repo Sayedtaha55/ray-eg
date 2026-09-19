@@ -3055,6 +3055,53 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       );
     }
 
+    case 'mobile_footer': {
+      // Canvas preview of the fixed mobile bottom bar (in-flow here; the
+      // published site renders it fixed, mobile-only).
+      const buttons: string[] = Array.isArray(node.props.buttons)
+        ? node.props.buttons
+        : ['home', 'products', 'cart', 'whatsapp'];
+      const labels: Record<string, string> = {
+        home: 'الرئيسية',
+        products: 'المنتجات',
+        cart: 'السلة',
+        whatsapp: 'واتساب',
+        phone: 'اتصال',
+      };
+      return (
+        <div
+          id={node.id}
+          style={getComputedStyles()}
+          onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`cursor-pointer transition-all ${outlineClass}`}
+        >
+          <div
+            className="flex items-stretch justify-around rounded-xl overflow-hidden border border-white/10"
+            style={{ backgroundColor: node.props.bgColor || '#0f172a' }}
+          >
+            {buttons.map((key) => (
+              <div
+                key={key}
+                className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2.5 ${
+                  key === 'whatsapp' ? 'text-emerald-400' : 'text-white/80'
+                }`}
+              >
+                <span className="w-5 h-5 rounded bg-white/15" />
+                <span className="text-[9px] font-bold">{labels[key] || key}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-400 mt-1 text-right">
+            (سيظهر ثابتاً أسفل الشاشة على الموبايل فقط في الموقع المنشور — زر السلة يفتح السلة
+            الموحدة)
+          </p>
+          {renderChildren()}
+        </div>
+      );
+    }
+
     // Default container / sections / flex / grid
 
     default: {

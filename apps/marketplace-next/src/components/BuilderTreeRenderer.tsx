@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   ShoppingBag,
+  ShoppingCart,
   ShieldCheck,
   Truck,
   CreditCard,
@@ -16,8 +17,13 @@ import {
   Phone,
   Mail,
   MapPin,
+  Home,
+  LayoutGrid,
 } from 'lucide-react';
 import { sanitizeHtml } from '@/lib/sanitize';
+import { useCart } from '@/lib/cart';
+import { playCartSound } from '@/lib/sounds';
+import type { Shop, Product } from '@/lib/services';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,6 +102,10 @@ interface BuilderWebsite {
   defaultDirection?: string;
 }
 
+/** Live shop + catalog passed down the tree so product cards and the mobile
+ *  footer can bind to the REAL unified cart instead of dead WhatsApp buttons. */
+const ShopDataContext = React.createContext<{ shop?: Shop; products?: Product[] }>({});
+
 // ─── getComputedStyles ────────────────────────────────────────────────────────
 
 function getComputedStyles(
@@ -173,6 +183,8 @@ function getComputedStyles(
 
 function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWebsite }) {
   const node = website.components[nodeId];
+  const { addItem, setCartOpen, totalItems } = useCart();
+  const { shop: ctxShop, products: ctxProducts } = React.useContext(ShopDataContext);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -189,6 +201,11 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
   }, []);
 
   if (!node || node.isHidden) return null;
+
+  // Fixed mobile bottom bar — rendered by its own component (uses cart hooks).
+  if (node.type === 'mobile_footer') {
+    return <MobileFooterBar node={node} />;
+  }
 
   const theme = website.theme;
   const computed = getComputedStyles(node, theme, isMobileScreen);
@@ -439,16 +456,72 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
                           </p>
                         )}
                       </div>
-                      <button
-                        style={{
-                          backgroundColor: theme.colors.primary,
-                          borderRadius: theme.radius?.lg || '10px',
-                        }}
-                        className="w-full py-2.5 text-white font-bold text-xs shadow-sm hover:opacity-90 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <ShoppingBag className="w-3.5 h-3.5" />
-                        <span>طلب / شراء</span>
-                      </button>
+                      {(() => {
+                        // Bind to the LIVE catalog product when the baked item
+                        // matches a real one — add-to-cart then uses the real
+                        // product (price/stock/checkout all stay correct).
+                        const live = (ctxProducts || []).find(
+                          (p) => String(p.id) === String(item.id)
+                        );
+                        if (live) {
+                          const available = live.isAvailable !== false;
+                          return (
+                            <button
+                              type="button"
+                              disabled={!available}
+                              onClick={() => {
+                                addItem(live, 1);
+                                playCartSound();
+                                setCartOpen(true);
+                              }}
+                              style={{
+                                backgroundColor: theme.colors.primary,
+                                borderRadius: theme.radius?.lg || '10px',
+                              }}
+                              className="w-full py-2.5 text-white font-bold text-xs shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                            >
+                              <ShoppingCart className="w-3.5 h-3.5" />
+                              <span>{available ? 'أضف للسلة' : 'غير متاح'}</span>
+                            </button>
+                          );
+                        }
+                        // No matching catalog product — fall back to WhatsApp order.
+                        const waNumber = String(ctxShop?.whatsapp || ctxShop?.phone || '').replace(
+                          /\D/g,
+                          ''
+                        );
+                        if (waNumber) {
+                          return (
+                            <a
+                              href={`https://wa.me/${waNumber}?text=${encodeURIComponent(`مرحباً، أريد طلب: ${title}`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                backgroundColor: theme.colors.primary,
+                                borderRadius: theme.radius?.lg || '10px',
+                              }}
+                              className="w-full py-2.5 text-white font-bold text-xs shadow-sm hover:opacity-90 active:scale-98 transition-all flex items-center justify-center gap-1.5"
+                            >
+                              <ShoppingBag className="w-3.5 h-3.5" />
+                              <span>طلب / شراء</span>
+                            </a>
+                          );
+                        }
+                        return (
+                          <button
+                            type="button"
+                            disabled
+                            style={{
+                              backgroundColor: theme.colors.primary,
+                              borderRadius: theme.radius?.lg || '10px',
+                            }}
+                            className="w-full py-2.5 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 opacity-60 cursor-not-allowed"
+                          >
+                            <ShoppingBag className="w-3.5 h-3.5" />
+                            <span>طلب / شراء</span>
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                 );
@@ -936,21 +1009,135 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
   );
 }
 
+// ─── Mobile Footer (fixed bottom bar for phones) ─────────────────────────────
+
+function MobileFooterBar({ node }: { node: ComponentNode }) {
+  const { setCartOpen, totalItems } = useCart();
+  const { shop: ctxShop } = React.useContext(ShopDataContext);
+  const rawButtons: string[] = Array.isArray(node.props.buttons)
+    ? node.props.buttons
+    : ['home', 'products', 'cart', 'whatsapp'];
+  const barBg = node.props.bgColor || '#0f172a';
+
+  const scrollToProducts = () => {
+    const el =
+      document.querySelector('[data-section="products"]') || document.getElementById('products');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    else window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const renderBtn = (key: string) => {
+    switch (key) {
+      case 'home':
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 text-white/80 hover:text-white transition-colors"
+          >
+            <Home className="w-5 h-5" />
+            <span className="text-[9px] font-bold">الرئيسية</span>
+          </button>
+        );
+      case 'products':
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={scrollToProducts}
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 text-white/80 hover:text-white transition-colors"
+          >
+            <LayoutGrid className="w-5 h-5" />
+            <span className="text-[9px] font-bold">المنتجات</span>
+          </button>
+        );
+      case 'cart':
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setCartOpen(true)}
+            className="relative flex flex-col items-center justify-center gap-0.5 flex-1 py-1 text-white/80 hover:text-white transition-colors"
+          >
+            <ShoppingCart className="w-5 h-5" />
+            <span className="text-[9px] font-bold">السلة</span>
+            {totalItems > 0 && (
+              <span className="absolute top-0 left-1/2 translate-x-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">
+                {totalItems > 9 ? '9+' : totalItems}
+              </span>
+            )}
+          </button>
+        );
+      case 'whatsapp': {
+        const wa = node.props.whatsapp || ctxShop?.whatsapp || node.props.phone || ctxShop?.phone;
+        if (!wa) return null;
+        return (
+          <a
+            key={key}
+            href={`https://wa.me/${String(wa).replace(/\D/g, '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 text-emerald-400 hover:text-emerald-300 transition-colors"
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span className="text-[9px] font-bold">واتساب</span>
+          </a>
+        );
+      }
+      case 'phone': {
+        const phone = node.props.phone || ctxShop?.phone;
+        if (!phone) return null;
+        return (
+          <a
+            key={key}
+            href={`tel:${phone}`}
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 text-white/80 hover:text-white transition-colors"
+          >
+            <Phone className="w-5 h-5" />
+            <span className="text-[9px] font-bold">اتصال</span>
+          </a>
+        );
+      }
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div
+      id={node.id}
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 backdrop-blur-md"
+      style={{ backgroundColor: barBg }}
+    >
+      <div className="flex items-stretch justify-around pb-[env(safe-area-inset-bottom)]">
+        {rawButtons.map(renderBtn)}
+      </div>
+    </div>
+  );
+}
+
 // ─── Public Export ─────────────────────────────────────────────────────────────
 
 interface BuilderTreeRendererProps {
   website: BuilderWebsite;
+  /** The shop owning this site — provides contact info (whatsapp/phone) for the mobile footer. */
+  shop?: Shop;
+  /** Live catalog — lets product cards add REAL items to the unified cart. */
+  products?: Product[];
 }
 
-export function BuilderTreeRenderer({ website }: BuilderTreeRendererProps) {
+export function BuilderTreeRenderer({ website, shop, products }: BuilderTreeRendererProps) {
   const activePage = website.pages?.[0];
   if (!activePage) return null;
 
   const direction = (website.defaultDirection || 'rtl') as React.CSSProperties['direction'];
 
   return (
-    <div style={{ direction, minHeight: '100vh' }}>
-      <NodeRenderer nodeId={activePage.rootNodeId} website={website} />
-    </div>
+    <ShopDataContext.Provider value={{ shop, products }}>
+      <div style={{ direction, minHeight: '100vh' }}>
+        <NodeRenderer nodeId={activePage.rootNodeId} website={website} />
+      </div>
+    </ShopDataContext.Provider>
   );
 }

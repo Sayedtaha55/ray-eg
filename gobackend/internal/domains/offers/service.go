@@ -7,23 +7,37 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/cache"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/errors"
 )
 
 // Service implements the Offers domain business logic.
 type Service struct {
-	repo *Repository
+	repo  *Repository
+	cache *cache.Cache
 }
 
-// NewService creates a new offers service.
-func NewService(repo *Repository) *Service {
-	return &Service{repo: repo}
+// NewService creates a new offers service. c is optional (nil disables caching).
+func NewService(repo *Repository, c *cache.Cache) *Service {
+	return &Service{repo: repo, cache: c}
 }
 
 // ListActive returns active non-expired offers.
 func (s *Service) ListActive(ctx context.Context, req ListOffersRequest) ([]OfferResponse, error) {
 	limit, offset := normalizeOfferPaging(req.Page, req.Limit)
 	cat := normalizeCategory(req.ShopCategory)
+	// Homepage / public browsing path: cache it. Per-shop or per-product
+	// queries stay uncached (long-tail keys, low traffic).
+	if req.ShopID == "" && req.ProductID == "" {
+		key := fmt.Sprintf("offers:public:%s:%d:%d", cat, limit, offset)
+		return cache.GetOrLoadJSON(s.cache, key, 30*time.Second, func() ([]OfferResponse, error) {
+			offers, err := s.repo.ListActive(ctx, req.ShopID, cat, req.ProductID, limit, offset)
+			if err != nil {
+				return nil, err
+			}
+			return shapeOffers(offers), nil
+		})
+	}
 	offers, err := s.repo.ListActive(ctx, req.ShopID, cat, req.ProductID, limit, offset)
 	if err != nil {
 		return nil, err
@@ -197,6 +211,7 @@ func (s *Service) Create(ctx context.Context, req CreateOfferRequest, actorRole,
 		createdOffers = append(createdOffers, *created)
 	}
 
+	s.cache.DeletePrefix("offers:public:")
 	return createdOffers, nil
 }
 
@@ -215,6 +230,7 @@ func (s *Service) Deactivate(ctx context.Context, id, actorRole, actorShopID str
 	if !isAdmin(actorRole) && actorShopID != o.ShopID {
 		return nil, errors.Forbidden("insufficient_role", "صلاحيات غير كافية")
 	}
+	s.cache.DeletePrefix("offers:public:")
 	return s.repo.Deactivate(ctx, id)
 }
 

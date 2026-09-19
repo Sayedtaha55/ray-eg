@@ -2,20 +2,23 @@ package seasonaloffers
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/cache"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/errors"
 )
 
 // Service implements the SeasonalOffers domain business logic.
 type Service struct {
-	repo *Repository
+	repo  *Repository
+	cache *cache.Cache
 }
 
-// NewService creates a new seasonal offers service.
-func NewService(repo *Repository) *Service {
-	return &Service{repo: repo}
+// NewService creates a new seasonal offers service. c is optional.
+func NewService(repo *Repository, c *cache.Cache) *Service {
+	return &Service{repo: repo, cache: c}
 }
 
 // ListByShop returns seasonal offers for a shop with filters.
@@ -31,11 +34,14 @@ func (s *Service) ListByShop(ctx context.Context, req ListSeasonalOffersRequest)
 // ListPublic returns active seasonal offers for the marketplace.
 func (s *Service) ListPublic(ctx context.Context, page, limit int) ([]SeasonalOfferResponse, error) {
 	limit, offset := normalizePaging(page, limit)
-	offers, err := s.repo.ListPublic(ctx, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	return shapeOffers(offers), nil
+	key := fmt.Sprintf("seasonal:public:%d:%d", limit, offset)
+	return cache.GetOrLoadJSON(s.cache, key, 30*time.Second, func() ([]SeasonalOfferResponse, error) {
+		offers, err := s.repo.ListPublic(ctx, limit, offset)
+		if err != nil {
+			return nil, err
+		}
+		return shapeOffers(offers), nil
+	})
 }
 
 // GetByID returns a single seasonal offer.
@@ -137,6 +143,7 @@ func (s *Service) Create(ctx context.Context, req CreateSeasonalOfferRequest, ac
 	if err != nil {
 		return nil, err
 	}
+	s.cache.DeletePrefix("seasonal:public:")
 	resp := shapeOffer(*created)
 	return &resp, nil
 }
@@ -164,6 +171,7 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateSeasonalOffer
 	if updated == nil {
 		return nil, errors.NotFound("seasonal_offer", id)
 	}
+	s.cache.DeletePrefix("seasonal:public:")
 	resp := shapeOffer(*updated)
 	return &resp, nil
 }
@@ -183,6 +191,7 @@ func (s *Service) Delete(ctx context.Context, id, actorRole, actorShopID string)
 	if !isAdmin(actorRole) && actorShopID != existing.ShopID {
 		return errors.Forbidden("insufficient_role", "صلاحيات غير كافية")
 	}
+	s.cache.DeletePrefix("seasonal:public:")
 	return s.repo.Delete(ctx, id)
 }
 

@@ -2,12 +2,22 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, ShoppingBag, Plus, Minus, Trash2, ArrowLeft } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/lib/cart';
 import { formatPrice } from '@/lib/utils';
 
 export function CartDrawer() {
-  const { items, isCartOpen, setCartOpen, updateQuantity, removeItem, totalItems, totalPrice, itemsByShop } = useCart();
+  const {
+    items,
+    isCartOpen,
+    setCartOpen,
+    updateQuantity,
+    removeItem,
+    totalItems,
+    totalPrice,
+    itemsByShop,
+  } = useCart();
 
   const shopGroups = itemsByShop();
 
@@ -85,12 +95,13 @@ export function CartDrawer() {
                             className="flex gap-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3"
                           >
                             {/* Image */}
-                            <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 flex-shrink-0">
-                              <img
+                            <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 flex-shrink-0">
+                              <Image
                                 src={item.image}
                                 alt={item.name}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
+                                fill
+                                sizes="64px"
+                                className="object-cover"
                               />
                             </div>
 
@@ -111,7 +122,9 @@ export function CartDrawer() {
                                 >
                                   <Minus className="w-3.5 h-3.5" />
                                 </button>
-                                <span className="font-bold text-sm w-8 text-center">{item.quantity}</span>
+                                <span className="font-bold text-sm w-8 text-center">
+                                  {item.quantity}
+                                </span>
                                 <button
                                   onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                                   className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"

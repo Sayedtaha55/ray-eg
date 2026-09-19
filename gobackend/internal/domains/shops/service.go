@@ -10,6 +10,7 @@ import (
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/auth"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/notification"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/cache"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/errors"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/logger"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/mailer"
@@ -23,15 +24,17 @@ type Service struct {
 	repo   *Repository
 	mailer mailer.Mailer
 	notif  *notification.Service
+	cache  *cache.Cache
 }
 
 // NewService creates a new shop service. notifSvc is optional — when present,
 // platform admins get an in-app notification for every newly registered shop.
-func NewService(cfg *config.Config, repo *Repository, m mailer.Mailer, notifSvc *notification.Service) *Service {
+// c is an optional TTL cache used for the hot public listing path.
+func NewService(cfg *config.Config, repo *Repository, m mailer.Mailer, notifSvc *notification.Service, c *cache.Cache) *Service {
 	if m == nil {
 		m = mailer.NoOpMailer{}
 	}
-	return &Service{cfg: cfg, repo: repo, mailer: m, notif: notifSvc}
+	return &Service{cfg: cfg, repo: repo, mailer: m, notif: notifSvc, cache: c}
 }
 
 // CreateShop creates a new shop for an owner.
@@ -194,10 +197,19 @@ func (s *Service) GetShopByID(ctx context.Context, id string) (*Shop, error) {
 	return s.repo.FindByID(ctx, id)
 }
 
-// ListPublic returns public-facing shops.
+// ListPublic returns public-facing shops. The browse path (no free-text search,
+// which has unbounded key diversity) is served from a short TTL cache so the
+// marketplace homepage and /shops page do not hit Postgres on every visit.
 func (s *Service) ListPublic(ctx context.Context, req ShopListRequest) ([]Shop, error) {
 	take, skip := normalizePaging(req.Take, req.Skip, 500)
-	return s.repo.ListPublic(ctx, take, skip, req.Category, req.Governorate, strings.TrimSpace(req.Search))
+	search := strings.TrimSpace(req.Search)
+	if search != "" {
+		return s.repo.ListPublic(ctx, take, skip, req.Category, req.Governorate, search)
+	}
+	key := fmt.Sprintf("shops:public:%d:%d:%s:%s", take, skip, req.Category, req.Governorate)
+	return cache.GetOrLoadJSON(s.cache, key, 30*time.Second, func() ([]Shop, error) {
+		return s.repo.ListPublic(ctx, take, skip, req.Category, req.Governorate, "")
+	})
 }
 
 // ListByStatus returns shops filtered by status for admin.

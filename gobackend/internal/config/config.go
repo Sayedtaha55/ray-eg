@@ -48,8 +48,8 @@ type AppConfig struct {
 // DBConfig holds PostgreSQL connection parameters.
 type DBConfig struct {
 	URL             string        `env:"DATABASE_URL,required"`
-	MaxOpenConns    int           `env:"DB_MAX_OPEN_CONNS" envDefault:"25"`
-	MaxIdleConns    int           `env:"DB_MAX_IDLE_CONNS" envDefault:"5"`
+	MaxOpenConns    int           `env:"DB_MAX_OPEN_CONNS" envDefault:"50"`
+	MaxIdleConns    int           `env:"DB_MAX_IDLE_CONNS" envDefault:"10"`
 	ConnMaxLifetime time.Duration `env:"DB_CONN_MAX_LIFETIME" envDefault:"30m"`
 	ConnMaxIdleTime time.Duration `env:"DB_CONN_MAX_IDLE_TIME" envDefault:"10m"`
 	MigrationsPath  string        `env:"DB_MIGRATIONS_PATH" envDefault:"./migrations"`

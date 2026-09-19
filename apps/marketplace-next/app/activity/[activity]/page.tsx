@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Store, ArrowLeft } from 'lucide-react';
 import { getShops } from '@/lib/services';
@@ -47,7 +48,7 @@ export default async function ActivityPage({ params }: Props) {
 
       <div className="flex items-center gap-4 mb-10">
         <div className="w-16 h-16 rounded-xl overflow-hidden">
-          <img
+          <Image
             src={config?.image || '/images/activities/cars.svg'}
             alt={config?.label.ar || 'نشاط'}
             width={64}

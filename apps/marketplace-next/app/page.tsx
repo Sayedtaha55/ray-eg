@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Tag, TrendingUp, Sparkles } from 'lucide-react';
 import { getShops, getOffers, getSeasonalOffers } from '@/lib/services';
@@ -108,13 +109,12 @@ export default async function HomePage() {
               >
                 <span className="w-14 h-14 rounded-2xl overflow-hidden transition-transform group-hover:scale-105">
                   {/* صورة القسم — استبدل الملف في public/images/activities/ لتغييرها */}
-                  <img
+                  <Image
                     src={a.image}
                     alt={a.label.ar}
                     width={56}
                     height={56}
                     className="w-full h-full object-cover"
-                    loading="lazy"
                   />
                 </span>
                 <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 text-center leading-tight">

@@ -4,10 +4,15 @@ function remoteImagePatterns() {
     .map((host) => host.trim())
     .filter(Boolean);
 
-  return sources.flatMap((hostname) => {
+  const patterns = sources.flatMap((hostname) => {
     const protocols = hostname === 'localhost' ? ['http'] : ['https'];
     return protocols.map((protocol) => ({ protocol, hostname }));
   });
+  // Merchants can embed external image URLs in their builder configs — allow
+  // any https host (same posture as dashboard-web/business) so next/image
+  // optimization never throws on unknown hosts.
+  patterns.push({ protocol: 'https', hostname: '**' });
+  return patterns;
 }
 
 /** @type {import('next').NextConfig} */
@@ -18,11 +23,14 @@ const nextConfig = {
   typescript: { ignoreBuildErrors: false },
   productionBrowserSourceMaps: false,
   images: {
-    unoptimized: true,
+    // Image optimization is enabled: AVIF/WebP conversion + responsive sizes.
+    // Hosts serving remote images come from NEXT_PUBLIC_IMAGE_HOSTS.
+    unoptimized: false,
     formats: ['image/avif', 'image/webp'],
     remotePatterns: remoteImagePatterns(),
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 86400,
   },
   async headers() {
     return [

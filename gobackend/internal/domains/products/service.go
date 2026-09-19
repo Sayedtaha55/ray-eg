@@ -2,9 +2,12 @@ package products
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/cache"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/compression"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/errors"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/pagination"
@@ -14,11 +17,17 @@ import (
 type Service struct {
 	repo        *Repository
 	compression *compression.Service
+	cache       *cache.Cache
 }
 
-// NewService creates a new products service.
-func NewService(repo *Repository, compressionSvc *compression.Service) *Service {
-	return &Service{repo: repo, compression: compressionSvc}
+// NewService creates a new products service. c is optional (nil disables caching).
+func NewService(repo *Repository, compressionSvc *compression.Service, c *cache.Cache) *Service {
+	return &Service{repo: repo, compression: compressionSvc, cache: c}
+}
+
+// invalidatePublicList drops cached public catalog pages after a write.
+func (s *Service) invalidatePublicList() {
+	s.cache.DeletePrefix("products:public:")
 }
 
 // GetByID returns a public product by ID.
@@ -58,19 +67,35 @@ func (s *Service) ListByShop(ctx context.Context, req ProductListRequest) ([]Pro
 	return products, pagination.NewMeta(total, req.Page, limit), nil
 }
 
-// ListAllActive lists all active public products.
+// productListResult bundles a catalog page for TTL caching.
+type productListResult struct {
+	Products []Product       `json:"products"`
+	Meta     pagination.Meta `json:"meta"`
+}
+
+// ListAllActive lists all active public products. Cached briefly: the public
+// catalog is read-heavy and stale-for-15s is acceptable; writes invalidate.
 func (s *Service) ListAllActive(ctx context.Context, req ProductListRequest) ([]Product, pagination.Meta, error) {
 	_, limit, offset := normalizePaging(req.Page, req.Limit)
 	req.Filter.Sort = normalizeSort(req.Filter.Sort)
-	total, err := s.repo.CountAllActive(ctx, req.Filter)
+	key := fmt.Sprintf("products:public:%d:%d:%s:%s:%s:%v:%v:%v", limit, offset,
+		req.Filter.Search, req.Filter.Category, req.Filter.Sort,
+		req.Filter.MinPrice, req.Filter.MaxPrice, req.Filter.IncludeImageMap)
+	res, err := cache.GetOrLoadJSON(s.cache, key, 15*time.Second, func() (productListResult, error) {
+		total, err := s.repo.CountAllActive(ctx, req.Filter)
+		if err != nil {
+			return productListResult{}, err
+		}
+		products, err := s.repo.ListAllActive(ctx, limit, offset, req.Filter)
+		if err != nil {
+			return productListResult{}, err
+		}
+		return productListResult{Products: products, Meta: pagination.NewMeta(total, req.Page, limit)}, nil
+	})
 	if err != nil {
 		return nil, pagination.Meta{}, err
 	}
-	products, err := s.repo.ListAllActive(ctx, limit, offset, req.Filter)
-	if err != nil {
-		return nil, pagination.Meta{}, err
-	}
-	return products, pagination.NewMeta(total, req.Page, limit), nil
+	return res.Products, res.Meta, nil
 }
 
 // ListByShopForManage lists products for a merchant/admin dashboard.
@@ -154,6 +179,7 @@ func (s *Service) Create(ctx context.Context, req CreateProductRequest, shopID, 
 		FurnitureMeta: req.FurnitureMeta,
 	}
 
+	s.invalidatePublicList()
 	return s.repo.Create(ctx, p)
 }
 
@@ -257,6 +283,7 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateProductReques
 		furnitureMeta = req.FurnitureMeta
 	}
 
+	s.invalidatePublicList()
 	return s.repo.Update(ctx, id, fields, furnitureMeta)
 }
 
@@ -275,6 +302,7 @@ func (s *Service) Delete(ctx context.Context, id, actorShopID, actorRole string)
 	if !isAdmin(actorRole) && actorShopID != existing.ShopID {
 		return errors.Forbidden("insufficient_role", "صلاحيات غير كافية")
 	}
+	s.invalidatePublicList()
 	return s.repo.Delete(ctx, id)
 }
 
