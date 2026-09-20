@@ -53,7 +53,7 @@ func NewService(cfg *config.Config, repo *Repository, tokens *TokenService, lock
 // Signup registers a new user and issues an initial token pair.
 func (s *Service) Signup(ctx context.Context, req SignupRequest, meta RequestMeta) (*AuthResponse, error) {
 	if err := password.Validate(req.Password); err != nil {
-		return nil, err
+		return nil, errors.Validation("invalid_password", err.Error())
 	}
 
 	email := normalizeEmail(req.Email)
@@ -263,7 +263,7 @@ func (s *Service) RequestPasswordReset(ctx context.Context, req PasswordResetReq
 // It invalidates all active sessions for the user.
 func (s *Service) ResetPassword(ctx context.Context, req PasswordResetConfirm, meta RequestMeta) error {
 	if err := password.Validate(req.Password); err != nil {
-		return err
+		return errors.Validation("invalid_password", err.Error())
 	}
 
 	claims, err := s.tokens.Parse(req.Token)
@@ -519,7 +519,7 @@ func (s *Service) BootstrapAdmin(ctx context.Context, req BootstrapAdminRequest,
 		return nil, errors.Validation("email_required", "البريد الإلكتروني مطلوب")
 	}
 	if err := password.Validate(req.Password); err != nil {
-		return nil, err
+		return nil, errors.Validation("invalid_password", err.Error())
 	}
 
 	hash, err := password.Hash(req.Password)

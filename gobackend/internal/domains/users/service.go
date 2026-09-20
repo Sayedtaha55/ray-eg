@@ -254,7 +254,7 @@ func (s *Service) CreateCourier(ctx context.Context, req CreateCourierRequest) (
 		return nil, errors.Validation("email_required", "البريد الإلكتروني مطلوب")
 	}
 	if err := password.Validate(req.Password); err != nil {
-		return nil, err
+		return nil, errors.Validation("invalid_password", err.Error())
 	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
