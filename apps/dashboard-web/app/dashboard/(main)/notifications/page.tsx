@@ -2,10 +2,23 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import {
-  Bell, CheckCheck, BellOff, ShoppingBag, Store,
-  Volume2, VolumeX, RefreshCw, AlertTriangle, Info,
-  Trash2, Search, X, Gift, CalendarDays,
+  Bell,
+  CheckCheck,
+  BellOff,
+  ShoppingBag,
+  Store,
+  Volume2,
+  VolumeX,
+  RefreshCw,
+  AlertTriangle,
+  Info,
+  Trash2,
+  Search,
+  X,
+  Gift,
+  CalendarDays,
 } from 'lucide-react';
+import { readUserJSON } from '@/lib/session-keys';
 import { useOrderBell } from '@/hooks/useOrderBell';
 import { apiRequest } from '@/lib/auth';
 
@@ -47,10 +60,14 @@ function normalizeNotif(n: any): Notif {
 
 function priorityStyle(p: string) {
   switch (p.toUpperCase()) {
-    case 'URGENT': return { badge: 'bg-red-50 text-red-700 border-red-100', label: 'عاجل' };
-    case 'HIGH': return { badge: 'bg-orange-50 text-orange-700 border-orange-100', label: 'مهم' };
-    case 'MEDIUM': return { badge: 'bg-slate-50 text-slate-600 border-slate-100', label: 'عادي' };
-    default: return { badge: 'bg-slate-50 text-slate-500 border-slate-100', label: 'منخفض' };
+    case 'URGENT':
+      return { badge: 'bg-red-50 text-red-700 border-red-100', label: 'عاجل' };
+    case 'HIGH':
+      return { badge: 'bg-orange-50 text-orange-700 border-orange-100', label: 'مهم' };
+    case 'MEDIUM':
+      return { badge: 'bg-slate-50 text-slate-600 border-slate-100', label: 'عادي' };
+    default:
+      return { badge: 'bg-slate-50 text-slate-500 border-slate-100', label: 'منخفض' };
   }
 }
 
@@ -67,13 +84,23 @@ function timeAgo(iso: string): string {
 }
 
 function iconFor(n: Notif) {
-  if (n.source === 'pos') return { el: <Store size={15} />, cls: 'bg-amber-50 text-amber-600 border-amber-100' };
-  if (n.source === 'website') return { el: <ShoppingBag size={15} />, cls: 'bg-cyan-50 text-cyan-700 border-cyan-100' };
+  if (n.source === 'pos')
+    return { el: <Store size={15} />, cls: 'bg-amber-50 text-amber-600 border-amber-100' };
+  if (n.source === 'website')
+    return { el: <ShoppingBag size={15} />, cls: 'bg-cyan-50 text-cyan-700 border-cyan-100' };
   if (n.type === 'NEW_BOOKING' || n.type === 'BOOKING_STATUS') {
-    return { el: <CalendarDays size={15} />, cls: 'bg-emerald-50 text-emerald-600 border-emerald-100' };
+    return {
+      el: <CalendarDays size={15} />,
+      cls: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    };
   }
-  if (n.type === 'PROMOTION') return { el: <Gift size={15} />, cls: 'bg-violet-50 text-violet-600 border-violet-100' };
-  if (n.priority === 'URGENT' || n.priority === 'HIGH') return { el: <AlertTriangle size={15} />, cls: 'bg-orange-50 text-orange-600 border-orange-100' };
+  if (n.type === 'PROMOTION')
+    return { el: <Gift size={15} />, cls: 'bg-violet-50 text-violet-600 border-violet-100' };
+  if (n.priority === 'URGENT' || n.priority === 'HIGH')
+    return {
+      el: <AlertTriangle size={15} />,
+      cls: 'bg-orange-50 text-orange-600 border-orange-100',
+    };
   return { el: <Info size={15} />, cls: 'bg-slate-50 text-slate-500 border-slate-100' };
 }
 
@@ -88,7 +115,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 function currentShopId(): string {
   try {
-    const u = JSON.parse(localStorage.getItem('ray_user') || '{}');
+    const u = JSON.parse(readUserJSON() || '{}');
     return u?.shopId || u?.shop_id || '';
   } catch {
     return '';
@@ -112,7 +139,9 @@ export default function NotificationsPage() {
   const [busyAll, setBusyAll] = useState(false);
 
   const [initialLoading, setInitialLoading] = useState(true);
-  useMemo(() => { setTimeout(() => setInitialLoading(false), 1200); }, []);
+  useMemo(() => {
+    setTimeout(() => setInitialLoading(false), 1200);
+  }, []);
 
   const notifications = useMemo(() => rawList.map(normalizeNotif), [rawList]);
 
@@ -122,8 +151,8 @@ export default function NotificationsPage() {
     if (tab === 'unread') list = list.filter((n) => !n.read);
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
-      list = list.filter((n) =>
-        n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q)
+      list = list.filter(
+        (n) => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q)
       );
     }
     return list;
@@ -135,27 +164,42 @@ export default function NotificationsPage() {
   );
 
   const handleRefresh = useCallback(async () => {
-    try { await refresh(); } catch { /* silent */ }
+    try {
+      await refresh();
+    } catch {
+      /* silent */
+    }
   }, [refresh]);
 
   const handleMarkAll = useCallback(async () => {
     setBusyAll(true);
-    try { await markAllRead(); } catch { /* both channels failed — surfaced by counts */ }
-    finally { setBusyAll(false); }
+    try {
+      await markAllRead();
+    } catch {
+      /* both channels failed — surfaced by counts */
+    } finally {
+      setBusyAll(false);
+    }
   }, [markAllRead]);
 
-  const handleDelete = useCallback(async (n: Notif) => {
-    setDeleting(n.id);
-    try {
-      // delete on the channel the notification actually lives on
-      const path = n.shop_id
-        ? `/notifications/shop/${currentShopId()}/${n.id}`
-        : `/notifications/me/${n.id}`;
-      await apiRequest(path, { method: 'DELETE' });
-      await refresh();
-    } catch { /* silent */ }
-    finally { setDeleting(null); }
-  }, [refresh]);
+  const handleDelete = useCallback(
+    async (n: Notif) => {
+      setDeleting(n.id);
+      try {
+        // delete on the channel the notification actually lives on
+        const path = n.shop_id
+          ? `/notifications/shop/${currentShopId()}/${n.id}`
+          : `/notifications/me/${n.id}`;
+        await apiRequest(path, { method: 'DELETE' });
+        await refresh();
+      } catch {
+        /* silent */
+      } finally {
+        setDeleting(null);
+      }
+    },
+    [refresh]
+  );
 
   const tabs: { key: TabKey; label: string; count: number }[] = [
     { key: 'all', label: 'الكل', count: notifications.length },
@@ -177,7 +221,9 @@ export default function NotificationsPage() {
           <button
             onClick={toggleSound}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-colors ${
-              soundOn ? 'border-cyan-200 bg-cyan-50 text-cyan-800' : 'border-slate-200 bg-white text-slate-400'
+              soundOn
+                ? 'border-cyan-200 bg-cyan-50 text-cyan-800'
+                : 'border-slate-200 bg-white text-slate-400'
             }`}
             title={soundOn ? 'إيقاف صوت الرنة' : 'تشغيل صوت الرنة'}
           >
@@ -270,8 +316,8 @@ export default function NotificationsPage() {
               {searchQuery
                 ? 'جرّب البحث بكلمات مختلفة'
                 : tab === 'orders'
-                ? 'أول طلب جديد من الموقع أو الكاشير هيظهر هنا فورًا'
-                : 'ستصلك إشعارات الطلبات والعروض هنا'}
+                  ? 'أول طلب جديد من الموقع أو الكاشير هيظهر هنا فورًا'
+                  : 'ستصلك إشعارات الطلبات والعروض هنا'}
             </p>
           </div>
         </div>
@@ -281,11 +327,12 @@ export default function NotificationsPage() {
             const isUnread = !notif.read;
             const prio = priorityStyle(notif.priority);
             const ic = iconFor(notif);
-            const typeLabel = notif.source === 'pos'
-              ? 'من الكاشير'
-              : notif.source === 'website'
-              ? 'من الموقع'
-              : (TYPE_LABELS[notif.type] || 'إشعار');
+            const typeLabel =
+              notif.source === 'pos'
+                ? 'من الكاشير'
+                : notif.source === 'website'
+                  ? 'من الموقع'
+                  : TYPE_LABELS[notif.type] || 'إشعار';
             return (
               <div
                 key={notif.id}
@@ -293,7 +340,9 @@ export default function NotificationsPage() {
                   isUnread ? 'bg-cyan-50/40 hover:bg-cyan-50/70' : 'hover:bg-slate-50/70'
                 }`}
               >
-                <span className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${ic.cls}`}>
+                <span
+                  className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${ic.cls}`}
+                >
                   {ic.el}
                 </span>
                 <div
@@ -301,27 +350,36 @@ export default function NotificationsPage() {
                   onClick={() => isUnread && markRead(notif.id)}
                 >
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-sm font-bold ${isUnread ? 'text-slate-900' : 'text-slate-700'}`}>
+                    <span
+                      className={`text-sm font-bold ${isUnread ? 'text-slate-900' : 'text-slate-700'}`}
+                    >
                       {notif.title}
                     </span>
                     <span className="text-[10px] font-semibold text-slate-400 bg-slate-50 border border-slate-100 rounded px-1.5 py-px">
                       {typeLabel}
                     </span>
                     {(notif.priority === 'URGENT' || notif.priority === 'HIGH') && (
-                      <span className={`text-[10px] font-bold rounded px-1.5 py-px border ${prio.badge}`}>
+                      <span
+                        className={`text-[10px] font-bold rounded px-1.5 py-px border ${prio.badge}`}
+                      >
                         {prio.label}
                       </span>
                     )}
                     {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0" />}
                   </div>
                   {notif.content && (
-                    <p className="text-xs text-slate-500 mt-1 leading-5 line-clamp-2">{notif.content}</p>
+                    <p className="text-xs text-slate-500 mt-1 leading-5 line-clamp-2">
+                      {notif.content}
+                    </p>
                   )}
                   <div className="flex items-center gap-3 mt-1.5">
                     <span className="text-[10px] text-slate-400">{timeAgo(notif.created_at)}</span>
                     {isUnread && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); markRead(notif.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markRead(notif.id);
+                        }}
                         className="text-[10px] font-bold text-cyan-700 hover:underline"
                       >
                         تحديد كمقروء

@@ -27,23 +27,26 @@ const AuthContext = createContext<AuthContextType>({
   refreshUser: async () => {},
 });
 
-const USER_KEY = 'ray_user';
-const TOKEN_KEY = 'ray_token';
-const LEGACY_TOKEN_KEY = 'token';
+import {
+  clearToken,
+  clearUserJSON,
+  readToken,
+  readUserJSON,
+  writeToken,
+  writeUserJSON,
+} from '@/lib/session-keys';
 
 function getStoredToken(): string {
-  if (typeof window === 'undefined') return '';
-  return localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY) || '';
+  return readToken();
 }
 
 function storeToken(token: string) {
-  localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(LEGACY_TOKEN_KEY, token);
+  writeToken(token);
 }
 
 function clearStoredToken() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  clearToken();
+  clearUserJSON();
 }
 
 let refreshInFlight: Promise<string | null> | null = null;
@@ -53,10 +56,15 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
       try {
+        const csrf = document.cookie.match(/ray_csrf=([^;]+)/)?.[1] || '';
         const res = await fetch('/api/v1/auth/refresh', {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json', 'X-App-Scope': 'dashboard' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-App-Scope': 'dashboard',
+            ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
+          },
           body: '{}',
         });
         if (!res.ok) return null;
@@ -66,7 +74,7 @@ async function refreshAccessToken(): Promise<string | null> {
         storeToken(accessToken);
         const user = data?.data?.user || data?.user;
         if (user && typeof window !== 'undefined') {
-          localStorage.setItem(USER_KEY, JSON.stringify(user));
+          writeUserJSON(JSON.stringify(user));
           window.dispatchEvent(new Event('ray-user-refreshed'));
         }
         return accessToken as string;
@@ -171,7 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     // Read from localStorage first for instant mount
-    const stored = typeof window !== 'undefined' ? localStorage.getItem(USER_KEY) : null;
+    const stored = typeof window !== 'undefined' ? readUserJSON() : null;
     if (stored) {
       try {
         const parsed = JSON.parse(stored) as User;
@@ -200,7 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const fetchedUser = data?.data || data?.user || (data?.id ? data : null);
       if (fetchedUser) {
         setUser(fetchedUser);
-        localStorage.setItem(USER_KEY, JSON.stringify(fetchedUser));
+        writeUserJSON(JSON.stringify(fetchedUser));
       }
     } catch {
       // Backend not reachable — keep localStorage user
@@ -214,12 +222,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const onSessionExpired = () => {
       clearStoredToken();
-      if (typeof window !== 'undefined') localStorage.removeItem(USER_KEY);
+      if (typeof window !== 'undefined') clearUserJSON();
       setUser(null);
     };
     const onUserRefreshed = () => {
       try {
-        const stored = typeof window !== 'undefined' ? localStorage.getItem(USER_KEY) : null;
+        const stored = typeof window !== 'undefined' ? readUserJSON() : null;
         if (stored) setUser(JSON.parse(stored));
       } catch {
         /* keep current user */
@@ -253,7 +261,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data?.session?.access_token;
     if (user && user.id) {
       setUser(user);
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      writeUserJSON(JSON.stringify(user));
       if (token) {
         storeToken(token);
       }
@@ -263,7 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     setUser(null);
-    localStorage.removeItem(USER_KEY);
+    clearUserJSON();
     clearStoredToken();
     apiRequest('/auth/logout', { method: 'POST' }).catch(() => {});
   }, []);

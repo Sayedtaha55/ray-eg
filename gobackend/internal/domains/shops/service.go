@@ -174,7 +174,12 @@ func (s *Service) GetMyShop(ctx context.Context, userID, shopID string, isDev bo
 		}
 	}
 
-	return nil, errors.NotFound("shop", "user")
+	// A merchant who has not created (or has not been assigned) a shop yet is
+	// a normal state, not an error: return a nil shop so GET /shops/me answers
+	// 200 with data=null. The dashboard's useShop contract treats null as
+	// "no shop yet"; a 404 here made every one of the ~90 direct callers treat
+	// it as a failure and refire the request.
+	return nil, nil
 }
 
 // GetShopBySlug returns a public shop by slug.

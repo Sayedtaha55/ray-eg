@@ -122,21 +122,36 @@ export function backendOrigin(): string {
   return new URL(BACKEND_URL).origin;
 }
 
+// مفاتيح جلسة الماركت — مفصولة عن اللوحة (ray_dashboard_token) حتى لا يتطرش
+// كل تطبيق الجلسة بتاعة التاني. المفاتيح القديمة المشتركة تُقرأ مرة واحدة
+// للترحيل ثم تُمسح عند أول كتابة.
+const TOKEN_KEY = 'ray_market_token';
+const LEGACY_TOKEN_KEYS = ['ray_token', 'token'] as const;
+
 export function getStoredAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('ray_token') || localStorage.getItem('token');
+  const scoped = localStorage.getItem(TOKEN_KEY);
+  if (scoped) return scoped;
+  for (const key of LEGACY_TOKEN_KEYS) {
+    const legacy = localStorage.getItem(key);
+    if (legacy) {
+      localStorage.setItem(TOKEN_KEY, legacy);
+      return legacy;
+    }
+  }
+  return null;
 }
 
 export function storeAuthToken(token: string) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem('ray_token', token);
-  localStorage.setItem('token', token);
+  localStorage.setItem(TOKEN_KEY, token);
+  for (const key of LEGACY_TOKEN_KEYS) localStorage.removeItem(key);
 }
 
 export function clearStoredAuthToken() {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem('ray_token');
-  localStorage.removeItem('token');
+  localStorage.removeItem(TOKEN_KEY);
+  for (const key of LEGACY_TOKEN_KEYS) localStorage.removeItem(key);
 }
 
 // ── Silent access-token refresh ──────────────────────────────────────────────

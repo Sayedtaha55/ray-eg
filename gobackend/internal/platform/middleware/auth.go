@@ -123,11 +123,43 @@ func extractToken(c *fiber.Ctx) (string, string) {
 		return strings.TrimSpace(strings.TrimPrefix(auth, "Bearer ")), tokenSourceBearer
 	}
 
+	// Session cookies are namespaced per client app (ray_session-DASHBOARD,
+	// ray_session-MARKET, ...) so the dashboard and the marketplace keep
+	// independent logins. Resolve the scoped name first, then fall back to the
+	// unsuffixed legacy cookie.
+	if scope := scopedCookieSuffix(c.Get("X-App-Scope")); scope != "" {
+		if cookie := c.Cookies("ray_session"+scope); cookie != "" {
+			return cookie, tokenSourceCookie
+		}
+	}
 	if cookie := c.Cookies("ray_session"); cookie != "" {
 		return cookie, tokenSourceCookie
 	}
 
 	return "", ""
+}
+
+// scopedCookieSuffix mirrors the auth handler's appScope(): the X-App-Scope
+// header becomes a "-<SCOPE>" cookie-name suffix, or "" when absent/invalid.
+func scopedCookieSuffix(raw string) string {
+	raw = strings.ToUpper(strings.TrimSpace(raw))
+	if raw == "" {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteByte('-')
+	for _, r := range raw {
+		if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+		if b.Len() >= 21 {
+			break
+		}
+	}
+	if b.Len() <= 1 {
+		return ""
+	}
+	return b.String()
 }
 
 func stringClaim(claims jwt.MapClaims, key string) string {

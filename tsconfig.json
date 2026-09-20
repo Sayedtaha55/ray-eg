@@ -20,7 +20,8 @@
       "@ray-eg/shared/*": ["packages/shared/src/*"],
       "@/*": ["packages/shared/src/*"],
       "@shared/*": ["packages/shared/src/*"],
-      "@assets/*": ["packages/shared/src/assets/*"]
+      "@assets/*": ["packages/shared/src/assets/*"],
+      "@marketplace-lib/*": ["apps/marketplace-next/src/lib/*"]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true

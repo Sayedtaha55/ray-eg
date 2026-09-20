@@ -16,8 +16,7 @@
  * (Bearer token from localStorage + credentials: 'include').
  */
 
-const TOKEN_KEY = 'ray_token';
-const LEGACY_TOKEN_KEY = 'token';
+import { readToken } from '@/lib/session-keys';
 
 export interface Hotspot {
   id?: string;
@@ -78,10 +77,7 @@ export interface AnalyzeImageMapPayload {
 }
 
 async function authedFetch(path: string, options: RequestInit = {}): Promise<any> {
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY)
-      : '';
+  const token = readToken();
   const res = await fetch(`/api/v1${path}`, {
     ...options,
     headers: {
@@ -196,10 +192,7 @@ export const ImageMapApi = {
 
   /** Upload a media file (image) and return { url, key }. */
   uploadMedia: async (file: File, shopId?: string): Promise<{ url: string; key?: string }> => {
-    const token =
-      typeof window !== 'undefined'
-        ? localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY)
-        : '';
+    const token = readToken();
     const { compressForUpload } = await import('@/lib/upload-image');
     const toUpload = await compressForUpload(file, 'map');
     const form = new FormData();

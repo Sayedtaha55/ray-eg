@@ -18,17 +18,26 @@ const (
 
 var csrfExemptPrefixes = []string{
 	"/api/v1/auth/login",
-	"/api/v1/auth/signup",
-	"/api/v1/auth/courier-signup",
-	"/api/v1/auth/password/forgot",
-	"/api/v1/auth/password/reset",
-	"/api/v1/auth/bootstrap-admin",
-	"/api/v1/auth/google",
-	"/api/v1/auth/dev-merchant-login",
-	"/api/v1/auth/dev-courier-login",
-	"/api/v1/auth/dev-portal-login",
-	"/api/v1/analytics/visits",
-}
+		"/api/v1/auth/signup",
+		"/api/v1/auth/courier-signup",
+		"/api/v1/auth/password/forgot",
+		"/api/v1/auth/password/reset",
+		"/api/v1/auth/bootstrap-admin",
+		"/api/v1/auth/google",
+		"/api/v1/auth/dev-merchant-login",
+		"/api/v1/auth/dev-courier-login",
+		"/api/v1/auth/dev-portal-login",
+		// Refresh/logout authenticate via the ray_session cookie, which is
+		// SameSite=Lax and therefore never attached to cross-site requests —
+		// there is no CSRF surface to protect. They were NOT exempt before,
+		// and since clients call refresh without a bearer token (it just
+		// expired) and historically without the CSRF header, every production
+		// refresh answered 403. Development never noticed because CSRF is
+		// bypassed when IsDevelopment().
+		"/api/v1/auth/refresh",
+		"/api/v1/auth/logout",
+		"/api/v1/analytics/visits",
+	}
 
 // CSRF protects state-changing endpoints against cross-site request forgery.
 // Safe methods and configured auth endpoints are exempt.

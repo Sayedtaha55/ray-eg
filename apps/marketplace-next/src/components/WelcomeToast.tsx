@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { X, PartyPopper, Trash2 } from 'lucide-react';
+import { getStoredAuthToken } from '@/lib/api';
 
 const FLAG_KEY = 'mnmknk_welcome';
 
@@ -45,7 +46,7 @@ export function WelcomeToast() {
 
       // If the name wasn't stored, try to resolve it from the session
       if (!parsed.name) {
-        const token = localStorage.getItem('ray_token') || localStorage.getItem('token');
+        const token = getStoredAuthToken();
         fetch('/api/v1/auth/me', {
           credentials: 'include',
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,

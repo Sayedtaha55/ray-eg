@@ -3,9 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-
-const TOKEN_KEY = 'ray_token';
-const USER_KEY = 'ray_user';
+import { writeToken, writeUserJSON } from '@/lib/session-keys';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -17,13 +15,13 @@ export default function AuthCallbackPage() {
       const userRaw = params.get('user');
 
       if (token) {
-        localStorage.setItem(TOKEN_KEY, token);
+        writeToken(token);
       }
 
       if (userRaw) {
         try {
           const user = JSON.parse(userRaw);
-          localStorage.setItem(USER_KEY, JSON.stringify(user));
+          writeUserJSON(JSON.stringify(user));
         } catch {
           // ignore
         }

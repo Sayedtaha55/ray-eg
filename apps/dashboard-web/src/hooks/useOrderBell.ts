@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiRequest } from '@/lib/auth';
+import { readUserJSON } from '@/lib/session-keys';
 
 export type BellNotification = {
   id: string;
@@ -65,7 +66,7 @@ function orderSourceOf(n: BellNotification): 'pos' | 'website' {
 function currentShopId(): string {
   if (typeof window === 'undefined') return '';
   try {
-    const u = JSON.parse(localStorage.getItem('ray_user') || '{}');
+    const u = JSON.parse(readUserJSON() || '{}');
     return u?.shopId || u?.shop_id || '';
   } catch {
     return '';

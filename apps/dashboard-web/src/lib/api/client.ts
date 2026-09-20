@@ -1,3 +1,5 @@
+import { readToken, writeToken, writeUserJSON } from '@/lib/session-keys';
+
 const API_BASE = '/api/v1';
 // Namespaces this app's auth cookies (ray_session-dashboard) so dashboard and
 // marketplace sessions coexist on the same API host instead of clobbering.
@@ -17,8 +19,8 @@ interface ApiResult<T> {
 }
 
 function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('token') || localStorage.getItem('ray_token');
+  const t = readToken();
+  return t || null;
 }
 
 function getCsrf(): string | null {
@@ -46,21 +48,25 @@ export async function refreshAccessToken(): Promise<string | null> {
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
       try {
+        const csrf = document.cookie.match(/ray_csrf=([^;]+)/)?.[1] || '';
         const res = await fetch(`${API_BASE}/auth/refresh`, {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json', 'X-App-Scope': APP_SCOPE },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-App-Scope': APP_SCOPE,
+            ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
+          },
           body: '{}',
         });
         if (!res.ok) return null;
         const data = await res.json().catch(() => null);
         const accessToken = data?.data?.token?.accessToken || data?.token?.accessToken;
         if (!accessToken) return null;
-        localStorage.setItem('token', accessToken);
-        localStorage.setItem('ray_token', accessToken);
+        writeToken(accessToken);
         const user = data?.data?.user || data?.user;
         if (user) {
-          localStorage.setItem('ray_user', JSON.stringify(user));
+          writeUserJSON(JSON.stringify(user));
           window.dispatchEvent(new Event('ray-user-refreshed'));
         }
         return accessToken as string;

@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -46,6 +47,12 @@ type Session struct {
 type Store struct {
 	client redis.UniversalClient
 	ttl    time.Duration
+
+	// In-memory fallback used when no Redis client is configured (single-
+	// instance dev/test). Without it every refresh would fail with
+	// "session_expired" and log users out after the access token expires.
+	memMu    sync.Mutex
+	memStore map[string]*Session
 }
 
 // NewStore creates a session store backed by Redis. If client is nil, an
@@ -54,7 +61,7 @@ func NewStore(client redis.UniversalClient, ttl time.Duration) *Store {
 	if ttl <= 0 {
 		ttl = DefaultTTL
 	}
-	return &Store{client: client, ttl: ttl}
+	return &Store{client: client, ttl: ttl, memStore: make(map[string]*Session)}
 }
 
 // CreateSession creates a new session for a user and returns the session ID.
@@ -66,12 +73,12 @@ func (s *Store) CreateSession(ctx context.Context, sess *Session) (string, error
 	sess.ExpiresAt = sess.IssuedAt.Add(s.ttl)
 	sess.LastUsed = sess.IssuedAt
 
-	data, err := json.Marshal(sess)
-	if err != nil {
-		return "", fmt.Errorf("marshal session: %w", err)
-	}
-
 	if s.client != nil {
+		data, err := json.Marshal(sess)
+		if err != nil {
+			return "", fmt.Errorf("marshal session: %w", err)
+		}
+
 		pipe := s.client.TxPipeline()
 		pipe.Set(ctx, sessionKeyPrefix+sess.ID, data, s.ttl)
 		pipe.SAdd(ctx, userSessionsKeyPrefix+sess.UserID, sess.ID)
@@ -80,8 +87,12 @@ func (s *Store) CreateSession(ctx context.Context, sess *Session) (string, error
 		if err != nil {
 			return "", fmt.Errorf("create session: %w", err)
 		}
+		return sess.ID, nil
 	}
 
+	s.memMu.Lock()
+	defer s.memMu.Unlock()
+	s.memStore[sess.ID] = sess
 	return sess.ID, nil
 }
 
@@ -120,7 +131,17 @@ func (s *Store) GetSession(ctx context.Context, sessionID string) (*Session, err
 		return &sess, nil
 	}
 
-	return nil, nil
+	s.memMu.Lock()
+	defer s.memMu.Unlock()
+	sess, ok := s.memStore[sessionID]
+	if !ok || time.Now().UTC().After(sess.ExpiresAt) {
+		delete(s.memStore, sessionID)
+		return nil, nil
+	}
+	// Sliding expiration.
+	sess.LastUsed = time.Now().UTC()
+	sess.ExpiresAt = sess.LastUsed.Add(s.ttl)
+	return sess, nil
 }
 
 // DeleteSession removes a session by ID.
@@ -134,7 +155,12 @@ func (s *Store) DeleteSession(ctx context.Context, sessionID string) error {
 		if err != nil {
 			return fmt.Errorf("delete session: %w", err)
 		}
+		return nil
 	}
+
+	s.memMu.Lock()
+	defer s.memMu.Unlock()
+	delete(s.memStore, sessionID)
 	return nil
 }
 
@@ -169,7 +195,16 @@ func (s *Store) DeleteAllUserSessions(ctx context.Context, userID string) (int, 
 		return len(ids), nil
 	}
 
-	return 0, nil
+	s.memMu.Lock()
+	defer s.memMu.Unlock()
+	count := 0
+	for id, sess := range s.memStore {
+		if sess.UserID == userID {
+			delete(s.memStore, id)
+			count++
+		}
+	}
+	return count, nil
 }
 
 // RotateSession creates a new session with a new ID, copying the user data

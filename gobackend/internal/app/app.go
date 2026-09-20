@@ -57,6 +57,7 @@ import (
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/mailer"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/middleware"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/redis"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/session"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/storage"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/telemetry"
 	"github.com/gofiber/fiber/v2"
@@ -230,7 +231,12 @@ reportsHandler          *reports.Handler
 		lockoutMgr := lockout.NewManager(redisClient.UniversalClient, cfg.RateLimit.AuthLockoutMax, cfg.RateLimit.AuthMax)
 
 		authRepo := auth.NewRepository(pool)
-		authSvc := auth.NewService(cfg, authRepo, tokenService, lockoutMgr, appMailer, jobsClient, nil)
+		// Server-side refresh sessions live in Redis; without them every
+		// /auth/refresh fails with "session_expired" and users get logged out
+		// as soon as the 15-minute access token dies. NewStore falls back to
+		// in-memory storage when Redis is unavailable.
+		sessionStore := session.NewStore(redisClient.UniversalClient, cfg.Auth.RefreshTokenExpiry)
+		authSvc := auth.NewService(cfg, authRepo, tokenService, lockoutMgr, appMailer, jobsClient, sessionStore)
 		cookieCfg := auth.AuthCookieConfig{
 			Name:     cfg.Auth.CookieName,
 			Domain:   cfg.Auth.CookieDomain,

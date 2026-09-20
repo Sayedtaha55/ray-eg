@@ -1,8 +1,18 @@
 'use client';
+import { clearToken, clearUserJSON } from '@/lib/session-keys';
 
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { User, Mail, Phone, MapPin } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Label, Input, Button } from '../ui';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Label,
+  Input,
+  Button,
+} from '../ui';
 import { useToast } from '../ToastProvider';
 import { apiRequest, useAuth } from '@/lib/auth';
 
@@ -42,7 +52,19 @@ export default function AccountTab({ shop, onSaved }: AccountTabProps) {
       address: shop?.addressDetailed || shop?.address_detailed || shop?.address || '',
       description: shop?.description || '',
     });
-  }, [shop?.name, shop?.governorate, shop?.city, shop?.email, shop?.phone, shop?.addressDetailed, shop?.address_detailed, shop?.address, shop?.description, user?.email, user?.phone]);
+  }, [
+    shop?.name,
+    shop?.governorate,
+    shop?.city,
+    shop?.email,
+    shop?.phone,
+    shop?.addressDetailed,
+    shop?.address_detailed,
+    shop?.address,
+    shop?.description,
+    user?.email,
+    user?.phone,
+  ]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -69,7 +91,11 @@ export default function AccountTab({ shop, onSaved }: AccountTabProps) {
       onSaved();
       return true;
     } catch (error: any) {
-      toast({ title: 'خطأ', description: error?.message || 'فشل حفظ التغييرات', variant: 'destructive' });
+      toast({
+        title: 'خطأ',
+        description: error?.message || 'فشل حفظ التغييرات',
+        variant: 'destructive',
+      });
       return false;
     } finally {
       setIsSaving(false);
@@ -82,7 +108,7 @@ export default function AccountTab({ shop, onSaved }: AccountTabProps) {
       window.dispatchEvent(
         new CustomEvent('merchant-settings-register-save-handler', {
           detail: { sectionId: 'account', handler: saveAccount },
-        }),
+        })
       );
     } catch {}
   }, [saveAccount]);
@@ -107,7 +133,11 @@ export default function AccountTab({ shop, onSaved }: AccountTabProps) {
       (String(formData.address) !== String(baseline.address) ? 1 : 0) +
       (String(formData.description) !== String(baseline.description) ? 1 : 0);
     try {
-      window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'account', count } }));
+      window.dispatchEvent(
+        new CustomEvent('merchant-settings-section-changes', {
+          detail: { sectionId: 'account', count },
+        })
+      );
     } catch {}
   }, [formData, shop]);
 
@@ -115,19 +145,26 @@ export default function AccountTab({ shop, onSaved }: AccountTabProps) {
     if (isDeleting) return;
     const expected = 'حذف';
     if (String(deleteConfirmText || '').trim() !== expected) {
-      toast({ title: 'تأكيد مطلوب', description: `اكتب "${expected}" للتأكيد`, variant: 'destructive' });
+      toast({
+        title: 'تأكيد مطلوب',
+        description: `اكتب "${expected}" للتأكيد`,
+        variant: 'destructive',
+      });
       return;
     }
     setIsDeleting(true);
     try {
       await apiRequest('/auth/deactivate', { method: 'POST' });
-      localStorage.removeItem('ray_user');
-      localStorage.removeItem('ray_token');
-      localStorage.removeItem('token');
+      clearUserJSON();
+      clearToken();
       toast({ title: 'تم حذف الحساب', description: 'تم تعطيل حسابك بنجاح' });
       window.location.href = '/login';
     } catch (error: any) {
-      toast({ title: 'خطأ', description: error?.message || 'فشل حذف الحساب', variant: 'destructive' });
+      toast({
+        title: 'خطأ',
+        description: error?.message || 'فشل حذف الحساب',
+        variant: 'destructive',
+      });
     } finally {
       setIsDeleting(false);
     }
@@ -154,7 +191,14 @@ export default function AccountTab({ shop, onSaved }: AccountTabProps) {
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
                     <User className="w-4 h-4" />
                   </div>
-                  <Input id="name" name="name" value={formData.name} onChange={handleChange} className="pr-10" required />
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="pr-10"
+                    required
+                  />
                 </div>
               </div>
               <div className="space-y-2">
@@ -163,7 +207,15 @@ export default function AccountTab({ shop, onSaved }: AccountTabProps) {
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
                     <Mail className="w-4 h-4" />
                   </div>
-                  <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} className="pr-10" required />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="pr-10"
+                    required
+                  />
                 </div>
               </div>
             </div>
@@ -171,7 +223,12 @@ export default function AccountTab({ shop, onSaved }: AccountTabProps) {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="governorate">المحافظة</Label>
-                <Input id="governorate" name="governorate" value={formData.governorate} onChange={handleChange} />
+                <Input
+                  id="governorate"
+                  name="governorate"
+                  value={formData.governorate}
+                  onChange={handleChange}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="city">المدينة</Label>
@@ -186,7 +243,15 @@ export default function AccountTab({ shop, onSaved }: AccountTabProps) {
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
                     <Phone className="w-4 h-4" />
                   </div>
-                  <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleChange} className="pr-10" required />
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="pr-10"
+                    required
+                  />
                 </div>
               </div>
               <div className="space-y-2">
@@ -195,7 +260,14 @@ export default function AccountTab({ shop, onSaved }: AccountTabProps) {
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
                     <MapPin className="w-4 h-4" />
                   </div>
-                  <Input id="address" name="address" value={formData.address} onChange={handleChange} className="pr-10" required />
+                  <Input
+                    id="address"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    className="pr-10"
+                    required
+                  />
                 </div>
               </div>
             </div>
@@ -218,14 +290,26 @@ export default function AccountTab({ shop, onSaved }: AccountTabProps) {
         <Card className="mt-4">
           <CardHeader>
             <CardTitle className="text-red-600">حذف الحساب</CardTitle>
-            <CardDescription>سيتم تعطيل حسابك وجميع بياناتك. هذا الإجراء لا يمكن التراجع عنه.</CardDescription>
+            <CardDescription>
+              سيتم تعطيل حسابك وجميع بياناتك. هذا الإجراء لا يمكن التراجع عنه.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="delete-confirm">اكتب "حذف" للتأكيد</Label>
-              <Input id="delete-confirm" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} disabled={isDeleting} />
+              <Input
+                id="delete-confirm"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                disabled={isDeleting}
+              />
             </div>
-            <Button type="button" variant="destructive" onClick={deactivateAccount} disabled={isDeleting}>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={deactivateAccount}
+              disabled={isDeleting}
+            >
               {isDeleting ? 'جاري الحذف...' : 'حذف الحساب'}
             </Button>
           </CardContent>
