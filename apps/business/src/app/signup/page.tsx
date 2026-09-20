@@ -27,6 +27,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { dashboardAuthCallbackUrl } from '@/lib/appUrls';
 import { BUSINESS_ACTIVITIES, groupAccentColors, ActivityWithGroup } from '@/lib/activities';
 import {
   BOOKING_ACTIVITIES,
@@ -128,6 +129,16 @@ function SignupContent() {
   });
   /** Shop coordinates picked on the map — sent with the shop payload. */
   const [shopCoords, setShopCoords] = useState<{ lat: number; lng: number } | null>(null);
+  /**
+   * Set only when the account was created but the store was not: the shop
+   * payload and the dashboard hand-off are kept so the merchant can retry
+   * without redoing the wizard (his email already exists in the API).
+   */
+  const [pendingSetup, setPendingSetup] = useState<{
+    payload: any;
+    accessToken: string | null;
+    dest: string;
+  } | null>(null);
 
   // Map selection → the manual fields fill themselves so the merchant only
   // reviews/edits what the geocoder produced.
@@ -291,6 +302,35 @@ function SignupContent() {
         ),
       };
 
+      const created = await createShop(shopPayload, accessToken);
+      if (!created.ok) {
+        // The account exists but the store does not, so the dashboard would
+        // answer "shop not found" on every page. Keep the merchant here with
+        // an actionable retry instead of dropping him into a broken panel.
+        setPendingSetup({
+          payload: shopPayload,
+          accessToken: accessToken || null,
+          dest: dashboardAuthCallbackUrl({ accessToken, user, returnTo }),
+        });
+        setError(created.message);
+        return;
+      }
+
+      // Pass token via URL so dashboard-web can bootstrap the session
+      window.location.href = dashboardAuthCallbackUrl({ accessToken, user, returnTo });
+    } catch (err: any) {
+      setError(err.message || 'حدث خطأ أثناء التسجيل');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Creates the shop for a freshly registered merchant account. */
+  const createShop = async (
+    payload: any,
+    accessToken?: string | null
+  ): Promise<{ ok: true } | { ok: false; message: string }> => {
+    try {
       const shopRes = await fetch(`${API_BASE}/api/v1/shops`, {
         method: 'POST',
         headers: {
@@ -298,25 +338,38 @@ function SignupContent() {
           'X-App-Scope': 'business',
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
-        body: JSON.stringify(shopPayload),
+        body: JSON.stringify(payload),
       });
-      const shopData = await shopRes.json();
-      if (!shopRes.ok) {
-        console.error('Shop creation failed:', shopData);
-      }
+      if (shopRes.ok) return { ok: true };
 
-      // Pass token via URL so dashboard-web can bootstrap the session
-      const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3000';
-      const params = new URLSearchParams();
-      if (accessToken) params.set('token', accessToken);
-      if (user) params.set('user', JSON.stringify(user));
-      const dest = returnTo || `${dashboardUrl}/auth/callback?${params.toString()}`;
-      window.location.href = dest;
+      const shopData = await shopRes.json().catch(() => null);
+      console.error('Shop creation failed:', shopData);
+      return {
+        ok: false,
+        message:
+          shopData?.message || 'تم إنشاء حسابك لكن لم نتمكن من تجهيز المتجر. حاول مرة أخرى من هنا.',
+      };
     } catch (err: any) {
-      setError(err.message || 'حدث خطأ أثناء التسجيل');
-    } finally {
-      setLoading(false);
+      console.error('Shop creation failed:', err);
+      return {
+        ok: false,
+        message: 'تعذر الاتصال بالسيرفر لتجهيز المتجر. تحقق من الإنترنت وحاول مرة أخرى.',
+      };
     }
+  };
+
+  /** Retries the shop step after a failure without redoing the signup. */
+  const retryShopSetup = async () => {
+    if (!pendingSetup) return;
+    setLoading(true);
+    setError('');
+    const retried = await createShop(pendingSetup.payload, pendingSetup.accessToken);
+    if (!retried.ok) {
+      setError(retried.message);
+      setLoading(false);
+      return;
+    }
+    window.location.href = pendingSetup.dest;
   };
 
   const goNext = () => {
@@ -955,9 +1008,34 @@ function SignupContent() {
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
-                  className="bg-amber-50 border-r-4 border-amber-500 p-4 mb-6 rounded-2xl flex items-center gap-3 flex-row-reverse text-slate-900 font-black text-sm"
+                  className="bg-amber-50 border-r-4 border-amber-500 p-4 mb-6 rounded-2xl text-slate-900 font-black text-sm"
                 >
-                  <AlertTriangle size={18} /> {error}
+                  <div className="flex items-center gap-3 flex-row-reverse">
+                    <AlertTriangle size={18} /> {error}
+                  </div>
+                  {pendingSetup && (
+                    <div className="flex flex-wrap gap-3 mt-4">
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={retryShopSetup}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-black transition-all disabled:opacity-60"
+                      >
+                        {loading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 size={16} className="text-[#00E5FF]" />
+                        )}
+                        إعادة محاولة تجهيز المتجر
+                      </button>
+                      <a
+                        href={pendingSetup.dest}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all"
+                      >
+                        <LayoutDashboard size={16} /> متابعة للوحة التحكم
+                      </a>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

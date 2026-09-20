@@ -19,6 +19,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { businessBrand } from '@/lib/brand';
+import { DASHBOARD_URL, dashboardAuthCallbackUrl } from '@/lib/appUrls';
 
 const MotionDiv = motion.div as any;
 
@@ -84,7 +85,7 @@ function LoginContent() {
     if (nextCount >= 5) {
       adminTapState.current.count = 0;
       adminTapState.current.lastAt = 0;
-      const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3000';
+      const dashboardUrl = DASHBOARD_URL;
       window.location.href = `${dashboardUrl}/admin/gate`;
     }
   };
@@ -129,12 +130,7 @@ function LoginContent() {
         data?.accessToken;
       const user = data?.user || data?.data?.user;
 
-      const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3000';
-      const params = new URLSearchParams();
-      if (accessToken) params.set('token', accessToken);
-      if (user) params.set('user', JSON.stringify(user));
-      const dest = returnTo || `${dashboardUrl}/auth/callback?${params.toString()}`;
-      window.location.href = dest;
+      window.location.href = dashboardAuthCallbackUrl({ accessToken, user, returnTo });
     } catch (err: any) {
       setError(err.message || 'فشل تسجيل الدخول، تأكد من بياناتك');
     } finally {

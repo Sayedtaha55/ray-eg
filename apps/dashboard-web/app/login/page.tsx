@@ -5,17 +5,45 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Mail, Lock, ShieldCheck, Loader2, AlertCircle, KeyRound, X,
-  Store, Eye, EyeOff,
+  Mail,
+  Lock,
+  ShieldCheck,
+  Loader2,
+  AlertCircle,
+  KeyRound,
+  X,
+  Store,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useAuth, apiRequest } from '@/lib/auth';
+import { BUSINESS_SIGNUP_URL } from '@/lib/appUrls';
 
 const GoogleIcon: React.FC<{ size?: number; className?: string }> = ({ size = 20, className }) => (
-  <svg width={size} height={size} viewBox="0 0 48 48" className={className} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.654 32.657 29.19 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.962 3.038l5.657-5.657C34.895 6.053 29.686 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917Z" />
-    <path fill="#FF3D00" d="M6.306 14.691 12.88 19.51C14.659 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.962 3.038l5.657-5.657C34.895 6.053 29.686 4 24 4 16.318 4 9.656 8.337 6.306 14.691Z" />
-    <path fill="#4CAF50" d="M24 44c5.076 0 9.909-1.948 13.48-5.12l-6.219-5.263C29.2 35.091 26.715 36 24 36c-5.167 0-9.617-3.321-11.29-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44Z" />
-    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.225-2.231 4.146-4.042 5.617l.003-.002 6.219 5.263C36.98 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917Z" />
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 48 48"
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    <path
+      fill="#FFC107"
+      d="M43.611 20.083H42V20H24v8h11.303C33.654 32.657 29.19 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.962 3.038l5.657-5.657C34.895 6.053 29.686 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917Z"
+    />
+    <path
+      fill="#FF3D00"
+      d="M6.306 14.691 12.88 19.51C14.659 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.962 3.038l5.657-5.657C34.895 6.053 29.686 4 24 4 16.318 4 9.656 8.337 6.306 14.691Z"
+    />
+    <path
+      fill="#4CAF50"
+      d="M24 44c5.076 0 9.909-1.948 13.48-5.12l-6.219-5.263C29.2 35.091 26.715 36 24 36c-5.167 0-9.617-3.321-11.29-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44Z"
+    />
+    <path
+      fill="#1976D2"
+      d="M43.611 20.083H42V20H24v8h11.303c-.792 2.225-2.231 4.146-4.042 5.617l.003-.002 6.219 5.263C36.98 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917Z"
+    />
   </svg>
 );
 
@@ -138,7 +166,12 @@ export default function LoginPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6"
-            onClick={() => { if (!forgotLoading) { setForgotModalOpen(false); setForgotResult(null); } }}
+            onClick={() => {
+              if (!forgotLoading) {
+                setForgotModalOpen(false);
+                setForgotResult(null);
+              }
+            }}
           >
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.98 }}
@@ -150,12 +183,17 @@ export default function LoginPage() {
               <div className="flex items-start justify-between flex-row-reverse gap-4 mb-6">
                 <div className="text-right">
                   <h3 className="text-2xl font-black tracking-tight">نسيت كلمة المرور؟</h3>
-                  <p className="text-slate-400 font-bold text-sm mt-1">أدخل بريدك الإلكتروني لإرسال رابط إعادة التعيين</p>
+                  <p className="text-slate-400 font-bold text-sm mt-1">
+                    أدخل بريدك الإلكتروني لإرسال رابط إعادة التعيين
+                  </p>
                 </div>
                 <button
                   type="button"
                   disabled={forgotLoading}
-                  onClick={() => { setForgotModalOpen(false); setForgotResult(null); }}
+                  onClick={() => {
+                    setForgotModalOpen(false);
+                    setForgotResult(null);
+                  }}
                   className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full disabled:opacity-60"
                 >
                   <X size={18} />
@@ -164,7 +202,9 @@ export default function LoginPage() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-1">البريد الإلكتروني</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-1">
+                    البريد الإلكتروني
+                  </label>
                   <input
                     type="email"
                     disabled={forgotLoading}
@@ -178,7 +218,9 @@ export default function LoginPage() {
                 {forgotResult?.ok && (
                   <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
                     <div className="text-sm font-black text-slate-700">تم إرسال الطلب</div>
-                    <div className="text-[12px] font-bold text-slate-500 mt-2">تحقق من بريدك الإلكتروني للحصول على تعليمات إعادة التعيين</div>
+                    <div className="text-[12px] font-bold text-slate-500 mt-2">
+                      تحقق من بريدك الإلكتروني للحصول على تعليمات إعادة التعيين
+                    </div>
                   </div>
                 )}
 
@@ -188,7 +230,11 @@ export default function LoginPage() {
                   onClick={handleForgotPassword}
                   className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] font-black text-sm hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-70"
                 >
-                  {forgotLoading ? <Loader2 className="animate-spin" size={18} /> : <KeyRound size={18} className="text-[#00E5FF]" />}
+                  {forgotLoading ? (
+                    <Loader2 className="animate-spin" size={18} />
+                  ) : (
+                    <KeyRound size={18} className="text-[#00E5FF]" />
+                  )}
                   {forgotLoading ? 'جاري الإرسال...' : 'إرسال رابط إعادة التعيين'}
                 </button>
               </div>
@@ -208,7 +254,13 @@ export default function LoginPage() {
             className="w-20 h-20 bg-[#1A1A1A] rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl relative group overflow-hidden cursor-pointer"
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-[#00E5FF] to-[#BD00FF] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <Image src="/brand/logo-business.png" alt="نمّي أعمالك" width={56} height={56} className="relative z-10 w-12 h-12 object-contain" />
+            <Image
+              src="/brand/logo-business.png"
+              alt="نمّي أعمالك"
+              width={56}
+              height={56}
+              className="relative z-10 w-12 h-12 object-contain"
+            />
           </div>
           <h1 className="text-4xl font-black tracking-tighter mb-4">
             أهلاً بك في <span className="text-[#00E5FF]">نمّي أعمالك</span>
@@ -231,7 +283,9 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-4">البريد الإلكتروني</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-4">
+              البريد الإلكتروني
+            </label>
             <input
               type="email"
               required
@@ -244,8 +298,14 @@ export default function LoginPage() {
 
           <div className="space-y-2">
             <div className="flex justify-between items-center flex-row-reverse mr-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">كلمة المرور</label>
-              <button type="button" onClick={() => setForgotModalOpen(true)} className="text-[10px] font-black text-[#BD00FF]">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                كلمة المرور
+              </label>
+              <button
+                type="button"
+                onClick={() => setForgotModalOpen(true)}
+                className="text-[10px] font-black text-[#BD00FF]"
+              >
                 نسيت كلمة المرور؟
               </button>
             </div>
@@ -274,7 +334,11 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-xl hover:bg-black transition-all shadow-2xl flex items-center justify-center gap-3"
           >
-            {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={24} className="text-[#00E5FF]" />}
+            {loading ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <ShieldCheck size={24} className="text-[#00E5FF]" />
+            )}
             {loading ? 'جاري التحقق...' : 'تسجيل دخول آمن'}
           </button>
         </form>
@@ -295,7 +359,7 @@ export default function LoginPage() {
           <p className="text-center text-slate-400 font-bold text-xs mb-4">ليس لديك حساب؟</p>
           <div className="grid grid-cols-1 gap-4">
             <a
-              href={process.env.NODE_ENV === 'production' ? 'https://business.mnmknk.com' : 'http://localhost:1000'}
+              href={BUSINESS_SIGNUP_URL}
               className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all text-slate-900"
             >
               <Store size={20} className="text-[#BD00FF]" />
