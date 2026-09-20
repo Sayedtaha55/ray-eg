@@ -10,12 +10,9 @@ import OrderBellWatcher from '@/components/OrderBellWatcher';
 import RouteProgress from '@/components/RouteProgress';
 import { RecentlyViewedTracker } from '@/hooks/useRecentlyViewed';
 import { useAuth } from '@/lib/auth';
+import CreateShopGate from '@/components/CreateShopGate';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading } = useAuth();
@@ -60,7 +57,53 @@ export default function DashboardLayout({
 
   if (headerMode) {
     return (
-      <div className="flex flex-col h-screen overflow-hidden bg-slate-50">
+      <CreateShopGate skip={user?.role === 'ADMIN'}>
+        <div className="flex flex-col h-screen overflow-hidden bg-slate-50">
+          {/* Global order bell watcher — rings on new website / POS orders */}
+          <OrderBellWatcher />
+          <RecentlyViewedTracker />
+          <Suspense fallback={null}>
+            <RouteProgress />
+          </Suspense>
+
+          <TopNav onMenuClick={() => setMobileSidebarOpen(true)} onSwitchNav={toggleNavMode} />
+
+          {/* Mobile sidebar overlay (shared with sidebar mode) */}
+          <AnimatePresence>
+            {mobileSidebarOpen && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-40 bg-black/40 md:hidden"
+                  onClick={() => setMobileSidebarOpen(false)}
+                />
+                <motion.div
+                  initial={{ x: '100%' }}
+                  animate={{ x: 0 }}
+                  exit={{ x: '100%' }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                  className="fixed right-0 top-0 bottom-0 z-50 md:hidden"
+                >
+                  <Sidebar onClose={() => setMobileSidebarOpen(false)} />
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+
+          {/* Full-width content — no side menu in header mode */}
+          <main ref={mainRef} className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+        </div>
+      </CreateShopGate>
+    );
+  }
+
+  return (
+    <CreateShopGate skip={user?.role === 'ADMIN'}>
+      <div className="flex h-screen overflow-hidden bg-slate-50">
         {/* Global order bell watcher — rings on new website / POS orders */}
         <OrderBellWatcher />
         <RecentlyViewedTracker />
@@ -68,9 +111,12 @@ export default function DashboardLayout({
           <RouteProgress />
         </Suspense>
 
-        <TopNav onMenuClick={() => setMobileSidebarOpen(true)} onSwitchNav={toggleNavMode} />
+        {/* Desktop sidebar */}
+        <div className="hidden md:flex">
+          <Sidebar />
+        </div>
 
-        {/* Mobile sidebar overlay (shared with sidebar mode) */}
+        {/* Mobile sidebar overlay */}
         <AnimatePresence>
           {mobileSidebarOpen && (
             <>
@@ -94,55 +140,14 @@ export default function DashboardLayout({
           )}
         </AnimatePresence>
 
-        {/* Full-width content — no side menu in header mode */}
-        <main ref={mainRef} className="flex-1 overflow-y-auto">{children}</main>
+        {/* Main content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header onMenuClick={() => setMobileSidebarOpen(true)} onSwitchNav={toggleNavMode} />
+          <main ref={mainRef} className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+        </div>
       </div>
-    );
-  }
-
-  return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
-      {/* Global order bell watcher — rings on new website / POS orders */}
-      <OrderBellWatcher />
-      <RecentlyViewedTracker />
-      <Suspense fallback={null}>
-        <RouteProgress />
-      </Suspense>
-
-      {/* Desktop sidebar */}
-      <div className="hidden md:flex">
-        <Sidebar />
-      </div>
-
-      {/* Mobile sidebar overlay */}
-      <AnimatePresence>
-        {mobileSidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/40 md:hidden"
-              onClick={() => setMobileSidebarOpen(false)}
-            />
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 z-50 md:hidden"
-            >
-              <Sidebar onClose={() => setMobileSidebarOpen(false)} />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header onMenuClick={() => setMobileSidebarOpen(true)} onSwitchNav={toggleNavMode} />
-        <main ref={mainRef} className="flex-1 overflow-y-auto">{children}</main>
-      </div>
-    </div>
+    </CreateShopGate>
   );
 }

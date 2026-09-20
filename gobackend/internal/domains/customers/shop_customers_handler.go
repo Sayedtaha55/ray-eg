@@ -238,7 +238,7 @@ func (h *Handler) CustomerActivityHandler(c *fiber.Ctx) error {
 	kind := c.Query("type", "orders")
 	rows, err := h.service.repo.CustomerActivity(c.Context(), shopID, customer.ID, customer.Phone, kind)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "error": "فشل تحميل النشاط"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "error": "فشل تحميل النشاط", "detail": err.Error()})
 	}
 	return c.JSON(fiber.Map{"success": true, "data": rows})
 }
@@ -258,7 +258,7 @@ func (h *Handler) CustomerStatementHandler(c *fiber.Ctx) error {
 	}
 	statement, err := h.service.repo.CustomerStatement(c.Context(), shopID, customer.ID, customer.Phone)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "error": "فشل بناء كشف الحساب"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "error": "فشل بناء كشف الحساب", "detail": err.Error()})
 	}
 	return c.JSON(fiber.Map{"success": true, "data": statement})
 }

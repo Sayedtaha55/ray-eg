@@ -6,7 +6,10 @@ import { ChevronRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { apiRequest } from '@/lib/auth';
 import { useShop } from '@/hooks/useShop';
-import CustomerForm, { EMPTY_CUSTOMER, CustomerFormValues } from '@/components/customers/CustomerForm';
+import CustomerForm, {
+  EMPTY_CUSTOMER,
+  CustomerFormValues,
+} from '@/components/customers/CustomerForm';
 
 export default function EditCustomerPage() {
   const params = useParams();
@@ -24,7 +27,10 @@ export default function EditCustomerPage() {
       try {
         const c = await apiRequest(`/shops/${shopId}/customers/${customerId}`);
         const data = c?.data ?? c;
-        if (!data?.id) { setNotFound(true); return; }
+        if (!data?.id) {
+          setNotFound(true);
+          return;
+        }
         setInitial({
           ...EMPTY_CUSTOMER,
           name: data.name || '',
@@ -63,7 +69,7 @@ export default function EditCustomerPage() {
             <p className="text-xs text-slate-400 mt-0.5">عدّل بيانات العميل ثم احفظ التعديلات</p>
           </div>
           <Link
-            href={`/dashboard/crm/${customerId}`}
+            href={`/dashboard/customers/${customerId}`}
             className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5"
           >
             <ChevronRight size={14} />
@@ -80,7 +86,10 @@ export default function EditCustomerPage() {
         ) : notFound || !initial ? (
           <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
             <p className="text-slate-400 font-bold text-sm">العميل غير موجود</p>
-            <button onClick={() => router.push('/dashboard/crm')} className="mt-3 text-xs font-bold text-slate-900 underline">
+            <button
+              onClick={() => router.push('/dashboard/customers')}
+              className="mt-3 text-xs font-bold text-slate-900 underline"
+            >
               رجوع للعملاء
             </button>
           </div>

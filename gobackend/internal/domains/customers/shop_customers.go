@@ -237,7 +237,7 @@ func (r *Repository) ListShopCustomers(ctx context.Context, shopID string, q Sho
 			" AND (LOWER(name) LIKE $%d OR LOWER(email) LIKE $%d OR LOWER(code) LIKE $%d"+
 				" OR regexp_replace(COALESCE(phone,''),'[^0-9]','','g') LIKE $%d"+
 				" OR regexp_replace(COALESCE(whatsapp,''),'[^0-9]','','g') LIKE $%d"+
-				" OR EXISTS(SELECT 1 FROM orders o WHERE o.shop_id=customers.shop_id AND o.customer_id=customers.id AND o.order_number LIKE $%d))",
+				" OR EXISTS(SELECT 1 FROM orders o WHERE o.shop_id=customers.shop_id AND (o.customer_id=customers.id OR regexp_replace(COALESCE(o.customer_phone,''),'[^0-9]','','g')=regexp_replace(customers.phone,'[^0-9]','','g')) AND o.id ILIKE $%d))",
 			idx, idx+1, idx+2, idx+3, idx+4, idx+5)
 		args = append(args, like, like, like, digits, digits, orderLike)
 		idx += 6
@@ -529,12 +529,12 @@ func (r *Repository) CustomerActivity(ctx context.Context, shopID, customerID, p
 	statusFilter := ""
 	switch kind {
 	case "returns":
-		statusFilter = " AND status IN ('RETURNED','REFUNDED')"
+		statusFilter = " AND status::TEXT = 'REFUNDED'"
 	default: // orders
-		statusFilter = " AND status NOT IN ('CANCELLED','REFUNDED','RETURNED')"
+		statusFilter = " AND status::TEXT NOT IN ('CANCELLED','REFUNDED','RETURNED')"
 	}
 	rows, err := r.pool.Query(ctx, fmt.Sprintf(`
-		SELECT id, COALESCE(status,''), total, COALESCE(payment_method,''), COALESCE(source,''), created_at::TEXT
+		SELECT id, COALESCE(status::TEXT,''), total, COALESCE(payment_method,''), COALESCE(source,''), created_at::TEXT
 		FROM orders
 		WHERE shop_id = $1
 		  AND (customer_id = $2 OR ($3 <> '' AND regexp_replace(COALESCE(customer_phone,''), '[^0-9]', '', 'g') = $3))
@@ -576,15 +576,15 @@ func (r *Repository) CustomerStatement(ctx context.Context, shopID, customerID, 
 	normalized := NormalizePhone(phone)
 	match := `(customer_id = $1 OR ($2 <> '' AND regexp_replace(COALESCE(customer_phone,''), '[^0-9]', '', 'g') = $2))`
 	rows, err := r.pool.Query(ctx, fmt.Sprintf(`
-		SELECT created_at::TEXT, 'invoice' AS type, id, total,
+		SELECT created_at::TEXT, 'invoice' AS type, id,
 		       CASE WHEN COALESCE(payment_method,'') = 'CREDIT' OR COALESCE(payment_status,'') = 'UNPAID' THEN total ELSE 0 END,
 		       0::double precision
 		FROM orders
-		WHERE shop_id = $3 AND %s AND status NOT IN ('CANCELLED','REFUNDED','RETURNED')
+		WHERE shop_id = $3 AND %s AND status::TEXT NOT IN ('CANCELLED','REFUNDED','RETURNED')
 		UNION ALL
 		SELECT created_at::TEXT, 'return', id, 0::double precision, total
 		FROM orders
-		WHERE shop_id = $3 AND %s AND status IN ('RETURNED','REFUNDED')
+		WHERE shop_id = $3 AND %s AND status::TEXT IN ('RETURNED','REFUNDED')
 		ORDER BY 1 ASC`, match, match), customerID, normalized, shopID)
 	if err != nil {
 		return nil, err

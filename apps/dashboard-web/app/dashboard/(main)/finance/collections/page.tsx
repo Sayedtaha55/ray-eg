@@ -355,37 +355,6 @@ function CollectionsContent() {
     formData.type === 'receipt' ? i.invoiceType === 'sale' : i.invoiceType === 'purchase'
   );
 
-  const STATS = [
-    {
-      label: 'إجمالي التحصيلات',
-      value: `ج.م ${fmt(stats.receipts)}`,
-      icon: TrendingUp,
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-50',
-    },
-    {
-      label: 'إجمالي المدفوعات',
-      value: `ج.م ${fmt(stats.paid)}`,
-      icon: TrendingDown,
-      color: 'text-rose-600',
-      bg: 'bg-rose-50',
-    },
-    {
-      label: 'الصافي',
-      value: `ج.م ${fmt(stats.net)}`,
-      icon: Wallet,
-      color: 'text-sky-600',
-      bg: 'bg-sky-50',
-    },
-    {
-      label: 'إجمالي المتأخرات',
-      value: `ج.م ${fmt(stats.overdueTotal)}`,
-      icon: AlertTriangle,
-      color: 'text-amber-600',
-      bg: 'bg-amber-50',
-    },
-  ];
-
   return (
     <div className="min-h-full bg-[#F4F5F7] text-slate-900" style={INV_PAGE_FONT}>
       <div className="bg-white border-b border-slate-200">
@@ -416,24 +385,6 @@ function CollectionsContent() {
       )}
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4 pb-10">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {STATS.map((s) => (
-            <div key={s.label} className="bg-white border border-slate-200 rounded-2xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <span
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${s.bg} ${s.color}`}
-                >
-                  <s.icon size={16} />
-                </span>
-                <span className="text-xs font-bold text-slate-500">{s.label}</span>
-              </div>
-              <div className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
-                {s.value}
-              </div>
-            </div>
-          ))}
-        </div>
-
         {activeTab === 'overdue' ? (
           <>
             <div className="mt-4">
@@ -498,7 +449,42 @@ function CollectionsContent() {
           </>
         ) : (
           <>
-            <div className="mt-4">
+            {/* Inline Stats Strip */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 px-1 mb-3 mt-1">
+              <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                <TrendingUp size={13} className="text-emerald-500" />
+                <span className="font-bold text-slate-700">إجمالي التحصيلات</span>
+                <span className="font-black text-emerald-600 mr-0.5">
+                  ج.م {fmt(stats.receipts)}
+                </span>
+              </span>
+              <span className="hidden sm:block w-px h-3 bg-slate-200" />
+              <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                <TrendingDown size={13} className="text-rose-500" />
+                <span className="font-bold text-slate-700">إجمالي المدفوعات</span>
+                <span className="font-black text-rose-600 mr-0.5">ج.م {fmt(stats.paid)}</span>
+              </span>
+              <span className="hidden sm:block w-px h-3 bg-slate-200" />
+              <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                <Wallet size={13} className="text-sky-500" />
+                <span className="font-bold text-slate-700">الصافي</span>
+                <span
+                  className={`font-black mr-0.5 ${stats.net >= 0 ? 'text-sky-600' : 'text-rose-600'}`}
+                >
+                  ج.م {fmt(stats.net)}
+                </span>
+              </span>
+              <span className="hidden sm:block w-px h-3 bg-slate-200" />
+              <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                <AlertTriangle size={13} className="text-amber-500" />
+                <span className="font-bold text-slate-700">المتأخرات</span>
+                <span className="font-black text-amber-600 mr-0.5">
+                  ج.م {fmt(stats.overdueTotal)}
+                </span>
+              </span>
+            </div>
+
+            <div className="mt-0">
               <InvToolbar hint={`${tabRows.length} عملية`}>
                 <InvToolButton onClick={() => load()}>
                   <RefreshCw size={14} />

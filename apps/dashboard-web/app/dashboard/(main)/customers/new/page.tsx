@@ -21,7 +21,7 @@ export default function NewCustomerPage() {
             </p>
           </div>
           <Link
-            href="/dashboard/crm"
+            href="/dashboard/customers"
             className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5"
           >
             <ChevronRight size={14} />

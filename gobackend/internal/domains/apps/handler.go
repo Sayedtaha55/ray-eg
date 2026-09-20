@@ -48,8 +48,10 @@ func (h *Handler) MyApps(c *fiber.Ctx) error {
 	if isAdmin(user.Role) {
 		shopID = c.Query("shopId")
 	}
+	// A merchant without a shop is a normal pre-onboarding state, not an
+	// error: answer with an empty list so the dashboard doesn't spew 400s.
 	if shopID == "" {
-		return errors.Validation("shopId_required", "لا يوجد متجر مرتبط بهذا الحساب")
+		return c.JSON(fiber.Map{"success": true, "data": []any{}})
 	}
 	apps, err := h.service.ListMyApps(c.UserContext(), shopID)
 	if err != nil {

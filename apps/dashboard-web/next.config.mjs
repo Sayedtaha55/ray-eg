@@ -50,7 +50,8 @@ const nextConfig = {
         value: [
           "default-src 'self'",
           // 'unsafe-inline' and 'unsafe-eval' are required for Next.js/React Fast Refresh in development
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+          // vercel.live hosts Vercel's preview toolbar script (preview deployments only)
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: blob: https:",
           "font-src 'self' data:",
