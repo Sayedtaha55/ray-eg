@@ -43,7 +43,7 @@ func CORS(cfg *config.Config) fiber.Handler {
 			return false
 		},
 		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-		AllowHeaders:     "Origin,Content-Type,Accept,Authorization,X-Request-Id,X-Idempotency-Key,X-CSRF-Token",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization,X-Request-Id,X-Idempotency-Key,X-CSRF-Token,X-App-Scope",
 		ExposeHeaders:    "X-CSRF-Token,X-Request-Id",
 		AllowCredentials: true,
 		MaxAge:           86400,

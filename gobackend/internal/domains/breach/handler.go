@@ -28,6 +28,33 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 	g.Post("/", append(adminAuth, h.Create)...)
 	g.Get("/", append(adminAuth, h.ListAll)...)
 	g.Patch("/:id", append(adminAuth, h.UpdateStatus)...)
+
+	// Public banner state consumed by the shared BreachNotice component — no
+	// auth so storefront visitors learn about unresolved incidents.
+	app.Get("/breach-status", h.PublicStatus)
+}
+
+// PublicStatus handles GET /api/v1/breach-status.
+// Returns top-level {active, url} (the frontend reads these fields directly).
+func (h *Handler) PublicStatus(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	active := false
+	url := ""
+
+	incidents, err := h.service.ListAll(ctx)
+	if err == nil {
+		for _, inc := range incidents {
+			if inc.Status != "resolved" {
+				active = true
+				if strings.TrimSpace(inc.Description) != "" {
+					url = strings.TrimSpace(inc.Description)
+				}
+				break
+			}
+		}
+	}
+
+	return c.JSON(fiber.Map{"active": active, "url": url})
 }
 
 // Create handles POST /api/v1/breach — create a breach incident (admin).
