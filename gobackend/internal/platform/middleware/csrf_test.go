@@ -78,6 +78,40 @@ func TestCSRF_RequiresToken(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, resp3.StatusCode)
 }
 
+func TestCSRF_BearerTokenRequestsAreExempt(t *testing.T) {
+	cfg := testConfig(t)
+	cfg.App.Env = "production"
+	cfg.Security.CSRFDisabled = false
+
+	app := fiber.New(fiber.Config{ErrorHandler: NewErrorHandler()})
+	app.Use(CSRF(cfg))
+	app.Post("/api/v1/shops", func(c *fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusOK)
+	})
+
+	// Cross-origin frontends authenticate with a bearer token and can never
+	// read this API's CSRF cookie, so their mutations must pass without the
+	// double-submit header (the merchant signup flow creates POST /shops).
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/shops", nil)
+	req.Header.Set(fiber.HeaderAuthorization, "Bearer test-access-token")
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	// A blank bearer value must not bypass the check.
+	blank := httptest.NewRequest(http.MethodPost, "/api/v1/shops", nil)
+	blank.Header.Set(fiber.HeaderAuthorization, "Bearer    ")
+	respBlank, err := app.Test(blank)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusForbidden, respBlank.StatusCode)
+
+	// Cookie-authenticated requests (no bearer header) keep the full check.
+	noAuth := httptest.NewRequest(http.MethodPost, "/api/v1/shops", nil)
+	respNoAuth, err := app.Test(noAuth)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusForbidden, respNoAuth.StatusCode)
+}
+
 func findCookie(resp *http.Response, name string) *http.Cookie {
 	for _, c := range resp.Cookies() {
 		if c.Name == name {

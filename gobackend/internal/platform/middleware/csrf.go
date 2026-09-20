@@ -63,6 +63,17 @@ func CSRF(cfg *config.Config) fiber.Handler {
 			return c.Next()
 		}
 
+		// Bearer-authenticated requests are immune to CSRF: a cross-site page
+		// cannot attach the victim's Authorization header (the browser only
+		// adds cookies on its own). Cross-origin frontends such as the
+		// business app talk to this API with a bearer token obtained from
+		// /auth/signup and can never read the API's CSRF cookie, so requiring
+		// the double-submit token there breaks every mutation — it left
+		// merchants with an account but no shop (POST /shops answered 403).
+		if hasBearerAuth(c) {
+			return c.Next()
+		}
+
 		headerToken := strings.TrimSpace(c.Get(csrfHeaderName))
 		if headerToken == "" {
 			return errors.Forbidden("csrf_token_missing", "رمز الحماية مطلوب")
@@ -80,6 +91,21 @@ func CSRF(cfg *config.Config) fiber.Handler {
 
 		return c.Next()
 	}
+}
+
+// hasBearerAuth reports whether the request carries a non-empty
+// "Authorization: Bearer <token>" header. Cookie-authenticated requests are
+// unaffected and keep the full double-submit verification.
+func hasBearerAuth(c *fiber.Ctx) bool {
+	const prefix = "bearer "
+	auth := strings.TrimSpace(c.Get(fiber.HeaderAuthorization))
+	if len(auth) <= len(prefix) {
+		return false
+	}
+	if !strings.EqualFold(auth[:len(prefix)], prefix) {
+		return false
+	}
+	return strings.TrimSpace(auth[len(prefix):]) != ""
 }
 
 func generateCSRFToken() string {
