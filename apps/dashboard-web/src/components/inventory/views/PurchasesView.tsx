@@ -47,33 +47,48 @@ export default function PurchasesView() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const res = await apiRequest(`/purchase-orders/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
-      setOrders(data.map((o: any) => ({
-        id: String(o.id),
-        orderNumber: o.orderNumber || o.order_number || '---',
-        supplierName: o.supplierName || o.supplier_name || '---',
-        status: o.status || 'draft',
-        orderDate: o.orderDate || o.order_date || o.createdAt || new Date().toISOString(),
-        itemCount: Number(o.itemCount || o.items_count || 0),
-        totalAmount: Number(o.totalAmount || o.total_amount || 0),
-        paidAmount: Number(o.paidAmount || o.paid_amount || 0),
-      })));
-    } catch { setOrders([]); } finally { setLoading(false); }
+      const data = Array.isArray(res) ? res : res?.data || [];
+      setOrders(
+        data.map((o: any) => ({
+          id: String(o.id),
+          orderNumber: o.orderNumber || o.order_number || '---',
+          supplierName: o.supplierName || o.supplier_name || '---',
+          status: o.status || 'draft',
+          orderDate: o.orderDate || o.order_date || o.createdAt || new Date().toISOString(),
+          itemCount: Number(o.itemCount || o.items_count || 0),
+          totalAmount: Number(o.totalAmount || o.total_amount || 0),
+          paidAmount: Number(o.paidAmount || o.paid_amount || 0),
+        }))
+      );
+    } catch {
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const filtered = useMemo(() => {
-    let result = orders.filter(o =>
-      o.orderNumber.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      o.supplierName.toLowerCase().includes(debouncedSearch.toLowerCase())
+    let result = orders.filter(
+      (o) =>
+        o.orderNumber.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        o.supplierName.toLowerCase().includes(debouncedSearch.toLowerCase())
     );
-    if (filterStatus === 'unpaid') result = result.filter(o => o.totalAmount - o.paidAmount > 0);
-    else if (filterStatus === 'paid') result = result.filter(o => o.totalAmount - o.paidAmount <= 0);
-    else if (filterStatus !== 'all') result = result.filter(o => o.status === filterStatus);
-    return [...result].sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
+    if (filterStatus === 'unpaid') result = result.filter((o) => o.totalAmount - o.paidAmount > 0);
+    else if (filterStatus === 'paid')
+      result = result.filter((o) => o.totalAmount - o.paidAmount <= 0);
+    else if (filterStatus !== 'all') result = result.filter((o) => o.status === filterStatus);
+    return [...result].sort(
+      (a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
+    );
   }, [orders, debouncedSearch, filterStatus]);
 
   const paginated = useMemo(() => {
@@ -83,23 +98,31 @@ export default function PurchasesView() {
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
-  const totals = useMemo(() => ({
-    value: orders.reduce((s, o) => s + o.totalAmount, 0),
-    paid: orders.reduce((s, o) => s + o.paidAmount, 0),
-    due: orders.reduce((s, o) => s + Math.max(o.totalAmount - o.paidAmount, 0), 0),
-  }), [orders]);
+  const totals = useMemo(
+    () => ({
+      value: orders.reduce((s, o) => s + o.totalAmount, 0),
+      paid: orders.reduce((s, o) => s + o.paidAmount, 0),
+      due: orders.reduce((s, o) => s + Math.max(o.totalAmount - o.paidAmount, 0), 0),
+    }),
+    [orders]
+  );
 
   const exportCSV = useCallback(() => {
     const headers = ['Order', 'Supplier', 'Status', 'Date', 'Items', 'Total', 'Paid', 'Due'];
-    const rows = filtered.map(o => [
-      o.orderNumber, o.supplierName, o.status, o.orderDate, o.itemCount, o.totalAmount, o.paidAmount, o.totalAmount - o.paidAmount,
+    const rows = filtered.map((o) => [
+      o.orderNumber,
+      o.supplierName,
+      o.status,
+      o.orderDate,
+      o.itemCount,
+      o.totalAmount,
+      o.paidAmount,
+      o.totalAmount - o.paidAmount,
     ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'purchases.csv';
-    link.click();
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob({ filename: 'purchases.csv', headers, rows: [...rows] }, 'csv');
+      downloadBlob(blob, 'purchases.csv');
+    });
   }, [filtered]);
 
   return (
@@ -107,7 +130,8 @@ export default function PurchasesView() {
       <InvToolbar
         hint={
           <>
-            {fmt(orders.length)} أمر شراء • إجمالي ج.م {fmt(totals.value)} • مدفوع ج.م {fmt(totals.paid)}
+            {fmt(orders.length)} أمر شراء • إجمالي ج.م {fmt(totals.value)} • مدفوع ج.م{' '}
+            {fmt(totals.paid)}
             {totals.due > 0 && <span className="text-red-500"> — مستحق ج.م {fmt(totals.due)}</span>}
           </>
         }
@@ -126,8 +150,16 @@ export default function PurchasesView() {
         <InvControlsCard
           tabs={[
             { id: 'all', label: 'الكل', count: orders.length },
-            { id: 'unpaid', label: 'عليه مستحق', count: orders.filter(o => o.totalAmount - o.paidAmount > 0).length },
-            { id: 'paid', label: 'مسدد بالكامل', count: orders.filter(o => o.totalAmount - o.paidAmount <= 0).length },
+            {
+              id: 'unpaid',
+              label: 'عليه مستحق',
+              count: orders.filter((o) => o.totalAmount - o.paidAmount > 0).length,
+            },
+            {
+              id: 'paid',
+              label: 'مسدد بالكامل',
+              count: orders.filter((o) => o.totalAmount - o.paidAmount <= 0).length,
+            },
           ]}
           activeTab={filterStatus}
           onTabChange={(id) => {
@@ -144,7 +176,10 @@ export default function PurchasesView() {
         {loading ? (
           <InvLoading />
         ) : filtered.length === 0 ? (
-          <InvEmpty icon={ShoppingCart} title="لا توجد مشتريات — ابدأ بإنشاء أمر شراء من تبويب أوامر الشراء" />
+          <InvEmpty
+            icon={ShoppingCart}
+            title="لا توجد مشتريات — ابدأ بإنشاء أمر شراء من تبويب أوامر الشراء"
+          />
         ) : (
           <>
             <InvTableCard
@@ -162,14 +197,22 @@ export default function PurchasesView() {
                 return (
                   <InvRow key={o.id}>
                     <div className="col-span-2 min-w-0">
-                      <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{o.orderNumber}</div>
+                      <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                        {o.orderNumber}
+                      </div>
                     </div>
-                    <div className="col-span-3 pr-4 text-slate-600 text-xs sm:text-sm truncate">{o.supplierName}</div>
+                    <div className="col-span-3 pr-4 text-slate-600 text-xs sm:text-sm truncate">
+                      {o.supplierName}
+                    </div>
                     <div className="col-span-2 pr-4 text-slate-600 text-xs sm:text-sm">
                       {new Date(o.orderDate).toLocaleDateString('ar-EG')}
                     </div>
-                    <div className="col-span-2 pr-4 font-bold text-slate-900 text-xs sm:text-sm">ج.م {fmt(o.totalAmount)}</div>
-                    <div className="col-span-2 pr-4 font-semibold text-emerald-600 text-xs sm:text-sm">ج.م {fmt(o.paidAmount)}</div>
+                    <div className="col-span-2 pr-4 font-bold text-slate-900 text-xs sm:text-sm">
+                      ج.م {fmt(o.totalAmount)}
+                    </div>
+                    <div className="col-span-2 pr-4 font-semibold text-emerald-600 text-xs sm:text-sm">
+                      ج.م {fmt(o.paidAmount)}
+                    </div>
                     <div className="col-span-1 pr-4">
                       <InvStatusPill tone={due > 0 ? 'red' : 'emerald'}>
                         {due > 0 ? `ج.م ${fmt(due)}` : 'مسدد'}

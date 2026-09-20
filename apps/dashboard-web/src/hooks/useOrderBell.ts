@@ -28,7 +28,7 @@ export type OrderBellEvent = {
   body: string;
 };
 
-const POLL_MS = 6_000;
+const POLL_MS = 30_000;
 const SOUND_ENABLED_KEY = 'ray_sound_enabled';
 
 export function isSoundEnabled(): boolean {
@@ -160,8 +160,23 @@ export function useOrderBell(onOrder?: (evt: OrderBellEvent) => void) {
 
   useEffect(() => {
     fetchNotifications();
-    const t = setInterval(fetchNotifications, POLL_MS);
-    return () => clearInterval(t);
+    // Poll on an interval, but skip while the tab is hidden so background
+    // tabs don't hammer the API; a fresh fetch runs when the tab returns.
+    const t = setInterval(() => {
+      if (typeof document === 'undefined' || !document.hidden) {
+        fetchNotifications();
+      }
+    }, POLL_MS);
+    const onVisible = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        fetchNotifications();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [fetchNotifications]);
 
   const toggleSound = useCallback(() => {

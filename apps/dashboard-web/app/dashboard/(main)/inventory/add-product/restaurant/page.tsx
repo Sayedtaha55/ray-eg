@@ -108,6 +108,7 @@ const parseNumberInput = (value: any) => {
   return Number(cleaned);
 };
 
+import { compressForUpload } from '@/lib/upload-image';
 export default function RestaurantAddProductPage() {
   const { shop } = useShop();
   const router = useRouter();
@@ -324,10 +325,10 @@ export default function RestaurantAddProductPage() {
     setAddonItems(addonItems.map((a) => (a.id === id ? { ...a, [field]: value } : a)));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      setImageFile(await compressForUpload(file, 'product'));
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageUrl(reader.result as string);
@@ -336,12 +337,16 @@ export default function RestaurantAddProductPage() {
     }
   };
 
-  const handleAddonImageUpload = (addonId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddonImageUpload = async (
+    addonId: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
+      const compressed = await compressForUpload(file, 'gallery');
       const reader = new FileReader();
       reader.onloadend = () => {
-        handleUpdateAddon(addonId, 'imageUploadFile', file);
+        handleUpdateAddon(addonId, 'imageUploadFile', compressed);
         handleUpdateAddon(addonId, 'imageUrl', reader.result as string);
       };
       reader.readAsDataURL(file);
@@ -629,7 +634,8 @@ export default function RestaurantAddProductPage() {
             <div className="text-center py-2">
               <p className="text-xs font-black text-slate-700 mb-1.5">أضف المعلومات الأساسية</p>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                تُظهر المعاينة الصورة، الاسم، السعر، السعر المخفض, العنوان الفرعي والترويجي. ستتمكن من معاينة صفحة المنتج الكاملة على ثيم متجرك بعد الحفظ.
+                تُظهر المعاينة الصورة، الاسم، السعر، السعر المخفض, العنوان الفرعي والترويجي. ستتمكن
+                من معاينة صفحة المنتج الكاملة على ثيم متجرك بعد الحفظ.
               </p>
             </div>
           )}
@@ -654,7 +660,8 @@ export default function RestaurantAddProductPage() {
                 e.preventDefault();
                 setDragOver(false);
                 const file = e.dataTransfer.files?.[0];
-                if (file && file.type.startsWith('image/')) handleImageUpload({ target: { files: [file] } } as any);
+                if (file && file.type.startsWith('image/'))
+                  handleImageUpload({ target: { files: [file] } } as any);
               }}
               className={`rounded-2xl border-2 border-dashed p-5 text-center transition-all ${
                 dragOver ? 'border-teal-400 bg-teal-50/50' : 'border-slate-200 bg-slate-50/40'
@@ -673,7 +680,12 @@ export default function RestaurantAddProductPage() {
                   <div className="flex items-center gap-2 mt-2">
                     <label className="inline-block px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-all shadow-2xs">
                       اختار من المعرض
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
                     </label>
                     {isInstalled('image-editor') && (
                       <button
@@ -702,7 +714,8 @@ export default function RestaurantAddProductPage() {
             {/* Name */}
             <div className="text-right">
               <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
-                اسم المنتج <span className="text-red-500">*</span> <Info size={13} className="text-slate-300" />
+                اسم المنتج <span className="text-red-500">*</span>{' '}
+                <Info size={13} className="text-slate-300" />
               </label>
               <div className="relative">
                 <input
@@ -723,7 +736,8 @@ export default function RestaurantAddProductPage() {
               {/* Price */}
               <div className="text-right">
                 <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
-                  السعر الأساسي (ج.م) <span className="text-red-500">*</span> <Info size={13} className="text-slate-300" />
+                  السعر الأساسي (ج.م) <span className="text-red-500">*</span>{' '}
+                  <Info size={13} className="text-slate-300" />
                 </label>
                 <div className="relative">
                   <input
@@ -735,7 +749,9 @@ export default function RestaurantAddProductPage() {
                     className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
                     placeholder="0.00"
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">#</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">
+                    #
+                  </span>
                 </div>
               </div>
 
@@ -754,7 +770,9 @@ export default function RestaurantAddProductPage() {
                     className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
                     placeholder="أدخل سعر التكلفة"
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">#</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">
+                    #
+                  </span>
                 </div>
               </div>
             </div>
@@ -841,7 +859,9 @@ export default function RestaurantAddProductPage() {
                   className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
                   placeholder="تصنيف محلي"
                 />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 text-sm">👑</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 text-sm">
+                  👑
+                </span>
               </div>
             </div>
 
@@ -888,7 +908,9 @@ export default function RestaurantAddProductPage() {
                     onChange={(e) => setBaseSizesEnabled(e.target.checked)}
                     className="w-4 h-4 rounded border-slate-300 accent-teal-600"
                   />
-                  <span className="text-xs font-bold text-slate-700">تفعيل الأحجام (صغير / وسط / كبير)</span>
+                  <span className="text-xs font-bold text-slate-700">
+                    تفعيل الأحجام (صغير / وسط / كبير)
+                  </span>
                 </label>
                 <span className="text-xs font-bold text-slate-400">أحجام المنتج الأساسية</span>
               </div>
@@ -942,7 +964,9 @@ export default function RestaurantAddProductPage() {
                 </button>
                 <div className="text-right">
                   <h3 className="text-xs font-bold text-slate-800">أنواع وتشكيلات الوجبة</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">مثال: دجاج، لحم، مكسرات، نباتي...</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    مثال: دجاج، لحم، مكسرات، نباتي...
+                  </p>
                 </div>
               </div>
 
@@ -953,7 +977,10 @@ export default function RestaurantAddProductPage() {
               ) : (
                 <div className="space-y-3">
                   {menuVariants.map((variant) => (
-                    <div key={variant.id} className="rounded-xl border border-slate-200 p-3 bg-slate-50/60 space-y-3">
+                    <div
+                      key={variant.id}
+                      className="rounded-xl border border-slate-200 p-3 bg-slate-50/60 space-y-3"
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <button
                           type="button"
@@ -965,7 +992,9 @@ export default function RestaurantAddProductPage() {
                         <input
                           type="text"
                           value={variant.name}
-                          onChange={(e) => handleUpdateMenuVariant(variant.id, 'name', e.target.value)}
+                          onChange={(e) =>
+                            handleUpdateMenuVariant(variant.id, 'name', e.target.value)
+                          }
                           className="flex-1 h-9 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 text-right focus:outline-none focus:border-teal-400"
                           placeholder="اسم النوع (مثال: دجاج أو لحم بقري)"
                         />
@@ -975,14 +1004,18 @@ export default function RestaurantAddProductPage() {
                           <input
                             type="checkbox"
                             checked={variant.hasSmall}
-                            onChange={(e) => handleUpdateMenuVariant(variant.id, 'hasSmall', e.target.checked)}
+                            onChange={(e) =>
+                              handleUpdateMenuVariant(variant.id, 'hasSmall', e.target.checked)
+                            }
                             className="w-3.5 h-3.5 rounded border-slate-300 accent-teal-600"
                           />
                           <span className="text-xs font-bold text-slate-600">صغير</span>
                           <input
                             type="number"
                             value={variant.priceSmall}
-                            onChange={(e) => handleUpdateMenuVariant(variant.id, 'priceSmall', e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateMenuVariant(variant.id, 'priceSmall', e.target.value)
+                            }
                             disabled={!variant.hasSmall}
                             className="w-20 h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-center disabled:opacity-40"
                             placeholder="السعر"
@@ -992,14 +1025,18 @@ export default function RestaurantAddProductPage() {
                           <input
                             type="checkbox"
                             checked={variant.hasMedium}
-                            onChange={(e) => handleUpdateMenuVariant(variant.id, 'hasMedium', e.target.checked)}
+                            onChange={(e) =>
+                              handleUpdateMenuVariant(variant.id, 'hasMedium', e.target.checked)
+                            }
                             className="w-3.5 h-3.5 rounded border-slate-300 accent-teal-600"
                           />
                           <span className="text-xs font-bold text-slate-600">وسط</span>
                           <input
                             type="number"
                             value={variant.priceMedium}
-                            onChange={(e) => handleUpdateMenuVariant(variant.id, 'priceMedium', e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateMenuVariant(variant.id, 'priceMedium', e.target.value)
+                            }
                             disabled={!variant.hasMedium}
                             className="w-20 h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-center disabled:opacity-40"
                             placeholder="السعر"
@@ -1009,14 +1046,18 @@ export default function RestaurantAddProductPage() {
                           <input
                             type="checkbox"
                             checked={variant.hasLarge}
-                            onChange={(e) => handleUpdateMenuVariant(variant.id, 'hasLarge', e.target.checked)}
+                            onChange={(e) =>
+                              handleUpdateMenuVariant(variant.id, 'hasLarge', e.target.checked)
+                            }
                             className="w-3.5 h-3.5 rounded border-slate-300 accent-teal-600"
                           />
                           <span className="text-xs font-bold text-slate-600">كبير</span>
                           <input
                             type="number"
                             value={variant.priceLarge}
-                            onChange={(e) => handleUpdateMenuVariant(variant.id, 'priceLarge', e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateMenuVariant(variant.id, 'priceLarge', e.target.value)
+                            }
                             disabled={!variant.hasLarge}
                             className="w-20 h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-center disabled:opacity-40"
                             placeholder="السعر"
@@ -1042,7 +1083,9 @@ export default function RestaurantAddProductPage() {
                 </button>
                 <div className="text-right">
                   <h3 className="text-xs font-bold text-slate-800">إضافات الوجبة (Add-ons)</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">صوصات إضافية، بطاطس، جبن مضاعف...</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    صوصات إضافية، بطاطس، جبن مضاعف...
+                  </p>
                 </div>
               </div>
 
@@ -1054,7 +1097,10 @@ export default function RestaurantAddProductPage() {
               ) : (
                 <div className="space-y-3">
                   {addonItems.map((addon) => (
-                    <div key={addon.id} className="rounded-xl border border-slate-200 p-3 bg-slate-50/60 space-y-3">
+                    <div
+                      key={addon.id}
+                      className="rounded-xl border border-slate-200 p-3 bg-slate-50/60 space-y-3"
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <button
                           type="button"
@@ -1076,14 +1122,18 @@ export default function RestaurantAddProductPage() {
                           <input
                             type="checkbox"
                             checked={addon.hasSmall}
-                            onChange={(e) => handleUpdateAddon(addon.id, 'hasSmall', e.target.checked)}
+                            onChange={(e) =>
+                              handleUpdateAddon(addon.id, 'hasSmall', e.target.checked)
+                            }
                             className="w-3.5 h-3.5 rounded border-slate-300 accent-teal-600"
                           />
                           <span className="text-xs font-bold text-slate-600">صغير</span>
                           <input
                             type="number"
                             value={addon.priceSmall}
-                            onChange={(e) => handleUpdateAddon(addon.id, 'priceSmall', e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateAddon(addon.id, 'priceSmall', e.target.value)
+                            }
                             disabled={!addon.hasSmall}
                             className="w-20 h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-center disabled:opacity-40"
                             placeholder="السعر"
@@ -1093,14 +1143,18 @@ export default function RestaurantAddProductPage() {
                           <input
                             type="checkbox"
                             checked={addon.hasMedium}
-                            onChange={(e) => handleUpdateAddon(addon.id, 'hasMedium', e.target.checked)}
+                            onChange={(e) =>
+                              handleUpdateAddon(addon.id, 'hasMedium', e.target.checked)
+                            }
                             className="w-3.5 h-3.5 rounded border-slate-300 accent-teal-600"
                           />
                           <span className="text-xs font-bold text-slate-600">وسط</span>
                           <input
                             type="number"
                             value={addon.priceMedium}
-                            onChange={(e) => handleUpdateAddon(addon.id, 'priceMedium', e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateAddon(addon.id, 'priceMedium', e.target.value)
+                            }
                             disabled={!addon.hasMedium}
                             className="w-20 h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-center disabled:opacity-40"
                             placeholder="السعر"
@@ -1110,14 +1164,18 @@ export default function RestaurantAddProductPage() {
                           <input
                             type="checkbox"
                             checked={addon.hasLarge}
-                            onChange={(e) => handleUpdateAddon(addon.id, 'hasLarge', e.target.checked)}
+                            onChange={(e) =>
+                              handleUpdateAddon(addon.id, 'hasLarge', e.target.checked)
+                            }
                             className="w-3.5 h-3.5 rounded border-slate-300 accent-teal-600"
                           />
                           <span className="text-xs font-bold text-slate-600">كبير</span>
                           <input
                             type="number"
                             value={addon.priceLarge}
-                            onChange={(e) => handleUpdateAddon(addon.id, 'priceLarge', e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateAddon(addon.id, 'priceLarge', e.target.value)
+                            }
                             disabled={!addon.hasLarge}
                             className="w-20 h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-center disabled:opacity-40"
                             placeholder="السعر"
@@ -1180,9 +1238,7 @@ export default function RestaurantAddProductPage() {
               </button>
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block">
-                اسم التصنيف *
-              </label>
+              <label className="text-xs font-bold text-slate-500 mb-1 block">اسم التصنيف *</label>
               <input
                 type="text"
                 value={newCategoryName}

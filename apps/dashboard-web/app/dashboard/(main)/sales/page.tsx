@@ -33,6 +33,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
+import ExportMenu from '@/components/common/ExportMenu';
 import { fetchMyOrders } from '@/lib/api/orders';
 import {
   formatOrderItemsSummary,
@@ -698,27 +699,18 @@ export default function SalesPage() {
     [selectedIds, fetchOrders]
   );
 
-  const exportOrders = useCallback(() => {
-    const csv = [
-      ['رقم الطلب', 'العميل', 'الهاتف', 'الحالة', 'المبلغ', 'التاريخ'].join(','),
-      ...paginatedOrders.map((o) =>
-        [
-          o.id,
-          o.customerName || o.customer_name || o.user?.name || '',
-          o.customerPhone || o.customer_phone || o.user?.phone || '',
-          o.status,
-          o.total,
-          new Date(o.createdAt || o.created_at || Date.now()).toLocaleString('ar-EG'),
-        ].join(',')
-      ),
-    ].join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `orders-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-  }, [paginatedOrders]);
+  const exportRows = useMemo(
+    () =>
+      filteredOrders.map((o) => [
+        o.id,
+        o.customerName || o.customer_name || o.user?.name || '',
+        o.customerPhone || o.customer_phone || o.user?.phone || '',
+        o.status,
+        o.total,
+        new Date(o.createdAt || o.created_at || Date.now()).toLocaleString('ar-EG'),
+      ]),
+    [filteredOrders]
+  );
 
   return (
     <div
@@ -741,12 +733,13 @@ export default function SalesPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={exportOrders}
-              className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50"
-            >
-              تصدير
-            </button>
+            <ExportMenu
+              filename="الطلبات"
+              headers={['رقم الطلب', 'العميل', 'الهاتف', 'الحالة', 'المبلغ', 'التاريخ']}
+              rows={exportRows}
+              sheetName="الطلبات"
+              disabled={exportRows.length === 0}
+            />
             <button
               onClick={() => setShowCreateModal(true)}
               className="h-10 px-5 rounded-full bg-slate-900 text-white text-[12px] font-bold hover:bg-slate-700"

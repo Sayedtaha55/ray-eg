@@ -9,6 +9,8 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@ray-eg/shared/(.*)$': '<rootDir>/packages/shared/src/$1',
+    // Marketplace lib helpers under test (security regression tests).
+    '^@marketplace-lib/(.*)$': '<rootDir>/apps/marketplace-next/src/lib/$1',
   },
   collectCoverageFrom: [
     'packages/shared/src/lib/**/*.ts',

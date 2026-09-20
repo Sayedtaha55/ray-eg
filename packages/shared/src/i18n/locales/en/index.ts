@@ -22,7 +22,6 @@ import seoLocale from './seo.json';
 import restaurantsPageLocale from './restaurantsPage.json';
 import shopsPageLocale from './shopsPage.json';
 import profileLocale from './profile.json';
-import shopProfileLocale from './shopProfile.json';
 import productPageLocale from './productPage.json';
 import authLocale from './auth.json';
 import blogLocale from './blog.json';
@@ -77,7 +76,6 @@ const en = {
   restaurantsPage: restaurantsPageLocale,
   shopsPage: shopsPageLocale,
   profile: profileLocale,
-  shopProfile: shopProfileLocale,
   productPage: productPageLocale,
   auth: authLocale,
   blog: blogLocale,

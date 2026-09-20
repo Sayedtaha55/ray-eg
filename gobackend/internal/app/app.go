@@ -166,17 +166,7 @@ func New(cfg *config.Config) (*App, error) {
 
 	// Real mailer, used by the background worker (and as a same-process
 	// fallback) when SMTP is configured; otherwise emails are dropped/logged.
-	var appMailer mailer.Mailer = mailer.NoOpMailer{}
-	if cfg.SMTP.Host != "" {
-		appMailer = mailer.NewSMTPMailer(mailer.SMTPConfig{
-			Host:     cfg.SMTP.Host,
-			Port:     cfg.SMTP.Port,
-			User:     cfg.SMTP.User,
-			Password: cfg.SMTP.Password,
-			From:     cfg.SMTP.From,
-			FromName: cfg.SMTP.FromName,
-		})
-	}
+	appMailer := mailer.FromConfig(cfg)
 
 	// Auth + Users + Shops domain wiring (requires database).
 	// Object storage client (best-effort; media service degrades if not configured).

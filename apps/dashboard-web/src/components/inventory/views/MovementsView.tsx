@@ -7,8 +7,15 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  ArrowLeftRight, Download, RefreshCw, ArrowUpDown, Package,
-  TrendingUp, TrendingDown, Minus, Truck,
+  ArrowLeftRight,
+  Download,
+  RefreshCw,
+  ArrowUpDown,
+  Package,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Truck,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
@@ -60,15 +67,18 @@ export default function MovementsView({ initialType }: { initialType?: MovementT
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const [prodRes, trRes, poRes] = await Promise.all([
         apiRequest(`/products/manage/by-shop/${sid}?limit=500`).catch(() => []),
         apiRequest(`/transfers/shop/${sid}`).catch(() => ({ data: [] })),
         apiRequest(`/purchase-orders/shop/${sid}`).catch(() => ({ data: [] })),
       ]);
-      const prods = Array.isArray(prodRes) ? prodRes : (prodRes?.products || prodRes?.data || []);
-      const transfers = Array.isArray(trRes) ? trRes : (trRes?.data || []);
-      const orders = Array.isArray(poRes) ? poRes : (poRes?.data || []);
+      const prods = Array.isArray(prodRes) ? prodRes : prodRes?.products || prodRes?.data || [];
+      const transfers = Array.isArray(trRes) ? trRes : trRes?.data || [];
+      const orders = Array.isArray(poRes) ? poRes : poRes?.data || [];
 
       const entries: Movement[] = [];
 
@@ -98,7 +108,12 @@ export default function MovementsView({ initialType }: { initialType?: MovementT
           type: 'purchase',
           direction: 'in',
           qty: Number(o.itemCount || o.items_count || 0),
-          date: o.receivedDate || o.received_date || o.orderDate || o.createdAt || new Date().toISOString(),
+          date:
+            o.receivedDate ||
+            o.received_date ||
+            o.orderDate ||
+            o.createdAt ||
+            new Date().toISOString(),
           to: 'المخزون',
         });
       });
@@ -118,18 +133,25 @@ export default function MovementsView({ initialType }: { initialType?: MovementT
         });
 
       setMovements(entries);
-    } catch { setMovements([]); } finally { setLoading(false); }
+    } catch {
+      setMovements([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const filtered = useMemo(() => {
-    let result = movements.filter(m =>
-      m.ref.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      m.productName.toLowerCase().includes(debouncedSearch.toLowerCase())
+    let result = movements.filter(
+      (m) =>
+        m.ref.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        m.productName.toLowerCase().includes(debouncedSearch.toLowerCase())
     );
     if (filterType !== 'all') {
-      result = result.filter(m => m.type === filterType);
+      result = result.filter((m) => m.type === filterType);
     }
     result = [...result].sort((a, b) => {
       const aVal = sortBy === 'date' ? a.date : sortBy === 'qty' ? a.qty : a.ref;
@@ -137,7 +159,9 @@ export default function MovementsView({ initialType }: { initialType?: MovementT
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
-      return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+      return sortOrder === 'asc'
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number);
     });
     return result;
   }, [movements, debouncedSearch, filterType, sortBy, sortOrder]);
@@ -151,16 +175,26 @@ export default function MovementsView({ initialType }: { initialType?: MovementT
 
   const exportCSV = useCallback(() => {
     const headers = ['Ref', 'Product', 'Type', 'Direction', 'Qty', 'From', 'To', 'Date'];
-    const rows = filtered.map(m => [m.ref, m.productName, TYPE_LABEL[m.type], m.direction, m.qty, m.from || '-', m.to || '-', m.date]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'stock-movements.csv';
-    link.click();
+    const rows = filtered.map((m) => [
+      m.ref,
+      m.productName,
+      TYPE_LABEL[m.type],
+      m.direction,
+      m.qty,
+      m.from || '-',
+      m.to || '-',
+      m.date,
+    ]);
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob(
+        { filename: 'stock-movements.csv', headers, rows: [...rows] },
+        'csv'
+      );
+      downloadBlob(blob, 'stock-movements.csv');
+    });
   }, [filtered]);
 
-  const count = (t: MovementType) => movements.filter(m => m.type === t).length;
+  const count = (t: MovementType) => movements.filter((m) => m.type === t).length;
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4 pb-10">
@@ -234,19 +268,46 @@ export default function MovementsView({ initialType }: { initialType?: MovementT
               {paginated.map((m) => (
                 <InvRow key={m.id}>
                   <div className="col-span-2 min-w-0">
-                    <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{m.ref}</div>
+                    <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                      {m.ref}
+                    </div>
                   </div>
-                  <div className="col-span-3 pr-4 text-slate-600 text-xs sm:text-sm truncate">{m.productName}</div>
+                  <div className="col-span-3 pr-4 text-slate-600 text-xs sm:text-sm truncate">
+                    {m.productName}
+                  </div>
                   <div className="col-span-2">
-                    <InvStatusPill tone={m.type === 'purchase' ? 'emerald' : m.type === 'transfer' ? 'amber' : 'slate'}>
-                      {m.type === 'purchase' ? <TrendingUp size={12} /> : m.type === 'transfer' ? <Truck size={12} /> : <Minus size={12} />}
+                    <InvStatusPill
+                      tone={
+                        m.type === 'purchase'
+                          ? 'emerald'
+                          : m.type === 'transfer'
+                            ? 'amber'
+                            : 'slate'
+                      }
+                    >
+                      {m.type === 'purchase' ? (
+                        <TrendingUp size={12} />
+                      ) : m.type === 'transfer' ? (
+                        <Truck size={12} />
+                      ) : (
+                        <Minus size={12} />
+                      )}
                       {TYPE_LABEL[m.type]}
                     </InvStatusPill>
                   </div>
                   <div className="col-span-2 pr-4">
-                    <div className={`font-bold text-xs sm:text-sm flex items-center gap-1 ${m.direction === 'in' ? 'text-emerald-600' : m.direction === 'out' ? 'text-rose-600' : 'text-slate-600'}`}>
-                      {m.direction === 'in' ? <TrendingUp size={13} /> : m.direction === 'out' ? <TrendingDown size={13} /> : <Package size={13} />}
-                      {m.direction === 'in' ? '+' : m.direction === 'out' ? '−' : ''}{m.qty.toLocaleString('en-US')}
+                    <div
+                      className={`font-bold text-xs sm:text-sm flex items-center gap-1 ${m.direction === 'in' ? 'text-emerald-600' : m.direction === 'out' ? 'text-rose-600' : 'text-slate-600'}`}
+                    >
+                      {m.direction === 'in' ? (
+                        <TrendingUp size={13} />
+                      ) : m.direction === 'out' ? (
+                        <TrendingDown size={13} />
+                      ) : (
+                        <Package size={13} />
+                      )}
+                      {m.direction === 'in' ? '+' : m.direction === 'out' ? '−' : ''}
+                      {m.qty.toLocaleString('en-US')}
                     </div>
                   </div>
                   <div className="col-span-2 pr-4 text-slate-600 text-xs sm:text-sm truncate">

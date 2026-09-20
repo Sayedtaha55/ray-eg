@@ -10,6 +10,7 @@ import ShareButton from '@/components/ShareButton';
 import { AddToCartButton } from '@/components/AddToCartButton';
 import { ReviewsSection } from '@/components/ReviewsSection';
 import { ProductCard } from '@/components/ProductCard';
+import { serializeJsonLd } from '@/lib/jsonld';
 
 export const revalidate = 300;
 
@@ -132,11 +133,11 @@ export default async function ProductPage({ params }: Props) {
     >
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbLd) }}
       />
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-6">

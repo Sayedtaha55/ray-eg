@@ -8,6 +8,8 @@ import { ProductCard } from '@/components/ProductCard';
 import { siteConfig } from '@/lib/config';
 import { mapSiteProduct, type SiteProduct, type Website } from '@ray-eg/shared/builder';
 import { SiteCartBridge } from '@/components/SiteCartBridge';
+import { serializeJsonLd } from '@/lib/jsonld';
+import { sanitizeCssValue } from '@/lib/sanitize';
 
 export const revalidate = 120;
 
@@ -149,15 +151,19 @@ function LegacyPublishedSiteView({
   const footerBg = c.footerBackgroundColor || tColors.surface || '#f8fafc';
   const footerText = c.footerTextColor || tColors.textPrimary || '#0f172a';
 
-  const fontBody = tTypo.fontBody || 'inherit';
-  const fontHeading = tTypo.fontHeading || 'inherit';
-  const rSm = tRadius.sm || '6px';
-  const rMd = tRadius.md || '10px';
-  const rLg = tRadius.lg || '16px';
-  const rXl = tRadius.xl || '24px';
-  const shadowSm = tShadows.sm || '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
-  const shadowMd =
-    tShadows.md || '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)';
+  // Theme values are merchant-controlled and interpolated into a <style> tag
+  // below — sanitize every one of them (tag/rule breakout prevention).
+  const fontBody = sanitizeCssValue(tTypo.fontBody, 'inherit');
+  const fontHeading = sanitizeCssValue(tTypo.fontHeading, 'inherit');
+  const rSm = sanitizeCssValue(tRadius.sm, '6px');
+  const rMd = sanitizeCssValue(tRadius.md, '10px');
+  const rLg = sanitizeCssValue(tRadius.lg, '16px');
+  const rXl = sanitizeCssValue(tRadius.xl, '24px');
+  const shadowSm = sanitizeCssValue(tShadows.sm, '0 1px 2px 0 rgba(0, 0, 0, 0.05)');
+  const shadowMd = sanitizeCssValue(
+    tShadows.md,
+    '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)'
+  );
   const cardRadius = c.productsLayout === 'horizontal' ? rLg : rMd;
 
   const waPhone = (site.shop.phone || '').replace(/[^0-9]/g, '');
@@ -195,7 +201,7 @@ function LegacyPublishedSiteView({
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
       {/* Header */}

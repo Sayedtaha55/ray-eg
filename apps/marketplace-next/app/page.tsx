@@ -12,6 +12,7 @@ import { AppDownloadBanner } from '@/components/AppDownloadBanner';
 import { HeroSearch } from '@/components/HeroSearch';
 import { WelcomeBanner } from '@/components/WelcomeBanner';
 import { WelcomeToast } from '@/components/WelcomeToast';
+import { serializeJsonLd } from '@/lib/jsonld';
 
 export const metadata: Metadata = {
   title: `${siteConfig.name} - ${siteConfig.nameArabic}`,
@@ -63,11 +64,11 @@ export default async function HomePage() {
     <div className="overflow-hidden">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(websiteJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(orgJsonLd) }}
       />
 
       {/* Welcome toast after login/signup */}

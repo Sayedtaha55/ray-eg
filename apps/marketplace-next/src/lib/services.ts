@@ -79,7 +79,9 @@ export async function getShopBySlug(slug: string): Promise<Shop | null> {
 
 export async function getProducts(shopId: string, limit = 12): Promise<Product[]> {
   try {
-    const data = await api.get<any>(`/shops/${shopId}/products?limit=${limit}`, {
+    // The public catalog endpoint filters by shopId — /shops/:id/products
+    // does not exist on the backend and always came back empty.
+    const data = await api.get<any>(`/products?shopId=${shopId}&limit=${limit}`, {
       revalidate: 300,
       tags: [`products:${shopId}`],
     });
@@ -91,7 +93,10 @@ export async function getProducts(shopId: string, limit = 12): Promise<Product[]
 
 export async function getProductById(id: string): Promise<Product | null> {
   try {
-    const data = await api.get<any>(`/products/${id}`, { revalidate: 300, tags: [`product:${id}`] });
+    const data = await api.get<any>(`/products/${id}`, {
+      revalidate: 300,
+      tags: [`product:${id}`],
+    });
     return data?.data ?? data;
   } catch {
     return null;
@@ -126,7 +131,10 @@ export interface SeasonalOffer {
 
 export async function getSeasonalOffers(): Promise<SeasonalOffer[]> {
   try {
-    const data = await api.get<any>('/marketing/seasonal-offers/public', { revalidate: 300, tags: ['seasonal-offers'] });
+    const data = await api.get<any>('/marketing/seasonal-offers/public', {
+      revalidate: 300,
+      tags: ['seasonal-offers'],
+    });
     return Array.isArray(data) ? data : (data?.data ?? data?.items ?? []);
   } catch {
     return [];
@@ -192,7 +200,9 @@ export interface ImageMapAnalyzeResponse {
 
 export async function analyzeShopImageMap(
   shopId: string,
-  payload: ImageMapAnalyzeRequest,
+  payload: ImageMapAnalyzeRequest
 ): Promise<ImageMapAnalyzeResponse> {
-  return api.post<ImageMapAnalyzeResponse>(`/shops/${shopId}/image-maps/analyze`, payload, { revalidate: 0 });
+  return api.post<ImageMapAnalyzeResponse>(`/shops/${shopId}/image-maps/analyze`, payload, {
+    revalidate: 0,
+  });
 }

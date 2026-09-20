@@ -7,8 +7,19 @@
  */
 import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  ArrowLeftRight, Plus, X, RefreshCw, Download, Check, Info,
-  TrendingUp, TrendingDown, Wallet, HandCoins, Clock, AlertTriangle,
+  ArrowLeftRight,
+  Plus,
+  X,
+  RefreshCw,
+  Download,
+  Check,
+  Info,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  HandCoins,
+  Clock,
+  AlertTriangle,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
@@ -102,7 +113,10 @@ const emptyForm = {
 };
 
 function CollectionsContent() {
-  const [activeTab, setTab] = useInvSectionTab(SECTION_TABS.map(t => t.id), 'all');
+  const [activeTab, setTab] = useInvSectionTab(
+    SECTION_TABS.map((t) => t.id),
+    'all'
+  );
   const [payments, setPayments] = useState<Payment[]>([]);
   const [entities, setEntities] = useState<Entity[]>([]);
   const [aging, setAging] = useState<AgingRow[]>([]);
@@ -123,61 +137,78 @@ function CollectionsContent() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const [payRes, entRes, agingRes, invRes] = await Promise.all([
         apiRequest(`/accounting/payments/shop/${sid}`).catch(() => ({ data: [] })),
         apiRequest(`/accounting/entities/shop/${sid}`).catch(() => ({ data: [] })),
         apiRequest(`/accounting/aging/shop/${sid}`).catch(() => ({ data: [] })),
         apiRequest(`/accounting/invoices/shop/${sid}`).catch(() => ({ data: [] })),
       ]);
-      const payList = Array.isArray(payRes) ? payRes : (payRes?.data || []);
-      setPayments(payList.map((p: any) => {
-        const t = String(p.payment_type || p.paymentType || 'receipt').toLowerCase();
-        const allocs = p.allocations || p.payment_allocations;
-        return {
-          id: String(p.id),
-          number: p.number || p.payment_number || '---',
-          type: t === 'payment' ? 'payment' : 'receipt',
-          date: p.payment_date || p.paymentDate || p.created_at || new Date().toISOString(),
-          amount: Number(p.amount || 0),
-          method: String(p.method || 'other').toLowerCase(),
-          reference: p.reference || '',
-          entityId: String(p.entity_id || p.entityId || ''),
-          entityName: p.entity_name || p.entityName || '—',
-          status: (String(p.status || 'posted').toLowerCase() === 'draft' ? 'draft' : 'posted'),
-          hasAllocations: Array.isArray(allocs) && allocs.length > 0,
-        };
-      }));
-      const entList = Array.isArray(entRes) ? entRes : (entRes?.data || []);
-      setEntities(entList.map((e: any) => ({
-        id: String(e.id),
-        entityType: String(e.entity_type || e.entityType || 'customer').toLowerCase() === 'vendor' ? 'vendor' : 'customer',
-        name: e.name || '---',
-        phone: e.phone || '',
-      })));
-      const agingList = Array.isArray(agingRes) ? agingRes : (agingRes?.data || []);
-      setAging(agingList.map((a: any) => {
-        const buckets = a.buckets || a.aging || {};
-        return {
-          entityName: a.entity_name || a.entityName || '---',
-          current: Number(buckets.current ?? a.current ?? 0),
-          d30: Number(buckets.d1_30 ?? buckets['1_30'] ?? a.d30 ?? 0),
-          d60: Number(buckets.d31_60 ?? buckets['31_60'] ?? a.d60 ?? 0),
-          d90: Number(buckets.d61_90 ?? buckets['61_90'] ?? a.d90 ?? 0),
-          d90Plus: Number(buckets.d90_plus ?? buckets['90_plus'] ?? a.d90_plus ?? 0),
-          total: Number(a.total_outstanding ?? a.total ?? a.outstanding ?? 0),
-        };
-      }));
-      const invList = Array.isArray(invRes) ? invRes : (invRes?.data || []);
-      setOpenInvoices(invList.map((i: any) => ({
-        id: String(i.id),
-        number: i.number || '---',
-        invoiceType: String(i.invoice_type || i.invoiceType || 'sale').toLowerCase() === 'purchase' ? 'purchase' : 'sale',
-        entityId: String(i.entity_id || i.entityId || ''),
-        entityName: i.entity_name || i.entityName || '',
-        total: Number(i.total_amount || i.totalAmount || i.total || 0),
-        paid: Number(i.paid_amount || i.paidAmount || i.paid || 0),
-      })));
+      const payList = Array.isArray(payRes) ? payRes : payRes?.data || [];
+      setPayments(
+        payList.map((p: any) => {
+          const t = String(p.payment_type || p.paymentType || 'receipt').toLowerCase();
+          const allocs = p.allocations || p.payment_allocations;
+          return {
+            id: String(p.id),
+            number: p.number || p.payment_number || '---',
+            type: t === 'payment' ? 'payment' : 'receipt',
+            date: p.payment_date || p.paymentDate || p.created_at || new Date().toISOString(),
+            amount: Number(p.amount || 0),
+            method: String(p.method || 'other').toLowerCase(),
+            reference: p.reference || '',
+            entityId: String(p.entity_id || p.entityId || ''),
+            entityName: p.entity_name || p.entityName || '—',
+            status: String(p.status || 'posted').toLowerCase() === 'draft' ? 'draft' : 'posted',
+            hasAllocations: Array.isArray(allocs) && allocs.length > 0,
+          };
+        })
+      );
+      const entList = Array.isArray(entRes) ? entRes : entRes?.data || [];
+      setEntities(
+        entList.map((e: any) => ({
+          id: String(e.id),
+          entityType:
+            String(e.entity_type || e.entityType || 'customer').toLowerCase() === 'vendor'
+              ? 'vendor'
+              : 'customer',
+          name: e.name || '---',
+          phone: e.phone || '',
+        }))
+      );
+      const agingList = Array.isArray(agingRes) ? agingRes : agingRes?.data || [];
+      setAging(
+        agingList.map((a: any) => {
+          const buckets = a.buckets || a.aging || {};
+          return {
+            entityName: a.entity_name || a.entityName || '---',
+            current: Number(buckets.current ?? a.current ?? 0),
+            d30: Number(buckets.d1_30 ?? buckets['1_30'] ?? a.d30 ?? 0),
+            d60: Number(buckets.d31_60 ?? buckets['31_60'] ?? a.d60 ?? 0),
+            d90: Number(buckets.d61_90 ?? buckets['61_90'] ?? a.d90 ?? 0),
+            d90Plus: Number(buckets.d90_plus ?? buckets['90_plus'] ?? a.d90_plus ?? 0),
+            total: Number(a.total_outstanding ?? a.total ?? a.outstanding ?? 0),
+          };
+        })
+      );
+      const invList = Array.isArray(invRes) ? invRes : invRes?.data || [];
+      setOpenInvoices(
+        invList.map((i: any) => ({
+          id: String(i.id),
+          number: i.number || '---',
+          invoiceType:
+            String(i.invoice_type || i.invoiceType || 'sale').toLowerCase() === 'purchase'
+              ? 'purchase'
+              : 'sale',
+          entityId: String(i.entity_id || i.entityId || ''),
+          entityName: i.entity_name || i.entityName || '',
+          total: Number(i.total_amount || i.totalAmount || i.total || 0),
+          paid: Number(i.paid_amount || i.paidAmount || i.paid || 0),
+        }))
+      );
     } catch (err: any) {
       setError(err?.message || 'فشل تحميل العمليات');
     } finally {
@@ -185,17 +216,22 @@ function CollectionsContent() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   /** بيانات التاب الحالي — التابات كلها من نفس مصدر العمليات إلا المتأخرات */
   const tabRows = useMemo(() => {
-    let result = payments.filter(p =>
-      p.number.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      p.entityName.toLowerCase().includes(debouncedSearch.toLowerCase())
+    let result = payments.filter(
+      (p) =>
+        p.number.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        p.entityName.toLowerCase().includes(debouncedSearch.toLowerCase())
     );
-    if (activeTab === 'receipts' || activeTab === 'customer') result = result.filter(p => p.type === 'receipt');
-    else if (activeTab === 'payments' || activeTab === 'supplier') result = result.filter(p => p.type === 'payment');
-    else if (activeTab === 'partial') result = result.filter(p => p.hasAllocations);
+    if (activeTab === 'receipts' || activeTab === 'customer')
+      result = result.filter((p) => p.type === 'receipt');
+    else if (activeTab === 'payments' || activeTab === 'supplier')
+      result = result.filter((p) => p.type === 'payment');
+    else if (activeTab === 'partial') result = result.filter((p) => p.hasAllocations);
     return result;
   }, [payments, debouncedSearch, activeTab]);
 
@@ -206,43 +242,68 @@ function CollectionsContent() {
   const totalPages = Math.ceil(tabRows.length / itemsPerPage);
 
   const stats = useMemo(() => {
-    const receipts = payments.filter(p => p.type === 'receipt').reduce((s, p) => s + p.amount, 0);
-    const paid = payments.filter(p => p.type === 'payment').reduce((s, p) => s + p.amount, 0);
+    const receipts = payments.filter((p) => p.type === 'receipt').reduce((s, p) => s + p.amount, 0);
+    const paid = payments.filter((p) => p.type === 'payment').reduce((s, p) => s + p.amount, 0);
     const overdueTotal = aging.reduce((s, a) => s + a.total, 0);
     return { receipts, paid, net: receipts - paid, overdueTotal };
   }, [payments, aging]);
 
   const exportCSV = useCallback(() => {
     const headers = ['Number', 'Type', 'Date', 'Party', 'Amount', 'Method', 'Reference', 'Status'];
-    const rows = tabRows.map(p => [p.number, p.type, p.date, p.entityName, p.amount, METHOD_LABEL[p.method] || p.method, p.reference, p.status]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'collections-payments.csv';
-    link.click();
+    const rows = tabRows.map((p) => [
+      p.number,
+      p.type,
+      p.date,
+      p.entityName,
+      p.amount,
+      METHOD_LABEL[p.method] || p.method,
+      p.reference,
+      p.status,
+    ]);
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob(
+        { filename: 'collections-payments.csv', headers, rows: [...rows] },
+        'csv'
+      );
+      downloadBlob(blob, 'collections-payments.csv');
+    });
   }, [tabRows]);
 
   const openAddModal = () => {
     const d = new Date();
     const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-    setFormData({ ...emptyForm, number: `REC-${stamp}-${String(payments.length + 1).padStart(4, '0')}` });
+    setFormData({
+      ...emptyForm,
+      number: `REC-${stamp}-${String(payments.length + 1).padStart(4, '0')}`,
+    });
     setAddModal(true);
   };
 
   const handleAdd = useCallback(async () => {
     const amount = Number(formData.amount);
-    if (!formData.entityId) { setError('اختر الطرف أولًا'); return; }
-    if (!Number.isFinite(amount) || amount <= 0) { setError('أدخل مبلغًا صحيحًا'); return; }
+    if (!formData.entityId) {
+      setError('اختر الطرف أولًا');
+      return;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError('أدخل مبلغًا صحيحًا');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
       if (!sid) return;
-      const allocations = formData.allocationInvoiceId && formData.allocationAmount
-        ? [{ invoice_id: formData.allocationInvoiceId, amount: Number(formData.allocationAmount) }]
-        : undefined;
+      const allocations =
+        formData.allocationInvoiceId && formData.allocationAmount
+          ? [
+              {
+                invoice_id: formData.allocationInvoiceId,
+                amount: Number(formData.allocationAmount),
+              },
+            ]
+          : undefined;
       const res = await apiRequest(`/accounting/payments/shop/${sid}`, {
         method: 'POST',
         body: JSON.stringify({
@@ -270,32 +331,59 @@ function CollectionsContent() {
     }
   }, [formData, load]);
 
-  const approvePayment = useCallback(async (p: Payment) => {
-    try {
-      await apiRequest(`/accounting/payments/${p.id}/post`, { method: 'POST' });
-      load();
-    } catch (err: any) {
-      alert(err?.message || 'فشل اعتماد الدفعة');
-    }
-  }, [load]);
+  const approvePayment = useCallback(
+    async (p: Payment) => {
+      try {
+        await apiRequest(`/accounting/payments/${p.id}/post`, { method: 'POST' });
+        load();
+      } catch (err: any) {
+        alert(err?.message || 'فشل اعتماد الدفعة');
+      }
+    },
+    [load]
+  );
 
   const statementHref = (p: Payment) =>
     p.type === 'receipt'
       ? `/dashboard/finance/receivables?tab=statement&entity=${p.entityId}`
       : `/dashboard/finance/payables?tab=statement&entity=${p.entityId}`;
 
-  const filteredEntities = entities.filter(e =>
+  const filteredEntities = entities.filter((e) =>
     formData.type === 'receipt' ? e.entityType === 'customer' : e.entityType === 'vendor'
   );
-  const allocationCandidates = openInvoices.filter(i =>
+  const allocationCandidates = openInvoices.filter((i) =>
     formData.type === 'receipt' ? i.invoiceType === 'sale' : i.invoiceType === 'purchase'
   );
 
   const STATS = [
-    { label: 'إجمالي التحصيلات', value: `ج.م ${fmt(stats.receipts)}`, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'إجمالي المدفوعات', value: `ج.م ${fmt(stats.paid)}`, icon: TrendingDown, color: 'text-rose-600', bg: 'bg-rose-50' },
-    { label: 'الصافي', value: `ج.م ${fmt(stats.net)}`, icon: Wallet, color: 'text-sky-600', bg: 'bg-sky-50' },
-    { label: 'إجمالي المتأخرات', value: `ج.م ${fmt(stats.overdueTotal)}`, icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50' },
+    {
+      label: 'إجمالي التحصيلات',
+      value: `ج.م ${fmt(stats.receipts)}`,
+      icon: TrendingUp,
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50',
+    },
+    {
+      label: 'إجمالي المدفوعات',
+      value: `ج.م ${fmt(stats.paid)}`,
+      icon: TrendingDown,
+      color: 'text-rose-600',
+      bg: 'bg-rose-50',
+    },
+    {
+      label: 'الصافي',
+      value: `ج.م ${fmt(stats.net)}`,
+      icon: Wallet,
+      color: 'text-sky-600',
+      bg: 'bg-sky-50',
+    },
+    {
+      label: 'إجمالي المتأخرات',
+      value: `ج.م ${fmt(stats.overdueTotal)}`,
+      icon: AlertTriangle,
+      color: 'text-amber-600',
+      bg: 'bg-amber-50',
+    },
   ];
 
   return (
@@ -307,7 +395,9 @@ function CollectionsContent() {
               <h1 className="text-xl font-bold text-slate-900">التحصيلات والمدفوعات</h1>
               <Info size={15} className="text-slate-300" />
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">كل الأموال الداخلة والخارجة — تحصيل العملاء وسداد الموردين مع ربطها بالفواتير</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              كل الأموال الداخلة والخارجة — تحصيل العملاء وسداد الموردين مع ربطها بالفواتير
+            </p>
           </div>
         </div>
       </div>
@@ -318,7 +408,9 @@ function CollectionsContent() {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-3">
           <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-[12px] font-bold">
             {error}
-            <button onClick={() => setError('')} className="p-1 rounded hover:bg-red-100">✕</button>
+            <button onClick={() => setError('')} className="p-1 rounded hover:bg-red-100">
+              ✕
+            </button>
           </div>
         </div>
       )}
@@ -328,12 +420,16 @@ function CollectionsContent() {
           {STATS.map((s) => (
             <div key={s.label} className="bg-white border border-slate-200 rounded-2xl p-4">
               <div className="flex items-center gap-2 mb-3">
-                <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${s.bg} ${s.color}`}>
+                <span
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center ${s.bg} ${s.color}`}
+                >
                   <s.icon size={16} />
                 </span>
                 <span className="text-xs font-bold text-slate-500">{s.label}</span>
               </div>
-              <div className="text-lg sm:text-xl font-black text-slate-900 leading-tight">{s.value}</div>
+              <div className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
+                {s.value}
+              </div>
             </div>
           ))}
         </div>
@@ -372,14 +468,28 @@ function CollectionsContent() {
                   {aging.map((a, i) => (
                     <InvRow key={i}>
                       <div className="col-span-3 min-w-0">
-                        <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{a.entityName}</div>
+                        <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                          {a.entityName}
+                        </div>
                       </div>
-                      <div className="col-span-2 pr-4 text-slate-600 text-xs sm:text-sm">ج.م {fmt(a.current)}</div>
-                      <div className="col-span-1 pr-4 text-amber-600 text-xs sm:text-sm font-bold">{a.d30 > 0 ? fmt(a.d30) : '—'}</div>
-                      <div className="col-span-1 pr-4 text-orange-600 text-xs sm:text-sm font-bold">{a.d60 > 0 ? fmt(a.d60) : '—'}</div>
-                      <div className="col-span-1 pr-4 text-red-600 text-xs sm:text-sm font-bold">{a.d90 > 0 ? fmt(a.d90) : '—'}</div>
-                      <div className="col-span-1 pr-4 text-red-700 text-xs sm:text-sm font-bold">{a.d90Plus > 0 ? fmt(a.d90Plus) : '—'}</div>
-                      <div className="col-span-3 pr-4 font-bold text-slate-900 text-xs sm:text-sm">ج.م {fmt(a.total)}</div>
+                      <div className="col-span-2 pr-4 text-slate-600 text-xs sm:text-sm">
+                        ج.م {fmt(a.current)}
+                      </div>
+                      <div className="col-span-1 pr-4 text-amber-600 text-xs sm:text-sm font-bold">
+                        {a.d30 > 0 ? fmt(a.d30) : '—'}
+                      </div>
+                      <div className="col-span-1 pr-4 text-orange-600 text-xs sm:text-sm font-bold">
+                        {a.d60 > 0 ? fmt(a.d60) : '—'}
+                      </div>
+                      <div className="col-span-1 pr-4 text-red-600 text-xs sm:text-sm font-bold">
+                        {a.d90 > 0 ? fmt(a.d90) : '—'}
+                      </div>
+                      <div className="col-span-1 pr-4 text-red-700 text-xs sm:text-sm font-bold">
+                        {a.d90Plus > 0 ? fmt(a.d90Plus) : '—'}
+                      </div>
+                      <div className="col-span-3 pr-4 font-bold text-slate-900 text-xs sm:text-sm">
+                        ج.م {fmt(a.total)}
+                      </div>
                     </InvRow>
                   ))}
                 </InvTableCard>
@@ -417,7 +527,14 @@ function CollectionsContent() {
               {loading ? (
                 <InvLoading />
               ) : tabRows.length === 0 ? (
-                <InvEmpty icon={HandCoins} title={activeTab === 'partial' ? 'لا توجد دفعات موزعة على فواتير بعد — سجّل عملية مع تحديد فاتورة للتوزيع' : 'لا توجد عمليات في هذا القسم'} />
+                <InvEmpty
+                  icon={HandCoins}
+                  title={
+                    activeTab === 'partial'
+                      ? 'لا توجد دفعات موزعة على فواتير بعد — سجّل عملية مع تحديد فاتورة للتوزيع'
+                      : 'لا توجد عمليات في هذا القسم'
+                  }
+                />
               ) : (
                 <>
                   <InvTableCard
@@ -435,7 +552,9 @@ function CollectionsContent() {
                     {paginated.map((p) => (
                       <InvRow key={p.id} muted={p.status === 'draft'}>
                         <div className="col-span-2 min-w-0">
-                          <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{p.number}</div>
+                          <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                            {p.number}
+                          </div>
                         </div>
                         <div className="col-span-2 text-slate-600 text-xs sm:text-sm">
                           {new Date(p.date).toLocaleDateString('ar-EG')}
@@ -445,7 +564,11 @@ function CollectionsContent() {
                         </div>
                         <div className="col-span-2">
                           <InvStatusPill tone={p.type === 'receipt' ? 'emerald' : 'amber'}>
-                            {p.type === 'receipt' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                            {p.type === 'receipt' ? (
+                              <TrendingUp size={12} />
+                            ) : (
+                              <TrendingDown size={12} />
+                            )}
                             {p.type === 'receipt' ? 'تحصيل' : 'دفع'}
                           </InvStatusPill>
                         </div>
@@ -495,24 +618,49 @@ function CollectionsContent() {
 
       {/* Add Payment Modal */}
       {addModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setAddModal(false)}>
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setAddModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
               <h2 className="text-xl font-black text-slate-900">عملية جديدة</h2>
-              <button onClick={() => setAddModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+              <button
+                onClick={() => setAddModal(false)}
+                className="p-2 hover:bg-slate-50 rounded-lg"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-bold text-slate-700 mb-1 block">نوع العملية</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => setFormData({ ...formData, type: 'receipt', entityId: '', allocationInvoiceId: '' })}
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        type: 'receipt',
+                        entityId: '',
+                        allocationInvoiceId: '',
+                      })
+                    }
                     className={`py-2.5 rounded-xl text-sm font-bold border transition-all ${formData.type === 'receipt' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                   >
                     تحصيل من عميل
                   </button>
                   <button
-                    onClick={() => setFormData({ ...formData, type: 'payment', entityId: '', allocationInvoiceId: '' })}
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        type: 'payment',
+                        entityId: '',
+                        allocationInvoiceId: '',
+                      })
+                    }
                     className={`py-2.5 rounded-xl text-sm font-bold border transition-all ${formData.type === 'payment' ? 'bg-amber-50 border-amber-300 text-amber-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                   >
                     دفع لمورد
@@ -523,16 +671,23 @@ function CollectionsContent() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الطرف</label>
                 <select
                   value={formData.entityId}
-                  onChange={e => setFormData({ ...formData, entityId: e.target.value, allocationInvoiceId: '' })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, entityId: e.target.value, allocationInvoiceId: '' })
+                  }
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="">— اختر الطرف —</option>
-                  {filteredEntities.map(e => (
-                    <option key={e.id} value={e.id}>{e.name}{e.phone ? ` — ${e.phone}` : ''}</option>
+                  {filteredEntities.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.name}
+                      {e.phone ? ` — ${e.phone}` : ''}
+                    </option>
                   ))}
                 </select>
                 {filteredEntities.length === 0 && (
-                  <p className="text-[11px] text-slate-400 mt-1 font-bold">لا يوجد أطراف من هذا النوع — أضفهم من صفحة العملاء أو الموردين</p>
+                  <p className="text-[11px] text-slate-400 mt-1 font-bold">
+                    لا يوجد أطراف من هذا النوع — أضفهم من صفحة العملاء أو الموردين
+                  </p>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -541,7 +696,7 @@ function CollectionsContent() {
                   <input
                     type="text"
                     value={formData.number}
-                    onChange={e => setFormData({ ...formData, number: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, number: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                   />
                 </div>
@@ -550,7 +705,7 @@ function CollectionsContent() {
                   <input
                     type="date"
                     value={formData.date}
-                    onChange={e => setFormData({ ...formData, date: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                   />
                 </div>
@@ -561,7 +716,7 @@ function CollectionsContent() {
                   <input
                     type="number"
                     value={formData.amount}
-                    onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                     placeholder="0.00"
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                   />
@@ -570,7 +725,7 @@ function CollectionsContent() {
                   <label className="text-sm font-bold text-slate-700 mb-1 block">طريقة الدفع</label>
                   <select
                     value={formData.method}
-                    onChange={e => setFormData({ ...formData, method: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, method: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                   >
                     <option value="cash">نقدي</option>
@@ -582,36 +737,46 @@ function CollectionsContent() {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">مرجع (اختياري)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  مرجع (اختياري)
+                </label>
                 <input
                   type="text"
                   value={formData.reference}
-                  onChange={e => setFormData({ ...formData, reference: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
                   placeholder="رقم الشيك / التحويل…"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
               <div className="border-t border-slate-100 pt-4">
-                <label className="text-sm font-bold text-slate-700 mb-1 block">توزيع على فاتورة (اختياري)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  توزيع على فاتورة (اختياري)
+                </label>
                 <div className="grid grid-cols-2 gap-2">
                   <select
                     value={formData.allocationInvoiceId}
-                    onChange={e => {
-                      const inv = allocationCandidates.find(x => x.id === e.target.value);
+                    onChange={(e) => {
+                      const inv = allocationCandidates.find((x) => x.id === e.target.value);
                       const remaining = inv ? Math.max(inv.total - inv.paid, 0) : 0;
-                      setFormData({ ...formData, allocationInvoiceId: e.target.value, allocationAmount: remaining ? String(remaining) : '' });
+                      setFormData({
+                        ...formData,
+                        allocationInvoiceId: e.target.value,
+                        allocationAmount: remaining ? String(remaining) : '',
+                      });
                     }}
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                   >
                     <option value="">— بدون توزيع —</option>
-                    {allocationCandidates.map(i => (
-                      <option key={i.id} value={i.id}>{i.number} — متبقي ج.م {fmt(i.total - i.paid)}</option>
+                    {allocationCandidates.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.number} — متبقي ج.م {fmt(i.total - i.paid)}
+                      </option>
                     ))}
                   </select>
                   <input
                     type="number"
                     value={formData.allocationAmount}
-                    onChange={e => setFormData({ ...formData, allocationAmount: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, allocationAmount: e.target.value })}
                     placeholder="المبلغ الموزع"
                     disabled={!formData.allocationInvoiceId}
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50"
@@ -635,7 +800,11 @@ function CollectionsContent() {
 
 export default function CollectionsPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-center text-sm font-bold text-slate-500">جاري التحميل...</div>}>
+    <Suspense
+      fallback={
+        <div className="p-6 text-center text-sm font-bold text-slate-500">جاري التحميل...</div>
+      }
+    >
       <CollectionsContent />
     </Suspense>
   );

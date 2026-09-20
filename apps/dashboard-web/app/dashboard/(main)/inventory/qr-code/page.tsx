@@ -216,12 +216,10 @@ export default function QRCodePage() {
     }
     const headers = ['Product Name', 'SKU', 'QR Value', 'Price'];
     const rows = selectedProducts.map((p) => [p.name, p.sku || '---', buildQrValue(p), p.price]);
-    const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'qr-codes.csv';
-    link.click();
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob({ filename: 'qr-codes.csv', headers, rows: [...rows] }, 'csv');
+      downloadBlob(blob, 'qr-codes.csv');
+    });
   }, [selectedProducts]);
 
   const stats = useMemo(() => {

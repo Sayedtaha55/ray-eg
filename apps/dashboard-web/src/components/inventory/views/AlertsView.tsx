@@ -6,7 +6,15 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  AlertTriangle, Edit, RefreshCw, Download, Check, X, Bell, Zap, ShoppingCart,
+  AlertTriangle,
+  Edit,
+  RefreshCw,
+  Download,
+  Check,
+  X,
+  Bell,
+  Zap,
+  ShoppingCart,
 } from 'lucide-react';
 import Link from 'next/link';
 import { apiRequest } from '@/lib/auth';
@@ -59,13 +67,16 @@ export default function AlertsView() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const [lowRes, prodRes] = await Promise.all([
         apiRequest(`/inventory/low-stock/shop/${sid}`).catch(() => ({ data: [] })),
         apiRequest(`/products/manage/by-shop/${sid}?limit=500`).catch(() => []),
       ]);
-      const lowData = Array.isArray(lowRes) ? lowRes : (lowRes?.data || []);
-      const prods = Array.isArray(prodRes) ? prodRes : (prodRes?.products || prodRes?.data || []);
+      const lowData = Array.isArray(lowRes) ? lowRes : lowRes?.data || [];
+      const prods = Array.isArray(prodRes) ? prodRes : prodRes?.products || prodRes?.data || [];
 
       // حدود التنبيه من الـAPI لكل منتج — والباقي يشتق من المنتجات نفسها
       const byProduct = new Map<string, any>();
@@ -80,7 +91,9 @@ export default function AlertsView() {
         const minStock = Number(a.minStock || a.min_stock || p.minStock || 5);
         const maxStock = Number(a.maxStock || a.max_stock || minStock * 4 || 20);
         const reorderPoint = Number(a.reorderPoint || a.reorder_point || minStock);
-        const reorderQuantity = Number(a.reorderQuantity || a.reorder_quantity || maxStock - minStock || 10);
+        const reorderQuantity = Number(
+          a.reorderQuantity || a.reorder_quantity || maxStock - minStock || 10
+        );
         let status: AlertRow['status'] = 'ok';
         if (currentStock === 0) status = 'critical';
         else if (currentStock <= minStock) status = 'low';
@@ -99,22 +112,31 @@ export default function AlertsView() {
         };
       });
       setAlerts(rows);
-    } catch { setAlerts([]); } finally { setLoading(false); }
+    } catch {
+      setAlerts([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadAlerts(); }, [loadAlerts]);
+  useEffect(() => {
+    loadAlerts();
+  }, [loadAlerts]);
 
   const filtered = useMemo(() => {
-    let result = alerts.filter(a =>
-      a.productName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      a.sku.toLowerCase().includes(debouncedSearch.toLowerCase())
+    let result = alerts.filter(
+      (a) =>
+        a.productName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        a.sku.toLowerCase().includes(debouncedSearch.toLowerCase())
     );
     if (filterStatus !== 'all') {
-      result = result.filter(a => a.status === filterStatus);
+      result = result.filter((a) => a.status === filterStatus);
     }
     // الأحرج أولًا
     const rank = { critical: 0, low: 1, warning: 2, ok: 3 } as const;
-    return [...result].sort((a, b) => rank[a.status] - rank[b.status] || a.currentStock - b.currentStock);
+    return [...result].sort(
+      (a, b) => rank[a.status] - rank[b.status] || a.currentStock - b.currentStock
+    );
   }, [alerts, debouncedSearch, filterStatus]);
 
   const paginatedAlerts = useMemo(() => {
@@ -125,16 +147,31 @@ export default function AlertsView() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
   const exportCSV = useCallback(() => {
-    const headers = ['Product', 'SKU', 'Current Stock', 'Min Stock', 'Reorder Point', 'Reorder Qty', 'Status'];
-    const rows = filtered.map(a => [
-      a.productName, a.sku, a.currentStock, a.minStock, a.reorderPoint, a.reorderQuantity, a.status,
+    const headers = [
+      'Product',
+      'SKU',
+      'Current Stock',
+      'Min Stock',
+      'Reorder Point',
+      'Reorder Qty',
+      'Status',
+    ];
+    const rows = filtered.map((a) => [
+      a.productName,
+      a.sku,
+      a.currentStock,
+      a.minStock,
+      a.reorderPoint,
+      a.reorderQuantity,
+      a.status,
     ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'low-stock-alerts.csv';
-    link.click();
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob(
+        { filename: 'low-stock-alerts.csv', headers, rows: [...rows] },
+        'csv'
+      );
+      downloadBlob(blob, 'low-stock-alerts.csv');
+    });
   }, [filtered]);
 
   const handleEdit = useCallback(async () => {
@@ -176,11 +213,13 @@ export default function AlertsView() {
     ok: { label: 'سليم', tone: 'emerald' as const, icon: <Check size={12} /> },
   };
 
-  const count = (s: AlertRow['status']) => alerts.filter(a => a.status === s).length;
+  const count = (s: AlertRow['status']) => alerts.filter((a) => a.status === s).length;
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4 pb-10">
-      <InvToolbar hint={`${count('critical')} نافد • ${count('low')} منخفض • ${count('warning')} قريب من النفاد`}>
+      <InvToolbar
+        hint={`${count('critical')} نافد • ${count('low')} منخفض • ${count('warning')} قريب من النفاد`}
+      >
         <InvToolButton onClick={() => loadAlerts()}>
           <RefreshCw size={14} />
           تحديث
@@ -229,7 +268,8 @@ export default function AlertsView() {
             >
               {paginatedAlerts.map((alert) => {
                 const statusConfig = STATUS_CONFIG[alert.status];
-                const stockPercentage = alert.maxStock > 0 ? (alert.currentStock / alert.maxStock) * 100 : 0;
+                const stockPercentage =
+                  alert.maxStock > 0 ? (alert.currentStock / alert.maxStock) * 100 : 0;
                 return (
                   <InvRow key={alert.id} muted={alert.status === 'ok'}>
                     <div className="col-span-4 min-w-0">
@@ -239,18 +279,27 @@ export default function AlertsView() {
                       >
                         {alert.productName}
                       </Link>
-                      <div className="text-xs font-medium text-slate-500 mt-0.5 truncate">{alert.sku}</div>
+                      <div className="text-xs font-medium text-slate-500 mt-0.5 truncate">
+                        {alert.sku}
+                      </div>
                     </div>
                     <div className="col-span-3 min-w-0">
-                      <div className={`font-bold text-slate-900 text-xs sm:text-sm ${alert.status === 'critical' ? 'text-red-600' : alert.status === 'low' ? 'text-orange-600' : ''}`}>
-                        {alert.currentStock.toLocaleString('en-US')} / {alert.maxStock.toLocaleString('en-US')}
+                      <div
+                        className={`font-bold text-slate-900 text-xs sm:text-sm ${alert.status === 'critical' ? 'text-red-600' : alert.status === 'low' ? 'text-orange-600' : ''}`}
+                      >
+                        {alert.currentStock.toLocaleString('en-US')} /{' '}
+                        {alert.maxStock.toLocaleString('en-US')}
                       </div>
                       <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1">
                         <div
                           className={`h-full transition-all ${
-                            alert.status === 'critical' ? 'bg-red-500' :
-                            alert.status === 'low' ? 'bg-orange-500' :
-                            alert.status === 'warning' ? 'bg-amber-500' : 'bg-green-500'
+                            alert.status === 'critical'
+                              ? 'bg-red-500'
+                              : alert.status === 'low'
+                                ? 'bg-orange-500'
+                                : alert.status === 'warning'
+                                  ? 'bg-amber-500'
+                                  : 'bg-green-500'
                           }`}
                           style={{ width: `${Math.min(stockPercentage, 100)}%` }}
                         />
@@ -295,19 +344,34 @@ export default function AlertsView() {
 
       {/* Edit Modal */}
       {editModal && editAlert && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setEditModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">حدود التنبيه — {editAlert.productName}</h2>
-              <button onClick={() => setEditModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+              <h2 className="text-xl font-black text-slate-900">
+                حدود التنبيه — {editAlert.productName}
+              </h2>
+              <button
+                onClick={() => setEditModal(false)}
+                className="p-2 hover:bg-slate-50 rounded-lg"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الحد الأدنى (نقطة التنبيه)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  الحد الأدنى (نقطة التنبيه)
+                </label>
                 <input
                   type="number"
                   value={formData.minStock}
-                  onChange={e => setFormData({ ...formData, minStock: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, minStock: Number(e.target.value) })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -316,25 +380,33 @@ export default function AlertsView() {
                 <input
                   type="number"
                   value={formData.maxStock}
-                  onChange={e => setFormData({ ...formData, maxStock: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, maxStock: Number(e.target.value) })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">نقطة إعادة الطلب</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  نقطة إعادة الطلب
+                </label>
                 <input
                   type="number"
                   value={formData.reorderPoint}
-                  onChange={e => setFormData({ ...formData, reorderPoint: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, reorderPoint: Number(e.target.value) })
+                  }
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">كمية إعادة الطلب</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  كمية إعادة الطلب
+                </label>
                 <input
                   type="number"
                   value={formData.reorderQuantity}
-                  onChange={e => setFormData({ ...formData, reorderQuantity: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, reorderQuantity: Number(e.target.value) })
+                  }
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>

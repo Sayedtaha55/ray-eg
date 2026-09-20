@@ -41,16 +41,25 @@ export default function ValuationView() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const data = await apiRequest(`/products/manage/by-shop/${sid}?limit=500`);
-      const list = Array.isArray(data) ? data : (data?.products || data?.data || []);
+      const list = Array.isArray(data) ? data : data?.products || data?.data || [];
       const map = new Map<string, ValuationRow>();
       list.forEach((p: any) => {
         const cat = p.category?.name || p.categoryName || 'غير مصنف';
         const qty = Number(p.stock ?? p.quantity ?? 0);
         const cost = Number(p.cost ?? p.costPrice ?? 0) || Number(p.price ?? 0);
         const retail = Number(p.price ?? 0);
-        const e = map.get(cat) || { category: cat, itemCount: 0, totalQty: 0, costValue: 0, retailValue: 0 };
+        const e = map.get(cat) || {
+          category: cat,
+          itemCount: 0,
+          totalQty: 0,
+          costValue: 0,
+          retailValue: 0,
+        };
         e.itemCount += 1;
         e.totalQty += qty;
         e.costValue += cost * qty;
@@ -58,43 +67,83 @@ export default function ValuationView() {
         map.set(cat, e);
       });
       setRows(Array.from(map.values()));
-    } catch { setRows([]); } finally { setLoading(false); }
+    } catch {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const filtered = useMemo(() => {
-    let result = rows.filter(r => r.category.includes(debouncedSearch));
+    let result = rows.filter((r) => r.category.includes(debouncedSearch));
     result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'category' ? a.category : sortBy === 'totalQty' ? a.totalQty : sortBy === 'retailValue' ? a.retailValue : a.costValue;
-      const bVal = sortBy === 'category' ? b.category : sortBy === 'totalQty' ? b.totalQty : sortBy === 'retailValue' ? b.retailValue : b.costValue;
+      const aVal =
+        sortBy === 'category'
+          ? a.category
+          : sortBy === 'totalQty'
+            ? a.totalQty
+            : sortBy === 'retailValue'
+              ? a.retailValue
+              : a.costValue;
+      const bVal =
+        sortBy === 'category'
+          ? b.category
+          : sortBy === 'totalQty'
+            ? b.totalQty
+            : sortBy === 'retailValue'
+              ? b.retailValue
+              : b.costValue;
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
-      return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+      return sortOrder === 'asc'
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number);
     });
     return result;
   }, [rows, debouncedSearch, sortBy, sortOrder]);
 
-  const totals = useMemo(() => ({
-    itemCount: rows.reduce((s, r) => s + r.itemCount, 0),
-    totalQty: rows.reduce((s, r) => s + r.totalQty, 0),
-    costValue: rows.reduce((s, r) => s + r.costValue, 0),
-    retailValue: rows.reduce((s, r) => s + r.retailValue, 0),
-  }), [rows]);
+  const totals = useMemo(
+    () => ({
+      itemCount: rows.reduce((s, r) => s + r.itemCount, 0),
+      totalQty: rows.reduce((s, r) => s + r.totalQty, 0),
+      costValue: rows.reduce((s, r) => s + r.costValue, 0),
+      retailValue: rows.reduce((s, r) => s + r.retailValue, 0),
+    }),
+    [rows]
+  );
 
   const expectedProfit = totals.retailValue - totals.costValue;
 
   const exportCSV = useCallback(() => {
     const headers = ['Category', 'Items', 'Qty', 'Cost Value', 'Retail Value', 'Expected Profit'];
-    const body = filtered.map(r => [r.category, r.itemCount, r.totalQty, Math.round(r.costValue), Math.round(r.retailValue), Math.round(r.retailValue - r.costValue)]);
-    const totalRow = ['الإجمالي', totals.itemCount, totals.totalQty, Math.round(totals.costValue), Math.round(totals.retailValue), Math.round(expectedProfit)];
-    const csvContent = [headers, ...body, totalRow].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'inventory-valuation.csv';
-    link.click();
+    const body = filtered.map((r) => [
+      r.category,
+      r.itemCount,
+      r.totalQty,
+      Math.round(r.costValue),
+      Math.round(r.retailValue),
+      Math.round(r.retailValue - r.costValue),
+    ]);
+    const totalRow = [
+      'الإجمالي',
+      totals.itemCount,
+      totals.totalQty,
+      Math.round(totals.costValue),
+      Math.round(totals.retailValue),
+      Math.round(expectedProfit),
+    ];
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob(
+        { filename: 'inventory-valuation.csv', headers, rows: [...body, totalRow] },
+        'csv'
+      );
+      downloadBlob(blob, 'inventory-valuation.csv');
+    });
   }, [filtered, totals, expectedProfit]);
 
   return (
@@ -171,22 +220,42 @@ export default function ValuationView() {
                     {r.category}
                   </div>
                 </div>
-                <div className="col-span-2 pr-4 font-semibold text-slate-600 text-xs sm:text-sm">{fmt(r.itemCount)}</div>
-                <div className="col-span-2 pr-4 font-semibold text-slate-600 text-xs sm:text-sm">{fmt(r.totalQty)}</div>
-                <div className="col-span-2 pr-4 font-bold text-slate-900 text-xs sm:text-sm">ج.م {fmt(r.costValue)}</div>
-                <div className="col-span-2 pr-4 font-bold text-sky-600 text-xs sm:text-sm">ج.م {fmt(r.retailValue)}</div>
+                <div className="col-span-2 pr-4 font-semibold text-slate-600 text-xs sm:text-sm">
+                  {fmt(r.itemCount)}
+                </div>
+                <div className="col-span-2 pr-4 font-semibold text-slate-600 text-xs sm:text-sm">
+                  {fmt(r.totalQty)}
+                </div>
+                <div className="col-span-2 pr-4 font-bold text-slate-900 text-xs sm:text-sm">
+                  ج.م {fmt(r.costValue)}
+                </div>
+                <div className="col-span-2 pr-4 font-bold text-sky-600 text-xs sm:text-sm">
+                  ج.م {fmt(r.retailValue)}
+                </div>
                 <div className="col-span-1 pr-4 font-bold text-emerald-600 text-xs sm:text-sm">
                   ج.م {fmt(r.retailValue - r.costValue)}
                 </div>
               </InvRow>
             ))}
             <div className="grid grid-cols-12 px-4 py-3 items-center bg-slate-50 border-t-2 border-slate-200">
-              <div className="col-span-3 text-right text-xs font-black text-slate-900">الإجمالي</div>
-              <div className="col-span-2 pr-4 text-right text-xs font-black text-slate-900">{fmt(totals.itemCount)}</div>
-              <div className="col-span-2 pr-4 text-right text-xs font-black text-slate-900">{fmt(totals.totalQty)}</div>
-              <div className="col-span-2 pr-4 text-right text-xs font-black text-slate-900">ج.م {fmt(totals.costValue)}</div>
-              <div className="col-span-2 pr-4 text-right text-xs font-black text-sky-700">ج.م {fmt(totals.retailValue)}</div>
-              <div className="col-span-1 pr-4 text-right text-xs font-black text-emerald-700">ج.م {fmt(expectedProfit)}</div>
+              <div className="col-span-3 text-right text-xs font-black text-slate-900">
+                الإجمالي
+              </div>
+              <div className="col-span-2 pr-4 text-right text-xs font-black text-slate-900">
+                {fmt(totals.itemCount)}
+              </div>
+              <div className="col-span-2 pr-4 text-right text-xs font-black text-slate-900">
+                {fmt(totals.totalQty)}
+              </div>
+              <div className="col-span-2 pr-4 text-right text-xs font-black text-slate-900">
+                ج.م {fmt(totals.costValue)}
+              </div>
+              <div className="col-span-2 pr-4 text-right text-xs font-black text-sky-700">
+                ج.م {fmt(totals.retailValue)}
+              </div>
+              <div className="col-span-1 pr-4 text-right text-xs font-black text-emerald-700">
+                ج.م {fmt(expectedProfit)}
+              </div>
             </div>
           </InvTableCard>
         )}

@@ -1,9 +1,8 @@
 package finance
 
 import (
-	"strings"
-
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/httpx"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/middleware"
 	"github.com/gofiber/fiber/v2"
 )
@@ -33,26 +32,13 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 }
 
 func fail(c *fiber.Ctx, status int, msg string) error {
-	return c.Status(status).JSON(map[string]any{"success": false, "error": msg})
+	return httpx.Fail(c, status, msg)
 }
 
 // resolveShop resolves the target shop from the path param, falling back to the
 // authenticated user's shop. Only an ADMIN may act on a shop not their own.
 func resolveShop(c *fiber.Ctx) (string, bool) {
-	user, uok := middleware.AuthUserFromContext(c)
-	if !uok {
-		_ = fail(c, fiber.StatusUnauthorized, "Unauthorized")
-		return "", false
-	}
-	shopID := c.Params("shopId")
-	if shopID == "" {
-		shopID = user.ShopID
-	}
-	if !strings.EqualFold(user.Role, "ADMIN") && shopID != user.ShopID {
-		_ = fail(c, fiber.StatusForbidden, "Forbidden")
-		return "", false
-	}
-	return shopID, true
+	return httpx.ResolveShop(c)
 }
 
 // ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@ import { Target, TrendingDown, CircleDollarSign, Activity, Gauge } from 'lucide-
 import { apiRequest } from '@/lib/auth';
 import { useShop } from '@/hooks/useShop';
 import { downloadCSV, type PeriodKey } from './financeShared';
+import { fmtNum, fmtEGP, fmtPct } from './InsightsShared';
 
 /* صفحة التحويلات — بيانات حقيقية من /analytics/shop/:id/conversions */
 
@@ -40,13 +41,6 @@ type ConversionsData = {
   total_revenue: number;
   avg_rate: number;
 };
-
-const LOCALE = 'ar-EG-u-nu-latn';
-const fmtNum = (n: number) =>
-  (Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 });
-const fmtEGP = (n: number) =>
-  `${(Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 })} ج.م`;
-const fmtPct = (n: number) => `${(Number.isFinite(n) ? n : 0).toFixed(1)}%`;
 
 /** فترة الصفحة → مدة تقرير التحويلات من الباك إند (7/30/90 يوم) */
 const periodToDays = (p: PeriodKey): '7' | '30' | '90' =>

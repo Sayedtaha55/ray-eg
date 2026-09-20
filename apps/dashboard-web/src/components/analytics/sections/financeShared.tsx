@@ -609,14 +609,11 @@ export function Donut({
 }
 
 /* ============================================================
- * تصدير CSV — نفس نمط صفحة التقارير
+ * تصدير CSV — تفويض لمحرك التصدير الموحد (BOM + escaping كامل)
  * ============================================================ */
 
-export function downloadCSV(name: string, headers: string[], rows: (string | number)[][]) {
-  const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = name;
-  link.click();
+export async function downloadCSV(name: string, headers: string[], rows: (string | number)[][]) {
+  const { buildExportBlob, downloadBlob } = await import('@/lib/export');
+  const blob = buildExportBlob({ filename: name, headers, rows }, 'csv');
+  downloadBlob(blob, name.endsWith('.csv') ? name : `${name}.csv`);
 }

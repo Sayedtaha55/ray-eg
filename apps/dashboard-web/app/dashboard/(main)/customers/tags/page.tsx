@@ -1,7 +1,33 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Tag, Search, Loader2, Plus, Edit, Trash2, Download, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info, Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, Users, Hash, Palette, TrendingUp, BarChart3 } from 'lucide-react';
+import {
+  Tag,
+  Search,
+  Loader2,
+  Plus,
+  Edit,
+  Trash2,
+  Download,
+  Filter,
+  ChevronUp,
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  X,
+  Info,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Users,
+  Hash,
+  Palette,
+  TrendingUp,
+  BarChart3,
+} from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
@@ -71,37 +97,49 @@ export default function CustomerTagsPage() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       // Load tags from the backend API
       const tagsData = await apiRequest(`/shops/${sid}/tags`);
       setTags(Array.isArray(tagsData) ? tagsData : []);
-      
+
       // Assignments (empty for now — assignment storage handled later)
       setAssignments([]);
-    } catch { setTags([]); } finally { setLoading(false); }
+    } catch {
+      setTags([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadTags(); }, [loadTags]);
+  useEffect(() => {
+    loadTags();
+  }, [loadTags]);
 
   const filtered = useMemo(() => {
-    let result = tags.filter(t =>
-      t.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      t.nameAr.includes(debouncedSearch)
+    let result = tags.filter(
+      (t) =>
+        t.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        t.nameAr.includes(debouncedSearch)
     );
 
     if (filterStatus !== 'all') {
-      result = result.filter(t => 
-        filterStatus === 'active' ? t.isActive : !t.isActive
-      );
+      result = result.filter((t) => (filterStatus === 'active' ? t.isActive : !t.isActive));
     }
 
     result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'customerCount' ? a.customerCount : sortBy === 'name' ? a.name : a.createdAt;
-      const bVal = sortBy === 'customerCount' ? b.customerCount : sortBy === 'name' ? b.name : b.createdAt;
+      const aVal =
+        sortBy === 'customerCount' ? a.customerCount : sortBy === 'name' ? a.name : a.createdAt;
+      const bVal =
+        sortBy === 'customerCount' ? b.customerCount : sortBy === 'name' ? b.name : b.createdAt;
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
-      return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+      return sortOrder === 'asc'
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number);
     });
 
     return result;
@@ -118,12 +156,12 @@ export default function CustomerTagsPage() {
     if (selectedIds.size === paginatedTags.length && paginatedTags.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(paginatedTags.map(t => t.id)));
+      setSelectedIds(new Set(paginatedTags.map((t) => t.id)));
     }
   }, [paginatedTags, selectedIds.size]);
 
   const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -146,7 +184,7 @@ export default function CustomerTagsPage() {
           isActive: true,
         }),
       });
-      setTags(prev => Array.isArray(created) ? [...prev, ...created] : [...prev, created]);
+      setTags((prev) => (Array.isArray(created) ? [...prev, ...created] : [...prev, created]));
       setAddModal(false);
       setFormData({ name: '', nameAr: '', color: TAG_COLORS[0], description: '' });
     } catch (error) {
@@ -169,7 +207,9 @@ export default function CustomerTagsPage() {
           description: formData.description,
         }),
       });
-      setTags(prev => prev.map(t => t.id === editTag.id ? (updated ? { ...t, ...updated } : t) : t));
+      setTags((prev) =>
+        prev.map((t) => (t.id === editTag.id ? (updated ? { ...t, ...updated } : t) : t))
+      );
       setEditModal(false);
       setEditTag(null);
       setFormData({ name: '', nameAr: '', color: TAG_COLORS[0], description: '' });
@@ -185,34 +225,41 @@ export default function CustomerTagsPage() {
       const sid = shopData?.id;
       if (!sid) return;
       await apiRequest(`/shops/${sid}/tags/${id}`, { method: 'DELETE' });
-      setTags(prev => prev.filter(t => t.id !== id));
+      setTags((prev) => prev.filter((t) => t.id !== id));
     } catch (error) {
       alert('حدث خطأ أثناء الحذف');
     }
   }, []);
 
-  const toggleActive = useCallback(async (id: string) => {
-    try {
-      const shopData = await apiRequest('/shops/me');
-      const sid = shopData?.id;
-      if (!sid) return;
-      const current = tags.find(t => t.id === id);
-      if (!current) return;
-      const updated = await apiRequest(`/shops/${sid}/tags/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          name: current.name,
-          nameAr: current.nameAr,
-          color: current.color,
-          description: current.description,
-          isActive: !current.isActive,
-        }),
-      });
-      setTags(prev => prev.map(t => t.id === id ? (updated ? { ...t, ...updated } : { ...t, isActive: !t.isActive }) : t));
-    } catch (error) {
-      alert('حدث خطأ أثناء تحديث الحالة');
-    }
-  }, [tags]);
+  const toggleActive = useCallback(
+    async (id: string) => {
+      try {
+        const shopData = await apiRequest('/shops/me');
+        const sid = shopData?.id;
+        if (!sid) return;
+        const current = tags.find((t) => t.id === id);
+        if (!current) return;
+        const updated = await apiRequest(`/shops/${sid}/tags/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: current.name,
+            nameAr: current.nameAr,
+            color: current.color,
+            description: current.description,
+            isActive: !current.isActive,
+          }),
+        });
+        setTags((prev) =>
+          prev.map((t) =>
+            t.id === id ? (updated ? { ...t, ...updated } : { ...t, isActive: !t.isActive }) : t
+          )
+        );
+      } catch (error) {
+        alert('حدث خطأ أثناء تحديث الحالة');
+      }
+    },
+    [tags]
+  );
 
   const handleAssign = useCallback(async () => {
     try {
@@ -225,32 +272,46 @@ export default function CustomerTagsPage() {
   }, [assignFormData]);
 
   const exportCSV = useCallback(() => {
-    const headers = ['Name', 'Name (Arabic)', 'Color', 'Description', 'Customer Count', 'Status', 'Created At'];
-    const rows = filtered.map(t => [
+    const headers = [
+      'Name',
+      'Name (Arabic)',
+      'Color',
+      'Description',
+      'Customer Count',
+      'Status',
+      'Created At',
+    ];
+    const rows = filtered.map((t) => [
       t.name,
       t.nameAr,
       t.color,
       t.description,
       t.customerCount,
       t.isActive ? 'Active' : 'Inactive',
-      t.createdAt
+      t.createdAt,
     ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'tags.csv';
-    link.click();
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob({ filename: 'tags.csv', headers, rows: [...rows] }, 'csv');
+      downloadBlob(blob, 'tags.csv');
+    });
   }, [filtered]);
 
   const stats = useMemo(() => {
     const totalCustomers = tags.reduce((s, tag) => s + tag.customerCount, 0);
-    const activeTags = tags.filter(t => t.isActive).length;
+    const activeTags = tags.filter((t) => t.isActive).length;
     return [
       { label: 'إجمالي الوسوم', value: tags.length, color: 'bg-blue-50 text-blue-600' },
       { label: 'وسوم نشطة', value: activeTags, color: 'bg-green-50 text-green-600' },
-      { label: 'إجمالي العملاء الموسومين', value: totalCustomers, color: 'bg-purple-50 text-purple-600' },
-      { label: 'متوسط وسوم لكل عميل', value: tags.length > 0 ? (totalCustomers / tags.length).toFixed(1) : '0', color: 'bg-amber-50 text-amber-600' },
+      {
+        label: 'إجمالي العملاء الموسومين',
+        value: totalCustomers,
+        color: 'bg-purple-50 text-purple-600',
+      },
+      {
+        label: 'متوسط وسوم لكل عميل',
+        value: tags.length > 0 ? (totalCustomers / tags.length).toFixed(1) : '0',
+        color: 'bg-amber-50 text-amber-600',
+      },
     ];
   }, [tags]);
 
@@ -279,7 +340,10 @@ export default function CustomerTagsPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((stat, idx) => (
-          <div key={idx} className={`p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end ${stat.color}`}>
+          <div
+            key={idx}
+            className={`p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end ${stat.color}`}
+          >
             <span className="text-slate-500 font-semibold text-xs mb-1">{stat.label}</span>
             <span className="text-xl sm:text-2xl font-bold text-slate-900">{stat.value}</span>
           </div>
@@ -290,7 +354,10 @@ export default function CustomerTagsPage() {
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+              size={18}
+            />
             <input
               type="text"
               placeholder="بحث..."
@@ -341,7 +408,7 @@ export default function CustomerTagsPage() {
           <button
             onClick={() => {
               if (confirm('هل أنت متأكد من حذف الوسوم المحددة؟')) {
-                setTags(prev => prev.filter(t => !selectedIds.has(t.id)));
+                setTags((prev) => prev.filter((t) => !selectedIds.has(t.id)));
                 setSelectedIds(new Set());
               }
             }}
@@ -372,10 +439,7 @@ export default function CustomerTagsPage() {
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: tag.color }}
-                  />
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: tag.color }} />
                   <div>
                     <span className="font-bold text-slate-900">{tag.name}</span>
                     <span className="text-xs text-slate-400 mx-1">•</span>
@@ -441,11 +505,12 @@ export default function CustomerTagsPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <span className="text-sm text-slate-500">
-            عرض {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} من {filtered.length}
+            عرض {(currentPage - 1) * itemsPerPage + 1} -{' '}
+            {Math.min(currentPage * itemsPerPage, filtered.length)} من {filtered.length}
           </span>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -455,7 +520,7 @@ export default function CustomerTagsPage() {
               صفحة {currentPage} من {totalPages}
             </span>
             <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -480,7 +545,9 @@ export default function CustomerTagsPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">الاسم (إنجليزي)</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1">
+                  الاسم (إنجليزي)
+                </label>
                 <input
                   type="text"
                   value={formData.name}
@@ -556,7 +623,9 @@ export default function CustomerTagsPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">الاسم (إنجليزي)</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1">
+                  الاسم (إنجليزي)
+                </label>
                 <input
                   type="text"
                   value={formData.name}
@@ -636,7 +705,9 @@ export default function CustomerTagsPage() {
                 <input
                   type="text"
                   value={assignFormData.customerId}
-                  onChange={(e) => setAssignFormData({ ...assignFormData, customerId: e.target.value })}
+                  onChange={(e) =>
+                    setAssignFormData({ ...assignFormData, customerId: e.target.value })
+                  }
                   placeholder="أدخل معرف العميل"
                   className="w-full p-3 rounded-xl border border-slate-200 text-sm font-bold focus:outline-none focus:border-slate-400"
                 />
@@ -649,9 +720,13 @@ export default function CustomerTagsPage() {
                   className="w-full p-3 rounded-xl border border-slate-200 text-sm font-bold focus:outline-none focus:border-slate-400"
                 >
                   <option value="">اختر وسم</option>
-                  {tags.filter(t => t.isActive).map((tag) => (
-                    <option key={tag.id} value={tag.id}>{tag.name} ({tag.nameAr})</option>
-                  ))}
+                  {tags
+                    .filter((t) => t.isActive)
+                    .map((tag) => (
+                      <option key={tag.id} value={tag.id}>
+                        {tag.name} ({tag.nameAr})
+                      </option>
+                    ))}
                 </select>
               </div>
             </div>

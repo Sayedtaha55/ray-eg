@@ -1,4 +1,7 @@
 const API_BASE = '/api/v1';
+// Namespaces this app's auth cookies (ray_session-dashboard) so dashboard and
+// marketplace sessions coexist on the same API host instead of clobbering.
+const APP_SCOPE = 'dashboard';
 
 export interface PageMeta {
   total: number;
@@ -46,7 +49,7 @@ export async function refreshAccessToken(): Promise<string | null> {
         const res = await fetch(`${API_BASE}/auth/refresh`, {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-App-Scope': APP_SCOPE },
           body: '{}',
         });
         if (!res.ok) return null;
@@ -80,6 +83,7 @@ export async function apiRequestWithMeta<T = any>(
   const csrf = getCsrf();
   const headers: Record<string, any> = {
     'Content-Type': 'application/json',
+    'X-App-Scope': APP_SCOPE,
     ...(options.headers || {}),
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -123,10 +127,7 @@ export async function apiRequestWithMeta<T = any>(
   return { data: raw as T, meta: null, raw };
 }
 
-export async function apiRequest<T = any>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
+export async function apiRequest<T = any>(path: string, options: RequestInit = {}): Promise<T> {
   const result = await apiRequestWithMeta<T>(path, options);
   return result.data;
 }

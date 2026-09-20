@@ -343,8 +343,23 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
 
   // ── products / menu / catalog ─────────────────────────────────────────────
   if (node.type === 'products') {
-    // Support both `products` (retail/auto) and `items` (restaurant)
-    const rawList: any[] = node.props.items || node.props.products || [];
+    // The shop's LIVE catalog always wins over the baked template items, so
+    // merchant sites show real products (same rule as published /site/ pages).
+    // Baked items are only a fallback for shops with no catalog products yet.
+    const bakedItems: any[] = node.props.items || node.props.products || [];
+    const liveList = ctxProducts || [];
+    const rawList: any[] =
+      liveList.length > 0
+        ? liveList.map((p) => ({
+            id: p.id,
+            name: p.name,
+            price: p.price,
+            priceFormatted: p.price != null ? `${p.price}` : '',
+            image: p.imageUrl || p.images?.[0] || '',
+            description: p.description || '',
+            category: p.category || '',
+          }))
+        : bakedItems;
     const categories: string[] = [
       'all',
       ...Array.from(new Set(rawList.map((i: any) => i.category).filter(Boolean))),

@@ -78,7 +78,10 @@ export interface AnalyzeImageMapPayload {
 }
 
 async function authedFetch(path: string, options: RequestInit = {}): Promise<any> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY) : '';
+  const token =
+    typeof window !== 'undefined'
+      ? localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY)
+      : '';
   const res = await fetch(`/api/v1${path}`, {
     ...options,
     headers: {
@@ -105,7 +108,7 @@ export const ImageMapApi = {
     const sid = String(shopId || '').trim();
     if (!sid) throw new Error('Missing shopId');
     const res = await authedFetch(`/shops/${encodeURIComponent(sid)}/image-maps/manage`);
-    return Array.isArray(res) ? res : (Array.isArray((res as any)?.items) ? (res as any).items : []);
+    return Array.isArray(res) ? res : Array.isArray((res as any)?.items) ? (res as any).items : [];
   },
 
   /** Create a new image map (used when uploading the first image). */
@@ -126,19 +129,23 @@ export const ImageMapApi = {
     if (!mid) throw new Error('Missing mapId');
     return await authedFetch(
       `/shops/${encodeURIComponent(sid)}/image-maps/${encodeURIComponent(mid)}/activate`,
-      { method: 'PATCH', body: JSON.stringify({}) },
+      { method: 'PATCH', body: JSON.stringify({}) }
     );
   },
 
   /** Persist the full layout (imageUrl, title, sections, hotspots) of a map. */
-  saveLayout: async (shopId: string, mapId: string, payload: SaveLayoutPayload): Promise<ImageMap> => {
+  saveLayout: async (
+    shopId: string,
+    mapId: string,
+    payload: SaveLayoutPayload
+  ): Promise<ImageMap> => {
     const sid = String(shopId || '').trim();
     const mid = String(mapId || '').trim();
     if (!sid) throw new Error('Missing shopId');
     if (!mid) throw new Error('Missing mapId');
     return await authedFetch(
       `/shops/${encodeURIComponent(sid)}/image-maps/${encodeURIComponent(mid)}/layout`,
-      { method: 'PATCH', body: JSON.stringify(payload) },
+      { method: 'PATCH', body: JSON.stringify(payload) }
     );
   },
 
@@ -155,7 +162,7 @@ export const ImageMapApi = {
   /** Fetch products for the manage view (optionally including image-map-linked ones). */
   listProductsForManage: async (
     shopId: string,
-    opts: { page?: number; limit?: number; includeImageMap?: boolean } = {},
+    opts: { page?: number; limit?: number; includeImageMap?: boolean } = {}
   ): Promise<any[]> => {
     const sid = String(shopId || '').trim();
     if (!sid) throw new Error('Missing shopId');
@@ -165,7 +172,7 @@ export const ImageMapApi = {
     if (opts.includeImageMap) params.set('includeImageMap', 'true');
     const qs = params.toString();
     const res = await authedFetch(
-      `/products/manage/by-shop/${encodeURIComponent(sid)}${qs ? `?${qs}` : ''}`,
+      `/products/manage/by-shop/${encodeURIComponent(sid)}${qs ? `?${qs}` : ''}`
     );
     if (Array.isArray(res)) return res;
     if (Array.isArray((res as any)?.products)) return (res as any).products;
@@ -177,24 +184,26 @@ export const ImageMapApi = {
   importDrafts: async (
     shopId: string,
     items: ImportDraftItem[],
-    source: string = 'image_map',
+    source: string = 'image_map'
   ): Promise<ImportDraftsResponse> => {
     const sid = String(shopId || '').trim();
     if (!sid) throw new Error('Missing shopId');
-    return await authedFetch(
-      `/products/manage/by-shop/${encodeURIComponent(sid)}/import-drafts`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ source, items }),
-      },
-    );
+    return await authedFetch(`/products/manage/by-shop/${encodeURIComponent(sid)}/import-drafts`, {
+      method: 'POST',
+      body: JSON.stringify({ source, items }),
+    });
   },
 
   /** Upload a media file (image) and return { url, key }. */
   uploadMedia: async (file: File, shopId?: string): Promise<{ url: string; key?: string }> => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY) : '';
+    const token =
+      typeof window !== 'undefined'
+        ? localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY)
+        : '';
+    const { compressForUpload } = await import('@/lib/upload-image');
+    const toUpload = await compressForUpload(file, 'map');
     const form = new FormData();
-    form.append('file', file);
+    form.append('file', toUpload);
     if (shopId) form.append('shopId', shopId);
     const res = await fetch(`/api/v1/media/upload`, {
       method: 'POST',

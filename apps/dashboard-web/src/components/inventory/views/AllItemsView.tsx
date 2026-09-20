@@ -50,39 +50,54 @@ export default function AllItemsView() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const raw = await apiRequest(`/products/manage/by-shop/${sid}?limit=500`);
-      const list = Array.isArray(raw) ? raw : (raw?.products || raw?.data || []);
+      const list = Array.isArray(raw) ? raw : raw?.products || raw?.data || [];
       setRows(list);
-    } catch { setRows([]); } finally { setLoading(false); }
+    } catch {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const products2 = useMemo(() => rows.map((p: any): Product => {
-    const stock = Number(p.stock ?? p.quantity ?? 0);
-    const price = Number(p.price ?? 0);
-    return {
-      id: String(p.id),
-      name: p.name || p.title || '---',
-      price,
-      stock,
-      cost: Number(p.cost ?? p.costPrice ?? 0) || price,
-      category: p.category?.name || (typeof p.category === 'string' ? p.category : '') || 'غير مصنف',
-      unit: p.unit,
-      imageUrl: p.imageUrl || p.image_url || '',
-      minStock: Number(p.minStock ?? 5),
-    };
-  }), [rows]);
+  const products2 = useMemo(
+    () =>
+      rows.map((p: any): Product => {
+        const stock = Number(p.stock ?? p.quantity ?? 0);
+        const price = Number(p.price ?? 0);
+        return {
+          id: String(p.id),
+          name: p.name || p.title || '---',
+          price,
+          stock,
+          cost: Number(p.cost ?? p.costPrice ?? 0) || price,
+          category:
+            p.category?.name || (typeof p.category === 'string' ? p.category : '') || 'غير مصنف',
+          unit: p.unit,
+          imageUrl: p.imageUrl || p.image_url || '',
+          minStock: Number(p.minStock ?? 5),
+        };
+      }),
+    [rows]
+  );
 
   const filtered = useMemo(() => {
-    let result = products2.filter(p =>
-      p.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      p.category.toLowerCase().includes(debouncedSearch.toLowerCase())
+    let result = products2.filter(
+      (p) =>
+        p.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        p.category.toLowerCase().includes(debouncedSearch.toLowerCase())
     );
-    if (filterStatus === 'low') result = result.filter(p => p.stock > 0 && p.stock <= p.minStock);
-    else if (filterStatus === 'out') result = result.filter(p => p.stock === 0);
-    else if (filterStatus === 'in') result = result.filter(p => p.stock > p.minStock);
+    if (filterStatus === 'low') result = result.filter((p) => p.stock > 0 && p.stock <= p.minStock);
+    else if (filterStatus === 'out') result = result.filter((p) => p.stock === 0);
+    else if (filterStatus === 'in') result = result.filter((p) => p.stock > p.minStock);
     return [...result].sort((a, b) => {
       let cmp = 0;
       if (sortBy === 'name') cmp = a.name.localeCompare(b.name, 'ar');
@@ -101,21 +116,32 @@ export default function AllItemsView() {
 
   const exportCSV = useCallback(() => {
     const headers = ['Product', 'Category', 'Stock', 'Unit', 'Cost', 'Price', 'Stock Value'];
-    const body = filtered.map(p => [p.name, p.category, p.stock, p.unit || '', p.cost, p.price, p.cost * p.stock]);
-    const csvContent = [headers, ...body].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'inventory-items.csv';
-    link.click();
+    const body = filtered.map((p) => [
+      p.name,
+      p.category,
+      p.stock,
+      p.unit || '',
+      p.cost,
+      p.price,
+      p.cost * p.stock,
+    ]);
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob(
+        { filename: 'inventory-items.csv', headers, rows: [...body] },
+        'csv'
+      );
+      downloadBlob(blob, 'inventory-items.csv');
+    });
   }, [filtered]);
 
-  const countLow = products2.filter(p => p.stock > 0 && p.stock <= p.minStock).length;
-  const countOut = products2.filter(p => p.stock === 0).length;
+  const countLow = products2.filter((p) => p.stock > 0 && p.stock <= p.minStock).length;
+  const countOut = products2.filter((p) => p.stock === 0).length;
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4 pb-10">
-      <InvToolbar hint={`${products2.length} صنف • قيمة إجمالية ج.م ${fmt(products2.reduce((s, p) => s + p.cost * p.stock, 0))}`}>
+      <InvToolbar
+        hint={`${products2.length} صنف • قيمة إجمالية ج.م ${fmt(products2.reduce((s, p) => s + p.cost * p.stock, 0))}`}
+      >
         <InvToolButton onClick={() => load()}>
           <RefreshCw size={14} />
           تحديث
@@ -193,16 +219,25 @@ export default function AllItemsView() {
                     >
                       <div className="w-9 h-9 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-300 shrink-0">
                         {p.imageUrl ? (
-                          <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                          <img
+                            src={p.imageUrl}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <Package size={14} />
                         )}
                       </div>
-                      <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">{p.name}</span>
+                      <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                        {p.name}
+                      </span>
                     </LinkDefault>
-                    <div className="col-span-2 pr-4 text-slate-500 text-xs sm:text-sm truncate">{p.category}</div>
+                    <div className="col-span-2 pr-4 text-slate-500 text-xs sm:text-sm truncate">
+                      {p.category}
+                    </div>
                     <div className="col-span-2 pr-4 font-semibold text-slate-900 text-xs sm:text-sm">
-                      {fmt(p.stock)}{p.unit ? ` ${p.unit}` : ''}
+                      {fmt(p.stock)}
+                      {p.unit ? ` ${p.unit}` : ''}
                     </div>
                     <div className="col-span-2 pr-4 font-bold text-slate-900 text-xs sm:text-sm flex items-center gap-1">
                       <Coins size={13} className="text-emerald-400" />
@@ -210,11 +245,17 @@ export default function AllItemsView() {
                     </div>
                     <div className="col-span-2 flex">
                       {out ? (
-                        <span className="text-[10px] font-black text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">نافد</span>
+                        <span className="text-[10px] font-black text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                          نافد
+                        </span>
                       ) : low ? (
-                        <span className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">منخفض</span>
+                        <span className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          منخفض
+                        </span>
                       ) : (
-                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">متاح</span>
+                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                          متاح
+                        </span>
                       )}
                     </div>
                   </InvRow>

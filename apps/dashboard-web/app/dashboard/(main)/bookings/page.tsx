@@ -3,14 +3,36 @@
 import React, { Suspense, useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
-  CalendarDays, ChevronLeft, ChevronRight, Plus, Download,
-  CheckCircle2, Clock, XCircle, Users, DollarSign,
-  Phone, MessageCircle, Stethoscope, BedDouble, Utensils,
-  Briefcase, Filter, Search, X, Loader2, Info, AlertCircle,
-  Settings, Check, Eye, ExternalLink, Sparkles,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Download,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  Users,
+  DollarSign,
+  Phone,
+  MessageCircle,
+  Stethoscope,
+  BedDouble,
+  Utensils,
+  Briefcase,
+  Filter,
+  Search,
+  X,
+  Loader2,
+  Info,
+  AlertCircle,
+  Settings,
+  Check,
+  Eye,
+  ExternalLink,
+  Sparkles,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
-import { addBookingViaBackend, updateBookingStatusViaBackend } from '@shared/services/api/modules/bookings';
+import { addBookingViaBackend, updateBookingStatusViaBackend } from '@/lib/api/bookings';
 import { BookingSettings } from '@/components/bookings/BookingSettings';
 
 /* ============================================================
@@ -41,21 +63,55 @@ type BookingItem = {
 };
 
 const ARABIC_MONTHS = [
-  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+  'يناير',
+  'فبراير',
+  'مارس',
+  'أبريل',
+  'مايو',
+  'يونيو',
+  'يوليو',
+  'أغسطس',
+  'سبتمبر',
+  'أكتوبر',
+  'نوفمبر',
+  'ديسمبر',
 ];
 
-const WEEK_DAYS = [
-  'السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة',
-];
+const WEEK_DAYS = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
 
-const ACTIVITY_META: Record<ActivityType, { label: string; icon: any; chip: string; dot: string }> = {
-  clinic: { label: 'عيادة', icon: Stethoscope, chip: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  hotel: { label: 'فندقة', icon: BedDouble, chip: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
-  table: { label: 'طاولة', icon: Utensils, chip: 'bg-violet-50 text-violet-700 border-violet-200', dot: 'bg-violet-500' },
-  consultation: { label: 'استشارة', icon: Briefcase, chip: 'bg-sky-50 text-sky-700 border-sky-200', dot: 'bg-sky-500' },
-  general: { label: 'حجز عام', icon: CalendarDays, chip: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-500' },
-};
+const ACTIVITY_META: Record<ActivityType, { label: string; icon: any; chip: string; dot: string }> =
+  {
+    clinic: {
+      label: 'عيادة',
+      icon: Stethoscope,
+      chip: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      dot: 'bg-emerald-500',
+    },
+    hotel: {
+      label: 'فندقة',
+      icon: BedDouble,
+      chip: 'bg-amber-50 text-amber-700 border-amber-200',
+      dot: 'bg-amber-500',
+    },
+    table: {
+      label: 'طاولة',
+      icon: Utensils,
+      chip: 'bg-violet-50 text-violet-700 border-violet-200',
+      dot: 'bg-violet-500',
+    },
+    consultation: {
+      label: 'استشارة',
+      icon: Briefcase,
+      chip: 'bg-sky-50 text-sky-700 border-sky-200',
+      dot: 'bg-sky-500',
+    },
+    general: {
+      label: 'حجز عام',
+      icon: CalendarDays,
+      chip: 'bg-slate-100 text-slate-700 border-slate-200',
+      dot: 'bg-slate-500',
+    },
+  };
 
 const STATUS_META: Record<UnifiedStatus, { label: string; chip: string }> = {
   PENDING: { label: 'بانتظار التأكيد', chip: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -69,17 +125,43 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 function normStatus(s: any): UnifiedStatus {
   const v = String(s || '').toUpperCase();
-  if (v === 'CONFIRMED' || v === 'COMPLETED' || v === 'CANCELLED' || v === 'EXPIRED') return v as UnifiedStatus;
+  if (v === 'CONFIRMED' || v === 'COMPLETED' || v === 'CANCELLED' || v === 'EXPIRED')
+    return v as UnifiedStatus;
   return 'PENDING';
 }
 
 function inferActivityType(raw: any): ActivityType {
-  const t = String(raw?.bookingActivityType || raw?.metadata?.bookingActivityType || raw?.type || '').toLowerCase();
+  const t = String(
+    raw?.bookingActivityType || raw?.metadata?.bookingActivityType || raw?.type || ''
+  ).toLowerCase();
   const name = String(raw?.itemName || raw?.serviceName || '').toLowerCase();
-  if (t.includes('clinic') || name.includes('عيادة') || name.includes('دكتور') || name.includes('كشف') || name.includes('طبيب')) return 'clinic';
-  if (t.includes('hotel') || t.includes('boarding') || name.includes('فندق') || name.includes('إيواء') || name.includes('استضافة')) return 'hotel';
-  if (t.includes('table') || t.includes('restaurant') || name.includes('طاولة') || name.includes('مطعم') || name.includes('عشاء') || name.includes('غداء')) return 'table';
-  if (t.includes('consult') || name.includes('استشارة') || name.includes('جلسة')) return 'consultation';
+  if (
+    t.includes('clinic') ||
+    name.includes('عيادة') ||
+    name.includes('دكتور') ||
+    name.includes('كشف') ||
+    name.includes('طبيب')
+  )
+    return 'clinic';
+  if (
+    t.includes('hotel') ||
+    t.includes('boarding') ||
+    name.includes('فندق') ||
+    name.includes('إيواء') ||
+    name.includes('استضافة')
+  )
+    return 'hotel';
+  if (
+    t.includes('table') ||
+    t.includes('restaurant') ||
+    name.includes('طاولة') ||
+    name.includes('مطعم') ||
+    name.includes('عشاء') ||
+    name.includes('غداء')
+  )
+    return 'table';
+  if (t.includes('consult') || name.includes('استشارة') || name.includes('جلسة'))
+    return 'consultation';
   return 'general';
 }
 
@@ -158,7 +240,10 @@ function BookingsMainContent() {
 
       const list: BookingItem[] = [
         ...webList.map((b: any): BookingItem => {
-          const rawDate = b.bookingDate || (b.startAt ? b.startAt.slice(0, 10) : '') || (b.createdAt ? b.createdAt.slice(0, 10) : formatDateKey(new Date()));
+          const rawDate =
+            b.bookingDate ||
+            (b.startAt ? b.startAt.slice(0, 10) : '') ||
+            (b.createdAt ? b.createdAt.slice(0, 10) : formatDateKey(new Date()));
           const rawTime = b.bookingTime || (b.startAt ? b.startAt.slice(11, 16) : '10:00');
           const whenIso = b.startAt || `${rawDate}T${rawTime}:00`;
           return {
@@ -181,8 +266,12 @@ function BookingsMainContent() {
           };
         }),
         ...intList.map((r: any): BookingItem => {
-          const rawDate = r.reservationDate || (r.startTime ? r.startTime.slice(0, 10) : '') || (r.createdAt ? r.createdAt.slice(0, 10) : formatDateKey(new Date()));
-          const rawTime = r.startTime && r.startTime.length >= 16 ? r.startTime.slice(11, 16) : '10:00';
+          const rawDate =
+            r.reservationDate ||
+            (r.startTime ? r.startTime.slice(0, 10) : '') ||
+            (r.createdAt ? r.createdAt.slice(0, 10) : formatDateKey(new Date()));
+          const rawTime =
+            r.startTime && r.startTime.length >= 16 ? r.startTime.slice(11, 16) : '10:00';
           const whenIso = r.startTime || `${rawDate}T${rawTime}:00`;
           return {
             id: `int-${r.id}`,
@@ -255,9 +344,7 @@ function BookingsMainContent() {
     try {
       const realId = item.raw?.id || item.id.replace(/^(web|int)-/, '');
       await updateBookingStatusViaBackend(String(realId), newStatus);
-      setBookings((prev) =>
-        prev.map((x) => (x.id === item.id ? { ...x, status: newStatus } : x))
-      );
+      setBookings((prev) => prev.map((x) => (x.id === item.id ? { ...x, status: newStatus } : x)));
       if (selectedBooking && selectedBooking.id === item.id) {
         setSelectedBooking({ ...selectedBooking, status: newStatus });
       }
@@ -268,7 +355,17 @@ function BookingsMainContent() {
 
   // Export CSV
   const handleExportCSV = () => {
-    const headers = ['ID', 'Type', 'Service', 'Customer', 'Phone', 'Date', 'Time', 'Price', 'Status'];
+    const headers = [
+      'ID',
+      'Type',
+      'Service',
+      'Customer',
+      'Phone',
+      'Date',
+      'Time',
+      'Price',
+      'Status',
+    ];
     const rows = bookings.map((b) => [
       b.id,
       ACTIVITY_META[b.activityType].label,
@@ -280,13 +377,13 @@ function BookingsMainContent() {
       b.price,
       STATUS_META[b.status].label,
     ]);
-    const csvContent = [headers, ...rows].map((e) => e.join(',')).join('\n');
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `bookings-${formatDateKey(new Date())}.csv`;
-    link.click();
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob(
+        { filename: `bookings-${formatDateKey(new Date())}.csv`, headers, rows: [...rows] },
+        'csv'
+      );
+      downloadBlob(blob, `bookings-${formatDateKey(new Date())}.csv`);
+    });
   };
 
   // If ?tab=settings, render settings directly
@@ -323,8 +420,12 @@ function BookingsMainContent() {
             <CalendarDays size={20} />
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight">مواعيد الحجوزات</h1>
-            <p className="text-[11px] font-medium text-slate-400">جدول الحجوزات والمواعيد الشامل (عيادات، فندقة، طاولات، وخدمات)</p>
+            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight">
+              مواعيد الحجوزات
+            </h1>
+            <p className="text-[11px] font-medium text-slate-400">
+              جدول الحجوزات والمواعيد الشامل (عيادات، فندقة، طاولات، وخدمات)
+            </p>
           </div>
         </div>
 
@@ -574,7 +675,7 @@ function MonthCalendarView({
   }
 
   // Split into 6 rows
-  const weeks: typeof gridCells[] = [];
+  const weeks: (typeof gridCells)[] = [];
   for (let i = 0; i < 42; i += 7) {
     weeks.push(gridCells.slice(i, i + 7));
   }
@@ -607,11 +708,15 @@ function MonthCalendarView({
           {weeks.map((week, wIdx) => {
             const rowWeekNum = week[0].weekNumber;
             return (
-              <div key={wIdx} className="grid grid-cols-7 divide-x divide-x-reverse divide-slate-200 min-h-[110px] sm:min-h-[125px]">
+              <div
+                key={wIdx}
+                className="grid grid-cols-7 divide-x divide-x-reverse divide-slate-200 min-h-[110px] sm:min-h-[125px]"
+              >
                 {week.map((cell, cIdx) => {
                   const dayBookings = bookingsByDate.get(cell.dateStr) || [];
                   const isToday = cell.dateStr === todayStr;
-                  const isHighlighted = isToday || (cell.monthType === 'current' && cell.dayNumber === 16); // exact yellow tint like screenshot
+                  const isHighlighted =
+                    isToday || (cell.monthType === 'current' && cell.dayNumber === 16); // exact yellow tint like screenshot
 
                   return (
                     <div
@@ -621,8 +726,8 @@ function MonthCalendarView({
                         cell.monthType !== 'current'
                           ? 'bg-slate-50/40 text-slate-300'
                           : isHighlighted
-                          ? 'bg-[#FEF9C3]/80 hover:bg-[#FEF9C3]' // Exact warm amber/yellow highlight as in screenshot
-                          : 'bg-white hover:bg-slate-50/60 text-slate-800'
+                            ? 'bg-[#FEF9C3]/80 hover:bg-[#FEF9C3]' // Exact warm amber/yellow highlight as in screenshot
+                            : 'bg-white hover:bg-slate-50/60 text-slate-800'
                       }`}
                     >
                       {/* Cell Header: Day number + Week label (only on first cell of row or Saturday) */}
@@ -632,8 +737,8 @@ function MonthCalendarView({
                             cell.monthType !== 'current'
                               ? 'text-slate-400'
                               : isToday
-                              ? 'text-slate-900 font-black'
-                              : 'text-slate-700'
+                                ? 'text-slate-900 font-black'
+                                : 'text-slate-700'
                           }`}
                         >
                           {cell.dayNumber}
@@ -663,7 +768,9 @@ function MonthCalendarView({
                             >
                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${act.dot}`} />
                               <span className="truncate">{b.itemName}</span>
-                              <span className="text-[9px] text-slate-500 mr-auto shrink-0 tabular-nums">{b.timeStr}</span>
+                              <span className="text-[9px] text-slate-500 mr-auto shrink-0 tabular-nums">
+                                {b.timeStr}
+                              </span>
                             </button>
                           );
                         })}
@@ -725,7 +832,9 @@ function WeekCalendarView({
         {days.map((d, i) => (
           <div key={i} className="space-y-1">
             <div>{WEEK_DAYS[i]}</div>
-            <div className={`text-base font-black tabular-nums ${formatDateKey(d) === todayStr ? 'text-indigo-600' : 'text-slate-900'}`}>
+            <div
+              className={`text-base font-black tabular-nums ${formatDateKey(d) === todayStr ? 'text-indigo-600' : 'text-slate-900'}`}
+            >
               {d.getDate()}
             </div>
           </div>
@@ -759,10 +868,14 @@ function WeekCalendarView({
                       className="p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-all shadow-sm space-y-1"
                     >
                       <div className="flex items-center justify-between gap-1">
-                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${act.chip}`}>
+                        <span
+                          className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${act.chip}`}
+                        >
                           {act.label}
                         </span>
-                        <span className="text-[10px] font-bold text-slate-500 tabular-nums">{b.timeStr}</span>
+                        <span className="text-[10px] font-bold text-slate-500 tabular-nums">
+                          {b.timeStr}
+                        </span>
                       </div>
                       <p className="text-xs font-bold text-slate-900 truncate">{b.itemName}</p>
                       <p className="text-[10px] text-slate-500 truncate">{b.customerName}</p>
@@ -801,7 +914,13 @@ function DayCalendarView({
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div>
           <h3 className="text-base font-extrabold text-slate-900">
-            حجوزات يوم {currentDate.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            حجوزات يوم{' '}
+            {currentDate.toLocaleDateString('ar-EG', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">إجمالي {dayBookings.length} موعد مسجل</p>
         </div>
@@ -819,7 +938,9 @@ function DayCalendarView({
         <div className="py-16 text-center space-y-2">
           <CalendarDays size={36} className="text-slate-300 mx-auto" />
           <p className="text-sm font-bold text-slate-600">لا توجد مواعيد محجوزة في هذا اليوم</p>
-          <p className="text-xs text-slate-400">يمكنك النقر على الزر أعلاه لإضافة حجز يدوي مباشر.</p>
+          <p className="text-xs text-slate-400">
+            يمكنك النقر على الزر أعلاه لإضافة حجز يدوي مباشر.
+          </p>
         </div>
       ) : (
         <div className="space-y-2 divide-y divide-slate-50">
@@ -836,18 +957,25 @@ function DayCalendarView({
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-12 h-12 rounded-xl bg-slate-100 flex flex-col items-center justify-center shrink-0">
-                      <span className="text-xs font-extrabold text-slate-900 tabular-nums">{b.timeStr}</span>
+                      <span className="text-xs font-extrabold text-slate-900 tabular-nums">
+                        {b.timeStr}
+                      </span>
                       <span className="text-[9px] text-slate-400 font-medium">موعد</span>
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${act.chip}`}>
+                        <span
+                          className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${act.chip}`}
+                        >
                           {act.label}
                         </span>
-                        <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">{b.itemName}</h4>
+                        <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">
+                          {b.itemName}
+                        </h4>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1">
-                        العميل: <span className="font-bold text-slate-700">{b.customerName}</span> {b.customerPhone && `• ${b.customerPhone}`}
+                        العميل: <span className="font-bold text-slate-700">{b.customerName}</span>{' '}
+                        {b.customerPhone && `• ${b.customerPhone}`}
                       </p>
                     </div>
                   </div>
@@ -857,7 +985,9 @@ function DayCalendarView({
                         {b.price.toLocaleString('en-US')} ج.م
                       </span>
                     )}
-                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${st.chip}`}>
+                    <span
+                      className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${st.chip}`}
+                    >
                       {st.label}
                     </span>
                   </div>
@@ -894,18 +1024,20 @@ function AgendaView({
   onSelectBooking: (b: BookingItem) => void;
 }) {
   const filtered = useMemo(() => {
-    return bookings.filter((b) => {
-      if (statusFilter !== 'all' && b.status !== statusFilter) return false;
-      if (typeFilter !== 'all' && b.activityType !== typeFilter) return false;
-      if (search.trim()) {
-        const q = search.toLowerCase();
-        const matchName = b.customerName.toLowerCase().includes(q);
-        const matchService = b.itemName.toLowerCase().includes(q);
-        const matchPhone = b.customerPhone.includes(q);
-        if (!matchName && !matchService && !matchPhone) return false;
-      }
-      return true;
-    }).sort((a, b) => b.when.localeCompare(a.when));
+    return bookings
+      .filter((b) => {
+        if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+        if (typeFilter !== 'all' && b.activityType !== typeFilter) return false;
+        if (search.trim()) {
+          const q = search.toLowerCase();
+          const matchName = b.customerName.toLowerCase().includes(q);
+          const matchService = b.itemName.toLowerCase().includes(q);
+          const matchPhone = b.customerPhone.includes(q);
+          if (!matchName && !matchService && !matchPhone) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => b.when.localeCompare(a.when));
   }, [bookings, search, statusFilter, typeFilter]);
 
   return (
@@ -913,7 +1045,10 @@ function AgendaView({
       {/* Search & Filter Controls */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-72">
-          <Search size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search
+            size={14}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+          />
           <input
             type="text"
             value={search}
@@ -980,7 +1115,9 @@ function AgendaView({
                   >
                     <td className="py-3 pr-3">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${act.chip}`}>
+                        <span
+                          className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${act.chip}`}
+                        >
                           {act.label}
                         </span>
                         <span className="font-bold text-slate-900">{b.itemName}</span>
@@ -989,7 +1126,11 @@ function AgendaView({
                     <td className="py-3">
                       <div>
                         <span className="font-bold text-slate-800">{b.customerName}</span>
-                        {b.customerPhone && <span className="text-[10px] text-slate-400 block" dir="ltr">{b.customerPhone}</span>}
+                        {b.customerPhone && (
+                          <span className="text-[10px] text-slate-400 block" dir="ltr">
+                            {b.customerPhone}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="py-3 text-slate-600 font-medium tabular-nums">
@@ -999,7 +1140,9 @@ function AgendaView({
                       {b.price > 0 ? `${b.price.toLocaleString('en-US')} ج.م` : '—'}
                     </td>
                     <td className="py-3">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${st.chip}`}>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${st.chip}`}
+                      >
                         {st.label}
                       </span>
                     </td>
@@ -1089,13 +1232,20 @@ function AddBookingModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto" dir="rtl">
+      <div
+        className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto"
+        dir="rtl"
+      >
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
           <div className="flex items-center gap-2">
             <CalendarDays size={18} className="text-slate-700" />
             <h3 className="text-base font-extrabold text-slate-900">إضافة حجز يدوي جديد</h3>
           </div>
-          <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded-lg hover:bg-slate-100 text-slate-400"
+          >
             <X size={18} />
           </button>
         </div>
@@ -1103,7 +1253,9 @@ function AddBookingModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* نوع النشاط */}
           <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1.5">نوع الحجز / النشاط</label>
+            <label className="text-xs font-bold text-slate-700 block mb-1.5">
+              نوع الحجز / النشاط
+            </label>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
               {(Object.keys(ACTIVITY_META) as ActivityType[]).map((t) => {
                 const act = ACTIVITY_META[t];
@@ -1130,7 +1282,9 @@ function AddBookingModal({
 
           {/* اسم الخدمة */}
           <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">اسم الخدمة أو الحجز *</label>
+            <label className="text-xs font-bold text-slate-700 block mb-1">
+              اسم الخدمة أو الحجز *
+            </label>
             <input
               type="text"
               value={itemName}
@@ -1204,7 +1358,9 @@ function AddBookingModal({
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">عدد الأفراد / الحيوانات</label>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                عدد الأفراد / الحيوانات
+              </label>
               <input
                 type="number"
                 value={participants}
@@ -1276,16 +1432,25 @@ function BookingDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100" dir="rtl">
+      <div
+        className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100"
+        dir="rtl"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
           <div className="flex items-center gap-2">
             <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${act.chip}`}>
               {act.label}
             </span>
-            <h3 className="text-sm font-extrabold text-slate-900 truncate max-w-[220px]">{booking.itemName}</h3>
+            <h3 className="text-sm font-extrabold text-slate-900 truncate max-w-[220px]">
+              {booking.itemName}
+            </h3>
           </div>
-          <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded-lg hover:bg-slate-100 text-slate-400"
+          >
             <X size={18} />
           </button>
         </div>
@@ -1417,7 +1582,11 @@ function BookingDetailModal({
 
 export default function BookingsUnifiedPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm font-bold text-slate-400">جاري التحميل...</div>}>
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-sm font-bold text-slate-400">جاري التحميل...</div>
+      }
+    >
       <BookingsMainContent />
     </Suspense>
   );

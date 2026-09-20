@@ -7,19 +7,15 @@
   "exports": {
     ".": "./src/index.ts",
     "./types": "./src/types/index.ts",
-    "./services": "./src/services/index.ts",
-    "./services/api": "./src/services/api/index.ts",
-    "./i18n/react": "./src/i18n/react.ts",
-    "./utils": "./src/utils/index.ts",
-    "./hooks": "./src/hooks/index.ts",
+    "./types/*": "./src/types/*",
+    "./i18n": "./src/i18n/index.ts",
+    "./i18n/locales/*": "./src/i18n/locales/*",
     "./components": "./src/components/index.ts",
     "./components/common": "./src/components/common/index.ts",
     "./components/common/*": "./src/components/common/*",
     "./builder": "./src/builder/index.ts",
     "./builder/*": "./src/builder/*",
-    "./dto": "./src/dto/index.ts",
-    "./lib": "./src/lib/index.ts",
-    "./constants": "./src/constants.ts"
+    "./utils/*": "./src/utils/*"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
@@ -27,12 +23,10 @@
   "dependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.17.0",
+    "lucide-react": "^0.454.0",
     "i18next": "^23.15.0",
     "react-i18next": "^15.1.0",
-    "lucide-react": "^0.454.0",
-    "axios": "^1.7.0",
-    "zustand": "^4.5.0"
+    "@tanstack/react-query": "^5.90.0"
   },
   "peerDependencies": {
     "react": "^19.0.0",

@@ -17,7 +17,10 @@ interface MapPinItem {
   longitude: number;
 }
 
-interface Coords { lat: number; lng: number }
+interface Coords {
+  lat: number;
+  lng: number;
+}
 
 export default function MapPage() {
   const router = useRouter();
@@ -57,8 +60,18 @@ export default function MapPage() {
 
   useEffect(() => {
     loadPins();
-    const timer = setInterval(loadPins, 20000);
-    return () => clearInterval(timer);
+    // Skip the refresh while the tab is hidden; reload once when it returns.
+    const timer = setInterval(() => {
+      if (!document.hidden) loadPins();
+    }, 20000);
+    const onVisible = () => {
+      if (!document.hidden) loadPins();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [loadPins]);
 
   useEffect(() => {
@@ -72,9 +85,12 @@ export default function MapPage() {
         if (cancelled) return;
         leafletRef.current = L;
 
-        const markerIcon = (await import('leaflet/dist/images/marker-icon.png')).default as unknown as string;
-        const markerIcon2x = (await import('leaflet/dist/images/marker-icon-2x.png')).default as unknown as string;
-        const markerShadow = (await import('leaflet/dist/images/marker-shadow.png')).default as unknown as string;
+        const markerIcon = (await import('leaflet/dist/images/marker-icon.png'))
+          .default as unknown as string;
+        const markerIcon2x = (await import('leaflet/dist/images/marker-icon-2x.png'))
+          .default as unknown as string;
+        const markerShadow = (await import('leaflet/dist/images/marker-shadow.png'))
+          .default as unknown as string;
 
         const defaultIcon = L.icon({
           iconUrl: markerIcon,
@@ -236,7 +252,13 @@ export default function MapPage() {
               className="w-full py-4 bg-brand-black text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-slate-800 transition-all"
               style={{ touchAction: 'manipulation' }}
             >
-              {locating ? <Loader2 className="animate-spin w-4 h-4" /> : <><MapPin className="w-4 h-4" /> حدد موقعي</>}
+              {locating ? (
+                <Loader2 className="animate-spin w-4 h-4" />
+              ) : (
+                <>
+                  <MapPin className="w-4 h-4" /> حدد موقعي
+                </>
+              )}
             </button>
 
             <div className="text-xs font-semibold text-slate-500 text-center">

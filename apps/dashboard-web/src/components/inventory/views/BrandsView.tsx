@@ -40,54 +40,85 @@ export default function BrandsView() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const data = await apiRequest(`/products/manage/by-shop/${sid}?limit=500`);
-      const list = Array.isArray(data) ? data : (data?.products || data?.data || []);
+      const list = Array.isArray(data) ? data : data?.products || data?.data || [];
       const map = new Map<string, BrandRow>();
       list.forEach((p: any) => {
         const brand = String(p?.brand || '').trim();
         if (!brand) return;
         const stock = Number(p.stock ?? p.quantity ?? 0);
         const price = Number(p.price ?? 0);
-        const e = map.get(brand) || { id: brand, name: brand, productCount: 0, totalStock: 0, stockValue: 0 };
+        const e = map.get(brand) || {
+          id: brand,
+          name: brand,
+          productCount: 0,
+          totalStock: 0,
+          stockValue: 0,
+        };
         e.productCount += 1;
         e.totalStock += stock;
         e.stockValue += stock * price;
         map.set(brand, e);
       });
       setBrands(Array.from(map.values()));
-    } catch { setBrands([]); } finally { setLoading(false); }
+    } catch {
+      setBrands([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadBrands(); }, [loadBrands]);
+  useEffect(() => {
+    loadBrands();
+  }, [loadBrands]);
 
   const filtered = useMemo(() => {
-    let result = brands.filter(b => b.name.toLowerCase().includes(debouncedSearch.toLowerCase()));
+    let result = brands.filter((b) => b.name.toLowerCase().includes(debouncedSearch.toLowerCase()));
     result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'name' ? a.name : sortBy === 'stockValue' ? a.stockValue : sortBy === 'totalStock' ? a.totalStock : a.productCount;
-      const bVal = sortBy === 'name' ? b.name : sortBy === 'stockValue' ? b.stockValue : sortBy === 'totalStock' ? b.totalStock : b.productCount;
+      const aVal =
+        sortBy === 'name'
+          ? a.name
+          : sortBy === 'stockValue'
+            ? a.stockValue
+            : sortBy === 'totalStock'
+              ? a.totalStock
+              : a.productCount;
+      const bVal =
+        sortBy === 'name'
+          ? b.name
+          : sortBy === 'stockValue'
+            ? b.stockValue
+            : sortBy === 'totalStock'
+              ? b.totalStock
+              : b.productCount;
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
-      return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+      return sortOrder === 'asc'
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number);
     });
     return result;
   }, [brands, debouncedSearch, sortBy, sortOrder]);
 
   const exportCSV = useCallback(() => {
     const headers = ['Brand', 'Products', 'Total Stock', 'Stock Value'];
-    const rows = filtered.map(b => [b.name, b.productCount, b.totalStock, b.stockValue]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'brands.csv';
-    link.click();
+    const rows = filtered.map((b) => [b.name, b.productCount, b.totalStock, b.stockValue]);
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob({ filename: 'brands.csv', headers, rows: [...rows] }, 'csv');
+      downloadBlob(blob, 'brands.csv');
+    });
   }, [filtered]);
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4 pb-10">
-      <InvToolbar hint={`${brands.length} علامة تجارية • ${filtered.reduce((s, b) => s + b.productCount, 0)} منتج مرتبط`}>
+      <InvToolbar
+        hint={`${brands.length} علامة تجارية • ${filtered.reduce((s, b) => s + b.productCount, 0)} منتج مرتبط`}
+      >
         <InvToolButton onClick={exportCSV}>
           <Download size={14} />
           تصدير CSV
@@ -150,7 +181,9 @@ export default function BrandsView() {
                   <span className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
                     <Tags size={16} />
                   </span>
-                  <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">{b.name}</span>
+                  <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                    {b.name}
+                  </span>
                 </div>
                 <div className="col-span-2 pr-4 font-semibold text-slate-900 text-xs sm:text-sm flex items-center gap-1.5">
                   <Package size={13} className="text-slate-400" />

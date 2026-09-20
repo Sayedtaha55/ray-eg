@@ -84,6 +84,7 @@ const parseNumberInput = (value: any) => {
   return Number(cleaned);
 };
 
+import { compressForUpload } from '@/lib/upload-image';
 export default function GiftCardAddProductPage() {
   const { shop } = useShop();
   const router = useRouter();
@@ -148,7 +149,11 @@ export default function GiftCardAddProductPage() {
       setIsActive(p.isActive !== false);
       setBrand(String(p.brand || ''));
 
-      const ex = (p.extraData || {}) as ProductExtraData & { digitalCodes?: string[]; codeType?: string; targetCountry?: string };
+      const ex = (p.extraData || {}) as ProductExtraData & {
+        digitalCodes?: string[];
+        codeType?: string;
+        targetCountry?: string;
+      };
       setExtraData({ ...defaultExtraData(), ...ex, requiresShipping: false });
       setCostPrice(ex.costPrice != null ? String(ex.costPrice) : '');
       setGoogleCategory(String(ex.googleCategory || 'وسائط'));
@@ -201,10 +206,10 @@ export default function GiftCardAddProductPage() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      setImageFile(await compressForUpload(file, 'product'));
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageUrl(reader.result as string);
@@ -467,7 +472,8 @@ export default function GiftCardAddProductPage() {
             <div className="text-center py-2">
               <p className="text-xs font-black text-slate-700 mb-1.5">أضف المعلومات الأساسية</p>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                تُظهر المعاينة الصورة، الاسم، السعر، السعر المخفض, العنوان الفرعي والترويجي. ستتمكن من معاينة صفحة المنتج الكاملة على ثيم متجرك بعد الحفظ.
+                تُظهر المعاينة الصورة، الاسم، السعر، السعر المخفض, العنوان الفرعي والترويجي. ستتمكن
+                من معاينة صفحة المنتج الكاملة على ثيم متجرك بعد الحفظ.
               </p>
             </div>
           )}
@@ -492,7 +498,8 @@ export default function GiftCardAddProductPage() {
                 e.preventDefault();
                 setDragOver(false);
                 const file = e.dataTransfer.files?.[0];
-                if (file && file.type.startsWith('image/')) handleImageUpload({ target: { files: [file] } } as any);
+                if (file && file.type.startsWith('image/'))
+                  handleImageUpload({ target: { files: [file] } } as any);
               }}
               className={`rounded-2xl border-2 border-dashed p-5 text-center transition-all ${
                 dragOver ? 'border-teal-400 bg-teal-50/50' : 'border-slate-200 bg-slate-50/40'
@@ -511,7 +518,12 @@ export default function GiftCardAddProductPage() {
                   <div className="flex items-center gap-2 mt-2">
                     <label className="inline-block px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-all shadow-2xs">
                       اختار من المعرض
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
                     </label>
                   </div>
                 </div>
@@ -530,7 +542,8 @@ export default function GiftCardAddProductPage() {
             {/* Name */}
             <div className="text-right">
               <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
-                اسم المنتج <span className="text-red-500">*</span> <Info size={13} className="text-slate-300" />
+                اسم المنتج <span className="text-red-500">*</span>{' '}
+                <Info size={13} className="text-slate-300" />
               </label>
               <div className="relative">
                 <input
@@ -563,7 +576,9 @@ export default function GiftCardAddProductPage() {
                     className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
                     placeholder="0.00"
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">#</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">
+                    #
+                  </span>
                 </div>
               </div>
 
@@ -582,7 +597,9 @@ export default function GiftCardAddProductPage() {
                     className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
                     placeholder="أدخل سعر التكلفة"
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">#</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">
+                    #
+                  </span>
                 </div>
               </div>
             </div>
@@ -669,7 +686,9 @@ export default function GiftCardAddProductPage() {
                   className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
                   placeholder="تصنيف محلي"
                 />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 text-sm">👑</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 text-sm">
+                  👑
+                </span>
               </div>
             </div>
 
@@ -794,7 +813,9 @@ export default function GiftCardAddProductPage() {
                     type="button"
                     onClick={() => setInputMode('manual')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      inputMode === 'manual' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'
+                      inputMode === 'manual'
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-500'
                     }`}
                   >
                     إدخال يدوي
@@ -835,10 +856,17 @@ export default function GiftCardAddProductPage() {
               ) : (
                 <div className="p-5 border-2 border-dashed border-slate-200 rounded-xl text-center space-y-2 bg-slate-50/50">
                   <FileSpreadsheet size={32} className="mx-auto text-slate-400" />
-                  <p className="text-xs font-bold text-slate-700">ارفع ملف نصي (.txt أو .csv) يحتوي على كود بكل سطر</p>
+                  <p className="text-xs font-bold text-slate-700">
+                    ارفع ملف نصي (.txt أو .csv) يحتوي على كود بكل سطر
+                  </p>
                   <label className="inline-block px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs">
                     اختيار ملف الأكواد
-                    <input type="file" accept=".txt,.csv" onChange={handleFileUpload} className="hidden" />
+                    <input
+                      type="file"
+                      accept=".txt,.csv"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
                   </label>
                 </div>
               )}
@@ -937,9 +965,7 @@ export default function GiftCardAddProductPage() {
               </button>
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block">
-                اسم التصنيف *
-              </label>
+              <label className="text-xs font-bold text-slate-500 mb-1 block">اسم التصنيف *</label>
               <input
                 type="text"
                 value={newCategoryName}
@@ -970,4 +996,3 @@ export default function GiftCardAddProductPage() {
     </div>
   );
 }
-

@@ -31,6 +31,7 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	g.Get("/:id", h.GetByID)
 
 	g.Get("/manage/by-shop/:shopId", middleware.RequireAuth(h.cfg), requireRolesMiddleware(auth.RoleMerchant, auth.RoleAdmin), h.ListManage)
+	g.Post("/manage/by-shop/:shopId/import-drafts", middleware.RequireAuth(h.cfg), requireRolesMiddleware(auth.RoleMerchant, auth.RoleAdmin), h.ImportDrafts)
 
 	g.Post("/", middleware.RequireAuth(h.cfg), h.Create)
 	g.Patch("/:id", middleware.RequireAuth(h.cfg), h.Update)

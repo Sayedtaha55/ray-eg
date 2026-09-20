@@ -11,6 +11,7 @@ import { FollowButton } from '@/components/FollowButton';
 import { ReviewsSection } from '@/components/ReviewsSection';
 import { siteConfig } from '@/lib/config';
 import ShopRenderer from '@/components/ShopRenderer';
+import { serializeJsonLd } from '@/lib/jsonld';
 
 export const revalidate = 300;
 
@@ -60,7 +61,12 @@ export default async function ShopPage({ params }: Props) {
   const shop = await getShopBySlug(slug);
   if (!shop) notFound();
 
-  const products = await getProducts(shop.id, 24);
+  // Only products the merchant kept VISIBLE from the dashboard products page
+  // appear on the storefront (same rule as published /site/ pages).
+  const allProducts = await getProducts(shop.id, 100);
+  const products = allProducts.filter(
+    (p) => (p as any).isActive !== false && (p as any).is_active !== false
+  );
   const design = shop.pageDesign || {};
   const primaryColor = design.primaryColor || '#00E5FF';
   const bgColor = design.pageBackgroundColor || design.backgroundColor || '#FFFFFF';
@@ -86,11 +92,13 @@ export default async function ShopPage({ params }: Props) {
       streetAddress: shop.address,
       addressCountry: 'EG',
     },
-    aggregateRating: shop.rating ? {
-      '@type': 'AggregateRating',
-      ratingValue: shop.rating,
-      reviewCount: shop.reviewCount || 0,
-    } : undefined,
+    aggregateRating: shop.rating
+      ? {
+          '@type': 'AggregateRating',
+          ratingValue: shop.rating,
+          reviewCount: shop.reviewCount || 0,
+        }
+      : undefined,
     ...(shop.socialLinks ? { sameAs: Object.values(shop.socialLinks) } : {}),
   };
 
@@ -100,14 +108,25 @@ export default async function ShopPage({ params }: Props) {
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: siteConfig.url },
       { '@type': 'ListItem', position: 2, name: 'الدليل', item: `${siteConfig.url}/dalil` },
-      { '@type': 'ListItem', position: 3, name: shop.name, item: `${siteConfig.url}/shop/${shop.slug}` },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: shop.name,
+        item: `${siteConfig.url}/shop/${shop.slug}`,
+      },
     ],
   };
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbLd) }}
+      />
 
       {/* If the shop has a builder config, render with the unified builder layout
           (same as the live preview in dashboard-web). Otherwise fall back to the
@@ -115,7 +134,13 @@ export default async function ShopPage({ params }: Props) {
       {shop.builderConfig ? (
         <ShopRenderer shop={shop} products={products} />
       ) : (
-        <LegacyShopLayout shop={shop} products={products} design={design} primaryColor={primaryColor} bgColor={bgColor} />
+        <LegacyShopLayout
+          shop={shop}
+          products={products}
+          design={design}
+          primaryColor={primaryColor}
+          bgColor={bgColor}
+        />
       )}
     </>
   );
@@ -143,10 +168,20 @@ function LegacyShopLayout({
   return (
     <>
       {/* Cover Banner */}
-      <div className="relative h-48 md:h-72 lg:h-80 bg-brand-black overflow-hidden" style={{ backgroundColor: bgColor }}>
+      <div
+        className="relative h-48 md:h-72 lg:h-80 bg-brand-black overflow-hidden"
+        style={{ backgroundColor: bgColor }}
+      >
         {bannerUrl ? (
           bannerIsVideo ? (
-            <video src={bannerUrl} autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" />
+            <video
+              src={bannerUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            />
           ) : (
             <Image
               src={bannerUrl}
@@ -158,19 +193,34 @@ function LegacyShopLayout({
             />
           )
         ) : (
-          <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${primaryColor}33, ${primaryColor}11)` }} />
+          <div
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(135deg, ${primaryColor}33, ${primaryColor}11)` }}
+          />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
       </div>
 
       {/* Shop Header */}
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 -mt-20 md:-mt-24 relative z-10">
-        <div className="rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 md:p-8" style={{ backgroundColor: headerBg, color: headerText }}>
+        <div
+          className="rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 md:p-8"
+          style={{ backgroundColor: headerBg, color: headerText }}
+        >
           <div className="flex flex-col md:flex-row items-start gap-6">
             {/* Logo */}
-            <div className="w-24 h-24 md:w-32 md:h-32 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg" style={{ backgroundColor: primaryColor + '22' }}>
+            <div
+              className="w-24 h-24 md:w-32 md:h-32 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg"
+              style={{ backgroundColor: primaryColor + '22' }}
+            >
               {logoUrl ? (
-                <Image src={logoUrl} alt={shop.name || 'متجر'} width={128} height={128} className="object-cover w-full h-full" />
+                <Image
+                  src={logoUrl}
+                  alt={shop.name || 'متجر'}
+                  width={128}
+                  height={128}
+                  className="object-cover w-full h-full"
+                />
               ) : (
                 <Store className="w-10 h-10" style={{ color: primaryColor }} />
               )}
@@ -179,27 +229,40 @@ function LegacyShopLayout({
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl md:text-4xl font-bold tracking-tight" style={{ color: headerText }}>
+                <h1
+                  className="text-2xl md:text-4xl font-bold tracking-tight"
+                  style={{ color: headerText }}
+                >
                   {shop.name}
                 </h1>
                 {shop.isVerified && (
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: primaryColor }}
+                  >
                     <Star className="w-3.5 h-3.5 text-black fill-black" />
                   </div>
                 )}
               </div>
 
               {shop.bio && (
-                <p className="font-semibold text-sm md:text-base mb-4 max-w-2xl" style={{ color: headerText, opacity: 0.7 }}>
+                <p
+                  className="font-semibold text-sm md:text-base mb-4 max-w-2xl"
+                  style={{ color: headerText, opacity: 0.7 }}
+                >
                   {shop.bio}
                 </p>
               )}
 
-              <div className="flex flex-wrap items-center gap-4 text-sm font-semibold" style={{ color: headerText, opacity: 0.6 }}>
+              <div
+                className="flex flex-wrap items-center gap-4 text-sm font-semibold"
+                style={{ color: headerText, opacity: 0.6 }}
+              >
                 {shop.city && (
                   <span className="flex items-center gap-1.5">
                     <MapPin className="w-4 h-4" style={{ color: primaryColor }} />
-                    {shop.city}{shop.district ? ` - ${shop.district}` : ''}
+                    {shop.city}
+                    {shop.district ? ` - ${shop.district}` : ''}
                   </span>
                 )}
                 {shop.rating != null && shop.rating > 0 && (
@@ -253,13 +316,22 @@ function LegacyShopLayout({
       </div>
 
       {/* Products */}
-      <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-12 md:py-16" style={{ backgroundColor: bgColor }}>
+      <div
+        className="max-w-[1400px] mx-auto px-4 md:px-6 py-12 md:py-16"
+        style={{ backgroundColor: bgColor }}
+      >
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
             المنتجات
-            {products.length > 0 && <span className="text-slate-500 text-lg mr-2">({products.length})</span>}
+            {products.length > 0 && (
+              <span className="text-slate-500 text-lg mr-2">({products.length})</span>
+            )}
           </h2>
-          <Link href="/dalil" className="flex items-center gap-2 font-semibold text-sm hover:gap-3 transition-all" style={{ color: primaryColor }}>
+          <Link
+            href="/dalil"
+            className="flex items-center gap-2 font-semibold text-sm hover:gap-3 transition-all"
+            style={{ color: primaryColor }}
+          >
             العودة
             <ArrowLeft className="w-4 h-4" />
           </Link>
@@ -282,4 +354,3 @@ function LegacyShopLayout({
     </>
   );
 }
-

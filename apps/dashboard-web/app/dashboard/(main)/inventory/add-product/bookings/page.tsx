@@ -65,11 +65,18 @@ const DEFAULT_DAYS: DaySchedule[] = [
   { dayKey: 'sunday', dayLabel: 'الأحد', enabled: true, startTime: '09:00', endTime: '18:00' },
   { dayKey: 'monday', dayLabel: 'الإثنين', enabled: true, startTime: '09:00', endTime: '18:00' },
   { dayKey: 'tuesday', dayLabel: 'الثلاثاء', enabled: true, startTime: '09:00', endTime: '18:00' },
-  { dayKey: 'wednesday', dayLabel: 'الأربعاء', enabled: true, startTime: '09:00', endTime: '18:00' },
+  {
+    dayKey: 'wednesday',
+    dayLabel: 'الأربعاء',
+    enabled: true,
+    startTime: '09:00',
+    endTime: '18:00',
+  },
   { dayKey: 'thursday', dayLabel: 'الخميس', enabled: true, startTime: '09:00', endTime: '18:00' },
   { dayKey: 'friday', dayLabel: 'الجمعة', enabled: false, startTime: '14:00', endTime: '20:00' },
 ];
 
+import { compressForUpload } from '@/lib/upload-image';
 export default function AddBookingsProductPage() {
   const router = useRouter();
 
@@ -90,7 +97,9 @@ export default function AddBookingsProductPage() {
   const [saving, setSaving] = useState(false);
 
   // Booking specific scheduling
-  const [scheduleType, setScheduleType] = useState<'days_only' | 'days_and_times'>('days_and_times');
+  const [scheduleType, setScheduleType] = useState<'days_only' | 'days_and_times'>(
+    'days_and_times'
+  );
   const [slotDurationMinutes, setSlotDurationMinutes] = useState(30);
   const [allowMultipleBookings, setAllowMultipleBookings] = useState(false);
   const [maxBookingsPerCustomer, setMaxBookingsPerCustomer] = useState(1);
@@ -210,10 +219,10 @@ export default function AddBookingsProductPage() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      setImageFile(await compressForUpload(file, 'product'));
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageUrl(reader.result as string);
@@ -229,9 +238,7 @@ export default function AddBookingsProductPage() {
   };
 
   const handleUpdateTime = (dayKey: string, field: 'startTime' | 'endTime', value: string) => {
-    setWorkingDays((prev) =>
-      prev.map((d) => (d.dayKey === dayKey ? { ...d, [field]: value } : d))
-    );
+    setWorkingDays((prev) => prev.map((d) => (d.dayKey === dayKey ? { ...d, [field]: value } : d)));
   };
 
   const handleAddException = () => {
@@ -250,16 +257,7 @@ export default function AddBookingsProductPage() {
     if (scheduleType === 'days_only') return [];
     const activeDay = workingDays.find((d) => d.dayKey === previewSelectedDay);
     if (!activeDay || !activeDay.enabled) return [];
-    return [
-      '09:00 ص',
-      '10:00 ص',
-      '11:00 ص',
-      '12:00 م',
-      '01:30 م',
-      '03:00 م',
-      '04:30 م',
-      '05:30 م',
-    ];
+    return ['09:00 ص', '10:00 ص', '11:00 ص', '12:00 م', '01:30 م', '03:00 م', '04:30 م', '05:30 م'];
   }, [scheduleType, workingDays, previewSelectedDay]);
 
   const handleSave = async () => {
@@ -441,8 +439,8 @@ export default function AddBookingsProductPage() {
             </div>
             <h2 className="text-lg sm:text-xl font-black">نظّم حجوزات متجرك بسهولة</h2>
             <p className="text-xs text-teal-100 leading-relaxed max-w-2xl">
-              حدّد المواعيد وأدِر الحجوزات والطاقة الاستيعابية من مكان واحد. يتيح لعملائك اختيار اليوم
-              والوقت المناسب وحجز الجلسة أو الموعد مباشرة مع تأكيد فوري.
+              حدّد المواعيد وأدِر الحجوزات والطاقة الاستيعابية من مكان واحد. يتيح لعملائك اختيار
+              اليوم والوقت المناسب وحجز الجلسة أو الموعد مباشرة مع تأكيد فوري.
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               <span className="text-[11px] bg-white/10 px-2 py-0.5 rounded-md">
@@ -529,7 +527,9 @@ export default function AddBookingsProductPage() {
                           <Upload size={18} />
                         </div>
                         <p className="text-xs font-bold text-slate-700">اسحب الصورة وأفلتها هنا</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">أو اضغط للاختيار من جهازك</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          أو اضغط للاختيار من جهازك
+                        </p>
                       </>
                     )}
                   </div>
@@ -687,7 +687,9 @@ export default function AddBookingsProductPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">تصنيف محلي</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    تصنيف محلي
+                  </label>
                   <input
                     type="text"
                     placeholder="مثال: حجوزات VIP، عروض نهاية الأسبوع"
@@ -792,7 +794,9 @@ export default function AddBookingsProductPage() {
                       <span className="text-xs font-bold text-slate-900">الأيام</span>
                       <Calendar
                         size={16}
-                        className={scheduleType === 'days_only' ? 'text-teal-600' : 'text-slate-400'}
+                        className={
+                          scheduleType === 'days_only' ? 'text-teal-600' : 'text-slate-400'
+                        }
                       />
                     </div>
                     <p className="text-[11px] text-slate-500">
@@ -819,7 +823,8 @@ export default function AddBookingsProductPage() {
                       />
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      حدِّد أيامًا وأوقاتًا معينة متاحة للحجز (مناسب للعيادات، الصالونات، والاستشارات).
+                      حدِّد أيامًا وأوقاتًا معينة متاحة للحجز (مناسب للعيادات، الصالونات،
+                      والاستشارات).
                     </p>
                   </button>
                 </div>
@@ -856,7 +861,9 @@ export default function AddBookingsProductPage() {
                       type="number"
                       min="1"
                       value={capacityPerSlot}
-                      onChange={(e) => setCapacityPerSlot(Math.max(1, parseInt(e.target.value) || 1))}
+                      onChange={(e) =>
+                        setCapacityPerSlot(Math.max(1, parseInt(e.target.value) || 1))
+                      }
                       className="w-full px-3.5 py-2 text-xs font-bold border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                     />
                     <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-400">
@@ -1037,7 +1044,9 @@ export default function AddBookingsProductPage() {
                           />
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400 font-bold">مغلق (عطلة أسبوعية)</span>
+                        <span className="text-xs text-slate-400 font-bold">
+                          مغلق (عطلة أسبوعية)
+                        </span>
                       )}
                     </div>
                   ))}
@@ -1300,4 +1309,3 @@ export default function AddBookingsProductPage() {
     </div>
   );
 }
-

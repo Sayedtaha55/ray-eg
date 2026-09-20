@@ -15,6 +15,16 @@ const (
 	OrderStatusRefunded  OrderStatus = "REFUNDED"
 )
 
+// isValidOrderStatus reports whether s is one of the known order statuses.
+func isValidOrderStatus(s OrderStatus) bool {
+	switch s {
+	case OrderStatusPending, OrderStatusConfirmed, OrderStatusPreparing,
+		OrderStatusReady, OrderStatusDelivered, OrderStatusCancelled, OrderStatusRefunded:
+		return true
+	}
+	return false
+}
+
 // Order represents a customer order.
 type Order struct {
 	ID                    string      `json:"id"`

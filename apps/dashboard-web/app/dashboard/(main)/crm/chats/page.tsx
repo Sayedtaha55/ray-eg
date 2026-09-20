@@ -228,12 +228,10 @@ export default function ChatsPage() {
       c.tags.join(', '),
       c.createdAt,
     ]);
-    const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'chats.csv';
-    link.click();
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob({ filename: 'chats.csv', headers, rows: [...rows] }, 'csv');
+      downloadBlob(blob, 'chats.csv');
+    });
   }, [filtered]);
 
   const handleAdd = useCallback(async () => {

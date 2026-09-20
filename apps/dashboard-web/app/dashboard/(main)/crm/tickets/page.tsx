@@ -1,10 +1,31 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Ticket, Plus, Edit, Trash2, Download, ChevronUp, ChevronDown, Check, X, Info, CheckCircle2, AlertTriangle, User, Star, Clock } from 'lucide-react';
+import {
+  Ticket,
+  Plus,
+  Edit,
+  Trash2,
+  Download,
+  ChevronUp,
+  ChevronDown,
+  Check,
+  X,
+  Info,
+  CheckCircle2,
+  AlertTriangle,
+  User,
+  Star,
+  Clock,
+} from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
-import { InventoryPage, InvToolButton, InvPagination, InvEmpty } from '@/components/inventory/InventoryShell';
+import {
+  InventoryPage,
+  InvToolButton,
+  InvPagination,
+  InvEmpty,
+} from '@/components/inventory/InventoryShell';
 
 type Ticket = {
   id: string;
@@ -65,58 +86,84 @@ export default function TicketsPage() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const res = await apiRequest(`/tickets/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
-      setTickets(data.map((t: any) => ({
-        id: String(t.id),
-        subject: t.subject || '---',
-        subjectAr: t.subjectAr || t.subject_ar || '---',
-        description: t.description || '---',
-        customerName: t.customerName || t.customer_name || '---',
-        customerEmail: t.customerEmail || t.customer_email || '---',
-        status: t.status || 'open',
-        priority: t.priority || 'medium',
-        category: t.category || '---',
-        assignedTo: t.assignedTo || t.assigned_to || '---',
-        department: t.department || '---',
-        dueDate: t.dueDate || t.due_date || null,
-        resolvedDate: t.resolvedDate || t.resolved_date || null,
-        responseTime: Number(t.responseTime || t.response_time || 0),
-        satisfaction: Number(t.satisfaction || 0),
-        attachments: t.attachments || [],
-        tags: t.tags || [],
-        createdAt: t.createdAt || new Date().toISOString(),
-        updatedAt: t.updatedAt || new Date().toISOString(),
-      })));
-    } catch { setTickets([]); } finally { setLoading(false); }
+      const data = Array.isArray(res) ? res : res?.data || [];
+      setTickets(
+        data.map((t: any) => ({
+          id: String(t.id),
+          subject: t.subject || '---',
+          subjectAr: t.subjectAr || t.subject_ar || '---',
+          description: t.description || '---',
+          customerName: t.customerName || t.customer_name || '---',
+          customerEmail: t.customerEmail || t.customer_email || '---',
+          status: t.status || 'open',
+          priority: t.priority || 'medium',
+          category: t.category || '---',
+          assignedTo: t.assignedTo || t.assigned_to || '---',
+          department: t.department || '---',
+          dueDate: t.dueDate || t.due_date || null,
+          resolvedDate: t.resolvedDate || t.resolved_date || null,
+          responseTime: Number(t.responseTime || t.response_time || 0),
+          satisfaction: Number(t.satisfaction || 0),
+          attachments: t.attachments || [],
+          tags: t.tags || [],
+          createdAt: t.createdAt || new Date().toISOString(),
+          updatedAt: t.updatedAt || new Date().toISOString(),
+        }))
+      );
+    } catch {
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadTickets(); }, [loadTickets]);
+  useEffect(() => {
+    loadTickets();
+  }, [loadTickets]);
 
   const filtered = useMemo(() => {
-    let result = tickets.filter(t =>
-      t.subject.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      t.subjectAr.includes(debouncedSearch) ||
-      t.customerName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      t.customerEmail.toLowerCase().includes(debouncedSearch.toLowerCase())
+    let result = tickets.filter(
+      (t) =>
+        t.subject.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        t.subjectAr.includes(debouncedSearch) ||
+        t.customerName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        t.customerEmail.toLowerCase().includes(debouncedSearch.toLowerCase())
     );
 
     if (filterStatus !== 'all') {
-      result = result.filter(t => t.status === filterStatus);
+      result = result.filter((t) => t.status === filterStatus);
     }
 
     if (filterPriority !== 'all') {
-      result = result.filter(t => t.priority === filterPriority);
+      result = result.filter((t) => t.priority === filterPriority);
     }
 
     if (filterCategory !== 'all') {
-      result = result.filter(t => t.category === filterCategory);
+      result = result.filter((t) => t.category === filterCategory);
     }
 
     result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'subject' ? a.subject : sortBy === 'priority' ? a.priority : sortBy === 'responseTime' ? a.responseTime : a.createdAt;
-      const bVal = sortBy === 'subject' ? b.subject : sortBy === 'priority' ? b.priority : sortBy === 'responseTime' ? b.responseTime : b.createdAt;
+      const aVal =
+        sortBy === 'subject'
+          ? a.subject
+          : sortBy === 'priority'
+            ? a.priority
+            : sortBy === 'responseTime'
+              ? a.responseTime
+              : a.createdAt;
+      const bVal =
+        sortBy === 'subject'
+          ? b.subject
+          : sortBy === 'priority'
+            ? b.priority
+            : sortBy === 'responseTime'
+              ? b.responseTime
+              : b.createdAt;
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
@@ -140,12 +187,12 @@ export default function TicketsPage() {
     if (selectedIds.size === paginatedTickets.length && paginatedTickets.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(paginatedTickets.map(t => t.id)));
+      setSelectedIds(new Set(paginatedTickets.map((t) => t.id)));
     }
   }, [paginatedTickets, selectedIds.size]);
 
   const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -167,8 +214,24 @@ export default function TicketsPage() {
   }, [selectedIds, loadTickets]);
 
   const exportCSV = useCallback(() => {
-    const headers = ['Subject', 'Subject (Arabic)', 'Customer Name', 'Customer Email', 'Status', 'Priority', 'Category', 'Assigned To', 'Department', 'Due Date', 'Resolved Date', 'Response Time (hrs)', 'Satisfaction', 'Tags', 'Created At'];
-    const rows = filtered.map(t => [
+    const headers = [
+      'Subject',
+      'Subject (Arabic)',
+      'Customer Name',
+      'Customer Email',
+      'Status',
+      'Priority',
+      'Category',
+      'Assigned To',
+      'Department',
+      'Due Date',
+      'Resolved Date',
+      'Response Time (hrs)',
+      'Satisfaction',
+      'Tags',
+      'Created At',
+    ];
+    const rows = filtered.map((t) => [
       t.subject,
       t.subjectAr,
       t.customerName,
@@ -183,14 +246,12 @@ export default function TicketsPage() {
       t.responseTime,
       t.satisfaction,
       t.tags.join(', '),
-      t.createdAt
+      t.createdAt,
     ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'tickets.csv';
-    link.click();
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob({ filename: 'tickets.csv', headers, rows: [...rows] }, 'csv');
+      downloadBlob(blob, 'tickets.csv');
+    });
   }, [filtered]);
 
   const handleAdd = useCallback(async () => {
@@ -203,11 +264,27 @@ export default function TicketsPage() {
         body: JSON.stringify({
           ...formData,
           shopId: sid,
-          tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
+          tags: formData.tags
+            .split(',')
+            .map((t) => t.trim())
+            .filter((t) => t),
         }),
       });
       setAddModal(false);
-      setFormData({ subject: '', subjectAr: '', description: '', customerName: '', customerEmail: '', status: 'open', priority: 'medium', category: '', assignedTo: '', department: '', dueDate: '', tags: '' });
+      setFormData({
+        subject: '',
+        subjectAr: '',
+        description: '',
+        customerName: '',
+        customerEmail: '',
+        status: 'open',
+        priority: 'medium',
+        category: '',
+        assignedTo: '',
+        department: '',
+        dueDate: '',
+        tags: '',
+      });
       loadTickets();
     } catch (error) {
       alert('حدث خطأ أثناء إضافة التذكرة');
@@ -221,27 +298,46 @@ export default function TicketsPage() {
         method: 'PUT',
         body: JSON.stringify({
           ...formData,
-          tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
+          tags: formData.tags
+            .split(',')
+            .map((t) => t.trim())
+            .filter((t) => t),
         }),
       });
       setEditModal(false);
       setEditTicket(null);
-      setFormData({ subject: '', subjectAr: '', description: '', customerName: '', customerEmail: '', status: 'open', priority: 'medium', category: '', assignedTo: '', department: '', dueDate: '', tags: '' });
+      setFormData({
+        subject: '',
+        subjectAr: '',
+        description: '',
+        customerName: '',
+        customerEmail: '',
+        status: 'open',
+        priority: 'medium',
+        category: '',
+        assignedTo: '',
+        department: '',
+        dueDate: '',
+        tags: '',
+      });
       loadTickets();
     } catch (error) {
       alert('حدث خطأ أثناء تعديل التذكرة');
     }
   }, [editTicket, formData, loadTickets]);
 
-  const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذه التذكرة؟')) return;
-    try {
-      await apiRequest(`/tickets/${id}`, { method: 'DELETE' });
-      loadTickets();
-    } catch (error) {
-      alert('حدث خطأ أثناء الحذف');
-    }
-  }, [loadTickets]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!confirm('هل أنت متأكد من حذف هذه التذكرة؟')) return;
+      try {
+        await apiRequest(`/tickets/${id}`, { method: 'DELETE' });
+        loadTickets();
+      } catch (error) {
+        alert('حدث خطأ أثناء الحذف');
+      }
+    },
+    [loadTickets]
+  );
 
   const openEditModal = useCallback((ticket: Ticket) => {
     setEditTicket(ticket);
@@ -279,28 +375,53 @@ export default function TicketsPage() {
 
   const stats = useMemo(() => {
     const total = tickets.length;
-    const open = tickets.filter(t => t.status === 'open').length;
-    const inProgress = tickets.filter(t => t.status === 'in_progress').length;
-    const resolved = tickets.filter(t => t.status === 'resolved').length;
-    const critical = tickets.filter(t => t.priority === 'critical').length;
-    const avgResponseTime = tickets.length > 0 ? tickets.reduce((sum, t) => sum + t.responseTime, 0) / tickets.length : 0;
-    const avgSatisfaction = tickets.length > 0 ? tickets.reduce((sum, t) => sum + t.satisfaction, 0) / tickets.length : 0;
+    const open = tickets.filter((t) => t.status === 'open').length;
+    const inProgress = tickets.filter((t) => t.status === 'in_progress').length;
+    const resolved = tickets.filter((t) => t.status === 'resolved').length;
+    const critical = tickets.filter((t) => t.priority === 'critical').length;
+    const avgResponseTime =
+      tickets.length > 0 ? tickets.reduce((sum, t) => sum + t.responseTime, 0) / tickets.length : 0;
+    const avgSatisfaction =
+      tickets.length > 0 ? tickets.reduce((sum, t) => sum + t.satisfaction, 0) / tickets.length : 0;
     return [
       { label: 'إجمالي التذاكر', value: total, icon: Ticket, color: 'bg-blue-50 text-blue-600' },
       { label: 'مفتوح', value: open, icon: CheckCircle2, color: 'bg-green-50 text-green-600' },
-      { label: 'قيد المعالجة', value: inProgress, icon: Clock, color: 'bg-amber-50 text-amber-600' },
-      { label: 'تم الحل', value: resolved, icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-600' },
+      {
+        label: 'قيد المعالجة',
+        value: inProgress,
+        icon: Clock,
+        color: 'bg-amber-50 text-amber-600',
+      },
+      {
+        label: 'تم الحل',
+        value: resolved,
+        icon: CheckCircle2,
+        color: 'bg-emerald-50 text-emerald-600',
+      },
       { label: 'حرج', value: critical, icon: AlertTriangle, color: 'bg-red-50 text-red-600' },
-      { label: 'متوسط الرضا', value: `${avgSatisfaction.toFixed(1)}/5`, icon: Star, color: 'bg-purple-50 text-purple-600' },
+      {
+        label: 'متوسط الرضا',
+        value: `${avgSatisfaction.toFixed(1)}/5`,
+        icon: Star,
+        color: 'bg-purple-50 text-purple-600',
+      },
     ];
   }, [tickets]);
   const statusTabs = [
     { id: 'all', label: 'الكل', count: tickets.length },
-    { id: 'open', label: 'مفتوح', count: tickets.filter(t => t.status === 'open').length },
-    { id: 'in_progress', label: 'قيد المعالجة', count: tickets.filter(t => t.status === 'in_progress').length },
-    { id: 'pending', label: 'معلق', count: tickets.filter(t => t.status === 'pending').length },
-    { id: 'resolved', label: 'تم الحل', count: tickets.filter(t => t.status === 'resolved').length },
-    { id: 'closed', label: 'مغلق', count: tickets.filter(t => t.status === 'closed').length },
+    { id: 'open', label: 'مفتوح', count: tickets.filter((t) => t.status === 'open').length },
+    {
+      id: 'in_progress',
+      label: 'قيد المعالجة',
+      count: tickets.filter((t) => t.status === 'in_progress').length,
+    },
+    { id: 'pending', label: 'معلق', count: tickets.filter((t) => t.status === 'pending').length },
+    {
+      id: 'resolved',
+      label: 'تم الحل',
+      count: tickets.filter((t) => t.status === 'resolved').length,
+    },
+    { id: 'closed', label: 'مغلق', count: tickets.filter((t) => t.status === 'closed').length },
   ];
 
   return (
@@ -321,27 +442,51 @@ export default function TicketsPage() {
         }
         tabs={statusTabs}
         activeTab={filterStatus}
-        onTabChange={(id) => { setFilterStatus(id); setCurrentPage(1); }}
+        onTabChange={(id) => {
+          setFilterStatus(id);
+          setCurrentPage(1);
+        }}
         search={search}
-        onSearchChange={(v) => { setSearch(v); setCurrentPage(1); }}
+        onSearchChange={(v) => {
+          setSearch(v);
+          setCurrentPage(1);
+        }}
         searchPlaceholder="بحث بالموضوع أو العميل…"
         filters={
           <>
-            <select value={filterPriority} onChange={e => { setFilterPriority(e.target.value); setCurrentPage(1); }} className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none">
+            <select
+              value={filterPriority}
+              onChange={(e) => {
+                setFilterPriority(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none"
+            >
               <option value="all">كل الأولويات</option>
               <option value="low">منخفض</option>
               <option value="medium">متوسط</option>
               <option value="high">عالي</option>
               <option value="critical">حرج</option>
             </select>
-            <select value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setCurrentPage(1); }} className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none">
+            <select
+              value={filterCategory}
+              onChange={(e) => {
+                setFilterCategory(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none"
+            >
               <option value="all">كل الفئات</option>
               <option value="technical">فني</option>
               <option value="billing">فواتير</option>
               <option value="general">عام</option>
               <option value="feature">ميزات</option>
             </select>
-            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="h-9 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-700 bg-white focus:outline-none"
+            >
               <option value="subject">الموضوع</option>
               <option value="priority">الأولوية</option>
               <option value="responseTime">وقت الاستجابة</option>
@@ -369,7 +514,10 @@ export default function TicketsPage() {
             {selectedIds.size > 0 && (
               <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-[12px] font-bold">
                 <span>{selectedIds.size} تذكرة محددة</span>
-                <button onClick={bulkDelete} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-all">
+                <button
+                  onClick={bulkDelete}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-all"
+                >
                   <Trash2 size={14} /> حذف
                 </button>
               </div>
@@ -385,13 +533,17 @@ export default function TicketsPage() {
           </>
         }
       >
-      <div className="hidden md:block overflow-x-auto touch-auto rounded-xl border border-slate-200 bg-white">
+        <div className="hidden md:block overflow-x-auto touch-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-right border-collapse min-w-[1400px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="p-4 w-10">
                   <button onClick={toggleSelectAll} className="p-1">
-                    {selectedIds.size === paginatedTickets.length && paginatedTickets.length > 0 ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
+                    {selectedIds.size === paginatedTickets.length && paginatedTickets.length > 0 ? (
+                      <Check size={18} className="text-[#00E5FF]" />
+                    ) : (
+                      <div className="w-4 h-4 border-2 border-slate-300 rounded" />
+                    )}
                   </button>
                 </th>
                 <th className="p-4 text-xs font-semibold text-slate-500">الموضوع</th>
@@ -415,7 +567,11 @@ export default function TicketsPage() {
                   <tr key={ticket.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                     <td className="p-4">
                       <button onClick={() => toggleSelect(ticket.id)} className="p-1">
-                        {selectedIds.has(ticket.id) ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
+                        {selectedIds.has(ticket.id) ? (
+                          <Check size={18} className="text-[#00E5FF]" />
+                        ) : (
+                          <div className="w-4 h-4 border-2 border-slate-300 rounded" />
+                        )}
                       </button>
                     </td>
                     <td className="p-4">
@@ -427,12 +583,16 @@ export default function TicketsPage() {
                       <div className="text-slate-500 text-xs">{ticket.customerEmail}</div>
                     </td>
                     <td className="p-4">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${statusConfig.color}`}>
+                      <span
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold ${statusConfig.color}`}
+                      >
                         {statusConfig.label}
                       </span>
                     </td>
                     <td className="p-4">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${priorityConfig.color}`}>
+                      <span
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold ${priorityConfig.color}`}
+                      >
                         {priorityConfig.label}
                       </span>
                     </td>
@@ -449,7 +609,11 @@ export default function TicketsPage() {
                       <div className="text-slate-600 text-sm">{ticket.department}</div>
                     </td>
                     <td className="p-4">
-                      <div className="text-slate-600 text-sm">{ticket.dueDate ? new Date(ticket.dueDate).toLocaleDateString('ar-EG') : '-'}</div>
+                      <div className="text-slate-600 text-sm">
+                        {ticket.dueDate
+                          ? new Date(ticket.dueDate).toLocaleDateString('ar-EG')
+                          : '-'}
+                      </div>
                     </td>
                     <td className="p-4">
                       <div className="text-slate-600 text-sm">{ticket.responseTime} ساعة</div>
@@ -462,10 +626,18 @@ export default function TicketsPage() {
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => openEditModal(ticket)} className="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all" title="تعديل">
+                        <button
+                          onClick={() => openEditModal(ticket)}
+                          className="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all"
+                          title="تعديل"
+                        >
                           <Edit size={14} />
                         </button>
-                        <button onClick={() => handleDelete(ticket.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all" title="حذف">
+                        <button
+                          onClick={() => handleDelete(ticket.id)}
+                          className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all"
+                          title="حذف"
+                        >
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -480,29 +652,44 @@ export default function TicketsPage() {
 
       {/* Add Modal */}
       {addModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setAddModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setAddModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
               <h2 className="text-xl font-black text-slate-900">تذكرة جديدة</h2>
-              <button onClick={() => setAddModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+              <button
+                onClick={() => setAddModal(false)}
+                className="p-2 hover:bg-slate-50 rounded-lg"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الموضوع (إنجليزي)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  الموضوع (إنجليزي)
+                </label>
                 <input
                   type="text"
                   value={formData.subject}
-                  onChange={e => setFormData({ ...formData, subject: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                   placeholder="Subject"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الموضوع (عربي)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  الموضوع (عربي)
+                </label>
                 <input
                   type="text"
                   value={formData.subjectAr}
-                  onChange={e => setFormData({ ...formData, subjectAr: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, subjectAr: e.target.value })}
                   placeholder="الموضوع"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -511,7 +698,7 @@ export default function TicketsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الوصف</label>
                 <textarea
                   value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="وصف المشكلة"
                   rows={3}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
@@ -522,7 +709,7 @@ export default function TicketsPage() {
                 <input
                   type="text"
                   value={formData.customerName}
-                  onChange={e => setFormData({ ...formData, customerName: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                   placeholder="Customer Name"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -532,7 +719,7 @@ export default function TicketsPage() {
                 <input
                   type="email"
                   value={formData.customerEmail}
-                  onChange={e => setFormData({ ...formData, customerEmail: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
                   placeholder="email@example.com"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -541,7 +728,7 @@ export default function TicketsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الحالة</label>
                 <select
                   value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="open">مفتوح</option>
@@ -555,7 +742,7 @@ export default function TicketsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الأولوية</label>
                 <select
                   value={formData.priority}
-                  onChange={e => setFormData({ ...formData, priority: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="low">منخفض</option>
@@ -568,7 +755,7 @@ export default function TicketsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الفئة</label>
                 <select
                   value={formData.category}
-                  onChange={e => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="">اختر الفئة</option>
@@ -583,7 +770,7 @@ export default function TicketsPage() {
                 <input
                   type="text"
                   value={formData.assignedTo}
-                  onChange={e => setFormData({ ...formData, assignedTo: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
                   placeholder="اسم الموظف"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -593,26 +780,30 @@ export default function TicketsPage() {
                 <input
                   type="text"
                   value={formData.department}
-                  onChange={e => setFormData({ ...formData, department: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                   placeholder="القسم"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">تاريخ الاستحقاق</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  تاريخ الاستحقاق
+                </label>
                 <input
                   type="date"
                   value={formData.dueDate}
-                  onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الوسوم (مفصولة بفاصلة)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  الوسوم (مفصولة بفاصلة)
+                </label>
                 <input
                   type="text"
                   value={formData.tags}
-                  onChange={e => setFormData({ ...formData, tags: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                   placeholder="tag1, tag2, tag3"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -630,28 +821,43 @@ export default function TicketsPage() {
 
       {/* Edit Modal */}
       {editModal && editTicket && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setEditModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
               <h2 className="text-xl font-black text-slate-900">تعديل التذكرة</h2>
-              <button onClick={() => setEditModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+              <button
+                onClick={() => setEditModal(false)}
+                className="p-2 hover:bg-slate-50 rounded-lg"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الموضوع (إنجليزي)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  الموضوع (إنجليزي)
+                </label>
                 <input
                   type="text"
                   value={formData.subject}
-                  onChange={e => setFormData({ ...formData, subject: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الموضوع (عربي)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  الموضوع (عربي)
+                </label>
                 <input
                   type="text"
                   value={formData.subjectAr}
-                  onChange={e => setFormData({ ...formData, subjectAr: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, subjectAr: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -659,7 +865,7 @@ export default function TicketsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الوصف</label>
                 <textarea
                   value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -669,7 +875,7 @@ export default function TicketsPage() {
                 <input
                   type="text"
                   value={formData.customerName}
-                  onChange={e => setFormData({ ...formData, customerName: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -678,7 +884,7 @@ export default function TicketsPage() {
                 <input
                   type="email"
                   value={formData.customerEmail}
-                  onChange={e => setFormData({ ...formData, customerEmail: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -686,7 +892,7 @@ export default function TicketsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الحالة</label>
                 <select
                   value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="open">مفتوح</option>
@@ -700,7 +906,7 @@ export default function TicketsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الأولوية</label>
                 <select
                   value={formData.priority}
-                  onChange={e => setFormData({ ...formData, priority: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="low">منخفض</option>
@@ -713,7 +919,7 @@ export default function TicketsPage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الفئة</label>
                 <select
                   value={formData.category}
-                  onChange={e => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="">اختر الفئة</option>
@@ -728,7 +934,7 @@ export default function TicketsPage() {
                 <input
                   type="text"
                   value={formData.assignedTo}
-                  onChange={e => setFormData({ ...formData, assignedTo: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -737,25 +943,29 @@ export default function TicketsPage() {
                 <input
                   type="text"
                   value={formData.department}
-                  onChange={e => setFormData({ ...formData, department: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">تاريخ الاستحقاق</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  تاريخ الاستحقاق
+                </label>
                 <input
                   type="date"
                   value={formData.dueDate}
-                  onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الوسوم (مفصولة بفاصلة)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  الوسوم (مفصولة بفاصلة)
+                </label>
                 <input
                   type="text"
                   value={formData.tags}
-                  onChange={e => setFormData({ ...formData, tags: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -772,19 +982,38 @@ export default function TicketsPage() {
 
       {/* Guide Modal */}
       {guideOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setGuideOpen(false)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setGuideOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
               <h2 className="text-xl font-black text-slate-900">دليل التذاكر</h2>
-              <button onClick={() => setGuideOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+              <button
+                onClick={() => setGuideOpen(false)}
+                className="p-2 hover:bg-slate-50 rounded-lg"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
             <div className="space-y-6 text-right">
               <div>
-                <div className="flex items-center gap-2 mb-2"><Info size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">وظيفة الصفحة</h3></div>
-                <p className="text-sm text-slate-600 leading-relaxed">إدارة تذاكر الدعم الفني وخدمة العملاء.</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <Info size={18} className="text-slate-700" />
+                  <h3 className="font-bold text-slate-900">وظيفة الصفحة</h3>
+                </div>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  إدارة تذاكر الدعم الفني وخدمة العملاء.
+                </p>
               </div>
               <div>
-                <div className="flex items-center gap-2 mb-2"><Ticket size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">الميزات</h3></div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Ticket size={18} className="text-slate-700" />
+                  <h3 className="font-bold text-slate-900">الميزات</h3>
+                </div>
                 <ul className="text-sm text-slate-600 space-y-1.5 pr-4">
                   <li>• إضافة وتعديل وحذف التذاكر</li>
                   <li>• تتبع الحالة والأولوية</li>

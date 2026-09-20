@@ -43,9 +43,12 @@ function SupplierBalancesBase({ mode }: { mode: 'payables' | 'payments' }) {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const res = await apiRequest(`/purchase-orders/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
+      const data = Array.isArray(res) ? res : res?.data || [];
       const map = new Map<string, SupplierBalance>();
       data.forEach((o: any) => {
         const name = o.supplierName || o.supplier_name || '---';
@@ -59,38 +62,72 @@ function SupplierBalancesBase({ mode }: { mode: 'payables' | 'payments' }) {
         map.set(name, e);
       });
       setRows(Array.from(map.values()));
-    } catch { setRows([]); } finally { setLoading(false); }
+    } catch {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const filtered = useMemo(() => {
-    let result = rows.filter(r => r.supplierName.toLowerCase().includes(debouncedSearch.toLowerCase()));
-    if (isPayables && filterDue === 'due') result = result.filter(r => r.due > 0);
-    if (isPayables && filterDue === 'clear') result = result.filter(r => r.due <= 0);
+    let result = rows.filter((r) =>
+      r.supplierName.toLowerCase().includes(debouncedSearch.toLowerCase())
+    );
+    if (isPayables && filterDue === 'due') result = result.filter((r) => r.due > 0);
+    if (isPayables && filterDue === 'clear') result = result.filter((r) => r.due <= 0);
     return [...result].sort((a, b) => (isPayables ? b.due - a.due : b.paid - a.paid));
   }, [rows, debouncedSearch, filterDue, isPayables]);
 
-  const totals = useMemo(() => ({
-    total: rows.reduce((s, r) => s + r.total, 0),
-    paid: rows.reduce((s, r) => s + r.paid, 0),
-    due: rows.reduce((s, r) => s + r.due, 0),
-  }), [rows]);
+  const totals = useMemo(
+    () => ({
+      total: rows.reduce((s, r) => s + r.total, 0),
+      paid: rows.reduce((s, r) => s + r.paid, 0),
+      due: rows.reduce((s, r) => s + r.due, 0),
+    }),
+    [rows]
+  );
 
   const exportCSV = useCallback(() => {
     const headers = ['Supplier', 'Orders', 'Total', 'Paid', 'Due'];
-    const body = filtered.map(r => [r.supplierName, r.orders, Math.round(r.total), Math.round(r.paid), Math.round(r.due)]);
-    const csvContent = [headers, ...body].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = isPayables ? 'supplier-payables.csv' : 'supplier-payments.csv';
-    link.click();
+    const body = filtered.map((r) => [
+      r.supplierName,
+      r.orders,
+      Math.round(r.total),
+      Math.round(r.paid),
+      Math.round(r.due),
+    ]);
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob(
+        {
+          filename: isPayables ? 'supplier-payables.csv' : 'supplier-payments.csv',
+          headers,
+          rows: [...body],
+        },
+        'csv'
+      );
+      downloadBlob(blob, isPayables ? 'supplier-payables.csv' : 'supplier-payments.csv');
+    });
   }, [filtered, isPayables]);
 
   const headline = isPayables
-    ? { label: 'إجمالي المستحقات للموردين', value: `ج.م ${fmt(totals.due)}`, icon: TrendingDown, color: 'text-rose-600', bg: 'bg-rose-50' }
-    : { label: 'إجمالي المدفوعات للموردين', value: `ج.م ${fmt(totals.paid)}`, icon: Banknote, color: 'text-emerald-600', bg: 'bg-emerald-50' };
+    ? {
+        label: 'إجمالي المستحقات للموردين',
+        value: `ج.م ${fmt(totals.due)}`,
+        icon: TrendingDown,
+        color: 'text-rose-600',
+        bg: 'bg-rose-50',
+      }
+    : {
+        label: 'إجمالي المدفوعات للموردين',
+        value: `ج.م ${fmt(totals.paid)}`,
+        icon: Banknote,
+        color: 'text-emerald-600',
+        bg: 'bg-emerald-50',
+      };
 
   const secondary = isPayables
     ? { label: 'إجمالي المشتريات', value: `ج.م ${fmt(totals.total)}` }
@@ -112,12 +149,16 @@ function SupplierBalancesBase({ mode }: { mode: 'payables' | 'payments' }) {
       <div className="grid grid-cols-2 gap-3 mt-3">
         <div className="bg-white border border-slate-200 rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${headline.bg} ${headline.color}`}>
+            <span
+              className={`w-8 h-8 rounded-lg flex items-center justify-center ${headline.bg} ${headline.color}`}
+            >
               <headline.icon size={16} />
             </span>
             <span className="text-xs font-bold text-slate-500">{headline.label}</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">{headline.value}</div>
+          <div className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+            {headline.value}
+          </div>
         </div>
         <div className="bg-white border border-slate-200 rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -126,17 +167,23 @@ function SupplierBalancesBase({ mode }: { mode: 'payables' | 'payments' }) {
             </span>
             <span className="text-xs font-bold text-slate-500">{secondary.label}</span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">{secondary.value}</div>
+          <div className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+            {secondary.value}
+          </div>
         </div>
       </div>
 
       <div className="mt-3">
         <InvControlsCard
-          tabs={isPayables ? [
-            { id: 'all', label: 'كل الموردين', count: rows.length },
-            { id: 'due', label: 'عليه مستحق', count: rows.filter(r => r.due > 0).length },
-            { id: 'clear', label: 'خالص', count: rows.filter(r => r.due <= 0).length },
-          ] : undefined}
+          tabs={
+            isPayables
+              ? [
+                  { id: 'all', label: 'كل الموردين', count: rows.length },
+                  { id: 'due', label: 'عليه مستحق', count: rows.filter((r) => r.due > 0).length },
+                  { id: 'clear', label: 'خالص', count: rows.filter((r) => r.due <= 0).length },
+                ]
+              : undefined
+          }
           activeTab={filterDue}
           onTabChange={(id) => setFilterDue(id)}
           search={search}
@@ -149,7 +196,12 @@ function SupplierBalancesBase({ mode }: { mode: 'payables' | 'payments' }) {
         {loading ? (
           <InvLoading />
         ) : filtered.length === 0 ? (
-          <InvEmpty icon={Truck} title={isPayables ? 'لا توجد مستحقات — كل المشتريات مسددة' : 'لا توجد مدفوعات للموردين بعد'} />
+          <InvEmpty
+            icon={Truck}
+            title={
+              isPayables ? 'لا توجد مستحقات — كل المشتريات مسددة' : 'لا توجد مدفوعات للموردين بعد'
+            }
+          />
         ) : (
           <InvTableCard
             columns={[
@@ -163,11 +215,19 @@ function SupplierBalancesBase({ mode }: { mode: 'payables' | 'payments' }) {
             {filtered.map((r) => (
               <InvRow key={r.supplierName}>
                 <div className="col-span-3 min-w-0">
-                  <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{r.supplierName}</div>
+                  <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                    {r.supplierName}
+                  </div>
                 </div>
-                <div className="col-span-2 pr-4 font-semibold text-slate-600 text-xs sm:text-sm">{fmt(r.orders)}</div>
-                <div className="col-span-2 pr-4 font-bold text-slate-900 text-xs sm:text-sm">ج.م {fmt(r.total)}</div>
-                <div className="col-span-2 pr-4 font-semibold text-emerald-600 text-xs sm:text-sm">ج.م {fmt(r.paid)}</div>
+                <div className="col-span-2 pr-4 font-semibold text-slate-600 text-xs sm:text-sm">
+                  {fmt(r.orders)}
+                </div>
+                <div className="col-span-2 pr-4 font-bold text-slate-900 text-xs sm:text-sm">
+                  ج.م {fmt(r.total)}
+                </div>
+                <div className="col-span-2 pr-4 font-semibold text-emerald-600 text-xs sm:text-sm">
+                  ج.م {fmt(r.paid)}
+                </div>
                 <div className="col-span-3 pr-4">
                   <InvStatusPill tone={r.due > 0 ? 'red' : 'emerald'}>
                     {r.due > 0 ? `مستحق ج.م ${fmt(r.due)}` : 'خالص'}

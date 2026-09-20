@@ -40,6 +40,7 @@ const GOOGLE_PRODUCT_CATEGORIES = [
   'المستلزمات المكتبية',
 ];
 
+import { compressForUpload } from '@/lib/upload-image';
 export default function ServiceAddProductPage() {
   const { shop } = useShop();
   const router = useRouter();
@@ -131,10 +132,10 @@ export default function ServiceAddProductPage() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      setImageFile(await compressForUpload(file, 'product'));
       const reader = new FileReader();
       reader.onloadend = () => setImageUrl(reader.result as string);
       reader.readAsDataURL(file);
@@ -296,7 +297,8 @@ export default function ServiceAddProductPage() {
             <div className="text-center py-2">
               <p className="text-xs font-black text-slate-700 mb-1.5">أضف المعلومات الأساسية</p>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                تُظهر المعاينة الصورة، الاسم، السعر، السعر المخفض, العنوان الفرعي والترويجي. ستتمكن من معاينة صفحة المنتج الكاملة على ثيم متجرك بعد الحفظ.
+                تُظهر المعاينة الصورة، الاسم، السعر، السعر المخفض, العنوان الفرعي والترويجي. ستتمكن
+                من معاينة صفحة المنتج الكاملة على ثيم متجرك بعد الحفظ.
               </p>
             </div>
           )}
@@ -321,7 +323,8 @@ export default function ServiceAddProductPage() {
                 e.preventDefault();
                 setDragOver(false);
                 const file = e.dataTransfer.files?.[0];
-                if (file && file.type.startsWith('image/')) handleImageUpload({ target: { files: [file] } } as any);
+                if (file && file.type.startsWith('image/'))
+                  handleImageUpload({ target: { files: [file] } } as any);
               }}
               className={`rounded-2xl border-2 border-dashed p-5 text-center transition-all ${
                 dragOver ? 'border-teal-400 bg-teal-50/50' : 'border-slate-200 bg-slate-50/40'
@@ -339,7 +342,12 @@ export default function ServiceAddProductPage() {
                   <p className="text-xs font-black text-slate-700">اسحب الصورة وأفلتها هنا</p>
                   <label className="inline-block mt-2 px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-all shadow-2xs">
                     اختار من المعرض
-                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
                   </label>
                 </div>
               </div>
@@ -378,7 +386,8 @@ export default function ServiceAddProductPage() {
               {/* Price */}
               <div className="text-right">
                 <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
-                  السعر <span className="text-red-500">*</span> <Info size={13} className="text-slate-300" />
+                  السعر <span className="text-red-500">*</span>{' '}
+                  <Info size={13} className="text-slate-300" />
                 </label>
                 <div className="relative">
                   <input
@@ -390,7 +399,9 @@ export default function ServiceAddProductPage() {
                     className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
                     placeholder="أدخل السعر"
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">#</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">
+                    #
+                  </span>
                 </div>
               </div>
 
@@ -409,7 +420,9 @@ export default function ServiceAddProductPage() {
                     className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
                     placeholder="أدخل سعر التكلفة"
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">#</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">
+                    #
+                  </span>
                 </div>
               </div>
             </div>
@@ -496,7 +509,9 @@ export default function ServiceAddProductPage() {
                   className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
                   placeholder="تصنيف محلي"
                 />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 text-sm">👑</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 text-sm">
+                  👑
+                </span>
               </div>
             </div>
 
@@ -528,11 +543,7 @@ export default function ServiceAddProductPage() {
           </div>
 
           {/* 2. Extended sections (المعلومات المتقدمة، التخفيضات، قنوات عرض المنتج، خيارات الشراء، الوسوم، الشحن، المخزون، بيانات SEO، الكميات، الخيارات، نموذج الطلب، الحقول المخصصة، الإشعارات) */}
-          <ExtendedProductSections
-            value={extraData}
-            onChange={setExtraData}
-            showOrderForm={true}
-          />
+          <ExtendedProductSections value={extraData} onChange={setExtraData} showOrderForm={true} />
 
           {/* Bottom Save & Cancel Buttons */}
           <div className="flex justify-end gap-3 pt-2">
@@ -574,9 +585,7 @@ export default function ServiceAddProductPage() {
               </button>
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block">
-                اسم التصنيف *
-              </label>
+              <label className="text-xs font-bold text-slate-500 mb-1 block">اسم التصنيف *</label>
               <input
                 type="text"
                 value={newCategoryName}

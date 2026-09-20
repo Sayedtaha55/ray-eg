@@ -17,6 +17,7 @@ import {
   downloadCSV,
   type PeriodKey,
 } from './financeShared';
+import { fmtNum, fmtEGP } from './InsightsShared';
 
 type CustomerSegment = { segment: string; segment_ar: string; count: number; percentage: number };
 type TopCustomer = { name: string; orders: number; spent: number };
@@ -28,12 +29,6 @@ type CustomerInsightsData = {
   segments: CustomerSegment[];
   top_customers: TopCustomer[];
 };
-
-const LOCALE = 'ar-EG-u-nu-latn';
-const fmtNum = (n: number) =>
-  (Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 });
-const fmtEGP = (n: number) =>
-  `${(Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 })} ج.م`;
 
 /** فترة الصفحة → مدة تقرير العملاء من الباك إند (7/30/90 يوم) */
 const periodToDays = (p: PeriodKey): '7' | '30' | '90' =>

@@ -5,6 +5,7 @@ import { Store } from 'lucide-react';
 import { getShops } from '@/lib/services';
 import { DalilClient } from '@/components/DalilClient';
 import { activities, siteConfig } from '@/lib/config';
+import { serializeJsonLd } from '@/lib/jsonld';
 
 export const metadata: Metadata = {
   title: 'دليل المتاجر',
@@ -41,7 +42,7 @@ export default async function DalilPage() {
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-12 md:py-16">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(dalilLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(dalilLd) }}
       />
       <div className="flex items-center gap-4 mb-10">
         <div className="w-14 h-14 bg-brand-purple/10 rounded-xl flex items-center justify-center">

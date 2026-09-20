@@ -49,17 +49,7 @@ func main() {
 	}
 
 	// Mailer: real SMTP when configured, otherwise emails are logged and dropped.
-	var appMailer mailer.Mailer = mailer.NoOpMailer{}
-	if cfg.SMTP.Host != "" {
-		appMailer = mailer.NewSMTPMailer(mailer.SMTPConfig{
-			Host:     cfg.SMTP.Host,
-			Port:     cfg.SMTP.Port,
-			User:     cfg.SMTP.User,
-			Password: cfg.SMTP.Password,
-			From:     cfg.SMTP.From,
-			FromName: cfg.SMTP.FromName,
-		})
-	}
+	appMailer := mailer.FromConfig(cfg)
 
 	notificationRepo := notification.NewRepository(pool)
 	webPushService := notification.NewWebPushService(

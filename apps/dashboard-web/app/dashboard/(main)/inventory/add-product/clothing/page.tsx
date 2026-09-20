@@ -115,6 +115,7 @@ const parseNumberInput = (value: any) => {
   return Number(cleaned);
 };
 
+import { compressForUpload } from '@/lib/upload-image';
 export default function ClothingAddProductPage() {
   const { shop } = useShop();
   const router = useRouter();
@@ -283,10 +284,10 @@ export default function ClothingAddProductPage() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      setImageFile(await compressForUpload(file, 'product'));
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageUrl(reader.result as string);
@@ -295,13 +296,14 @@ export default function ClothingAddProductPage() {
     }
   };
 
-  const handleExtraImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleExtraImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     const remaining = 5 - extraImagePreviews.length;
     const toAdd = files.slice(0, remaining);
-    setExtraImageFiles((prev) => [...prev, ...toAdd]);
-    toAdd.forEach((file) => {
+    const compressedToAdd = await Promise.all(toAdd.map((f) => compressForUpload(f, 'gallery')));
+    setExtraImageFiles((prev) => [...prev, ...compressedToAdd]);
+    compressedToAdd.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setExtraImagePreviews((prev) => [...prev, reader.result as string]);
@@ -394,14 +396,15 @@ export default function ClothingAddProductPage() {
     setAddonItems(addonItems.filter((a) => a.id !== id));
   };
 
-  const handleAddonImagesChange = (id: string, files: File[]) => {
+  const handleAddonImagesChange = async (id: string, files: File[]) => {
     const addon = addonItems.find((a) => a.id === id);
     if (!addon) return;
     const remaining = 5 - addon.imagePreviews.length;
     const toAdd = files.slice(0, remaining);
-    const newFiles = [...addon.imageUploadFiles, ...toAdd];
+    const compressedToAdd = await Promise.all(toAdd.map((f) => compressForUpload(f, 'gallery')));
+    const newFiles = [...addon.imageUploadFiles, ...compressedToAdd];
     updateAddon(id, 'imageUploadFiles', newFiles);
-    toAdd.forEach((file) => {
+    compressedToAdd.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setAddonItems((current) =>
@@ -702,7 +705,8 @@ export default function ClothingAddProductPage() {
             <div className="text-center py-2">
               <p className="text-xs font-black text-slate-700 mb-1.5">أضف المعلومات الأساسية</p>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                تُظهر المعاينة الصورة، الاسم، السعر، السعر المخفض, العنوان الفرعي والترويجي. ستتمكن من معاينة صفحة المنتج الكاملة على ثيم متجرك بعد الحفظ.
+                تُظهر المعاينة الصورة، الاسم، السعر، السعر المخفض, العنوان الفرعي والترويجي. ستتمكن
+                من معاينة صفحة المنتج الكاملة على ثيم متجرك بعد الحفظ.
               </p>
             </div>
           )}
@@ -727,7 +731,8 @@ export default function ClothingAddProductPage() {
                 e.preventDefault();
                 setDragOver(false);
                 const file = e.dataTransfer.files?.[0];
-                if (file && file.type.startsWith('image/')) handleImageUpload({ target: { files: [file] } } as any);
+                if (file && file.type.startsWith('image/'))
+                  handleImageUpload({ target: { files: [file] } } as any);
               }}
               className={`rounded-2xl border-2 border-dashed p-5 text-center transition-all ${
                 dragOver ? 'border-teal-400 bg-teal-50/50' : 'border-slate-200 bg-slate-50/40'
@@ -746,7 +751,12 @@ export default function ClothingAddProductPage() {
                   <div className="flex items-center gap-2 mt-2">
                     <label className="inline-block px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-all shadow-2xs">
                       اختار من المعرض
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
                     </label>
                     {isInstalled('image-editor') && (
                       <button
@@ -783,7 +793,11 @@ export default function ClothingAddProductPage() {
                     key={idx}
                     className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-2xs"
                   >
-                    <img src={src} className="w-full h-full object-cover" alt={`extra ${idx + 1}`} />
+                    <img
+                      src={src}
+                      className="w-full h-full object-cover"
+                      alt={`extra ${idx + 1}`}
+                    />
                     <button
                       type="button"
                       onClick={() => removeExtraImage(idx)}
@@ -812,7 +826,8 @@ export default function ClothingAddProductPage() {
             {/* Name */}
             <div className="text-right">
               <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
-                اسم المنتج <span className="text-red-500">*</span> <Info size={13} className="text-slate-300" />
+                اسم المنتج <span className="text-red-500">*</span>{' '}
+                <Info size={13} className="text-slate-300" />
               </label>
               <div className="relative">
                 <input
@@ -833,7 +848,8 @@ export default function ClothingAddProductPage() {
               {/* Price */}
               <div className="text-right">
                 <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
-                  السعر الأساسي (ج.م) <span className="text-red-500">*</span> <Info size={13} className="text-slate-300" />
+                  السعر الأساسي (ج.م) <span className="text-red-500">*</span>{' '}
+                  <Info size={13} className="text-slate-300" />
                 </label>
                 <div className="relative">
                   <input
@@ -845,7 +861,9 @@ export default function ClothingAddProductPage() {
                     className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
                     placeholder="0.00"
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">#</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">
+                    #
+                  </span>
                 </div>
               </div>
 
@@ -864,7 +882,9 @@ export default function ClothingAddProductPage() {
                     className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
                     placeholder="أدخل سعر التكلفة"
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">#</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-bold">
+                    #
+                  </span>
                 </div>
               </div>
             </div>
@@ -951,7 +971,9 @@ export default function ClothingAddProductPage() {
                   className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-400"
                   placeholder="تصنيف محلي"
                 />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 text-sm">👑</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 text-sm">
+                  👑
+                </span>
               </div>
             </div>
 
@@ -989,7 +1011,8 @@ export default function ClothingAddProductPage() {
 
               <div className="text-right">
                 <label className="text-xs font-bold text-slate-500 mb-1.5 inline-flex items-center gap-1">
-                  المخزون الإجمالي <span className="text-red-500">*</span> <Info size={13} className="text-slate-300" />
+                  المخزون الإجمالي <span className="text-red-500">*</span>{' '}
+                  <Info size={13} className="text-slate-300" />
                 </label>
                 <input
                   type="number"
@@ -1037,7 +1060,9 @@ export default function ClothingAddProductPage() {
 
             {/* Colors */}
             <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-700 block text-right">الألوان المتاحة</label>
+              <label className="text-xs font-bold text-slate-700 block text-right">
+                الألوان المتاحة
+              </label>
               <div className="flex flex-wrap gap-2 justify-end">
                 {presetColors.map((c) => {
                   const isSelected = selectedColors.some((x) => x.value === c.value);
@@ -1110,7 +1135,9 @@ export default function ClothingAddProductPage() {
 
             {/* Sizes */}
             <div className="space-y-3 pt-4 border-t border-slate-100">
-              <label className="text-xs font-bold text-slate-700 block text-right">المقاسات والأسعار الخاصة</label>
+              <label className="text-xs font-bold text-slate-700 block text-right">
+                المقاسات والأسعار الخاصة
+              </label>
               <div className="flex flex-wrap gap-2 justify-end">
                 {presetSizes.map((s) => (
                   <button
@@ -1186,7 +1213,9 @@ export default function ClothingAddProductPage() {
                     onChange={(e) => setPackEnabled(e.target.checked)}
                     className="w-4 h-4 rounded border-slate-300 accent-teal-600"
                   />
-                  <span className="text-xs font-bold text-slate-700">تفعيل باقات التوفير (اشترِ أكثر ووفر)</span>
+                  <span className="text-xs font-bold text-slate-700">
+                    تفعيل باقات التوفير (اشترِ أكثر ووفر)
+                  </span>
                 </label>
                 <h3 className="text-xs font-bold text-slate-500">باقات الخيارات</h3>
               </div>
@@ -1207,7 +1236,9 @@ export default function ClothingAddProductPage() {
                       </button>
                       <div className="flex items-center gap-2 flex-1 justify-end">
                         <div className="text-right">
-                          <label className="text-[10px] font-bold text-slate-400 block mb-0.5">السعر الإجمالي</label>
+                          <label className="text-[10px] font-bold text-slate-400 block mb-0.5">
+                            السعر الإجمالي
+                          </label>
                           <input
                             type="number"
                             value={p.price}
@@ -1217,7 +1248,9 @@ export default function ClothingAddProductPage() {
                           />
                         </div>
                         <div className="text-right">
-                          <label className="text-[10px] font-bold text-slate-400 block mb-0.5">الكمية في الباقة</label>
+                          <label className="text-[10px] font-bold text-slate-400 block mb-0.5">
+                            الكمية في الباقة
+                          </label>
                           <input
                             type="number"
                             value={p.qty}
@@ -1263,7 +1296,10 @@ export default function ClothingAddProductPage() {
               ) : (
                 <div className="space-y-3">
                   {addonItems.map((a) => (
-                    <div key={a.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                    <div
+                      key={a.id}
+                      className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3"
+                    >
                       <div className="flex items-center justify-between gap-3">
                         <button
                           type="button"
@@ -1340,9 +1376,7 @@ export default function ClothingAddProductPage() {
               </button>
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 mb-1 block">
-                اسم التصنيف *
-              </label>
+              <label className="text-xs font-bold text-slate-500 mb-1 block">اسم التصنيف *</label>
               <input
                 type="text"
                 value={newCategoryName}

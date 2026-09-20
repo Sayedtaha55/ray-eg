@@ -62,6 +62,7 @@ interface CustomBundleSection {
   items: BundleItem[];
 }
 
+import { compressForUpload } from '@/lib/upload-image';
 export default function AddBundleProductPage() {
   const router = useRouter();
 
@@ -230,10 +231,10 @@ export default function AddBundleProductPage() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      setImageFile(await compressForUpload(file, 'product'));
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageUrl(reader.result as string);
@@ -327,11 +328,7 @@ export default function AddBundleProductPage() {
     ]);
   };
 
-  const handleUpdateSection = (
-    sectionId: string,
-    field: keyof CustomBundleSection,
-    value: any
-  ) => {
+  const handleUpdateSection = (sectionId: string, field: keyof CustomBundleSection, value: any) => {
     setCustomSections((prev) =>
       prev.map((sec) => (sec.id === sectionId ? { ...sec, [field]: value } : sec))
     );
@@ -568,8 +565,8 @@ export default function AddBundleProductPage() {
             </div>
             <h2 className="text-lg sm:text-xl font-black">اجمع منتجاتك في باقات جذابة</h2>
             <p className="text-xs text-teal-100 leading-relaxed max-w-2xl">
-              جمّع عدة منتجات في عرض واحد لزيادة متوسط قيمة الطلب. اعرض للعملاء باقات ثابتة أو
-              مخصصة بخصم مميز يشجع على الشراء السريع.
+              جمّع عدة منتجات في عرض واحد لزيادة متوسط قيمة الطلب. اعرض للعملاء باقات ثابتة أو مخصصة
+              بخصم مميز يشجع على الشراء السريع.
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               <span className="text-[11px] bg-white/10 px-2 py-0.5 rounded-md">
@@ -653,7 +650,9 @@ export default function AddBundleProductPage() {
                           <Upload size={18} />
                         </div>
                         <p className="text-xs font-bold text-slate-700">اسحب الصورة وأفلتها هنا</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">أو اضغط للاختيار من جهازك</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          أو اضغط للاختيار من جهازك
+                        </p>
                       </>
                     )}
                   </div>
@@ -865,7 +864,9 @@ export default function AddBundleProductPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">تصنيف محلي</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    تصنيف محلي
+                  </label>
                   <input
                     type="text"
                     placeholder="تصنيف محلي (مثال: عروض نهاية الأسبوع، باقات رمضان)"
@@ -980,7 +981,9 @@ export default function AddBundleProductPage() {
                             : 'border-slate-300'
                         }`}
                       >
-                        {bundleType === 'fixed' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                        {bundleType === 'fixed' && (
+                          <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                        )}
                       </div>
                     </div>
                     <p className="text-[11px] text-slate-500 leading-relaxed">
@@ -1007,7 +1010,9 @@ export default function AddBundleProductPage() {
                             : 'border-slate-300'
                         }`}
                       >
-                        {bundleType === 'custom' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                        {bundleType === 'custom' && (
+                          <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                        )}
                       </div>
                     </div>
                     <p className="text-[11px] text-slate-500 leading-relaxed">
@@ -1185,9 +1190,7 @@ export default function AddBundleProductPage() {
                             <input
                               type="text"
                               value={sec.title}
-                              onChange={(e) =>
-                                handleUpdateSection(sec.id, 'title', e.target.value)
-                              }
+                              onChange={(e) => handleUpdateSection(sec.id, 'title', e.target.value)}
                               placeholder="عنوان القسم (مثال: اختر التيشيرت)"
                               className="px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-lg bg-white w-full max-w-sm"
                             />
@@ -1549,7 +1552,11 @@ export default function AddBundleProductPage() {
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
                           {p.imageUrl ? (
-                            <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                            <img
+                              src={p.imageUrl}
+                              alt={p.name}
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
                             <ImageIcon size={16} className="text-slate-400" />
                           )}

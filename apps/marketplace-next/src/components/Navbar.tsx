@@ -82,20 +82,42 @@ export function Navbar() {
     };
   }, [menuOpen]);
 
-  // Session state + unread notifications counter
+  // Session state + unread notifications counter — throttled: at most one
+  // fetch per 45s (navigations used to fire one request each) plus a slow
+  // keep-fresh interval and a refresh when the tab becomes visible again.
+  const lastCountFetchRef = useRef(0);
   useEffect(() => {
-    const token = getStoredAuthToken();
-    setIsLoggedIn(!!token);
-    if (!token) {
-      setUnreadNotifs(0);
-      return;
-    }
-    fetch(apiPath('/notifications/me/unread-count'), {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => (r.status === 401 || !r.ok ? null : r.json()))
-      .then((d) => setUnreadNotifs(d?.unread_count || d?.count || 0))
-      .catch(() => {});
+    let cancelled = false;
+    setIsLoggedIn(!!getStoredAuthToken());
+    const load = async (force = false) => {
+      const token = getStoredAuthToken();
+      if (!token) {
+        setUnreadNotifs(0);
+        return;
+      }
+      const now = Date.now();
+      if (!force && now - lastCountFetchRef.current < 45_000) return;
+      lastCountFetchRef.current = now;
+      try {
+        const res = await fetch(apiPath('/notifications/me/unread-count'), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (cancelled) return;
+        const d = res.status === 401 || !res.ok ? null : await res.json().catch(() => null);
+        setUnreadNotifs(d?.unread_count || d?.count || 0);
+      } catch {}
+    };
+    load(true);
+    const interval = setInterval(() => load(true), 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load(true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [pathname]);
 
   const openCart = useCallback(() => {

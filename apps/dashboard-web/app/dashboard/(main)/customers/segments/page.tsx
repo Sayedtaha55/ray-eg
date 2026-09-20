@@ -1,7 +1,33 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Layers, Search, Loader2, Plus, Edit, Trash2, Download, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info, Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, Users, TrendingUp, Target, BarChart3, PieChart } from 'lucide-react';
+import {
+  Layers,
+  Search,
+  Loader2,
+  Plus,
+  Edit,
+  Trash2,
+  Download,
+  Filter,
+  ChevronUp,
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  X,
+  Info,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Users,
+  TrendingUp,
+  Target,
+  BarChart3,
+  PieChart,
+} from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
@@ -64,34 +90,58 @@ export default function CustomerSegmentsPage() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       // Load segments from the backend API
       const segmentsData = await apiRequest(`/shops/${sid}/segments`);
       setSegments(Array.isArray(segmentsData) ? segmentsData : []);
-    } catch { setSegments([]); } finally { setLoading(false); }
+    } catch {
+      setSegments([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadSegments(); }, [loadSegments]);
+  useEffect(() => {
+    loadSegments();
+  }, [loadSegments]);
 
   const filtered = useMemo(() => {
-    let result = segments.filter(s =>
-      s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      s.nameAr.includes(debouncedSearch)
+    let result = segments.filter(
+      (s) =>
+        s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        s.nameAr.includes(debouncedSearch)
     );
 
     if (filterStatus !== 'all') {
-      result = result.filter(s => 
-        filterStatus === 'active' ? s.isActive : !s.isActive
-      );
+      result = result.filter((s) => (filterStatus === 'active' ? s.isActive : !s.isActive));
     }
 
     result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'customerCount' ? a.customerCount : sortBy === 'totalSpent' ? a.totalSpent : sortBy === 'averageOrderValue' ? a.averageOrderValue : a.createdAt;
-      const bVal = sortBy === 'customerCount' ? b.customerCount : sortBy === 'totalSpent' ? b.totalSpent : sortBy === 'averageOrderValue' ? b.averageOrderValue : b.createdAt;
+      const aVal =
+        sortBy === 'customerCount'
+          ? a.customerCount
+          : sortBy === 'totalSpent'
+            ? a.totalSpent
+            : sortBy === 'averageOrderValue'
+              ? a.averageOrderValue
+              : a.createdAt;
+      const bVal =
+        sortBy === 'customerCount'
+          ? b.customerCount
+          : sortBy === 'totalSpent'
+            ? b.totalSpent
+            : sortBy === 'averageOrderValue'
+              ? b.averageOrderValue
+              : b.createdAt;
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
-      return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+      return sortOrder === 'asc'
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number);
     });
 
     return result;
@@ -108,12 +158,12 @@ export default function CustomerSegmentsPage() {
     if (selectedIds.size === paginatedSegments.length && paginatedSegments.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(paginatedSegments.map(s => s.id)));
+      setSelectedIds(new Set(paginatedSegments.map((s) => s.id)));
     }
   }, [paginatedSegments, selectedIds.size]);
 
   const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -137,15 +187,29 @@ export default function CustomerSegmentsPage() {
             maxSpent: formData.maxSpent ? Number(formData.maxSpent) : undefined,
             minOrders: formData.minOrders ? Number(formData.minOrders) : undefined,
             maxOrders: formData.maxOrders ? Number(formData.maxOrders) : undefined,
-            minLoyaltyPoints: formData.minLoyaltyPoints ? Number(formData.minLoyaltyPoints) : undefined,
-            maxLoyaltyPoints: formData.maxLoyaltyPoints ? Number(formData.maxLoyaltyPoints) : undefined,
+            minLoyaltyPoints: formData.minLoyaltyPoints
+              ? Number(formData.minLoyaltyPoints)
+              : undefined,
+            maxLoyaltyPoints: formData.maxLoyaltyPoints
+              ? Number(formData.maxLoyaltyPoints)
+              : undefined,
           },
           isActive: true,
         }),
       });
-      setSegments(prev => Array.isArray(created) ? [...prev, ...created] : [...prev, created]);
+      setSegments((prev) => (Array.isArray(created) ? [...prev, ...created] : [...prev, created]));
       setAddModal(false);
-      setFormData({ name: '', nameAr: '', description: '', minSpent: '', maxSpent: '', minOrders: '', maxOrders: '', minLoyaltyPoints: '', maxLoyaltyPoints: '' });
+      setFormData({
+        name: '',
+        nameAr: '',
+        description: '',
+        minSpent: '',
+        maxSpent: '',
+        minOrders: '',
+        maxOrders: '',
+        minLoyaltyPoints: '',
+        maxLoyaltyPoints: '',
+      });
     } catch (error) {
       alert('حدث خطأ أثناء إضافة الشريحة');
     }
@@ -168,15 +232,31 @@ export default function CustomerSegmentsPage() {
             maxSpent: formData.maxSpent ? Number(formData.maxSpent) : undefined,
             minOrders: formData.minOrders ? Number(formData.minOrders) : undefined,
             maxOrders: formData.maxOrders ? Number(formData.maxOrders) : undefined,
-            minLoyaltyPoints: formData.minLoyaltyPoints ? Number(formData.minLoyaltyPoints) : undefined,
-            maxLoyaltyPoints: formData.maxLoyaltyPoints ? Number(formData.maxLoyaltyPoints) : undefined,
+            minLoyaltyPoints: formData.minLoyaltyPoints
+              ? Number(formData.minLoyaltyPoints)
+              : undefined,
+            maxLoyaltyPoints: formData.maxLoyaltyPoints
+              ? Number(formData.maxLoyaltyPoints)
+              : undefined,
           },
         }),
       });
-      setSegments(prev => prev.map(s => s.id === editSegment.id ? (updated ? { ...s, ...updated } : s) : s));
+      setSegments((prev) =>
+        prev.map((s) => (s.id === editSegment.id ? (updated ? { ...s, ...updated } : s) : s))
+      );
       setEditModal(false);
       setEditSegment(null);
-      setFormData({ name: '', nameAr: '', description: '', minSpent: '', maxSpent: '', minOrders: '', maxOrders: '', minLoyaltyPoints: '', maxLoyaltyPoints: '' });
+      setFormData({
+        name: '',
+        nameAr: '',
+        description: '',
+        minSpent: '',
+        maxSpent: '',
+        minOrders: '',
+        maxOrders: '',
+        minLoyaltyPoints: '',
+        maxLoyaltyPoints: '',
+      });
     } catch (error) {
       alert('حدث خطأ أثناء تعديل الشريحة');
     }
@@ -189,38 +269,54 @@ export default function CustomerSegmentsPage() {
       const sid = shopData?.id;
       if (!sid) return;
       await apiRequest(`/shops/${sid}/segments/${id}`, { method: 'DELETE' });
-      setSegments(prev => prev.filter(s => s.id !== id));
+      setSegments((prev) => prev.filter((s) => s.id !== id));
     } catch (error) {
       alert('حدث خطأ أثناء الحذف');
     }
   }, []);
 
-  const toggleActive = useCallback(async (id: string) => {
-    try {
-      const shopData = await apiRequest('/shops/me');
-      const sid = shopData?.id;
-      if (!sid) return;
-      const current = segments.find(s => s.id === id);
-      if (!current) return;
-      const updated = await apiRequest(`/shops/${sid}/segments/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          name: current.name,
-          nameAr: current.nameAr,
-          description: current.description,
-          criteria: current.criteria,
-          isActive: !current.isActive,
-        }),
-      });
-      setSegments(prev => prev.map(s => s.id === id ? (updated ? { ...s, ...updated } : { ...s, isActive: !s.isActive }) : s));
-    } catch (error) {
-      alert('حدث خطأ أثناء تحديث الحالة');
-    }
-  }, [segments]);
+  const toggleActive = useCallback(
+    async (id: string) => {
+      try {
+        const shopData = await apiRequest('/shops/me');
+        const sid = shopData?.id;
+        if (!sid) return;
+        const current = segments.find((s) => s.id === id);
+        if (!current) return;
+        const updated = await apiRequest(`/shops/${sid}/segments/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: current.name,
+            nameAr: current.nameAr,
+            description: current.description,
+            criteria: current.criteria,
+            isActive: !current.isActive,
+          }),
+        });
+        setSegments((prev) =>
+          prev.map((s) =>
+            s.id === id ? (updated ? { ...s, ...updated } : { ...s, isActive: !s.isActive }) : s
+          )
+        );
+      } catch (error) {
+        alert('حدث خطأ أثناء تحديث الحالة');
+      }
+    },
+    [segments]
+  );
 
   const exportCSV = useCallback(() => {
-    const headers = ['Name', 'Name (Arabic)', 'Description', 'Customer Count', 'Total Spent', 'Average Order Value', 'Status', 'Created At'];
-    const rows = filtered.map(s => [
+    const headers = [
+      'Name',
+      'Name (Arabic)',
+      'Description',
+      'Customer Count',
+      'Total Spent',
+      'Average Order Value',
+      'Status',
+      'Created At',
+    ];
+    const rows = filtered.map((s) => [
       s.name,
       s.nameAr,
       s.description,
@@ -228,25 +324,27 @@ export default function CustomerSegmentsPage() {
       s.totalSpent,
       s.averageOrderValue,
       s.isActive ? 'Active' : 'Inactive',
-      s.createdAt
+      s.createdAt,
     ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'segments.csv';
-    link.click();
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob({ filename: 'segments.csv', headers, rows: [...rows] }, 'csv');
+      downloadBlob(blob, 'segments.csv');
+    });
   }, [filtered]);
 
   const stats = useMemo(() => {
     const totalCustomers = segments.reduce((s, seg) => s + seg.customerCount, 0);
     const totalSpent = segments.reduce((s, seg) => s + seg.totalSpent, 0);
-    const activeSegments = segments.filter(s => s.isActive).length;
+    const activeSegments = segments.filter((s) => s.isActive).length;
     return [
       { label: 'إجمالي الشرائح', value: segments.length, color: 'bg-blue-50 text-blue-600' },
       { label: 'شرائح نشطة', value: activeSegments, color: 'bg-green-50 text-green-600' },
       { label: 'إجمالي العملاء', value: totalCustomers, color: 'bg-purple-50 text-purple-600' },
-      { label: 'إجمالي الإنفاق', value: `ج.م ${totalSpent.toLocaleString()}`, color: 'bg-amber-50 text-amber-600' },
+      {
+        label: 'إجمالي الإنفاق',
+        value: `ج.م ${totalSpent.toLocaleString()}`,
+        color: 'bg-amber-50 text-amber-600',
+      },
     ];
   }, [segments]);
 
@@ -268,14 +366,19 @@ export default function CustomerSegmentsPage() {
               <Info size={18} />
             </button>
           </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">إدارة شرائح العملاء وتقسيمهم حسب السلوك والاهتمامات</p>
+          <p className="text-sm font-bold text-slate-400 mt-1">
+            إدارة شرائح العملاء وتقسيمهم حسب السلوك والاهتمامات
+          </p>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((stat, idx) => (
-          <div key={idx} className={`p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end ${stat.color}`}>
+          <div
+            key={idx}
+            className={`p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end ${stat.color}`}
+          >
             <span className="text-slate-500 font-semibold text-xs mb-1">{stat.label}</span>
             <span className="text-xl sm:text-2xl font-bold text-slate-900">{stat.value}</span>
           </div>
@@ -286,7 +389,10 @@ export default function CustomerSegmentsPage() {
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+              size={18}
+            />
             <input
               type="text"
               placeholder="بحث..."
@@ -326,7 +432,9 @@ export default function CustomerSegmentsPage() {
       {/* Bulk Actions */}
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
-          <span className="text-sm font-bold text-slate-600">تم اختيار {selectedIds.size} شريحة</span>
+          <span className="text-sm font-bold text-slate-600">
+            تم اختيار {selectedIds.size} شريحة
+          </span>
           <button
             onClick={async () => {
               if (confirm('هل أنت متأكد من حذف الشرائح المحددة؟')) {
@@ -334,12 +442,16 @@ export default function CustomerSegmentsPage() {
                   const shopData = await apiRequest('/shops/me');
                   const sid = shopData?.id;
                   if (sid) {
-                    await Promise.all([...selectedIds].map(id => apiRequest(`/shops/${sid}/segments/${id}`, { method: 'DELETE' })));
+                    await Promise.all(
+                      [...selectedIds].map((id) =>
+                        apiRequest(`/shops/${sid}/segments/${id}`, { method: 'DELETE' })
+                      )
+                    );
                   }
                 } catch {
                   alert('حدث خطأ أثناء حذف الشرائح');
                 }
-                setSegments(prev => prev.filter(s => !selectedIds.has(s.id)));
+                setSegments((prev) => prev.filter((s) => !selectedIds.has(s.id)));
                 setSelectedIds(new Set());
               }
             }}
@@ -433,16 +545,22 @@ export default function CustomerSegmentsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <TrendingUp size={16} className="text-slate-400" />
-                      <span className="text-sm text-slate-600">ج.م {segment.totalSpent.toLocaleString()}</span>
+                      <span className="text-sm text-slate-600">
+                        ج.م {segment.totalSpent.toLocaleString()}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <BarChart3 size={16} className="text-slate-400" />
-                      <span className="text-sm text-slate-600">متوسط: ج.م {segment.averageOrderValue.toLocaleString()}</span>
+                      <span className="text-sm text-slate-600">
+                        متوسط: ج.م {segment.averageOrderValue.toLocaleString()}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-slate-400">
                     <Calendar size={14} />
-                    <span>تم الإنشاء: {new Date(segment.createdAt).toLocaleDateString('ar-EG')}</span>
+                    <span>
+                      تم الإنشاء: {new Date(segment.createdAt).toLocaleDateString('ar-EG')}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -455,11 +573,12 @@ export default function CustomerSegmentsPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <span className="text-sm text-slate-500">
-            عرض {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} من {filtered.length}
+            عرض {(currentPage - 1) * itemsPerPage + 1} -{' '}
+            {Math.min(currentPage * itemsPerPage, filtered.length)} من {filtered.length}
           </span>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -469,7 +588,7 @@ export default function CustomerSegmentsPage() {
               صفحة {currentPage} من {totalPages}
             </span>
             <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -494,7 +613,9 @@ export default function CustomerSegmentsPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">الاسم (إنجليزي)</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1">
+                  الاسم (إنجليزي)
+                </label>
                 <input
                   type="text"
                   value={formData.name}
@@ -562,7 +683,9 @@ export default function CustomerSegmentsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">أقل نقاط ولاء</label>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">
+                    أقل نقاط ولاء
+                  </label>
                   <input
                     type="number"
                     value={formData.minLoyaltyPoints}
@@ -571,7 +694,9 @@ export default function CustomerSegmentsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">أكثر نقاط ولاء</label>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">
+                    أكثر نقاط ولاء
+                  </label>
                   <input
                     type="number"
                     value={formData.maxLoyaltyPoints}
@@ -617,7 +742,9 @@ export default function CustomerSegmentsPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">الاسم (إنجليزي)</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1">
+                  الاسم (إنجليزي)
+                </label>
                 <input
                   type="text"
                   value={formData.name}

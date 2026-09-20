@@ -1,4 +1,4 @@
-.PHONY: build build-api build-worker test race lint fmt vet clean run-api run-worker migrate-up migrate-down sqlc-generate docker-up docker-down
+.PHONY: build build-api build-worker test race lint fmt vet clean run-api run-worker migrate-up migrate-down docker-up docker-down
 
 GO := go
 BIN_DIR := ./bin
@@ -41,9 +41,6 @@ migrate-up:
 
 migrate-down:
 	$(GO) run ./scripts/migrate.go down
-
-sqlc-generate:
-	sqlc generate
 
 docker-up:
 	docker-compose -f docker-compose.yml up --build -d

@@ -58,7 +58,7 @@ func AuthUserFromContext(c *fiber.Ctx) (AuthUser, bool) {
 }
 
 func extractUser(c *fiber.Ctx, secret string) (AuthUser, error) {
-	tokenStr := extractToken(c)
+	tokenStr, source := extractToken(c)
 	if tokenStr == "" {
 		return AuthUser{}, fmt.Errorf("missing token")
 	}
@@ -76,6 +76,21 @@ func extractUser(c *fiber.Ctx, secret string) (AuthUser, error) {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
 		return AuthUser{}, fmt.Errorf("invalid claims")
+	}
+
+	// Only real session tokens may authenticate. One-time tokens (password
+	// reset, email verification) are signed with the same key but must never
+	// act as credentials. Refresh tokens are accepted only when they arrive
+	// via the httpOnly session cookie, which is where login stores them.
+	typ, _ := claims["typ"].(string)
+	switch typ {
+	case "access":
+	case "refresh":
+		if source != tokenSourceCookie {
+			return AuthUser{}, fmt.Errorf("refresh token must be sent via session cookie")
+		}
+	default:
+		return AuthUser{}, fmt.Errorf("token type %q cannot authenticate", typ)
 	}
 
 	user := AuthUser{
@@ -97,17 +112,22 @@ func extractUser(c *fiber.Ctx, secret string) (AuthUser, error) {
 	return user, nil
 }
 
-func extractToken(c *fiber.Ctx) string {
+const (
+	tokenSourceBearer = "bearer"
+	tokenSourceCookie = "cookie"
+)
+
+func extractToken(c *fiber.Ctx) (string, string) {
 	auth := c.Get("Authorization")
 	if strings.HasPrefix(auth, "Bearer ") {
-		return strings.TrimSpace(strings.TrimPrefix(auth, "Bearer "))
+		return strings.TrimSpace(strings.TrimPrefix(auth, "Bearer ")), tokenSourceBearer
 	}
 
 	if cookie := c.Cookies("ray_session"); cookie != "" {
-		return cookie
+		return cookie, tokenSourceCookie
 	}
 
-	return ""
+	return "", ""
 }
 
 func stringClaim(claims jwt.MapClaims, key string) string {

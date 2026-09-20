@@ -18,6 +18,7 @@ import {
   downloadCSV,
   type PeriodKey,
 } from './financeShared';
+import { fmtNum, fmtEGP, fmtPct } from './InsightsShared';
 
 type TrafficSource = { source: string; source_ar: string; visits: number; percentage: number };
 type TrafficData = { total_visitors: number; sources: TrafficSource[] };
@@ -36,13 +37,6 @@ type ConversionsData = {
   total_conversions: number;
   total_revenue: number;
 };
-
-const LOCALE = 'ar-EG-u-nu-latn';
-const fmtNum = (n: number) =>
-  (Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 });
-const fmtEGP = (n: number) =>
-  `${(Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 })} ج.م`;
-const fmtPct = (n: number) => `${(Number.isFinite(n) ? n : 0).toFixed(1)}%`;
 
 const periodToDays = (p: PeriodKey): '7' | '30' | '90' =>
   p === 'today' || p === 'd7' ? '7' : p === 'd30' || p === 'month' ? '30' : '90';

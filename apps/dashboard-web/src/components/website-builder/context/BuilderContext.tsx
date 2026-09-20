@@ -2528,10 +2528,15 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
           const marketplaceBase = isDev
             ? process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'http://localhost:5174'
             : process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'https://mnmknk.com';
+          // Must match REVALIDATE_SECRET configured on the marketplace side.
+          // Sent from the browser, so it is an anti-abuse gate rather than a
+          // true secret — the dev fallback keeps local flows working.
+          const revalidateSecret =
+            process.env.NEXT_PUBLIC_REVALIDATE_SECRET || 'dev-revalidate-secret';
           void fetch(`${marketplaceBase}/api/revalidate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ slug: publishSlug, secret: 'dev-revalidate-secret' }),
+            body: JSON.stringify({ slug: publishSlug, secret: revalidateSecret }),
           }).catch(() => undefined);
         } catch {
           /* non-fatal */

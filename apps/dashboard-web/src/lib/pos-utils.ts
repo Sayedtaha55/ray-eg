@@ -75,7 +75,7 @@ export interface BarcodeScannerHandle {
 
 export function startUsbBarcodeListener(
   onScan: (code: string) => void,
-  opts: { minChars?: number; maxGapMs?: number } = {},
+  opts: { minChars?: number; maxGapMs?: number } = {}
 ): BarcodeScannerHandle {
   const minChars = opts.minChars ?? 4;
   const maxGapMs = opts.maxGapMs ?? 40;
@@ -122,14 +122,16 @@ export function startUsbBarcodeListener(
  */
 export async function startCameraBarcodeListener(
   onScan: (code: string) => void,
-  videoEl: HTMLVideoElement,
+  videoEl: HTMLVideoElement
 ): Promise<BarcodeScannerHandle> {
   const BarcodeDetectorCtor = (window as any).BarcodeDetector;
   if (!BarcodeDetectorCtor || !navigator.mediaDevices?.getUserMedia) {
     throw new Error('BarcodeDetector غير مدعوم في هذا المتصفح');
   }
 
-  const detector = new BarcodeDetectorCtor({ formats: ['code_39', 'code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code'] });
+  const detector = new BarcodeDetectorCtor({
+    formats: ['code_39', 'code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code'],
+  });
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: 'environment' },
     audio: false,
@@ -201,31 +203,17 @@ export function bindShortcuts(defs: ShortcutDef[]): () => void {
   return () => window.removeEventListener('keydown', handler, true);
 }
 
-// ─── CSV export helper ─────────────────────────────────────────────────────
+// ─── CSV export helper (delegates to the unified export engine) ────────────
 
-export function exportToCsv(filename: string, rows: Record<string, any>[]): void {
+export async function exportToCsv(filename: string, rows: Record<string, any>[]): Promise<void> {
   if (!Array.isArray(rows) || rows.length === 0) return;
   const headers = Object.keys(rows[0]);
-  const escape = (v: any) => {
-    const s = String(v ?? '');
-    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-      return `"${s.replace(/"/g, '""')}"`;
-    }
-    return s;
-  };
-  const lines = [
-    headers.join(','),
-    ...rows.map((r) => headers.map((h) => escape(r[h])).join(',')),
-  ];
-  const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const { buildExportBlob, downloadBlob } = await import('@/lib/export');
+  const blob = buildExportBlob(
+    { filename, headers, rows: rows.map((r) => headers.map((h) => r[h])) },
+    'csv'
+  );
+  downloadBlob(blob, filename.endsWith('.csv') ? filename : `${filename}.csv`);
 }
 
 // ─── Pagination helper ─────────────────────────────────────────────────────
@@ -244,7 +232,10 @@ export interface SplitPaymentEntry {
   amount: number;
 }
 
-export function validateSplitPayments(entries: SplitPaymentEntry[], total: number): { ok: boolean; diff: number; sum: number } {
+export function validateSplitPayments(
+  entries: SplitPaymentEntry[],
+  total: number
+): { ok: boolean; diff: number; sum: number } {
   const sum = entries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const diff = Number((sum - total).toFixed(2));
   return { ok: Math.abs(diff) < 0.01, diff, sum };
@@ -272,17 +263,25 @@ export function loadReceiptTheme(shopId: string): ReceiptTheme {
   try {
     const raw = localStorage.getItem(`receipt_theme_${shopId}`);
     return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
+  } catch {
+    return {};
+  }
 }
 
 export function saveReceiptTheme(shopId: string, theme: ReceiptTheme): void {
   if (!shopId) return;
-  try { localStorage.setItem(`receipt_theme_${shopId}`, JSON.stringify(theme)); } catch {}
+  try {
+    localStorage.setItem(`receipt_theme_${shopId}`, JSON.stringify(theme));
+  } catch {}
 }
 
 // ─── Tip / Gratuity ────────────────────────────────────────────────────────
 
-export function computeTip(subtotal: number, tipType: 'none' | 'percent' | 'fixed', tipValue: number): number {
+export function computeTip(
+  subtotal: number,
+  tipType: 'none' | 'percent' | 'fixed',
+  tipValue: number
+): number {
   if (tipType === 'percent') return subtotal * (Math.min(100, Math.max(0, tipValue)) / 100);
   if (tipType === 'fixed') return Math.max(0, tipValue);
   return 0;
@@ -292,7 +291,7 @@ export function computeTip(subtotal: number, tipType: 'none' | 'percent' | 'fixe
 
 export interface LoyaltyConfig {
   pointsPerEgp: number; // e.g. 0.1 = 1 point per 10 EGP
-  redeemRate: number;   // e.g. 0.05 = 1 point = 0.05 EGP
+  redeemRate: number; // e.g. 0.05 = 1 point = 0.05 EGP
   enabled: boolean;
 }
 
@@ -307,7 +306,9 @@ export function loadLoyaltyConfig(shopId: string): LoyaltyConfig {
 
 export function saveLoyaltyConfig(shopId: string, cfg: LoyaltyConfig): void {
   if (!shopId) return;
-  try { localStorage.setItem(`loyalty_config_${shopId}`, JSON.stringify(cfg)); } catch {}
+  try {
+    localStorage.setItem(`loyalty_config_${shopId}`, JSON.stringify(cfg));
+  } catch {}
 }
 
 export function computeEarnedPoints(total: number, cfg: LoyaltyConfig): number {
@@ -339,10 +340,15 @@ export async function validateGiftCard(shopId: string, code: string): Promise<Gi
     if (!card) return null;
     if (card.expiresAt && new Date(card.expiresAt) < new Date()) return null;
     return card;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
-export function applyGiftCardAmount(card: GiftCard, amount: number): { applied: number; remaining: number } {
+export function applyGiftCardAmount(
+  card: GiftCard,
+  amount: number
+): { applied: number; remaining: number } {
   const applied = Math.min(card.balance, Math.max(0, amount));
   return { applied, remaining: Math.max(0, amount - applied) };
 }
@@ -367,7 +373,11 @@ export function getPriceForLevel(product: any, level: PriceLevel): number {
 // ─── Signature capture (canvas) ────────────────────────────────────────────
 
 export function canvasToDataUrl(canvas: HTMLCanvasElement): string {
-  try { return canvas.toDataURL('image/png'); } catch { return ''; }
+  try {
+    return canvas.toDataURL('image/png');
+  } catch {
+    return '';
+  }
 }
 
 export function clearCanvas(canvas: HTMLCanvasElement): void {
@@ -381,7 +391,9 @@ export function clearCanvas(canvas: HTMLCanvasElement): void {
 export function openCashDrawer(): void {
   // Most USB cash drawers are triggered by the printer's "kick" command.
   // We emit a custom event so a printer integration can listen and fire it.
-  try { window.dispatchEvent(new CustomEvent('pos:open-cash-drawer')); } catch {}
+  try {
+    window.dispatchEvent(new CustomEvent('pos:open-cash-drawer'));
+  } catch {}
 }
 
 // ─── Audit trail ───────────────────────────────────────────────────────────
@@ -401,7 +413,11 @@ export function logAudit(shopId: string, entry: Omit<AuditEntry, 'id' | 'ts'>): 
     const key = `pos_audit_${shopId}`;
     const raw = localStorage.getItem(key);
     const list: AuditEntry[] = raw ? JSON.parse(raw) : [];
-    list.unshift({ ...entry, id: `a_${Date.now()}_${Math.random().toString(16).slice(2)}`, ts: Date.now() });
+    list.unshift({
+      ...entry,
+      id: `a_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      ts: Date.now(),
+    });
     localStorage.setItem(key, JSON.stringify(list.slice(0, 500)));
   } catch {}
 }
@@ -412,7 +428,9 @@ export function readAudit(shopId: string): AuditEntry[] {
     const raw = localStorage.getItem(`pos_audit_${shopId}`);
     const list = raw ? JSON.parse(raw) : [];
     return Array.isArray(list) ? list : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 // ─── Scale integration (serial/USB) ────────────────────────────────────────
@@ -432,7 +450,9 @@ export async function readScaleViaWebSerial(): Promise<number | null> {
     const text = new TextDecoder().decode(value);
     const m = text.match(/([-+]?\d+(?:\.\d+)?)/);
     return m ? Number(m[1]) : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 // ─── Realtime sync (BroadcastChannel) ──────────────────────────────────────
@@ -470,12 +490,16 @@ export function loadTables(shopId: string): RestaurantTable[] {
     const raw = localStorage.getItem(`pos_tables_${shopId}`);
     const list = raw ? JSON.parse(raw) : [];
     return Array.isArray(list) ? list : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 export function saveTables(shopId: string, tables: RestaurantTable[]): void {
   if (!shopId) return;
-  try { localStorage.setItem(`pos_tables_${shopId}`, JSON.stringify(tables)); } catch {}
+  try {
+    localStorage.setItem(`pos_tables_${shopId}`, JSON.stringify(tables));
+  } catch {}
 }
 
 // ─── Email receipt (mailto fallback + API hook) ────────────────────────────
@@ -506,12 +530,16 @@ export function loadLayaways(shopId: string): LayawayPlan[] {
     const raw = localStorage.getItem(`pos_layaways_${shopId}`);
     const list = raw ? JSON.parse(raw) : [];
     return Array.isArray(list) ? list : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 export function saveLayaways(shopId: string, list: LayawayPlan[]): void {
   if (!shopId) return;
-  try { localStorage.setItem(`pos_layaways_${shopId}`, JSON.stringify(list)); } catch {}
+  try {
+    localStorage.setItem(`pos_layaways_${shopId}`, JSON.stringify(list));
+  } catch {}
 }
 
 // ─── Tax exempt ────────────────────────────────────────────────────────────
@@ -538,10 +566,16 @@ export function loadCashMovements(shopId: string, shiftId?: string): CashMovemen
     const raw = localStorage.getItem(key);
     const list = raw ? JSON.parse(raw) : [];
     return Array.isArray(list) ? list : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
-export function saveCashMovements(shopId: string, shiftId: string | undefined, list: CashMovement[]): void {
+export function saveCashMovements(
+  shopId: string,
+  shiftId: string | undefined,
+  list: CashMovement[]
+): void {
   if (!shopId) return;
   try {
     const key = `pos_cash_movements_${shopId}${shiftId ? `_${shiftId}` : ''}`;
@@ -549,8 +583,16 @@ export function saveCashMovements(shopId: string, shiftId: string | undefined, l
   } catch {}
 }
 
-export function addCashMovement(shopId: string, shiftId: string | undefined, movement: Omit<CashMovement, 'id' | 'ts'>): CashMovement {
-  const entry: CashMovement = { ...movement, id: `cm_${Date.now()}_${Math.random().toString(16).slice(2)}`, ts: Date.now() };
+export function addCashMovement(
+  shopId: string,
+  shiftId: string | undefined,
+  movement: Omit<CashMovement, 'id' | 'ts'>
+): CashMovement {
+  const entry: CashMovement = {
+    ...movement,
+    id: `cm_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    ts: Date.now(),
+  };
   const list = [entry, ...loadCashMovements(shopId, shiftId)];
   saveCashMovements(shopId, shiftId, list.slice(0, 200));
   return entry;
@@ -564,17 +606,23 @@ export function loadQuickKeys(shopId: string): string[] {
     const raw = localStorage.getItem(`pos_quick_keys_${shopId}`);
     const list = raw ? JSON.parse(raw) : [];
     return Array.isArray(list) ? list : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 export function saveQuickKeys(shopId: string, productIds: string[]): void {
   if (!shopId) return;
-  try { localStorage.setItem(`pos_quick_keys_${shopId}`, JSON.stringify(productIds.slice(0, 30))); } catch {}
+  try {
+    localStorage.setItem(`pos_quick_keys_${shopId}`, JSON.stringify(productIds.slice(0, 30)));
+  } catch {}
 }
 
 export function toggleQuickKey(shopId: string, productId: string): string[] {
   const list = loadQuickKeys(shopId);
-  const next = list.includes(productId) ? list.filter((x) => x !== productId) : [...list, productId];
+  const next = list.includes(productId)
+    ? list.filter((x) => x !== productId)
+    : [...list, productId];
   saveQuickKeys(shopId, next);
   return next;
 }
@@ -600,7 +648,11 @@ export interface ReportPeriodData {
   topProducts: Array<{ name: string; qty: number; revenue: number }>;
 }
 
-export function buildReportData(orders: any[], shift: any, cashMovements: CashMovement[]): ReportPeriodData {
+export function buildReportData(
+  orders: any[],
+  shift: any,
+  cashMovements: CashMovement[]
+): ReportPeriodData {
   const totalSales = orders.reduce((s, o) => s + Number(o?.total || 0), 0);
   const totalOrders = orders.length;
   const buckets = new Array(24).fill(0);
@@ -608,7 +660,10 @@ export function buildReportData(orders: any[], shift: any, cashMovements: CashMo
     const h = new Date(o?.createdAt || 0).getHours();
     if (h >= 0 && h < 24) buckets[h] += Number(o?.total || 0);
   });
-  const pm = (m: string) => orders.filter((o) => String(o?.paymentMethod || 'COD').toUpperCase() === m).reduce((s, o) => s + Number(o?.total || 0), 0);
+  const pm = (m: string) =>
+    orders
+      .filter((o) => String(o?.paymentMethod || 'COD').toUpperCase() === m)
+      .reduce((s, o) => s + Number(o?.total || 0), 0);
   const totalVat = orders.reduce((s, o) => s + Number(o?.vatAmount || 0), 0);
   const totalDiscounts = orders.reduce((s, o) => {
     const notes = String(o?.notes || '');
@@ -620,7 +675,9 @@ export function buildReportData(orders: any[], shift: any, cashMovements: CashMo
     const m = notes.match(/tip:(?:percent|fixed):([\d.]+)/);
     return s + (m ? Number(m[1]) : 0);
   }, 0);
-  const totalReturns = orders.filter((o) => o?.status === 'RETURNED').reduce((s, o) => s + Number(o?.total || 0), 0);
+  const totalReturns = orders
+    .filter((o) => o?.status === 'RETURNED')
+    .reduce((s, o) => s + Number(o?.total || 0), 0);
 
   const productMap = new Map<string, { name: string; qty: number; revenue: number }>();
   orders.forEach((o) => {
@@ -629,7 +686,8 @@ export function buildReportData(orders: any[], shift: any, cashMovements: CashMo
       const qty = Number(it?.quantity || 0);
       const rev = Number(it?.price || 0) * qty;
       const cur = productMap.get(name) || { name, qty: 0, revenue: 0 };
-      cur.qty += qty; cur.revenue += rev;
+      cur.qty += qty;
+      cur.revenue += rev;
       productMap.set(name, cur);
     });
   });
@@ -641,12 +699,24 @@ export function buildReportData(orders: any[], shift: any, cashMovements: CashMo
   const netCash = openingAmount + cashSales - totalReturns + cashIn - cashOut;
 
   return {
-    totalSales, totalOrders,
-    cashSales, cardSales: pm('CARD'), walletSales: pm('WALLET'), creditSales: pm('CREDIT'),
-    totalVat, totalDiscounts, totalTips, totalReturns,
-    netCash, openingAmount, cashIn, cashOut,
+    totalSales,
+    totalOrders,
+    cashSales,
+    cardSales: pm('CARD'),
+    walletSales: pm('WALLET'),
+    creditSales: pm('CREDIT'),
+    totalVat,
+    totalDiscounts,
+    totalTips,
+    totalReturns,
+    netCash,
+    openingAmount,
+    cashIn,
+    cashOut,
     hourlyBuckets: buckets,
-    topProducts: Array.from(productMap.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 10),
+    topProducts: Array.from(productMap.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10),
   };
 }
 
@@ -669,7 +739,9 @@ export function loadDrawerDeclarations(shopId: string): DrawerDeclaration[] {
     const raw = localStorage.getItem(`pos_drawer_declarations_${shopId}`);
     const list = raw ? JSON.parse(raw) : [];
     return Array.isArray(list) ? list : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 export function saveDrawerDeclaration(shopId: string, decl: DrawerDeclaration): void {
@@ -679,4 +751,3 @@ export function saveDrawerDeclaration(shopId: string, decl: DrawerDeclaration): 
     localStorage.setItem(`pos_drawer_declarations_${shopId}`, JSON.stringify(list));
   } catch {}
 }
-

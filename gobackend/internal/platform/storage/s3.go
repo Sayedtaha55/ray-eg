@@ -120,6 +120,12 @@ func sanitizeKeyComponent(s string) string {
 // IsAllowedContentType validates an allowed image/video mime type.
 func IsAllowedContentType(ct string) bool {
 	ct = strings.ToLower(strings.TrimSpace(ct))
+	// SVG is rejected explicitly: it can carry <script> payloads and is stored
+	// as-is (never re-encoded), so allowing it would enable stored XSS wherever
+	// uploads are served inline.
+	if ct == "image/svg+xml" {
+		return false
+	}
 	allowed := []string{
 		"image/jpeg", "image/png", "image/webp", "image/avif", "image/gif",
 		"video/mp4", "video/webm", "video/quicktime",
@@ -130,7 +136,8 @@ func IsAllowedContentType(ct string) bool {
 			return true
 		}
 	}
-	// Allow types with prefix.
+	// Allow types with prefix. The explicit svg rejection above must stay
+	// ahead of this prefix match ("image/svg+xml" starts with "image/").
 	if strings.HasPrefix(ct, "image/") || strings.HasPrefix(ct, "video/") {
 		return true
 	}

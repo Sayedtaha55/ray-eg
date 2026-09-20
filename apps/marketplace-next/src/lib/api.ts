@@ -32,16 +32,26 @@ function mergeSignals(timeoutSignal: AbortSignal, requestSignal?: AbortSignal): 
   return controller.signal;
 }
 
+// Identifies the calling app so the backend scopes auth cookies per product
+// (ray_session-market / ray_session-dashboard) — a dashboard login and a
+// marketplace login then coexist instead of overwriting each other.
+const APP_SCOPE = 'market';
+
 async function fetchWithTimeout(
   input: RequestInfo | URL,
   init: RequestInit = {}
 ): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const headers = new Headers(init.headers);
+  if (!headers.has('X-App-Scope')) {
+    headers.set('X-App-Scope', APP_SCOPE);
+  }
 
   try {
     return await fetch(input, {
       ...init,
+      headers,
       signal: mergeSignals(controller.signal, init.signal ?? undefined),
     });
   } catch (error) {
@@ -129,22 +139,92 @@ export function clearStoredAuthToken() {
   localStorage.removeItem('token');
 }
 
-export async function jsonRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getStoredAuthToken();
-  const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
-  const headers = new Headers(init.headers);
-  if (!isFormData && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
+// ── Silent access-token refresh ──────────────────────────────────────────────
+// The access token is short-lived; the session lives in the ray_session
+// cookie. When a call comes back 401 we refresh once (single-flight so
+// concurrent failures share one request) and retry with the new token.
 
-  const res = await fetchWithTimeout(apiPath(path), {
-    ...init,
-    headers,
-    credentials: init.credentials ?? 'include',
-  });
+let refreshInFlight: Promise<string | null> | null = null;
+let lastRefreshAt = 0;
+/** Paths that must never trigger a refresh retry (they manage auth themselves). */
+const AUTH_PATHS = ['/auth/refresh', '/auth/login', '/auth/signup', '/auth/logout'];
+
+export async function refreshAccessToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  if (refreshInFlight) return refreshInFlight;
+  // A refresh that succeeded less than 10s ago means the stored token is fresh.
+  if (Date.now() - lastRefreshAt < 10_000) return getStoredAuthToken();
+
+  refreshInFlight = (async () => {
+    try {
+      const res = await fetchWithTimeout(apiPath('/auth/refresh'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) return null;
+      const body = await res.json().catch(() => null);
+      const accessToken =
+        body?.data?.token?.accessToken ||
+        body?.data?.accessToken ||
+        body?.token?.accessToken ||
+        null;
+      if (!accessToken) return null;
+      storeAuthToken(accessToken);
+      lastRefreshAt = Date.now();
+      return accessToken as string;
+    } catch {
+      return null;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
+}
+
+/** True when the request failed with a dead access token we can try to renew. */
+function isRefreshableAuthFailure(status: number, path: string, hadToken: boolean): boolean {
+  return hadToken && status === 401 && !AUTH_PATHS.some((p) => path.includes(p));
+}
+
+async function tryRefresh(): Promise<string | null> {
+  const token = await refreshAccessToken();
+  if (!token) {
+    // Session is gone (cookie expired/logged out elsewhere) — stop sending the dead token.
+    clearStoredAuthToken();
+  }
+  return token;
+}
+
+export async function jsonRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const send = async (): Promise<{ res: Response; hadToken: boolean }> => {
+    const token = getStoredAuthToken();
+    const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
+    const headers = new Headers(init.headers);
+    if (!isFormData && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    const res = await fetchWithTimeout(apiPath(path), {
+      ...init,
+      headers,
+      credentials: init.credentials ?? 'include',
+    });
+    return { res, hadToken: !!token };
+  };
+
+  let { res, hadToken } = await send();
+
+  // Access token expired mid-session — renew it from the session cookie once.
+  if (res.status === 401 && isRefreshableAuthFailure(res.status, path, hadToken)) {
+    const fresh = await tryRefresh();
+    if (fresh) {
+      ({ res, hadToken } = await send());
+    }
+  }
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
@@ -162,41 +242,99 @@ export interface ApiOptions {
   signal?: AbortSignal;
 }
 
+// Client-side GET cache + in-flight dedup. `next.revalidate` only applies to
+// server-side fetches, so in the browser every navigation re-fired every
+// request. A short TTL collapses repeat GETs; any non-GET clears the cache.
+const CLIENT_GET_TTL_MS = 30_000;
+const clientGetCache = new Map<string, { at: number; data: unknown }>();
+const inflightGets = new Map<string, Promise<unknown>>();
+
 async function apiFetch<T>(
   path: string,
   options?: ApiOptions & { method?: string; body?: unknown }
 ): Promise<T> {
-  const url = typeof window === 'undefined' ? backendApiUrl(path) : apiPath(path);
+  const method = (options?.method || 'GET').toUpperCase();
 
-  let token: string | null = null;
   if (typeof window !== 'undefined') {
-    token = getStoredAuthToken();
+    if (method !== 'GET') {
+      clientGetCache.clear();
+    } else if (options?.revalidate !== 0) {
+      const hit = clientGetCache.get(path);
+      if (hit && Date.now() - hit.at < CLIENT_GET_TTL_MS) {
+        return hit.data as T;
+      }
+      const pending = inflightGets.get(path);
+      if (pending) {
+        return pending as Promise<T>;
+      }
+      const exec = apiFetchUncached<T>(path, options)
+        .then((data) => {
+          clientGetCache.set(path, { at: Date.now(), data });
+          return data;
+        })
+        .finally(() => {
+          inflightGets.delete(path);
+        });
+      inflightGets.set(path, exec);
+      return exec;
+    }
   }
 
-  const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
-  const headers = new Headers(options?.headers);
-  if (!isFormData && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
+  return apiFetchUncached<T>(path, options);
+}
 
-  const res = await fetchWithTimeout(url, {
-    method: options?.method || 'GET',
-    headers,
-    body: options?.body
-      ? isFormData
-        ? (options.body as BodyInit)
-        : JSON.stringify(options.body)
-      : undefined,
-    next: {
-      revalidate: options?.revalidate ?? 3600,
-      tags: options?.tags,
-    },
-    cache: options?.revalidate === 0 ? 'no-store' : undefined,
-    signal: options?.signal,
-  });
+async function apiFetchUncached<T>(
+  path: string,
+  options?: ApiOptions & { method?: string; body?: unknown }
+): Promise<T> {
+  const send = async (): Promise<{ res: Response; hadToken: boolean }> => {
+    const url = typeof window === 'undefined' ? backendApiUrl(path) : apiPath(path);
+
+    let token: string | null = null;
+    if (typeof window !== 'undefined') {
+      token = getStoredAuthToken();
+    }
+
+    const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
+    const headers = new Headers(options?.headers);
+    if (!isFormData && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    const res = await fetchWithTimeout(url, {
+      method: options?.method || 'GET',
+      headers,
+      body: options?.body
+        ? isFormData
+          ? (options.body as BodyInit)
+          : JSON.stringify(options.body)
+        : undefined,
+      next: {
+        revalidate: options?.revalidate ?? 3600,
+        tags: options?.tags,
+      },
+      cache: options?.revalidate === 0 ? 'no-store' : undefined,
+      signal: options?.signal,
+    });
+    return { res, hadToken: !!token };
+  };
+
+  let { res, hadToken } = await send();
+
+  // Client-side 401 with a stored token — renew from the session cookie once.
+  if (
+    typeof window !== 'undefined' &&
+    res.status === 401 &&
+    isRefreshableAuthFailure(res.status, path, hadToken)
+  ) {
+    const fresh = await tryRefresh();
+    if (fresh) {
+      ({ res, hadToken } = await send());
+    }
+  }
 
   if (!res.ok) {
     // Handle 401 gracefully - don't throw for unauthorized on public endpoints

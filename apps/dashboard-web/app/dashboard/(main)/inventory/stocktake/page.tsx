@@ -1,7 +1,24 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ClipboardCheck, Plus, Edit, Trash2, Download, Upload, ArrowUpDown, Check, X, Info, Clock, CheckCircle2, XCircle, FileText, AlertTriangle, Calendar } from 'lucide-react';
+import {
+  ClipboardCheck,
+  Plus,
+  Edit,
+  Trash2,
+  Download,
+  Upload,
+  ArrowUpDown,
+  Check,
+  X,
+  Info,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  FileText,
+  AlertTriangle,
+  Calendar,
+} from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import {
@@ -59,41 +76,53 @@ export default function StocktakePage() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const res = await apiRequest(`/stocktakes/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
-      setStocktakes(data.map((s: any) => ({
-        id: String(s.id),
-        name: s.name || '---',
-        reference: s.reference || '---',
-        status: s.status || 'draft',
-        startDate: s.startDate || new Date().toISOString(),
-        endDate: s.endDate || null,
-        location: s.location || '---',
-        notes: s.notes || '',
-        itemCount: Number(s.itemCount || s.items_count || 0),
-        discrepancyCount: Number(s.discrepancyCount || s.discrepancy_count || 0),
-        totalValue: Number(s.totalValue || s.total_value || 0),
-        createdBy: s.createdBy || s.created_by || '---',
-        createdAt: s.createdAt || new Date().toISOString(),
-        updatedAt: s.updatedAt || new Date().toISOString(),
-      })));
-    } catch { setStocktakes([]); } finally { setLoading(false); }
+      const data = Array.isArray(res) ? res : res?.data || [];
+      setStocktakes(
+        data.map((s: any) => ({
+          id: String(s.id),
+          name: s.name || '---',
+          reference: s.reference || '---',
+          status: s.status || 'draft',
+          startDate: s.startDate || new Date().toISOString(),
+          endDate: s.endDate || null,
+          location: s.location || '---',
+          notes: s.notes || '',
+          itemCount: Number(s.itemCount || s.items_count || 0),
+          discrepancyCount: Number(s.discrepancyCount || s.discrepancy_count || 0),
+          totalValue: Number(s.totalValue || s.total_value || 0),
+          createdBy: s.createdBy || s.created_by || '---',
+          createdAt: s.createdAt || new Date().toISOString(),
+          updatedAt: s.updatedAt || new Date().toISOString(),
+        }))
+      );
+    } catch {
+      setStocktakes([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadStocktakes(); }, [loadStocktakes]);
+  useEffect(() => {
+    loadStocktakes();
+  }, [loadStocktakes]);
 
   const filtered = useMemo(() => {
-    let result = stocktakes.filter(s =>
-      s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      s.reference.includes(debouncedSearch) ||
-      s.location.includes(debouncedSearch)
+    let result = stocktakes.filter(
+      (s) =>
+        s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        s.reference.includes(debouncedSearch) ||
+        s.location.includes(debouncedSearch)
     );
 
     if (filterStatus === 'discrepancies') {
-      result = result.filter(s => s.discrepancyCount > 0);
+      result = result.filter((s) => s.discrepancyCount > 0);
     } else if (filterStatus !== 'all') {
-      result = result.filter(s => s.status === filterStatus);
+      result = result.filter((s) => s.status === filterStatus);
     }
 
     result = [...result].sort((a, b) => {
@@ -122,12 +151,12 @@ export default function StocktakePage() {
     if (selectedIds.size === paginatedStocktakes.length && paginatedStocktakes.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(paginatedStocktakes.map(s => s.id)));
+      setSelectedIds(new Set(paginatedStocktakes.map((s) => s.id)));
     }
   }, [paginatedStocktakes, selectedIds.size]);
 
   const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -149,8 +178,20 @@ export default function StocktakePage() {
   }, [selectedIds, loadStocktakes]);
 
   const exportCSV = useCallback(() => {
-    const headers = ['Name', 'Reference', 'Status', 'Start Date', 'End Date', 'Location', 'Item Count', 'Discrepancy Count', 'Total Value', 'Created By', 'Created At'];
-    const rows = filtered.map(s => [
+    const headers = [
+      'Name',
+      'Reference',
+      'Status',
+      'Start Date',
+      'End Date',
+      'Location',
+      'Item Count',
+      'Discrepancy Count',
+      'Total Value',
+      'Created By',
+      'Created At',
+    ];
+    const rows = filtered.map((s) => [
       s.name,
       s.reference,
       s.status,
@@ -161,14 +202,12 @@ export default function StocktakePage() {
       s.discrepancyCount,
       s.totalValue,
       s.createdBy,
-      s.createdAt
+      s.createdAt,
     ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'stocktakes.csv';
-    link.click();
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob({ filename: 'stocktakes.csv', headers, rows: [...rows] }, 'csv');
+      downloadBlob(blob, 'stocktakes.csv');
+    });
   }, [filtered]);
 
   const handleAdd = useCallback(async () => {
@@ -185,7 +224,13 @@ export default function StocktakePage() {
         }),
       });
       setAddModal(false);
-      setFormData({ name: '', reference: '', location: '', notes: '', startDate: new Date().toISOString().split('T')[0] });
+      setFormData({
+        name: '',
+        reference: '',
+        location: '',
+        notes: '',
+        startDate: new Date().toISOString().split('T')[0],
+      });
       loadStocktakes();
     } catch (error) {
       alert('حدث خطأ أثناء إضافة الجرد');
@@ -201,34 +246,46 @@ export default function StocktakePage() {
       });
       setEditModal(false);
       setEditStocktake(null);
-      setFormData({ name: '', reference: '', location: '', notes: '', startDate: new Date().toISOString().split('T')[0] });
+      setFormData({
+        name: '',
+        reference: '',
+        location: '',
+        notes: '',
+        startDate: new Date().toISOString().split('T')[0],
+      });
       loadStocktakes();
     } catch (error) {
       alert('حدث خطأ أثناء تعديل الجرد');
     }
   }, [editStocktake, formData, loadStocktakes]);
 
-  const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا الجرد؟')) return;
-    try {
-      await apiRequest(`/stocktakes/${id}`, { method: 'DELETE' });
-      loadStocktakes();
-    } catch (error) {
-      alert('حدث خطأ أثناء الحذف');
-    }
-  }, [loadStocktakes]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!confirm('هل أنت متأكد من حذف هذا الجرد؟')) return;
+      try {
+        await apiRequest(`/stocktakes/${id}`, { method: 'DELETE' });
+        loadStocktakes();
+      } catch (error) {
+        alert('حدث خطأ أثناء الحذف');
+      }
+    },
+    [loadStocktakes]
+  );
 
-  const handleStatusChange = useCallback(async (id: string, newStatus: string) => {
-    try {
-      await apiRequest(`/stocktakes/${id}/status`, {
-        method: 'PUT',
-        body: JSON.stringify({ status: newStatus }),
-      });
-      loadStocktakes();
-    } catch (error) {
-      alert('حدث خطأ أثناء تغيير الحالة');
-    }
-  }, [loadStocktakes]);
+  const handleStatusChange = useCallback(
+    async (id: string, newStatus: string) => {
+      try {
+        await apiRequest(`/stocktakes/${id}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: newStatus }),
+        });
+        loadStocktakes();
+      } catch (error) {
+        alert('حدث خطأ أثناء تغيير الحالة');
+      }
+    },
+    [loadStocktakes]
+  );
 
   const openEditModal = useCallback((stocktake: Stocktake) => {
     setEditStocktake(stocktake);
@@ -258,27 +315,38 @@ export default function StocktakePage() {
 
   const stats = useMemo(() => {
     const total = stocktakes.length;
-    const draft = stocktakes.filter(s => s.status === 'draft').length;
-    const inProgress = stocktakes.filter(s => s.status === 'in_progress').length;
-    const completed = stocktakes.filter(s => s.status === 'completed').length;
+    const draft = stocktakes.filter((s) => s.status === 'draft').length;
+    const inProgress = stocktakes.filter((s) => s.status === 'in_progress').length;
+    const completed = stocktakes.filter((s) => s.status === 'completed').length;
     const totalDiscrepancies = stocktakes.reduce((sum, s) => sum + s.discrepancyCount, 0);
     return [
-      { label: 'إجمالي الجرد', value: total, icon: ClipboardCheck, color: 'bg-blue-50 text-blue-600' },
+      {
+        label: 'إجمالي الجرد',
+        value: total,
+        icon: ClipboardCheck,
+        color: 'bg-blue-50 text-blue-600',
+      },
       { label: 'جرد جديد', value: draft, icon: FileText, color: 'bg-slate-50 text-slate-600' },
       { label: 'الجاري', value: inProgress, icon: Clock, color: 'bg-blue-50 text-blue-600' },
-      { label: 'بانتظار الاعتماد', value: completed, icon: CheckCircle2, color: 'bg-green-50 text-green-600' },
-      { label: 'الاختلافات', value: totalDiscrepancies, icon: AlertTriangle, color: 'bg-amber-50 text-amber-600' },
+      {
+        label: 'بانتظار الاعتماد',
+        value: completed,
+        icon: CheckCircle2,
+        color: 'bg-green-50 text-green-600',
+      },
+      {
+        label: 'الاختلافات',
+        value: totalDiscrepancies,
+        icon: AlertTriangle,
+        color: 'bg-amber-50 text-amber-600',
+      },
     ];
   }, [stocktakes]);
 
   return (
     <InventoryPage
       title="جرد المخزون"
-      subtitle={
-        <>
-          إدارة عمليات جرد المخزون — {stats[4].value} اختلاف مسجل
-        </>
-      }
+      subtitle={<>إدارة عمليات جرد المخزون — {stats[4].value} اختلاف مسجل</>}
       onInfo={() => setGuideOpen(true)}
       actions={
         <>
@@ -296,10 +364,6 @@ export default function StocktakePage() {
             <Download size={14} />
             تصدير CSV
           </button>
-          <button className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 hidden sm:flex items-center gap-1.5">
-            <Upload size={14} />
-            استيراد
-          </button>
         </>
       }
       tabs={[
@@ -307,7 +371,11 @@ export default function StocktakePage() {
         { id: 'draft', label: 'جرد جديد', count: stats[1].value as number },
         { id: 'in_progress', label: 'الجاري', count: stats[2].value as number },
         { id: 'completed', label: 'بانتظار الاعتماد', count: stats[3].value as number },
-        { id: 'discrepancies', label: 'الفروقات', count: stocktakes.filter(s => s.discrepancyCount > 0).length },
+        {
+          id: 'discrepancies',
+          label: 'الفروقات',
+          count: stocktakes.filter((s) => s.discrepancyCount > 0).length,
+        },
       ]}
       activeTab={filterStatus}
       onTabChange={(id) => {
@@ -410,9 +478,13 @@ export default function StocktakePage() {
                 </button>
               </div>
               <div className="col-span-2 min-w-0">
-                <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{stocktake.name}</div>
+                <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                  {stocktake.name}
+                </div>
               </div>
-              <div className="col-span-1 text-slate-600 text-xs sm:text-sm truncate">{stocktake.reference}</div>
+              <div className="col-span-1 text-slate-600 text-xs sm:text-sm truncate">
+                {stocktake.reference}
+              </div>
               <div className="col-span-1">
                 <InvStatusPill tone={STATUS_TONE[stocktake.status]}>
                   {statusConfig.icon}
@@ -423,8 +495,12 @@ export default function StocktakePage() {
                 <Calendar size={12} />
                 {new Date(stocktake.startDate).toLocaleDateString('ar-EG')}
               </div>
-              <div className="col-span-1 text-slate-600 text-xs sm:text-sm truncate">{stocktake.location}</div>
-              <div className="col-span-1 font-semibold text-slate-900 text-xs sm:text-sm">{stocktake.itemCount}</div>
+              <div className="col-span-1 text-slate-600 text-xs sm:text-sm truncate">
+                {stocktake.location}
+              </div>
+              <div className="col-span-1 font-semibold text-slate-900 text-xs sm:text-sm">
+                {stocktake.itemCount}
+              </div>
               <div className="col-span-1">
                 {stocktake.discrepancyCount > 0 ? (
                   <div className="flex items-center gap-1 text-amber-600 text-xs sm:text-sm font-bold">
@@ -453,11 +529,22 @@ export default function StocktakePage() {
 
       {/* Add Modal */}
       {addModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setAddModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setAddModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
               <h2 className="text-xl font-black text-slate-900">جرد جديد</h2>
-              <button onClick={() => setAddModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+              <button
+                onClick={() => setAddModal(false)}
+                className="p-2 hover:bg-slate-50 rounded-lg"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
             <div className="space-y-4">
               <div>
@@ -465,7 +552,7 @@ export default function StocktakePage() {
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="اسم الجرد"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -475,7 +562,7 @@ export default function StocktakePage() {
                 <input
                   type="text"
                   value={formData.reference}
-                  onChange={e => setFormData({ ...formData, reference: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
                   placeholder="رقم المرجع"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -485,7 +572,7 @@ export default function StocktakePage() {
                 <input
                   type="text"
                   value={formData.location}
-                  onChange={e => setFormData({ ...formData, location: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   placeholder="موقع الجرد"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -495,7 +582,7 @@ export default function StocktakePage() {
                 <input
                   type="date"
                   value={formData.startDate}
-                  onChange={e => setFormData({ ...formData, startDate: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -503,7 +590,7 @@ export default function StocktakePage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">ملاحظات</label>
                 <textarea
                   value={formData.notes}
-                  onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="ملاحظات إضافية"
                   rows={3}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
@@ -522,11 +609,22 @@ export default function StocktakePage() {
 
       {/* Edit Modal */}
       {editModal && editStocktake && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setEditModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
               <h2 className="text-xl font-black text-slate-900">تعديل الجرد</h2>
-              <button onClick={() => setEditModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+              <button
+                onClick={() => setEditModal(false)}
+                className="p-2 hover:bg-slate-50 rounded-lg"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
             <div className="space-y-4">
               <div>
@@ -534,7 +632,7 @@ export default function StocktakePage() {
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -543,7 +641,7 @@ export default function StocktakePage() {
                 <input
                   type="text"
                   value={formData.reference}
-                  onChange={e => setFormData({ ...formData, reference: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -552,7 +650,7 @@ export default function StocktakePage() {
                 <input
                   type="text"
                   value={formData.location}
-                  onChange={e => setFormData({ ...formData, location: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -561,7 +659,7 @@ export default function StocktakePage() {
                 <input
                   type="date"
                   value={formData.startDate}
-                  onChange={e => setFormData({ ...formData, startDate: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -569,7 +667,7 @@ export default function StocktakePage() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">ملاحظات</label>
                 <textarea
                   value={formData.notes}
-                  onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={3}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -587,19 +685,38 @@ export default function StocktakePage() {
 
       {/* Guide Modal */}
       {guideOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setGuideOpen(false)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setGuideOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
               <h2 className="text-xl font-black text-slate-900">دليل جرد المخزون</h2>
-              <button onClick={() => setGuideOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+              <button
+                onClick={() => setGuideOpen(false)}
+                className="p-2 hover:bg-slate-50 rounded-lg"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
             <div className="space-y-6 text-right">
               <div>
-                <div className="flex items-center gap-2 mb-2"><Info size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">وظيفة الصفحة</h3></div>
-                <p className="text-sm text-slate-600 leading-relaxed">إدارة عمليات جرد المخزون الدورية لضمان دقة البيانات.</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <Info size={18} className="text-slate-700" />
+                  <h3 className="font-bold text-slate-900">وظيفة الصفحة</h3>
+                </div>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  إدارة عمليات جرد المخزون الدورية لضمان دقة البيانات.
+                </p>
               </div>
               <div>
-                <div className="flex items-center gap-2 mb-2"><ClipboardCheck size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">الميزات</h3></div>
+                <div className="flex items-center gap-2 mb-2">
+                  <ClipboardCheck size={18} className="text-slate-700" />
+                  <h3 className="font-bold text-slate-900">الميزات</h3>
+                </div>
                 <ul className="text-sm text-slate-600 space-y-1.5 pr-4">
                   <li>• إنشاء عمليات جرد جديدة</li>
                   <li>• تتبع الحالة (مسودة، جاري، مكتمل، ملغي)</li>

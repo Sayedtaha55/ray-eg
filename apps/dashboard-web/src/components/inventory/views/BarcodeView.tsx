@@ -5,9 +5,7 @@
  * المحتوى المنقول من app/dashboard/(main)/inventory/barcode/page.tsx
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  ScanBarcode, Download, Printer, RefreshCw, Check,
-} from 'lucide-react';
+import { ScanBarcode, Download, Printer, RefreshCw, Check } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import {
@@ -53,7 +51,11 @@ function BarcodeVisual({ value }: { value: string }) {
     <div className="flex flex-col items-center gap-1">
       <div className="flex items-end h-16 gap-[1px] bg-white px-2 py-1 rounded">
         {bars.map((w, i) => (
-          <div key={i} style={{ width: `${w}px`, height: '100%' }} className={i % 2 === 0 ? 'bg-black' : 'bg-white'} />
+          <div
+            key={i}
+            style={{ width: `${w}px`, height: '100%' }}
+            className={i % 2 === 0 ? 'bg-black' : 'bg-white'}
+          />
         ))}
       </div>
       <div className="text-[10px] font-mono tracking-widest text-slate-700">{value}</div>
@@ -74,33 +76,45 @@ export default function BarcodeView() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const data = await apiRequest(`/products/manage/by-shop/${sid}?limit=200`);
-      const list = Array.isArray(data) ? data : (data?.products || data?.data || []);
-      setProducts(list.map((p: any) => ({
-        id: String(p.id),
-        name: p.name || p.title || '---',
-        sku: p.sku || '',
-        barcode: p.barcode || p.sku || '',
-        price: Number(p.price ?? 0),
-        stock: Number(p.stock ?? p.quantity ?? 0),
-        imageUrl: p.imageUrl || p.image_url || '',
-      })));
-    } catch { setProducts([]); } finally { setLoading(false); }
+      const list = Array.isArray(data) ? data : data?.products || data?.data || [];
+      setProducts(
+        list.map((p: any) => ({
+          id: String(p.id),
+          name: p.name || p.title || '---',
+          sku: p.sku || '',
+          barcode: p.barcode || p.sku || '',
+          price: Number(p.price ?? 0),
+          stock: Number(p.stock ?? p.quantity ?? 0),
+          imageUrl: p.imageUrl || p.image_url || '',
+        }))
+      );
+    } catch {
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadProducts(); }, [loadProducts]);
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
 
   const filtered = useMemo(() => {
-    return products.filter(p =>
-      p.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      (p.sku || '').includes(debouncedSearch) ||
-      (p.barcode || '').includes(debouncedSearch)
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (p.sku || '').includes(debouncedSearch) ||
+        (p.barcode || '').includes(debouncedSearch)
     );
   }, [products, debouncedSearch]);
 
   const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -112,34 +126,42 @@ export default function BarcodeView() {
     if (selectedIds.size === filtered.length && filtered.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filtered.map(p => p.id)));
+      setSelectedIds(new Set(filtered.map((p) => p.id)));
     }
   }, [filtered, selectedIds.size]);
 
-  const selectedProducts = useMemo(() => filtered.filter(p => selectedIds.has(p.id)), [filtered, selectedIds]);
+  const selectedProducts = useMemo(
+    () => filtered.filter((p) => selectedIds.has(p.id)),
+    [filtered, selectedIds]
+  );
 
   const handlePrint = useCallback(() => {
-    if (selectedProducts.length === 0) { alert('يرجى اختيار منتجات على الأقل'); return; }
+    if (selectedProducts.length === 0) {
+      alert('يرجى اختيار منتجات على الأقل');
+      return;
+    }
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     if (!printWindow) return;
-    const barcodeHTML = selectedProducts.map(p => {
-      const val = generateBarcodeValue(p.id, p.sku || p.barcode);
-      const bars: string[] = [];
-      for (let i = 0; i < val.length; i++) {
-        const charCode = val.charCodeAt(i);
-        const w1 = (charCode % 3) + 1;
-        const w2 = (charCode % 2) + 1;
-        bars.push(`<div style="width:${w1}px;height:60px;background:#000"></div>`);
-        bars.push(`<div style="width:${w2}px;height:60px;background:#fff"></div>`);
-      }
-      return `
+    const barcodeHTML = selectedProducts
+      .map((p) => {
+        const val = generateBarcodeValue(p.id, p.sku || p.barcode);
+        const bars: string[] = [];
+        for (let i = 0; i < val.length; i++) {
+          const charCode = val.charCodeAt(i);
+          const w1 = (charCode % 3) + 1;
+          const w2 = (charCode % 2) + 1;
+          bars.push(`<div style="width:${w1}px;height:60px;background:#000"></div>`);
+          bars.push(`<div style="width:${w2}px;height:60px;background:#fff"></div>`);
+        }
+        return `
         <div style="display:inline-block;text-align:center;margin:10px;padding:10px;border:1px solid #ccc;border-radius:8px;">
           <div style="font-size:12px;font-weight:bold;margin-bottom:4px;">${p.name}</div>
           <div style="display:flex;align-items:flex-end;height:60px;gap:1px;">${bars.join('')}</div>
           <div style="font-size:10px;font-family:monospace;letter-spacing:2px;margin-top:4px;">${val}</div>
           <div style="font-size:10px;color:#666;margin-top:2px;">${p.price} ج.م</div>
         </div>`;
-    }).join('');
+      })
+      .join('');
     printWindow.document.write(`
       <html><head><title>طباعة الباركود</title></head>
       <body style="font-family:Arial,sans-serif;">
@@ -151,22 +173,30 @@ export default function BarcodeView() {
   }, [selectedProducts]);
 
   const handleDownload = useCallback(() => {
-    if (selectedProducts.length === 0) { alert('يرجى اختيار منتجات على الأقل'); return; }
+    if (selectedProducts.length === 0) {
+      alert('يرجى اختيار منتجات على الأقل');
+      return;
+    }
     const headers = ['Product Name', 'SKU', 'Barcode', 'Price'];
-    const rows = selectedProducts.map(p => [p.name, p.sku || '---', generateBarcodeValue(p.id, p.sku || p.barcode), p.price]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'barcodes.csv';
-    link.click();
+    const rows = selectedProducts.map((p) => [
+      p.name,
+      p.sku || '---',
+      generateBarcodeValue(p.id, p.sku || p.barcode),
+      p.price,
+    ]);
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob({ filename: 'barcodes.csv', headers, rows: [...rows] }, 'csv');
+      downloadBlob(blob, 'barcodes.csv');
+    });
   }, [selectedProducts]);
 
-  const withBarcode = products.filter(p => p.barcode || p.sku).length;
+  const withBarcode = products.filter((p) => p.barcode || p.sku).length;
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4 pb-10">
-      <InvToolbar hint={`${products.length} منتج • ${withBarcode} لديها باركود • ${products.length - withBarcode} بدون باركود • ${selectedIds.size} محدد`}>
+      <InvToolbar
+        hint={`${products.length} منتج • ${withBarcode} لديها باركود • ${products.length - withBarcode} بدون باركود • ${selectedIds.size} محدد`}
+      >
         <InvToolButton onClick={() => loadProducts()}>
           <RefreshCw size={14} />
           تحديث
@@ -185,7 +215,7 @@ export default function BarcodeView() {
           filters={
             <select
               value={barcodeFormat}
-              onChange={e => setBarcodeFormat(e.target.value)}
+              onChange={(e) => setBarcodeFormat(e.target.value)}
               className="h-10 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
             >
               <option value="EAN-13">EAN-13</option>
@@ -253,7 +283,13 @@ export default function BarcodeView() {
               return (
                 <InvRow key={p.id} onClick={() => toggleSelect(p.id)}>
                   <div className="col-span-1 flex items-center">
-                    <button onClick={(e) => { e.stopPropagation(); toggleSelect(p.id); }} className="p-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelect(p.id);
+                      }}
+                      className="p-1"
+                    >
                       {isSelected ? (
                         <Check size={16} className="text-[#00E5FF]" />
                       ) : (
@@ -262,8 +298,12 @@ export default function BarcodeView() {
                     </button>
                   </div>
                   <div className="col-span-3 min-w-0">
-                    <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{p.name}</div>
-                    <div className="text-xs font-medium text-slate-500 mt-0.5 truncate">{p.sku || 'بدون SKU'}</div>
+                    <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                      {p.name}
+                    </div>
+                    <div className="text-xs font-medium text-slate-500 mt-0.5 truncate">
+                      {p.sku || 'بدون SKU'}
+                    </div>
                   </div>
                   <div className="col-span-4 flex justify-center">
                     <BarcodeVisual value={barcodeVal} />

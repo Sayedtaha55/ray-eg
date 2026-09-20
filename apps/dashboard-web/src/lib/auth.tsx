@@ -56,7 +56,7 @@ async function refreshAccessToken(): Promise<string | null> {
         const res = await fetch('/api/v1/auth/refresh', {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-App-Scope': 'dashboard' },
           body: '{}',
         });
         if (!res.ok) return null;
@@ -80,7 +80,49 @@ async function refreshAccessToken(): Promise<string | null> {
   return refreshInFlight;
 }
 
-async function apiRequest<T = any>(
+// ---------------------------------------------------------------------------
+// GET cache + in-flight dedup.
+// Dashboard pages fire many GETs on mount (analytics alone fires ~19) and
+// refetch everything on every navigation because pages use useEffect +
+// apiRequest directly. A short TTL collapses repeat GETs within a session,
+// and in-flight dedup merges identical concurrent GETs. Any non-GET clears
+// the cache so mutations are never masked. Pass `{ cache: 'no-store' }` to
+// bypass.
+// ---------------------------------------------------------------------------
+const GET_TTL_MS = 30_000;
+const getCache = new Map<string, { at: number; data: unknown }>();
+const inflightGets = new Map<string, Promise<unknown>>();
+
+async function apiRequest<T = any>(path: string, options: RequestInit = {}): Promise<T> {
+  const method = (options.method || 'GET').toUpperCase();
+
+  if (method !== 'GET') {
+    getCache.clear();
+  } else if (options.cache !== 'no-store') {
+    const hit = getCache.get(path);
+    if (hit && Date.now() - hit.at < GET_TTL_MS) {
+      return hit.data as T;
+    }
+    const pending = inflightGets.get(path);
+    if (pending) {
+      return pending as Promise<T>;
+    }
+    const exec = apiRequestFetch<T>(path, options)
+      .then((data) => {
+        getCache.set(path, { at: Date.now(), data });
+        return data;
+      })
+      .finally(() => {
+        inflightGets.delete(path);
+      });
+    inflightGets.set(path, exec);
+    return exec;
+  }
+
+  return apiRequestFetch<T>(path, options);
+}
+
+async function apiRequestFetch<T = any>(
   path: string,
   options: RequestInit = {},
   _retried = false
@@ -90,6 +132,9 @@ async function apiRequest<T = any>(
   const headers = new Headers(options.headers);
   if (!isFormData && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
+  }
+  if (!headers.has('X-App-Scope')) {
+    headers.set('X-App-Scope', 'dashboard');
   }
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
@@ -108,7 +153,7 @@ async function apiRequest<T = any>(
     if (res.status === 401 && !_retried && /expired|invalid token|invalid_token/i.test(msg)) {
       const newToken = await refreshAccessToken();
       if (newToken) {
-        return apiRequest<T>(path, options, true);
+        return apiRequestFetch<T>(path, options, true);
       }
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('ray-session-expired'));
@@ -144,6 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch(`/api/v1/auth/me`, {
         credentials: 'include',
         headers: {
+          'X-App-Scope': 'dashboard',
           'Content-Type': 'application/json',
           ...(getStoredToken() ? { Authorization: `Bearer ${getStoredToken()}` } : {}),
         },

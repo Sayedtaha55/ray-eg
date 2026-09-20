@@ -1,9 +1,26 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { X, Plus, Loader2, Sparkles, Trash2, Save, RefreshCw, Link2, Unlink, Wand2 } from 'lucide-react';
+import {
+  X,
+  Plus,
+  Loader2,
+  Sparkles,
+  Trash2,
+  Save,
+  RefreshCw,
+  Link2,
+  Unlink,
+  Wand2,
+} from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
-import { ImageMapApi, type Hotspot, type ImageMap, type ImageMapSection } from '@/lib/api/imageMaps';
+import {
+  ImageMapApi,
+  type Hotspot,
+  type ImageMap,
+  type ImageMapSection,
+} from '@/lib/api/imageMaps';
+import { compressForUpload } from '@/lib/upload-image';
 import CanvasArea from './CanvasArea';
 import Sidebar from './Sidebar';
 
@@ -24,8 +41,7 @@ const normalizeNumber = (v: any, fallback: number) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
-const genId = (prefix: string) =>
-  `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+const genId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 
 /** Normalize hotspots coming from the backend into the local working shape. */
 const normalizeHotspotsFromMap = (map: ImageMap | null): Hotspot[] => {
@@ -43,10 +59,25 @@ const normalizeHotspotsFromMap = (map: ImageMap | null): Hotspot[] => {
         : typeof h?.price_override === 'number'
           ? h.price_override
           : null,
-    sortOrder: typeof h?.sortOrder === 'number' ? h.sortOrder : (typeof h?.sort_order === 'number' ? h.sort_order : 0),
+    sortOrder:
+      typeof h?.sortOrder === 'number'
+        ? h.sortOrder
+        : typeof h?.sort_order === 'number'
+          ? h.sort_order
+          : 0,
     sectionId: normalizeText(h?.sectionId ?? h?.section_id) || null,
-    width: typeof h?.width === 'number' ? h.width : (typeof h?.width === 'string' ? Number(h.width) : null),
-    height: typeof h?.height === 'number' ? h.height : (typeof h?.height === 'string' ? Number(h.height) : null),
+    width:
+      typeof h?.width === 'number'
+        ? h.width
+        : typeof h?.width === 'string'
+          ? Number(h.width)
+          : null,
+    height:
+      typeof h?.height === 'number'
+        ? h.height
+        : typeof h?.height === 'string'
+          ? Number(h.height)
+          : null,
     aiMeta: h?.aiMeta ?? h?.ai_meta ?? null,
   }));
 };
@@ -57,7 +88,12 @@ const normalizeSectionsFromMap = (map: ImageMap | null): ImageMapSection[] => {
   return raw.map((s: any, idx: number) => ({
     id: normalizeText(s?.id) || genId('section'),
     name: normalizeText(s?.name) || `قسم ${idx + 1}`,
-    sortOrder: typeof s?.sortOrder === 'number' ? s.sortOrder : (typeof s?.sort_order === 'number' ? s.sort_order : idx),
+    sortOrder:
+      typeof s?.sortOrder === 'number'
+        ? s.sortOrder
+        : typeof s?.sort_order === 'number'
+          ? s.sort_order
+          : idx,
     imageUrl: normalizeText(s?.imageUrl ?? s?.image_url) || null,
   }));
 };
@@ -95,7 +131,14 @@ export default function ImageMapEditorModal({
   // Linked products management view
   const [showLinkedView, setShowLinkedView] = useState(false);
   const [linkedRows, setLinkedRows] = useState<
-    Array<{ key: string; name: string; price: number; stock: number; productId: string | null; linked: boolean }>
+    Array<{
+      key: string;
+      name: string;
+      price: number;
+      stock: number;
+      productId: string | null;
+      linked: boolean;
+    }>
   >([]);
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -176,7 +219,7 @@ export default function ImageMapEditorModal({
       setSelectedId(newHotspot.id as string);
       setAddingMode(false);
     },
-    [addingMode, hotspots.length],
+    [addingMode, hotspots.length]
   );
 
   const handleHotspotClick = useCallback((id: string) => {
@@ -189,7 +232,7 @@ export default function ImageMapEditorModal({
       if (!selected?.id) return;
       setHotspots((prev) => prev.map((h) => (h.id === selected.id ? { ...h, ...patch } : h)));
     },
-    [selected],
+    [selected]
   );
 
   // ─── Image upload → create a new map via backend ─────────────────────────
@@ -201,7 +244,10 @@ export default function ImageMapEditorModal({
     setImageUploading(true);
     setError('');
     try {
-      const { url } = await ImageMapApi.uploadMedia(file, shopId);
+      // Re-encode only — map hotspots are percentage-based, but keep near-original
+      // resolution so analysis precision is unaffected.
+      const toUpload = await compressForUpload(file, 'map');
+      const { url } = await ImageMapApi.uploadMedia(toUpload, shopId);
       if (!url) throw new Error('لم يتم استرجاع رابط الصورة من الخادم');
 
       // Create a new map record on the backend
@@ -366,17 +412,11 @@ export default function ImageMapEditorModal({
         const price =
           typeof h?.priceOverride === 'number' && h.priceOverride !== null
             ? h.priceOverride
-            : normalizeNumber(
-                (products || []).find((p) => p.id === h.productId)?.price,
-                NaN,
-              );
+            : normalizeNumber((products || []).find((p) => p.id === h.productId)?.price, NaN);
         return {
           name,
           price,
-          stock: normalizeNumber(
-            (products || []).find((p) => p.id === h.productId)?.stock,
-            0,
-          ),
+          stock: normalizeNumber((products || []).find((p) => p.id === h.productId)?.stock, 0),
           category: '__IMAGE_MAP__',
           productId: normalizeText(h?.productId) || undefined,
           description: null,
@@ -437,7 +477,9 @@ export default function ImageMapEditorModal({
         }
       } catch {}
 
-      setSuccessMsg(`تمت مزامنة ${created.length + updated.length} منتج (جديد: ${created.length}، محدّث: ${updated.length})`);
+      setSuccessMsg(
+        `تمت مزامنة ${created.length + updated.length} منتج (جديد: ${created.length}، محدّث: ${updated.length})`
+      );
       setTimeout(() => setSuccessMsg(''), 4000);
       if (onProductsSynced) onProductsSynced();
     } catch (e: any) {
@@ -474,7 +516,14 @@ export default function ImageMapEditorModal({
           linked: Boolean(productId),
         };
       })
-      .filter(Boolean) as Array<{ key: string; name: string; price: number; stock: number; productId: string | null; linked: boolean }>;
+      .filter(Boolean) as Array<{
+      key: string;
+      name: string;
+      price: number;
+      stock: number;
+      productId: string | null;
+      linked: boolean;
+    }>;
     rows.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
     setLinkedRows(rows);
   }, [hotspots, products]);
@@ -501,8 +550,8 @@ export default function ImageMapEditorModal({
           apiRequest(`/products/${u.id}`, {
             method: 'PATCH',
             body: JSON.stringify({ stock: u.stock }),
-          }),
-        ),
+          })
+        )
       );
       setSuccessMsg(`تم تحديث مخزون ${updates.length} منتج`);
       setTimeout(() => setSuccessMsg(''), 2500);
@@ -518,7 +567,12 @@ export default function ImageMapEditorModal({
   const addSection = () => {
     setSections((prev) => [
       ...prev,
-      { id: genId('section'), name: `قسم ${prev.length + 1}`, sortOrder: prev.length, imageUrl: null },
+      {
+        id: genId('section'),
+        name: `قسم ${prev.length + 1}`,
+        sortOrder: prev.length,
+        imageUrl: null,
+      },
     ]);
   };
 
@@ -560,12 +614,16 @@ export default function ImageMapEditorModal({
         <div className="w-full h-full sm:h-[95vh] bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-slate-100 flex-row-reverse gap-2">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900">محرر خريطة الصور</h2>
+            <h2 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900">
+              محرر خريطة الصور
+            </h2>
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => setAddingMode(!addingMode)}
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all ${
-                  addingMode ? 'bg-cyan-500 text-black' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  addingMode
+                    ? 'bg-cyan-500 text-black'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
                 type="button"
               >
@@ -579,7 +637,11 @@ export default function ImageMapEditorModal({
                 type="button"
                 title="تحليل الصورة بالذكاء الاصطناعي لاكتشاف المنتجات"
               >
-                {analyzing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                {analyzing ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Sparkles size={16} />
+                )}
                 تحليل AI
               </button>
               <button
@@ -669,14 +731,22 @@ export default function ImageMapEditorModal({
                 <div className="divide-y divide-slate-100">
                   {linkedRows.map((r) => (
                     <div key={r.key} className="grid grid-cols-12 px-4 py-3 text-sm items-center">
-                      <div className="col-span-5 text-right font-black text-slate-900 truncate">{r.name}</div>
-                      <div className="col-span-3 font-black text-right text-slate-700">{r.price} ج.م</div>
+                      <div className="col-span-5 text-right font-black text-slate-900 truncate">
+                        {r.name}
+                      </div>
+                      <div className="col-span-3 font-black text-right text-slate-700">
+                        {r.price} ج.م
+                      </div>
                       <div className="col-span-2 text-right">
                         <input
                           type="number"
                           inputMode="numeric"
                           min={0}
-                          value={Number.isFinite(Number(r.stock)) ? String(Math.max(0, Math.floor(Number(r.stock)))) : '0'}
+                          value={
+                            Number.isFinite(Number(r.stock))
+                              ? String(Math.max(0, Math.floor(Number(r.stock))))
+                              : '0'
+                          }
                           onChange={(e) => updateRowStock(r.key, e.target.value)}
                           className="w-full max-w-[120px] bg-white border border-slate-200 rounded-xl py-2 px-3 font-black text-right outline-none focus:border-[#00E5FF]/60"
                         />
@@ -693,7 +763,9 @@ export default function ImageMapEditorModal({
                     </div>
                   ))}
                   {linkedRows.length === 0 && (
-                    <div className="p-6 text-center text-slate-400 font-black">لا توجد منتجات على الخريطة بعد</div>
+                    <div className="p-6 text-center text-slate-400 font-black">
+                      لا توجد منتجات على الخريطة بعد
+                    </div>
                   )}
                 </div>
               </div>

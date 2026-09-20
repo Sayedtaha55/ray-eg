@@ -44,57 +44,84 @@ export default function WarehouseBalancesView() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const res = await apiRequest(`/warehouses/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
-      setBalances(data.map((w: any) => ({
-        id: String(w.id),
-        name: w.name || '---',
-        nameAr: w.nameAr || w.name_ar || '---',
-        location: w.location || w.address || '---',
-        productCount: Number(w.productCount || w.products_count || 0),
-        stock: Number(w.stock ?? w.used ?? w.currentStock ?? 0),
-        stockValue: Number(w.stockValue || w.stock_value || 0),
-        capacity: Number(w.capacity || 0),
-        status: w.status || 'active',
-      })));
-    } catch { setBalances([]); } finally { setLoading(false); }
+      const data = Array.isArray(res) ? res : res?.data || [];
+      setBalances(
+        data.map((w: any) => ({
+          id: String(w.id),
+          name: w.name || '---',
+          nameAr: w.nameAr || w.name_ar || '---',
+          location: w.location || w.address || '---',
+          productCount: Number(w.productCount || w.products_count || 0),
+          stock: Number(w.stock ?? w.used ?? w.currentStock ?? 0),
+          stockValue: Number(w.stockValue || w.stock_value || 0),
+          capacity: Number(w.capacity || 0),
+          status: w.status || 'active',
+        }))
+      );
+    } catch {
+      setBalances([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const filtered = useMemo(() => {
-    let result = balances.filter(b =>
-      b.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      b.nameAr.includes(debouncedSearch) ||
-      b.location.includes(debouncedSearch)
+    let result = balances.filter(
+      (b) =>
+        b.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        b.nameAr.includes(debouncedSearch) ||
+        b.location.includes(debouncedSearch)
     );
     result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'name' ? a.name : sortBy === 'productCount' ? a.productCount : a.stock;
-      const bVal = sortBy === 'name' ? b.name : sortBy === 'productCount' ? b.productCount : b.stock;
+      const aVal =
+        sortBy === 'name' ? a.name : sortBy === 'productCount' ? a.productCount : a.stock;
+      const bVal =
+        sortBy === 'name' ? b.name : sortBy === 'productCount' ? b.productCount : b.stock;
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
-      return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+      return sortOrder === 'asc'
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number);
     });
     return result;
   }, [balances, debouncedSearch, sortBy, sortOrder]);
 
-  const totals = useMemo(() => ({
-    stock: balances.reduce((s, b) => s + b.stock, 0),
-    productCount: balances.reduce((s, b) => s + b.productCount, 0),
-    stockValue: balances.reduce((s, b) => s + b.stockValue, 0),
-  }), [balances]);
+  const totals = useMemo(
+    () => ({
+      stock: balances.reduce((s, b) => s + b.stock, 0),
+      productCount: balances.reduce((s, b) => s + b.productCount, 0),
+      stockValue: balances.reduce((s, b) => s + b.stockValue, 0),
+    }),
+    [balances]
+  );
 
   const exportCSV = useCallback(() => {
     const headers = ['Warehouse', 'Location', 'Products', 'Stock', 'Stock Value', 'Capacity'];
-    const rows = filtered.map(b => [b.name, b.location, b.productCount, b.stock, b.stockValue, b.capacity]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'warehouse-balances.csv';
-    link.click();
+    const rows = filtered.map((b) => [
+      b.name,
+      b.location,
+      b.productCount,
+      b.stock,
+      b.stockValue,
+      b.capacity,
+    ]);
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob(
+        { filename: 'warehouse-balances.csv', headers, rows: [...rows] },
+        'csv'
+      );
+      downloadBlob(blob, 'warehouse-balances.csv');
+    });
   }, [filtered]);
 
   return (
@@ -102,8 +129,8 @@ export default function WarehouseBalancesView() {
       <InvToolbar
         hint={
           <>
-            {fmt(balances.length)} مخزن • {fmt(totals.productCount)} صنف مخزن • {fmt(totals.stock)} قطعة —
-            قيمة المخزون ج.م {fmt(totals.stockValue)}
+            {fmt(balances.length)} مخزن • {fmt(totals.productCount)} صنف مخزن • {fmt(totals.stock)}{' '}
+            قطعة — قيمة المخزون ج.م {fmt(totals.stockValue)}
           </>
         }
       >
@@ -166,15 +193,29 @@ export default function WarehouseBalancesView() {
               return (
                 <InvRow key={b.id}>
                   <div className="col-span-3 min-w-0">
-                    <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{b.name}</div>
-                    <div className="text-xs font-medium text-slate-500 mt-0.5 truncate">{b.nameAr}</div>
+                    <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                      {b.name}
+                    </div>
+                    <div className="text-xs font-medium text-slate-500 mt-0.5 truncate">
+                      {b.nameAr}
+                    </div>
                   </div>
-                  <div className="col-span-2 pr-4 text-slate-600 text-xs sm:text-sm truncate">{b.location}</div>
-                  <div className="col-span-2 pr-4 font-semibold text-slate-600 text-xs sm:text-sm">{fmt(b.productCount)}</div>
-                  <div className="col-span-2 pr-4 font-bold text-slate-900 text-xs sm:text-sm">{fmt(b.stock)} قطعة</div>
-                  <div className="col-span-2 pr-4 font-bold text-emerald-600 text-xs sm:text-sm">ج.م {fmt(b.stockValue)}</div>
+                  <div className="col-span-2 pr-4 text-slate-600 text-xs sm:text-sm truncate">
+                    {b.location}
+                  </div>
+                  <div className="col-span-2 pr-4 font-semibold text-slate-600 text-xs sm:text-sm">
+                    {fmt(b.productCount)}
+                  </div>
+                  <div className="col-span-2 pr-4 font-bold text-slate-900 text-xs sm:text-sm">
+                    {fmt(b.stock)} قطعة
+                  </div>
+                  <div className="col-span-2 pr-4 font-bold text-emerald-600 text-xs sm:text-sm">
+                    ج.م {fmt(b.stockValue)}
+                  </div>
                   <div className="col-span-1 pr-4">
-                    <div className="font-bold text-slate-700 text-xs">{b.capacity > 0 ? `${Math.round(usagePct)}%` : '—'}</div>
+                    <div className="font-bold text-slate-700 text-xs">
+                      {b.capacity > 0 ? `${Math.round(usagePct)}%` : '—'}
+                    </div>
                     {b.capacity > 0 && (
                       <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1">
                         <div

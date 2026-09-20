@@ -1,7 +1,6 @@
-export * from './types';
-export * from './services';
-export * from './utils';
-export * from './hooks';
+// Shared package entry points. Apps import subpaths
+// (@ray-eg/shared/builder, /components/common/*, /i18n, /types) rather than
+// this root barrel; it re-exports the stable public surface.
 export * from './components';
-export * from './lib';
-export * from './constants';
+export * from './builder';
+export * from './i18n';

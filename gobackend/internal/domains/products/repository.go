@@ -284,6 +284,94 @@ func (r *Repository) Delete(ctx context.Context, id string) error {
 	return err
 }
 
+// NameMapForShop loads the existing normalized-name → product-ID mapping for a
+// shop inside the import transaction, once per chunk instead of per row.
+func (r *Repository) NameMapForShop(ctx context.Context, tx pgx.Tx, shopID string) (map[string]string, error) {
+	rows, err := tx.Query(ctx,
+		"SELECT id, lower(btrim(name)) FROM products WHERE shop_id = $1", shopID)
+	if err != nil {
+		return nil, errors.Internal("import_namemap_failed", err)
+	}
+	defer rows.Close()
+	m := make(map[string]string, 64)
+	for rows.Next() {
+		var id, name string
+		if err := rows.Scan(&id, &name); err != nil {
+			return nil, errors.Internal("import_namemap_scan_failed", err)
+		}
+		m[name] = id
+	}
+	return m, rows.Err()
+}
+
+// FindIDForUpdate resolves the target product for a bulk-import row inside the
+// import transaction: by productId when provided (and owned by the shop),
+// otherwise by trimmed name within the shop. The row is locked FOR UPDATE so
+// the subsequent update is safe.
+func (r *Repository) FindIDForUpdate(ctx context.Context, tx pgx.Tx, shopID, productID, name string) (string, error) {
+	if productID != "" {
+		var id string
+		err := tx.QueryRow(ctx,
+			"SELECT id FROM products WHERE id = $1 AND shop_id = $2 FOR UPDATE",
+			productID, shopID).Scan(&id)
+		if err == nil {
+			return id, nil
+		}
+		if err != pgx.ErrNoRows {
+			return "", err
+		}
+		// Stale productId: fall through to a name match.
+	}
+	var id string
+	err := tx.QueryRow(ctx,
+		"SELECT id FROM products WHERE shop_id = $1 AND lower(btrim(name)) = lower(btrim($2)) FOR UPDATE",
+		shopID, name).Scan(&id)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return "", nil
+		}
+		return "", err
+	}
+	return id, nil
+}
+
+// UpdateImported overwrites the importable columns of an existing product.
+func (r *Repository) UpdateImported(ctx context.Context, tx pgx.Tx, id string, p *Product) (string, error) {
+	_, err := tx.Exec(ctx,
+		`UPDATE products SET
+			name = $2, description = $3, price = $4, stock = $5, category = $6,
+			unit = $7, image_url = $8, track_stock = $9, updated_at = NOW()
+		 WHERE id = $1`,
+		id, p.Name, p.Description, p.Price, p.Stock, p.Category,
+		p.Unit, p.ImageURL, p.TrackStock)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+// CreateImported inserts a new product inside the import transaction and
+// returns its generated ID. Column list mirrors Create so imported products
+// look exactly like single-created ones.
+func (r *Repository) CreateImported(ctx context.Context, tx pgx.Tx, p *Product) (string, error) {
+	var id string
+	err := tx.QueryRow(ctx,
+		`INSERT INTO products (
+			id, name, description, price, stock, category, image_url, is_active,
+			shop_id, track_stock, unit, images, colors, sizes, addons,
+			menu_variants, pack_options, model_3d_url, spin_images, created_at, updated_at
+		) VALUES (
+			gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW()
+		) RETURNING id`,
+		p.Name, p.Description, p.Price, p.Stock, p.Category, p.ImageURL, p.IsActive,
+		p.ShopID, p.TrackStock, p.Unit, p.Images, p.Colors, p.Sizes, p.Addons,
+		p.MenuVariants, p.PackOptions, p.Model3DURL, p.SpinImages).Scan(&id)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
 // ShopExists checks if a shop with the given ID exists.
 func (r *Repository) ShopExists(ctx context.Context, shopID string) (bool, error) {
 	var exists bool

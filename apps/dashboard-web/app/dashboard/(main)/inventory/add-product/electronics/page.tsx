@@ -1,7 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, Trash2, X, Loader2, Save, Upload, Image as ImageIcon, Map } from 'lucide-react';
+import {
+  Package,
+  Plus,
+  Trash2,
+  X,
+  Loader2,
+  Save,
+  Upload,
+  Image as ImageIcon,
+  Map,
+} from 'lucide-react';
 import { useShop } from '@/hooks/useShop';
 import { useInstalledApps } from '@/hooks/useInstalledApps';
 import { apiRequest } from '@/lib/auth';
@@ -30,8 +40,26 @@ const parseNumberInput = (value: any) => {
   const cleaned = raw
     .replace(/[٠-٩۰-۹]/g, (d) => {
       const map: Record<string, string> = {
-        '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
-        '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+        '٠': '0',
+        '١': '1',
+        '٢': '2',
+        '٣': '3',
+        '٤': '4',
+        '٥': '5',
+        '٦': '6',
+        '٧': '7',
+        '٨': '8',
+        '٩': '9',
+        '۰': '0',
+        '۱': '1',
+        '۲': '2',
+        '۳': '3',
+        '۴': '4',
+        '۵': '5',
+        '۶': '6',
+        '۷': '7',
+        '۸': '8',
+        '۹': '9',
       };
       return map[d] || d;
     })
@@ -41,6 +69,7 @@ const parseNumberInput = (value: any) => {
   return Number(cleaned);
 };
 
+import { compressForUpload } from '@/lib/upload-image';
 export default function ElectronicsAddProductPage() {
   const { shop } = useShop();
   const router = useRouter();
@@ -81,7 +110,7 @@ export default function ElectronicsAddProductPage() {
   const loadProducts = async () => {
     try {
       const data = await apiRequest('/products');
-      const list = Array.isArray(data) ? data : (data?.products || data?.data || []);
+      const list = Array.isArray(data) ? data : data?.products || data?.data || [];
       setProducts(list);
     } catch (err) {
       console.error('Failed to load products:', err);
@@ -91,7 +120,7 @@ export default function ElectronicsAddProductPage() {
   const loadCategories = async () => {
     try {
       const data = await apiRequest('/categories');
-      const list = Array.isArray(data) ? data : (data?.categories || data?.data || []);
+      const list = Array.isArray(data) ? data : data?.categories || data?.data || [];
       setCategories(list);
     } catch (err) {
       console.error('Failed to load categories:', err);
@@ -104,17 +133,17 @@ export default function ElectronicsAddProductPage() {
   };
 
   const handleRemoveSpec = (id: string) => {
-    setSpecs(specs.filter(s => s.id !== id));
+    setSpecs(specs.filter((s) => s.id !== id));
   };
 
   const handleUpdateSpec = (id: string, field: keyof Spec, value: string) => {
-    setSpecs(specs.map(s => s.id === id ? { ...s, [field]: value } : s));
+    setSpecs(specs.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      setImageFile(await compressForUpload(file, 'product'));
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageUrl(reader.result as string);
@@ -123,72 +152,79 @@ export default function ElectronicsAddProductPage() {
     }
   };
 
-  const handleExtraImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleExtraImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const allowed = new Set(['image/jpeg', 'image/png', 'image/webp']);
     const nextFiles: File[] = [];
     const nextPreviews: string[] = [];
     for (const file of files) {
       if (!allowed.has(file.type)) continue;
-      nextFiles.push(file);
+      nextFiles.push(await compressForUpload(file, 'gallery'));
       nextPreviews.push(URL.createObjectURL(file));
     }
-    setExtraImageFiles(prev => [...prev, ...nextFiles].slice(0, 5));
-    setExtraImagePreviews(prev => [...prev, ...nextPreviews].slice(0, 5));
+    setExtraImageFiles((prev) => [...prev, ...nextFiles].slice(0, 5));
+    setExtraImagePreviews((prev) => [...prev, ...nextPreviews].slice(0, 5));
   };
 
   const removeExtraImage = (idx: number) => {
-    setExtraImagePreviews(prev => prev.filter((_, i) => i !== idx));
-    setExtraImageFiles(prev => prev.filter((_, i) => i !== idx));
+    setExtraImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+    setExtraImageFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleAddonImagesChange = (addonId: string, files: File[]) => {
+  const handleAddonImagesChange = async (addonId: string, files: File[]) => {
     const allowed = new Set(['image/jpeg', 'image/png', 'image/webp']);
     const nextFiles: File[] = [];
     const nextPreviews: string[] = [];
     for (const file of files) {
       if (!allowed.has(file.type)) continue;
-      nextFiles.push(file);
+      nextFiles.push(await compressForUpload(file, 'gallery'));
       nextPreviews.push(URL.createObjectURL(file));
     }
-    setAddonItems(prev => prev.map(x => {
-      if (x.id !== addonId) return x;
-      return {
-        ...x,
-        imageUploadFiles: [...x.imageUploadFiles, ...nextFiles].slice(0, 5),
-        imagePreviews: [...x.imagePreviews, ...nextPreviews].slice(0, 5),
-      };
-    }));
+    setAddonItems((prev) =>
+      prev.map((x) => {
+        if (x.id !== addonId) return x;
+        return {
+          ...x,
+          imageUploadFiles: [...x.imageUploadFiles, ...nextFiles].slice(0, 5),
+          imagePreviews: [...x.imagePreviews, ...nextPreviews].slice(0, 5),
+        };
+      })
+    );
   };
 
   const removeAddonImage = (addonId: string, idx: number) => {
-    setAddonItems(prev => prev.map(x => {
-      if (x.id !== addonId) return x;
-      return {
-        ...x,
-        imagePreviews: x.imagePreviews.filter((_, i) => i !== idx),
-        imageUploadFiles: x.imageUploadFiles.filter((_, i) => i !== idx),
-      };
-    }));
+    setAddonItems((prev) =>
+      prev.map((x) => {
+        if (x.id !== addonId) return x;
+        return {
+          ...x,
+          imagePreviews: x.imagePreviews.filter((_, i) => i !== idx),
+          imageUploadFiles: x.imageUploadFiles.filter((_, i) => i !== idx),
+        };
+      })
+    );
   };
 
   const addAddon = () => {
-    setAddonItems([...addonItems, {
-      id: `addon_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      name: '',
-      price: '',
-      imagePreviews: [],
-      imageUrls: [],
-      imageUploadFiles: [],
-    }]);
+    setAddonItems([
+      ...addonItems,
+      {
+        id: `addon_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        name: '',
+        price: '',
+        imagePreviews: [],
+        imageUrls: [],
+        imageUploadFiles: [],
+      },
+    ]);
   };
 
   const removeAddon = (id: string) => {
-    setAddonItems(prev => prev.filter(x => x.id !== id));
+    setAddonItems((prev) => prev.filter((x) => x.id !== id));
   };
 
   const updateAddon = (id: string, field: keyof AddonItem, value: any) => {
-    setAddonItems(prev => prev.map(x => x.id === id ? { ...x, [field]: value } : x));
+    setAddonItems((prev) => prev.map((x) => (x.id === id ? { ...x, [field]: value } : x)));
   };
 
   const handleSave = async () => {
@@ -209,17 +245,27 @@ export default function ElectronicsAddProductPage() {
       return;
     }
 
-    const addonsPayload = addonItems.length > 0 ? [{
-      id: 'addons',
-      name: 'منتجات تكميلية',
-      label: 'منتجات تكميلية',
-      title: 'منتجات تكميلية',
-      options: addonItems.map(a => ({
-        id: a.id,
-        name: a.name.trim(),
-        price: Number.isFinite(parseNumberInput(a.price)) && parseNumberInput(a.price) >= 0 ? Math.round(parseNumberInput(a.price) * 100) / 100 : undefined,
-      })).filter(o => o.name),
-    }] : undefined;
+    const addonsPayload =
+      addonItems.length > 0
+        ? [
+            {
+              id: 'addons',
+              name: 'منتجات تكميلية',
+              label: 'منتجات تكميلية',
+              title: 'منتجات تكميلية',
+              options: addonItems
+                .map((a) => ({
+                  id: a.id,
+                  name: a.name.trim(),
+                  price:
+                    Number.isFinite(parseNumberInput(a.price)) && parseNumberInput(a.price) >= 0
+                      ? Math.round(parseNumberInput(a.price) * 100) / 100
+                      : undefined,
+                }))
+                .filter((o) => o.name),
+            },
+          ]
+        : undefined;
 
     setSaving(true);
     try {
@@ -243,7 +289,7 @@ export default function ElectronicsAddProductPage() {
         finalImageUrl = uploadResponse?.url || imageUrl;
       }
 
-      let extraUrls: string[] = [];
+      const extraUrls: string[] = [];
       for (const f of extraImageFiles) {
         const formData = new FormData();
         formData.append('file', f);
@@ -271,7 +317,7 @@ export default function ElectronicsAddProductPage() {
         ...(brand ? { brand } : {}),
         ...(model ? { model } : {}),
         ...(warranty ? { warranty } : {}),
-        specs: specs.filter(s => s.label && s.value),
+        specs: specs.filter((s) => s.label && s.value),
         ...(addonsPayload ? { addons: addonsPayload } : {}),
       };
 
@@ -299,7 +345,9 @@ export default function ElectronicsAddProductPage() {
         </div>
         <div className="text-right flex-1">
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900">إضافة منتج إلكترونيات</h1>
-          <p className="text-sm font-bold text-slate-400 mt-1">إضافة منتج إلكتروني مع المواصفات التقنية</p>
+          <p className="text-sm font-bold text-slate-400 mt-1">
+            إضافة منتج إلكتروني مع المواصفات التقنية
+          </p>
         </div>
         <button
           onClick={() => router.back()}
@@ -313,7 +361,7 @@ export default function ElectronicsAddProductPage() {
       {/* Product Form */}
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-6">
         <h2 className="text-lg font-bold text-slate-900">معلومات المنتج الأساسية</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="text-right">
             <label className="text-xs font-bold text-slate-500 mb-1.5 block">اسم المنتج *</label>
@@ -361,7 +409,9 @@ export default function ElectronicsAddProductPage() {
             >
               <option value="">اختر الفئة</option>
               {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
               ))}
             </select>
           </div>
@@ -417,10 +467,15 @@ export default function ElectronicsAddProductPage() {
 
         {/* Additional Images */}
         <div className="text-right">
-          <label className="text-xs font-bold text-slate-500 mb-1.5 block">صور إضافية (حتى 5)</label>
+          <label className="text-xs font-bold text-slate-500 mb-1.5 block">
+            صور إضافية (حتى 5)
+          </label>
           <div className="flex flex-wrap gap-2 justify-end">
             {extraImagePreviews.map((src, idx) => (
-              <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200">
+              <div
+                key={idx}
+                className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200"
+              >
                 <img src={src} className="w-full h-full object-cover" alt={`extra ${idx + 1}`} />
                 <button
                   onClick={() => removeExtraImage(idx)}
@@ -432,7 +487,13 @@ export default function ElectronicsAddProductPage() {
             ))}
             <label className="w-20 h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-slate-400 transition-all">
               <Upload size={18} className="text-slate-300" />
-              <input type="file" accept="image/*" multiple onChange={handleExtraImagesChange} className="hidden" />
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleExtraImagesChange}
+                className="hidden"
+              />
             </label>
           </div>
         </div>
@@ -445,17 +506,21 @@ export default function ElectronicsAddProductPage() {
             onChange={(e) => setIsActive(e.target.checked)}
             className="w-4 h-4 rounded border-slate-300"
           />
-          <label htmlFor="isActive" className="text-sm font-medium text-slate-700">نشط</label>
+          <label htmlFor="isActive" className="text-sm font-medium text-slate-700">
+            نشط
+          </label>
         </div>
       </div>
 
       {/* Electronics Specific Fields */}
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-6">
         <h2 className="text-lg font-bold text-slate-900">تفاصيل تقنية</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">العلامة التجارية</label>
+            <label className="text-xs font-bold text-slate-500 mb-1.5 block">
+              العلامة التجارية
+            </label>
             <input
               type="text"
               value={brand}
@@ -497,7 +562,7 @@ export default function ElectronicsAddProductPage() {
               <span>إضافة مواصفة</span>
             </button>
           </div>
-          
+
           {specs.length === 0 ? (
             <div className="text-center py-6 text-slate-400">
               <Package size={24} className="mx-auto mb-2" />
@@ -557,7 +622,10 @@ export default function ElectronicsAddProductPage() {
             {addonItems.map((a) => (
               <div key={a.id} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <button onClick={() => removeAddon(a.id)} className="px-3 py-2 rounded-xl bg-red-50 text-red-600 font-bold text-xs">
+                  <button
+                    onClick={() => removeAddon(a.id)}
+                    className="px-3 py-2 rounded-xl bg-red-50 text-red-600 font-bold text-xs"
+                  >
                     حذف
                   </button>
                   <input
@@ -577,7 +645,11 @@ export default function ElectronicsAddProductPage() {
                 <div className="flex flex-wrap gap-2 justify-end">
                   {a.imagePreviews.map((u, idx) => (
                     <div key={idx} className="relative">
-                      <img src={u} alt="addon" className="w-14 h-14 rounded-xl object-cover border border-slate-200" />
+                      <img
+                        src={u}
+                        alt="addon"
+                        className="w-14 h-14 rounded-xl object-cover border border-slate-200"
+                      />
                       <button
                         onClick={() => removeAddonImage(a.id, idx)}
                         className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-white border border-slate-200 flex items-center justify-center"

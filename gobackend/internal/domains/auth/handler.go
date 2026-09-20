@@ -79,7 +79,7 @@ func (h *Handler) Logout(c *fiber.Ctx) error {
 		token = strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
 	}
 	if token == "" {
-		token = extractRefreshToken(c)
+		token = h.getRefreshToken(c)
 	}
 	if token != "" && h.service != nil {
 		if err := h.service.Logout(c.UserContext(), token, extractMeta(c)); err != nil {
@@ -162,7 +162,7 @@ func (h *Handler) Me(c *fiber.Ctx) error {
 }
 
 func (h *Handler) Refresh(c *fiber.Ctx) error {
-	token := extractRefreshToken(c)
+	token := h.getRefreshToken(c)
 	if token == "" {
 		return errors.Unauthorized("missing_refresh_token", "refresh token مطلوب")
 	}
@@ -375,24 +375,13 @@ func (h *Handler) Verify2FA(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true, "message": "تم التحقق بنجاح"})
 }
 
-func extractRefreshToken(c *fiber.Ctx) string {
-	if t := c.Cookies("ray_session"); t != "" {
-		return t
-	}
-	var body struct {
-		RefreshToken string `json:"refreshToken"`
-	}
-	_ = c.BodyParser(&body)
-	return body.RefreshToken
-}
-
 func (h *Handler) setAuthCookie(c *fiber.Ctx, refreshToken string) {
 	if h.cfg.Name == "" {
 		return
 	}
 	expiresAt := time.Now().Add(h.cfg.MaxAge)
 	cookie := fiber.Cookie{
-		Name:     h.cfg.Name,
+		Name:     h.sessionCookieName(c),
 		Value:    refreshToken,
 		Path:     "/",
 		HTTPOnly: true,
@@ -414,7 +403,7 @@ func (h *Handler) setAccessCookie(c *fiber.Ctx, accessToken string, expiry time.
 	}
 	expiresAt := time.Now().Add(expiry)
 	cookie := fiber.Cookie{
-		Name:     h.cfg.AccessCookieName,
+		Name:     h.accessCookieName(c),
 		Value:    accessToken,
 		Path:     "/",
 		HTTPOnly: true,
@@ -432,7 +421,23 @@ func (h *Handler) setAccessCookie(c *fiber.Ctx, accessToken string, expiry time.
 
 func (h *Handler) clearAuthCookie(c *fiber.Ctx) {
 	expired := time.Unix(0, 0)
-	for _, name := range []string{h.cfg.Name, h.cfg.AccessCookieName} {
+	// Clear the scoped names for THIS app, plus every legacy/unscooped variant
+	// so upgrades and old cookies never linger.
+	scope := appScope(c)
+	names := []string{
+		h.sessionCookieName(c),
+		h.accessCookieName(c),
+	}
+	if h.cfg.Name != "" {
+		names = append(names, h.cfg.Name)
+	}
+	if h.cfg.AccessCookieName != "" {
+		names = append(names, h.cfg.AccessCookieName)
+	}
+	if h.cfg.Name != "" {
+		names = append(names, h.cfg.Name+scope+"_access")
+	}
+	for _, name := range names {
 		if name == "" {
 			continue
 		}
@@ -455,4 +460,66 @@ func extractMeta(c *fiber.Ctx) RequestMeta {
 		IP:        c.IP(),
 		UserAgent: c.Get("User-Agent"),
 	}
+}
+
+// appScope returns a per-client-app cookie suffix. The dashboard and the
+// marketplace are separate products with separate logins — when they share
+// one API host, cookies must be namespaced (ray_session-dashboard,
+// ray_session-market, ...) or a login in one app silently replaces the other
+// app's session. The scope arrives via the X-App-Scope request header.
+func appScope(c *fiber.Ctx) string {
+	raw := strings.ToUpper(strings.TrimSpace(c.Get("X-App-Scope")))
+	if raw == "" {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteByte('-')
+	for _, r := range raw {
+		if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+		if b.Len() >= 21 {
+			break
+		}
+	}
+	if b.Len() <= 1 {
+		return ""
+	}
+	return b.String()
+}
+
+func (h *Handler) sessionCookieName(c *fiber.Ctx) string {
+	name := h.cfg.Name
+	if name == "" {
+		name = "ray_session"
+	}
+	return name + appScope(c)
+}
+
+func (h *Handler) accessCookieName(c *fiber.Ctx) string {
+	if h.cfg.AccessCookieName == "" {
+		return ""
+	}
+	return h.cfg.AccessCookieName + appScope(c)
+}
+
+// getRefreshToken resolves the refresh token from the scoped session cookie,
+// then legacy/unscooped cookie names, then the JSON body.
+func (h *Handler) getRefreshToken(c *fiber.Ctx) string {
+	if t := c.Cookies(h.sessionCookieName(c)); t != "" {
+		return t
+	}
+	if h.cfg.Name != "" {
+		if t := c.Cookies(h.cfg.Name); t != "" {
+			return t
+		}
+	}
+	if t := c.Cookies("ray_session"); t != "" {
+		return t
+	}
+	var body struct {
+		RefreshToken string `json:"refreshToken"`
+	}
+	_ = c.BodyParser(&body)
+	return body.RefreshToken
 }

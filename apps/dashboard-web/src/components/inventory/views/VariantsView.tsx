@@ -83,46 +83,62 @@ export default function VariantsView() {
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
-      if (!sid) { setLoading(false); return; }
+      if (!sid) {
+        setLoading(false);
+        return;
+      }
       const res = await apiRequest(`/variants/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
-      setVariants(data.map((v: any) => ({
-        id: String(v.id),
-        name: v.name || '---',
-        nameAr: v.nameAr || v.name_ar || '---',
-        type: v.type || 'custom',
-        values: v.values || [],
-        productCount: Number(v.productCount || v.products_count || 0),
-        status: v.status || 'active',
-        createdAt: v.createdAt || new Date().toISOString(),
-        updatedAt: v.updatedAt || new Date().toISOString(),
-      })));
-    } catch { setVariants([]); } finally { setLoading(false); }
+      const data = Array.isArray(res) ? res : res?.data || [];
+      setVariants(
+        data.map((v: any) => ({
+          id: String(v.id),
+          name: v.name || '---',
+          nameAr: v.nameAr || v.name_ar || '---',
+          type: v.type || 'custom',
+          values: v.values || [],
+          productCount: Number(v.productCount || v.products_count || 0),
+          status: v.status || 'active',
+          createdAt: v.createdAt || new Date().toISOString(),
+          updatedAt: v.updatedAt || new Date().toISOString(),
+        }))
+      );
+    } catch {
+      setVariants([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadVariants(); }, [loadVariants]);
+  useEffect(() => {
+    loadVariants();
+  }, [loadVariants]);
 
   const filtered = useMemo(() => {
-    let result = variants.filter(v =>
-      v.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      v.nameAr.includes(debouncedSearch)
+    let result = variants.filter(
+      (v) =>
+        v.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        v.nameAr.includes(debouncedSearch)
     );
 
     if (filterType !== 'all') {
-      result = result.filter(v => v.type === filterType);
+      result = result.filter((v) => v.type === filterType);
     }
 
     if (filterStatus !== 'all') {
-      result = result.filter(v => v.status === filterStatus);
+      result = result.filter((v) => v.status === filterStatus);
     }
 
     result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'name' ? a.name : sortBy === 'productCount' ? a.productCount : a.createdAt;
-      const bVal = sortBy === 'name' ? b.name : sortBy === 'productCount' ? b.productCount : b.createdAt;
+      const aVal =
+        sortBy === 'name' ? a.name : sortBy === 'productCount' ? a.productCount : a.createdAt;
+      const bVal =
+        sortBy === 'name' ? b.name : sortBy === 'productCount' ? b.productCount : b.createdAt;
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
-      return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+      return sortOrder === 'asc'
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number);
     });
 
     return result;
@@ -139,12 +155,12 @@ export default function VariantsView() {
     if (selectedIds.size === paginatedVariants.length && paginatedVariants.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(paginatedVariants.map(v => v.id)));
+      setSelectedIds(new Set(paginatedVariants.map((v) => v.id)));
     }
   }, [paginatedVariants, selectedIds.size]);
 
   const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -178,22 +194,28 @@ export default function VariantsView() {
   }, [selectedIds, loadVariants]);
 
   const exportCSV = useCallback(() => {
-    const headers = ['Name', 'Name (Arabic)', 'Type', 'Values', 'Product Count', 'Status', 'Created At'];
-    const rows = filtered.map(v => [
+    const headers = [
+      'Name',
+      'Name (Arabic)',
+      'Type',
+      'Values',
+      'Product Count',
+      'Status',
+      'Created At',
+    ];
+    const rows = filtered.map((v) => [
       v.name,
       v.nameAr,
       v.type,
       v.values.join(', '),
       v.productCount,
       v.status,
-      v.createdAt
+      v.createdAt,
     ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'variants.csv';
-    link.click();
+    void import('@/lib/export').then(({ buildExportBlob, downloadBlob }) => {
+      const blob = buildExportBlob({ filename: 'variants.csv', headers, rows: [...rows] }, 'csv');
+      downloadBlob(blob, 'variants.csv');
+    });
   }, [filtered]);
 
   const handleAdd = useCallback(async () => {
@@ -205,7 +227,10 @@ export default function VariantsView() {
         method: 'POST',
         body: JSON.stringify({
           ...formData,
-          values: formData.values.split(',').map(v => v.trim()).filter(v => v),
+          values: formData.values
+            .split(',')
+            .map((v) => v.trim())
+            .filter((v) => v),
           shopId: sid,
         }),
       });
@@ -224,7 +249,10 @@ export default function VariantsView() {
         method: 'PUT',
         body: JSON.stringify({
           ...formData,
-          values: formData.values.split(',').map(v => v.trim()).filter(v => v),
+          values: formData.values
+            .split(',')
+            .map((v) => v.trim())
+            .filter((v) => v),
         }),
       });
       setEditModal(false);
@@ -236,15 +264,18 @@ export default function VariantsView() {
     }
   }, [editVariant, formData, loadVariants]);
 
-  const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا النوع؟')) return;
-    try {
-      await apiRequest(`/variants/${id}`, { method: 'DELETE' });
-      loadVariants();
-    } catch (error) {
-      alert('حدث خطأ أثناء الحذف');
-    }
-  }, [loadVariants]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!confirm('هل أنت متأكد من حذف هذا النوع؟')) return;
+      try {
+        await apiRequest(`/variants/${id}`, { method: 'DELETE' });
+        loadVariants();
+      } catch (error) {
+        alert('حدث خطأ أثناء الحذف');
+      }
+    },
+    [loadVariants]
+  );
 
   const openEditModal = useCallback((variant: Variant) => {
     setEditVariant(variant);
@@ -258,12 +289,14 @@ export default function VariantsView() {
     setEditModal(true);
   }, []);
 
-  const activeCount = variants.filter(v => v.status === 'active').length;
-  const inactiveCount = variants.filter(v => v.status === 'inactive').length;
+  const activeCount = variants.filter((v) => v.status === 'active').length;
+  const inactiveCount = variants.filter((v) => v.status === 'inactive').length;
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4 pb-10">
-      <InvToolbar hint={`${variants.length} نوع • ${variants.reduce((s, v) => s + v.productCount, 0)} منتج عليه متغيرات`}>
+      <InvToolbar
+        hint={`${variants.length} نوع • ${variants.reduce((s, v) => s + v.productCount, 0)} منتج عليه متغيرات`}
+      >
         <InvToolButton onClick={exportCSV}>
           <Download size={14} />
           تصدير CSV
@@ -293,7 +326,7 @@ export default function VariantsView() {
             <>
               <select
                 value={filterType}
-                onChange={e => setFilterType(e.target.value)}
+                onChange={(e) => setFilterType(e.target.value)}
                 className="h-10 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
               >
                 <option value="all">كل الأنواع</option>
@@ -305,7 +338,7 @@ export default function VariantsView() {
               </select>
               <select
                 value={sortBy}
-                onChange={e => setSortBy(e.target.value)}
+                onChange={(e) => setSortBy(e.target.value)}
                 className="h-10 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
               >
                 <option value="name">الاسم</option>
@@ -359,7 +392,8 @@ export default function VariantsView() {
               headerExtra={
                 <div className="col-span-1 flex items-center">
                   <button onClick={toggleSelectAll} className="p-1" title="تحديد الكل">
-                    {selectedIds.size === paginatedVariants.length && paginatedVariants.length > 0 ? (
+                    {selectedIds.size === paginatedVariants.length &&
+                    paginatedVariants.length > 0 ? (
                       <Check size={16} className="text-[#00E5FF]" />
                     ) : (
                       <div className="w-4 h-4 border-2 border-slate-300 rounded" />
@@ -377,7 +411,8 @@ export default function VariantsView() {
               ]}
             >
               {paginatedVariants.map((variant) => {
-                const typeConfig = VARIANT_TYPES.find(t => t.id === variant.type) || VARIANT_TYPES[4];
+                const typeConfig =
+                  VARIANT_TYPES.find((t) => t.id === variant.type) || VARIANT_TYPES[4];
                 return (
                   <InvRow key={variant.id} muted={variant.status !== 'active'}>
                     <div className="col-span-2 flex items-center">
@@ -392,7 +427,9 @@ export default function VariantsView() {
                         <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
                           {variant.name}
                         </div>
-                        <div className="text-xs font-medium text-slate-500 mt-0.5">{variant.nameAr}</div>
+                        <div className="text-xs font-medium text-slate-500 mt-0.5">
+                          {variant.nameAr}
+                        </div>
                       </div>
                     </div>
                     <div className="col-span-2 pr-4">
@@ -404,10 +441,17 @@ export default function VariantsView() {
                     <div className="col-span-3 pr-4">
                       <div className="flex flex-wrap gap-1">
                         {variant.values.slice(0, 3).map((val, i) => (
-                          <span key={i} className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded-full">{val}</span>
+                          <span
+                            key={i}
+                            className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded-full"
+                          >
+                            {val}
+                          </span>
                         ))}
                         {variant.values.length > 3 && (
-                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded-full">+{variant.values.length - 3}</span>
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded-full">
+                            +{variant.values.length - 3}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -446,19 +490,32 @@ export default function VariantsView() {
 
       {/* Add Modal */}
       {addModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setAddModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setAddModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
               <h2 className="text-xl font-black text-slate-900">إضافة نوع جديد</h2>
-              <button onClick={() => setAddModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+              <button
+                onClick={() => setAddModal(false)}
+                className="p-2 hover:bg-slate-50 rounded-lg"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (إنجليزي)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  الاسم (إنجليزي)
+                </label>
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Variant Name"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -468,7 +525,7 @@ export default function VariantsView() {
                 <input
                   type="text"
                   value={formData.nameAr}
-                  onChange={e => setFormData({ ...formData, nameAr: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
                   placeholder="اسم النوع"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -477,20 +534,24 @@ export default function VariantsView() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">نوع النوع</label>
                 <select
                   value={formData.type}
-                  onChange={e => setFormData({ ...formData, type: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
-                  {VARIANT_TYPES.map(t => (
-                    <option key={t.id} value={t.id}>{t.label}</option>
+                  {VARIANT_TYPES.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">القيم (مفصولة بفاصلة)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  القيم (مفصولة بفاصلة)
+                </label>
                 <input
                   type="text"
                   value={formData.values}
-                  onChange={e => setFormData({ ...formData, values: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, values: e.target.value })}
                   placeholder="أحمر، أزرق، أخضر"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
@@ -499,7 +560,9 @@ export default function VariantsView() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الحالة</label>
                 <select
                   value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' })
+                  }
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="active">نشط</option>
@@ -519,19 +582,32 @@ export default function VariantsView() {
 
       {/* Edit Modal */}
       {editModal && editVariant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setEditModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 flex-row-reverse">
               <h2 className="text-xl font-black text-slate-900">تعديل النوع</h2>
-              <button onClick={() => setEditModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+              <button
+                onClick={() => setEditModal(false)}
+                className="p-2 hover:bg-slate-50 rounded-lg"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (إنجليزي)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  الاسم (إنجليزي)
+                </label>
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -540,7 +616,7 @@ export default function VariantsView() {
                 <input
                   type="text"
                   value={formData.nameAr}
-                  onChange={e => setFormData({ ...formData, nameAr: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -548,20 +624,24 @@ export default function VariantsView() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">نوع النوع</label>
                 <select
                   value={formData.type}
-                  onChange={e => setFormData({ ...formData, type: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
-                  {VARIANT_TYPES.map(t => (
-                    <option key={t.id} value={t.id}>{t.label}</option>
+                  {VARIANT_TYPES.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">القيم (مفصولة بفاصلة)</label>
+                <label className="text-sm font-bold text-slate-700 mb-1 block">
+                  القيم (مفصولة بفاصلة)
+                </label>
                 <input
                   type="text"
                   value={formData.values}
-                  onChange={e => setFormData({ ...formData, values: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, values: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
               </div>
@@ -569,7 +649,9 @@ export default function VariantsView() {
                 <label className="text-sm font-bold text-slate-700 mb-1 block">الحالة</label>
                 <select
                   value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' })
+                  }
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                   <option value="active">نشط</option>

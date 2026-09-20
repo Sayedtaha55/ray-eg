@@ -1,7 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, Trash2, X, Loader2, Save, Upload, Image as ImageIcon, Map } from 'lucide-react';
+import {
+  Package,
+  Plus,
+  Trash2,
+  X,
+  Loader2,
+  Save,
+  Upload,
+  Image as ImageIcon,
+  Map,
+} from 'lucide-react';
 import { useShop } from '@/hooks/useShop';
 import { useInstalledApps } from '@/hooks/useInstalledApps';
 import { apiRequest } from '@/lib/auth';
@@ -30,8 +40,26 @@ const parseNumberInput = (value: any) => {
   const cleaned = raw
     .replace(/[٠-٩۰-۹]/g, (d) => {
       const map: Record<string, string> = {
-        '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
-        '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+        '٠': '0',
+        '١': '1',
+        '٢': '2',
+        '٣': '3',
+        '٤': '4',
+        '٥': '5',
+        '٦': '6',
+        '٧': '7',
+        '٨': '8',
+        '٩': '9',
+        '۰': '0',
+        '۱': '1',
+        '۲': '2',
+        '۳': '3',
+        '۴': '4',
+        '۵': '5',
+        '۶': '6',
+        '۷': '7',
+        '۸': '8',
+        '۹': '9',
       };
       return map[d] || d;
     })
@@ -41,6 +69,7 @@ const parseNumberInput = (value: any) => {
   return Number(cleaned);
 };
 
+import { compressForUpload } from '@/lib/upload-image';
 export default function BeautyAddProductPage() {
   const { shop } = useShop();
   const router = useRouter();
@@ -82,7 +111,7 @@ export default function BeautyAddProductPage() {
   const loadProducts = async () => {
     try {
       const data = await apiRequest('/products');
-      const list = Array.isArray(data) ? data : (data?.products || data?.data || []);
+      const list = Array.isArray(data) ? data : data?.products || data?.data || [];
       setProducts(list);
     } catch (err) {
       console.error('Failed to load products:', err);
@@ -92,7 +121,7 @@ export default function BeautyAddProductPage() {
   const loadCategories = async () => {
     try {
       const data = await apiRequest('/categories');
-      const list = Array.isArray(data) ? data : (data?.categories || data?.data || []);
+      const list = Array.isArray(data) ? data : data?.categories || data?.data || [];
       setCategories(list);
     } catch (err) {
       console.error('Failed to load categories:', err);
@@ -105,17 +134,17 @@ export default function BeautyAddProductPage() {
   };
 
   const handleRemoveIngredient = (id: string) => {
-    setIngredients(ingredients.filter(i => i.id !== id));
+    setIngredients(ingredients.filter((i) => i.id !== id));
   };
 
   const handleUpdateIngredient = (id: string, field: keyof Ingredient, value: string) => {
-    setIngredients(ingredients.map(i => i.id === id ? { ...i, [field]: value } : i));
+    setIngredients(ingredients.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
+      setImageFile(await compressForUpload(file, 'product'));
       const reader = new FileReader();
       reader.onloadend = () => {
         setImageUrl(reader.result as string);
@@ -124,72 +153,79 @@ export default function BeautyAddProductPage() {
     }
   };
 
-  const handleExtraImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleExtraImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const allowed = new Set(['image/jpeg', 'image/png', 'image/webp']);
     const nextFiles: File[] = [];
     const nextPreviews: string[] = [];
     for (const file of files) {
       if (!allowed.has(file.type)) continue;
-      nextFiles.push(file);
+      nextFiles.push(await compressForUpload(file, 'gallery'));
       nextPreviews.push(URL.createObjectURL(file));
     }
-    setExtraImageFiles(prev => [...prev, ...nextFiles].slice(0, 5));
-    setExtraImagePreviews(prev => [...prev, ...nextPreviews].slice(0, 5));
+    setExtraImageFiles((prev) => [...prev, ...nextFiles].slice(0, 5));
+    setExtraImagePreviews((prev) => [...prev, ...nextPreviews].slice(0, 5));
   };
 
   const removeExtraImage = (idx: number) => {
-    setExtraImagePreviews(prev => prev.filter((_, i) => i !== idx));
-    setExtraImageFiles(prev => prev.filter((_, i) => i !== idx));
+    setExtraImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+    setExtraImageFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleAddonImagesChange = (addonId: string, files: File[]) => {
+  const handleAddonImagesChange = async (addonId: string, files: File[]) => {
     const allowed = new Set(['image/jpeg', 'image/png', 'image/webp']);
     const nextFiles: File[] = [];
     const nextPreviews: string[] = [];
     for (const file of files) {
       if (!allowed.has(file.type)) continue;
-      nextFiles.push(file);
+      nextFiles.push(await compressForUpload(file, 'gallery'));
       nextPreviews.push(URL.createObjectURL(file));
     }
-    setAddonItems(prev => prev.map(x => {
-      if (x.id !== addonId) return x;
-      return {
-        ...x,
-        imageUploadFiles: [...x.imageUploadFiles, ...nextFiles].slice(0, 5),
-        imagePreviews: [...x.imagePreviews, ...nextPreviews].slice(0, 5),
-      };
-    }));
+    setAddonItems((prev) =>
+      prev.map((x) => {
+        if (x.id !== addonId) return x;
+        return {
+          ...x,
+          imageUploadFiles: [...x.imageUploadFiles, ...nextFiles].slice(0, 5),
+          imagePreviews: [...x.imagePreviews, ...nextPreviews].slice(0, 5),
+        };
+      })
+    );
   };
 
   const removeAddonImage = (addonId: string, idx: number) => {
-    setAddonItems(prev => prev.map(x => {
-      if (x.id !== addonId) return x;
-      return {
-        ...x,
-        imagePreviews: x.imagePreviews.filter((_, i) => i !== idx),
-        imageUploadFiles: x.imageUploadFiles.filter((_, i) => i !== idx),
-      };
-    }));
+    setAddonItems((prev) =>
+      prev.map((x) => {
+        if (x.id !== addonId) return x;
+        return {
+          ...x,
+          imagePreviews: x.imagePreviews.filter((_, i) => i !== idx),
+          imageUploadFiles: x.imageUploadFiles.filter((_, i) => i !== idx),
+        };
+      })
+    );
   };
 
   const addAddon = () => {
-    setAddonItems([...addonItems, {
-      id: `addon_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      name: '',
-      price: '',
-      imagePreviews: [],
-      imageUrls: [],
-      imageUploadFiles: [],
-    }]);
+    setAddonItems([
+      ...addonItems,
+      {
+        id: `addon_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        name: '',
+        price: '',
+        imagePreviews: [],
+        imageUrls: [],
+        imageUploadFiles: [],
+      },
+    ]);
   };
 
   const removeAddon = (id: string) => {
-    setAddonItems(prev => prev.filter(x => x.id !== id));
+    setAddonItems((prev) => prev.filter((x) => x.id !== id));
   };
 
   const updateAddon = (id: string, field: keyof AddonItem, value: any) => {
-    setAddonItems(prev => prev.map(x => x.id === id ? { ...x, [field]: value } : x));
+    setAddonItems((prev) => prev.map((x) => (x.id === id ? { ...x, [field]: value } : x)));
   };
 
   const handleSave = async () => {
@@ -210,17 +246,27 @@ export default function BeautyAddProductPage() {
       return;
     }
 
-    const addonsPayload = addonItems.length > 0 ? [{
-      id: 'addons',
-      name: 'منتجات تكميلية',
-      label: 'منتجات تكميلية',
-      title: 'منتجات تكميلية',
-      options: addonItems.map(a => ({
-        id: a.id,
-        name: a.name.trim(),
-        price: Number.isFinite(parseNumberInput(a.price)) && parseNumberInput(a.price) >= 0 ? Math.round(parseNumberInput(a.price) * 100) / 100 : undefined,
-      })).filter(o => o.name),
-    }] : undefined;
+    const addonsPayload =
+      addonItems.length > 0
+        ? [
+            {
+              id: 'addons',
+              name: 'منتجات تكميلية',
+              label: 'منتجات تكميلية',
+              title: 'منتجات تكميلية',
+              options: addonItems
+                .map((a) => ({
+                  id: a.id,
+                  name: a.name.trim(),
+                  price:
+                    Number.isFinite(parseNumberInput(a.price)) && parseNumberInput(a.price) >= 0
+                      ? Math.round(parseNumberInput(a.price) * 100) / 100
+                      : undefined,
+                }))
+                .filter((o) => o.name),
+            },
+          ]
+        : undefined;
 
     setSaving(true);
     try {
@@ -244,7 +290,7 @@ export default function BeautyAddProductPage() {
         finalImageUrl = uploadResponse?.url || imageUrl;
       }
 
-      let extraUrls: string[] = [];
+      const extraUrls: string[] = [];
       for (const f of extraImageFiles) {
         const formData = new FormData();
         formData.append('file', f);
@@ -272,7 +318,7 @@ export default function BeautyAddProductPage() {
         ...(brand ? { brand } : {}),
         ...(volume ? { volume } : {}),
         ...(skinType ? { skinType } : {}),
-        ingredients: ingredients.filter(i => i.name),
+        ingredients: ingredients.filter((i) => i.name),
         ...(usageInstructions ? { usageInstructions } : {}),
         ...(addonsPayload ? { addons: addonsPayload } : {}),
       };
@@ -301,7 +347,9 @@ export default function BeautyAddProductPage() {
         </div>
         <div className="text-right flex-1">
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900">إضافة منتج تجميل</h1>
-          <p className="text-sm font-bold text-slate-400 mt-1">إضافة منتج تجميل مع المكونات والاستخدام</p>
+          <p className="text-sm font-bold text-slate-400 mt-1">
+            إضافة منتج تجميل مع المكونات والاستخدام
+          </p>
         </div>
         <button
           onClick={() => router.back()}
@@ -315,7 +363,7 @@ export default function BeautyAddProductPage() {
       {/* Product Form */}
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-6">
         <h2 className="text-lg font-bold text-slate-900">معلومات المنتج الأساسية</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="text-right">
             <label className="text-xs font-bold text-slate-500 mb-1.5 block">اسم المنتج *</label>
@@ -363,7 +411,9 @@ export default function BeautyAddProductPage() {
             >
               <option value="">اختر الفئة</option>
               {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
               ))}
             </select>
           </div>
@@ -419,10 +469,15 @@ export default function BeautyAddProductPage() {
 
         {/* Additional Images */}
         <div className="text-right">
-          <label className="text-xs font-bold text-slate-500 mb-1.5 block">صور إضافية (حتى 5)</label>
+          <label className="text-xs font-bold text-slate-500 mb-1.5 block">
+            صور إضافية (حتى 5)
+          </label>
           <div className="flex flex-wrap gap-2 justify-end">
             {extraImagePreviews.map((src, idx) => (
-              <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200">
+              <div
+                key={idx}
+                className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200"
+              >
                 <img src={src} className="w-full h-full object-cover" alt={`extra ${idx + 1}`} />
                 <button
                   onClick={() => removeExtraImage(idx)}
@@ -434,7 +489,13 @@ export default function BeautyAddProductPage() {
             ))}
             <label className="w-20 h-20 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:border-slate-400 transition-all">
               <Upload size={18} className="text-slate-300" />
-              <input type="file" accept="image/*" multiple onChange={handleExtraImagesChange} className="hidden" />
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleExtraImagesChange}
+                className="hidden"
+              />
             </label>
           </div>
         </div>
@@ -447,17 +508,21 @@ export default function BeautyAddProductPage() {
             onChange={(e) => setIsActive(e.target.checked)}
             className="w-4 h-4 rounded border-slate-300"
           />
-          <label htmlFor="isActive" className="text-sm font-medium text-slate-700">نشط</label>
+          <label htmlFor="isActive" className="text-sm font-medium text-slate-700">
+            نشط
+          </label>
         </div>
       </div>
 
       {/* Beauty Specific Fields */}
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-6">
         <h2 className="text-lg font-bold text-slate-900">تفاصيل التجميل</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-right">
-            <label className="text-xs font-bold text-slate-500 mb-1.5 block">العلامة التجارية</label>
+            <label className="text-xs font-bold text-slate-500 mb-1.5 block">
+              العلامة التجارية
+            </label>
             <input
               type="text"
               value={brand}
@@ -515,7 +580,7 @@ export default function BeautyAddProductPage() {
               <span>إضافة مكون</span>
             </button>
           </div>
-          
+
           {ingredients.length === 0 ? (
             <div className="text-center py-6 text-slate-400">
               <Package size={24} className="mx-auto mb-2" />
@@ -535,7 +600,9 @@ export default function BeautyAddProductPage() {
                   <input
                     type="text"
                     value={ingredient.percentage}
-                    onChange={(e) => handleUpdateIngredient(ingredient.id, 'percentage', e.target.value)}
+                    onChange={(e) =>
+                      handleUpdateIngredient(ingredient.id, 'percentage', e.target.value)
+                    }
                     className="w-24 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:border-slate-400"
                     placeholder="النسبة %"
                   />
@@ -575,7 +642,10 @@ export default function BeautyAddProductPage() {
             {addonItems.map((a) => (
               <div key={a.id} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <button onClick={() => removeAddon(a.id)} className="px-3 py-2 rounded-xl bg-red-50 text-red-600 font-bold text-xs">
+                  <button
+                    onClick={() => removeAddon(a.id)}
+                    className="px-3 py-2 rounded-xl bg-red-50 text-red-600 font-bold text-xs"
+                  >
                     حذف
                   </button>
                   <input
@@ -595,7 +665,11 @@ export default function BeautyAddProductPage() {
                 <div className="flex flex-wrap gap-2 justify-end">
                   {a.imagePreviews.map((u, idx) => (
                     <div key={idx} className="relative">
-                      <img src={u} alt="addon" className="w-14 h-14 rounded-xl object-cover border border-slate-200" />
+                      <img
+                        src={u}
+                        alt="addon"
+                        className="w-14 h-14 rounded-xl object-cover border border-slate-200"
+                      />
                       <button
                         onClick={() => removeAddonImage(a.id, idx)}
                         className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-white border border-slate-200 flex items-center justify-center"

@@ -25,6 +25,7 @@ import {
   downloadCSV,
   type PeriodKey,
 } from './financeShared';
+import { fmtNum, fmtEGP } from './InsightsShared';
 
 type ProductPerf = {
   id: string;
@@ -41,12 +42,6 @@ type PerfReport = {
   products: ProductPerf[];
   totals: { units: number; revenue: number; views: number; avg_conv: number };
 };
-
-const LOCALE = 'ar-EG-u-nu-latn';
-const fmtNum = (n: number) =>
-  (Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 });
-const fmtEGP = (n: number) =>
-  `${(Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 })} ج.م`;
 
 /** فترة الصفحة (اليوم/أسبوع/شهر/سنة) → مدة تقرير المنتجات من الباك إند (7/30/90 يوم) */
 const periodToDays = (p: PeriodKey): '7' | '30' | '90' =>

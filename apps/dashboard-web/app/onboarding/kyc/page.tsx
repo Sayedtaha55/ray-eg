@@ -1,8 +1,18 @@
 ﻿'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Upload, CheckCircle, Clock, AlertCircle, Building2, CreditCard, FileText, ChevronLeft } from 'lucide-react';
+import {
+  Upload,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  Building2,
+  CreditCard,
+  FileText,
+  ChevronLeft,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { compressForUpload } from '@/lib/upload-image';
 
 interface KycData {
   taxNumber: string;
@@ -82,12 +92,13 @@ export default function KycPage() {
   const handleFileUpload = async (file: File) => {
     setUploading(true);
     try {
+      const toUpload = await compressForUpload(file, 'document');
       // Get presigned URL
       const presignRes = await fetch('/api/v1/media/presign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ contentType: file.type, fileName: file.name }),
+        body: JSON.stringify({ contentType: toUpload.type, fileName: toUpload.name }),
       });
       const presignData = await presignRes.json();
       const { uploadUrl, fileUrl } = presignData?.data || presignData;
@@ -95,8 +106,8 @@ export default function KycPage() {
       // Upload to storage
       await fetch(uploadUrl, {
         method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
+        headers: { 'Content-Type': toUpload.type },
+        body: toUpload,
       });
 
       setForm((prev) => ({ ...prev, idImageUrl: fileUrl }));
@@ -126,7 +137,10 @@ export default function KycPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950" dir="rtl">
+      <div
+        className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950"
+        dir="rtl"
+      >
         <div className="w-8 h-8 border-2 border-[#00E5FF] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -135,13 +149,18 @@ export default function KycPage() {
   // Pending review state
   if (kycStatus === 'pending') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4" dir="rtl">
+      <div
+        className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4"
+        dir="rtl"
+      >
         <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-8 text-center">
           <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 dark:bg-amber-500/20 rounded-full flex items-center justify-center">
             <Clock className="w-8 h-8 text-amber-500" />
           </div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">قيد المراجعة</h2>
-          <p className="text-sm text-slate-500">تم إرسال بياناتك وهي قيد المراجعة. سيتم إخطارك بالنتيجة.</p>
+          <p className="text-sm text-slate-500">
+            تم إرسال بياناتك وهي قيد المراجعة. سيتم إخطارك بالنتيجة.
+          </p>
         </div>
       </div>
     );
@@ -150,7 +169,10 @@ export default function KycPage() {
   // Rejected state
   if (kycStatus === 'rejected') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4" dir="rtl">
+      <div
+        className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4"
+        dir="rtl"
+      >
         <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-8 text-center">
           <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-500/20 rounded-full flex items-center justify-center">
             <AlertCircle className="w-8 h-8 text-red-500" />
@@ -174,7 +196,9 @@ export default function KycPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-8" dir="rtl">
       <div className="container mx-auto px-4 max-w-2xl">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-8">توثيق التاجر (KYC)</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-8">
+          توثيق التاجر (KYC)
+        </h1>
 
         {/* Step Indicators */}
         <div className="flex items-center gap-4 mb-8">
@@ -186,18 +210,16 @@ export default function KycPage() {
               <button
                 key={s}
                 type="button"
-                onClick={() => { if (isDone) setStep(s); }}
+                onClick={() => {
+                  if (isDone) setStep(s);
+                }}
                 className={`flex-1 flex items-center gap-2 px-4 py-3 rounded-xl border transition-all
                   ${isActive ? 'bg-[#00E5FF]/10 border-[#00E5FF]/30 text-[#00E5FF]' : ''}
                   ${isDone ? 'bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30 text-green-600' : ''}
                   ${!isActive && !isDone ? 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400' : ''}
                 `}
               >
-                {isDone ? (
-                  <CheckCircle className="w-5 h-5" />
-                ) : (
-                  <Icon className="w-5 h-5" />
-                )}
+                {isDone ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
                 <span className="text-sm font-bold">{stepLabels[s]}</span>
               </button>
             );
@@ -302,7 +324,9 @@ export default function KycPage() {
         {step === 3 && (
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-5">
             <div>
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-2">اسم البنك</label>
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-2">
+                اسم البنك
+              </label>
               <input
                 type="text"
                 value={form.bankName}
@@ -312,7 +336,9 @@ export default function KycPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-2">رقم الحساب</label>
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-2">
+                رقم الحساب
+              </label>
               <input
                 type="text"
                 value={form.bankAccountNumber}
@@ -322,7 +348,9 @@ export default function KycPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-2">IBAN</label>
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-2">
+                IBAN
+              </label>
               <input
                 type="text"
                 value={form.bankIban}
@@ -345,7 +373,9 @@ export default function KycPage() {
                 disabled={submitting || !form.bankName || !form.bankAccountNumber}
                 className="flex-1 py-3 bg-[#00E5FF] text-black font-bold rounded-xl hover:scale-105 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {submitting && <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+                {submitting && (
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                )}
                 إرسال للمراجعة
               </button>
             </div>

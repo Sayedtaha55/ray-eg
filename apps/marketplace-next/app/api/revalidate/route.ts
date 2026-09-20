@@ -10,7 +10,16 @@ import { NextRequest, NextResponse } from 'next/server';
  * POST { "slug": "my-shop", "secret": "..." }
  */
 export async function POST(req: NextRequest) {
-  const secret = process.env.REVALIDATE_SECRET || 'dev-revalidate-secret';
+  // The secret must be configured in production; the dev fallback only exists
+  // so local flows work without env setup. (The dashboard currently sends this
+  // from the browser, so treat it as an anti-abuse gate, not a true secret.)
+  const devFallback = 'dev-revalidate-secret';
+  const secret =
+    process.env.REVALIDATE_SECRET || (process.env.NODE_ENV === 'production' ? '' : devFallback);
+  if (!secret) {
+    console.error('[revalidate] REVALIDATE_SECRET is not configured');
+    return NextResponse.json({ success: false, error: 'not_configured' }, { status: 500 });
+  }
   let slug = '';
   try {
     const body = await req.json();

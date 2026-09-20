@@ -92,13 +92,18 @@ func (s *Service) createOrderCore(ctx context.Context, req CreateOrderRequest, u
 		return nil, errors.Validation("items_required", "items مطلوبة")
 	}
 
+	// Only POS-capable actors (the shop's own merchant or an admin) may choose
+	// the initial status and payment status; guests and customers always start
+	// at PENDING/unpaid so a public checkout call cannot forge a DELIVERED/PAID
+	// order.
+	trustedActor := strings.EqualFold(actorRole, "MERCHANT") || strings.EqualFold(actorRole, "ADMIN")
+
 	order := &Order{
 		Status:                OrderStatusPending,
 		UserID:                userID,
 		ShopID:                shopID,
 		Source:                source,
 		PaymentMethod:         req.PaymentMethod,
-		PaymentStatus:         req.PaymentStatus,
 		Notes:                 req.Notes,
 		CustomerPhone:         req.CustomerPhone,
 		DeliveryAddressManual: req.DeliveryAddressManual,
@@ -130,8 +135,16 @@ func (s *Service) createOrderCore(ctx context.Context, req CreateOrderRequest, u
 		}
 	}
 
-	if req.Status != nil {
-		order.Status = OrderStatus(strings.ToUpper(*req.Status))
+	if trustedActor {
+		order.PaymentStatus = req.PaymentStatus
+	}
+
+	if req.Status != nil && trustedActor {
+		status := OrderStatus(strings.ToUpper(strings.TrimSpace(*req.Status)))
+		if !isValidOrderStatus(status) {
+			return nil, errors.Validation("status_invalid", "حالة الطلب غير صحيحة")
+		}
+		order.Status = status
 	}
 
 	total := 0.0
@@ -171,7 +184,11 @@ func (s *Service) createOrderCore(ctx context.Context, req CreateOrderRequest, u
 		_ = i
 	}
 
-	if req.Total != nil && *req.Total > 0 {
+	// The total is always computed server-side from DB product prices. The
+	// client-supplied total is honored only for POS orders created by the
+	// shop's own merchant/admin (the cashier app prices addons/discounts
+	// client-side); public and customer flows can never set it.
+	if trustedActor && source == "pos" && req.Total != nil && *req.Total > 0 {
 		order.Total = *req.Total
 	} else {
 		order.Total = total

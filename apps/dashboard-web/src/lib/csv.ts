@@ -1,23 +1,13 @@
 /**
- * تصدير CSV مع دعم UTF-8 (BOM) حتى تظهر العربية صح في Excel.
+ * تصدير CSV — تفويض لمحرك التصدير الموحد (BOM + escaping + حماية من حقن الصيغ).
+ * تحميل المحرك lazy حتى لا تُحمّل مكتبة Excel إلا عند التصدير فعلاً.
  */
-export function downloadCsv(
+export async function downloadCsv(
   filename: string,
   headers: string[],
   rows: (string | number | null | undefined)[][]
 ) {
-  const esc = (v: string | number | null | undefined) => {
-    const s = v == null ? '' : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const lines = [headers.map(esc).join(','), ...rows.map((r) => r.map(esc).join(','))];
-  const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const { buildExportBlob, downloadBlob } = await import('@/lib/export');
+  const blob = buildExportBlob({ filename, headers, rows }, 'csv');
+  downloadBlob(blob, filename.endsWith('.csv') ? filename : `${filename}.csv`);
 }

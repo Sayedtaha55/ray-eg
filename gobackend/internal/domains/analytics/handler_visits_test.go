@@ -31,6 +31,7 @@ func visitsTestToken(t *testing.T, secret, role string) string {
 		"sub":   "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
 		"email": "user@example.com",
 		"role":  role,
+		"typ":   "access",
 		"exp":   time.Now().Add(time.Hour).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
