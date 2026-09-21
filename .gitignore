@@ -150,3 +150,5 @@ scripts/browser-test-out/
 
 # backup litter
 *.old-backup
+testsprite_tests/tmp/
+testsprite_tests/tmp/config.json

@@ -144,28 +144,24 @@ func (s *Service) GetMyShop(ctx context.Context, userID, shopID string, isDev bo
 			return nil, err
 		}
 		if shop != nil {
-			if isDev {
-				newer, err := s.repo.FindMostRecentByOwner(ctx, userID)
-				if err != nil {
-					return nil, err
-				}
-				if newer != nil && newer.ID != shop.ID {
-					return newer, nil
-				}
-			}
 			return shop, nil
 		}
 	}
 
-	if isDev {
+	// Always resolve by owner ID when available so merchants are linked to their real shop
+	if userID != "" {
 		shop, err := s.repo.FindMostRecentByOwner(ctx, userID)
 		if err != nil {
 			return nil, err
 		}
 		if shop != nil {
+			_ = s.repo.SetOwnerActive(ctx, userID, shop.ID)
 			return shop, nil
 		}
-		shop, err = s.repo.FindFirstActive(ctx)
+	}
+
+	if isDev {
+		shop, err := s.repo.FindFirstActive(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -174,11 +170,6 @@ func (s *Service) GetMyShop(ctx context.Context, userID, shopID string, isDev bo
 		}
 	}
 
-	// A merchant who has not created (or has not been assigned) a shop yet is
-	// a normal state, not an error: return a nil shop so GET /shops/me answers
-	// 200 with data=null. The dashboard's useShop contract treats null as
-	// "no shop yet"; a 404 here made every one of the ~90 direct callers treat
-	// it as a failure and refire the request.
 	return nil, nil
 }
 
