@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { HIDE_UNPUBLISHED } from '@/lib/moduleConfig';
 import {
   TrendingUp,
   ArrowLeft,
@@ -514,27 +515,36 @@ export function GrowthJourney() {
   );
 }
 
+/**
+ * Market-launch switch: marketing blocks must never advertise sections that are
+ * local-only (finance + accounting + HR + analytics + AI), so entries flagged
+ * `localOnly` are stripped from the public page in production builds.
+ */
+function visibleMarketingItems<T extends { localOnly?: boolean }>(items: T[]): T[] {
+  return HIDE_UNPUBLISHED ? items.filter((item) => !item.localOnly) : items;
+}
+
 export function ConnectedEcosystem() {
-  const orbit = [
+  const orbit = visibleMarketingItems([
     { icon: Boxes, label: 'المخزون', pos: 'top-[2%] left-1/2 -translate-x-1/2' },
     { icon: BarChart3, label: 'المبيعات', pos: 'top-[18%] left-[6%] md:left-[14%]' },
     { icon: Users, label: 'العملاء', pos: 'top-[18%] right-[6%] md:right-[14%]' },
-    { icon: Users, label: 'الموظفين', pos: 'top-[52%] left-[0%] md:left-[6%]' },
+    { icon: Users, label: 'الموظفين', pos: 'top-[52%] left-[0%] md:left-[6%]', localOnly: true },
     { icon: Truck, label: 'الشحن', pos: 'top-[52%] right-[0%] md:right-[6%]' },
     { icon: MessageSquare, label: 'الرسائل', pos: 'bottom-[13%] right-[10%] md:right-[18%]' },
     { icon: Globe, label: 'الدومينات', pos: 'bottom-[13%] left-[10%] md:left-[18%]' },
     { icon: LayoutGrid, label: 'صفحات البيع', pos: 'bottom-[0%] left-1/2 -translate-x-1/2' },
-  ];
+  ]);
 
-  const list = [
-    'إدارة المبيعات',
-    'إدارة المخزون',
-    'إدارة العملاء',
-    'إدارة الموظفين',
-    'التقارير والتحليلات',
-    'الشحن والدفع',
-    'صفحات البيع والدومينات',
-  ];
+  const list = visibleMarketingItems([
+    { label: 'إدارة المبيعات' },
+    { label: 'إدارة المخزون' },
+    { label: 'إدارة العملاء' },
+    { label: 'إدارة الموظفين', localOnly: true },
+    { label: 'التقارير والتحليلات', localOnly: true },
+    { label: 'الشحن والدفع' },
+    { label: 'صفحات البيع والدومينات' },
+  ]);
 
   return (
     <section dir="rtl" className="relative overflow-hidden bg-white py-16 md:py-24">
@@ -651,7 +661,7 @@ export function ConnectedEcosystem() {
                     <span className="w-6 h-6 rounded-full bg-cyan-100 border border-cyan-200 flex items-center justify-center shrink-0">
                       <Check className="w-3.5 h-3.5 text-cyan-700" strokeWidth={3} />
                     </span>
-                    {t}
+                    {t.label}
                   </li>
                 ))}
               </ul>

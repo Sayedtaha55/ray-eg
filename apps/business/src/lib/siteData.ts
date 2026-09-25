@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Smartphone, Shield,
   LucideIcon,
 } from 'lucide-react';
+import { HIDE_UNPUBLISHED } from '@/lib/moduleConfig';
 
 export interface Industry {
   icon: LucideIcon;
@@ -16,6 +17,8 @@ export interface Solution {
   title: string;
   desc: string;
   href: string;
+  /** false = local-only / not yet released (hidden in production builds) */
+  localOnly?: boolean;
 }
 
 export const industries: Industry[] = [
@@ -33,14 +36,23 @@ export const industries: Industry[] = [
   { icon: Building2, label: 'شركات' },
 ];
 
-export const solutions: Solution[] = [
-  { icon: Store, title: 'المتجر الإلكتروني', desc: 'متجر متكامل لإدارة منتجاتك وطلباتك', href: '/#products' },
-  { icon: ShoppingCart, title: 'نقطة البيع (POS)', desc: 'حوّل أي موبايل لكاشير ذكي لمحلك', href: '/#products' },
-  { icon: CalendarCheck, title: 'الحجوزات والمواعيد', desc: 'نظام حجز ذكي للعيادات والصالونات', href: '/#products' },
-  { icon: Palette, title: 'مصمم الصفحات', desc: 'صمم متجرك بالسحب والإفلات بدون برمجة', href: '/#products' },
-  { icon: BarChart3, title: 'التحليلات والتقارير', desc: 'تقارير مفصلة عن المبيعات والعملاء', href: '/#products' },
-  { icon: LayoutDashboard, title: 'لوحة التحكم', desc: 'إدارة كل جوانب نشاطك من مكان واحد', href: '/#products' },
-  { icon: Smartphone, title: 'تطبيق الموبايل', desc: 'أدر أعمالك من أي مكان وفي أي وقت', href: '/#products' },
-  { icon: Shield, title: 'الأمان والحماية', desc: 'حماية متقدمة لبياناتك وبيانات عملائك', href: '/#products' },
-];
+export const solutions: Solution[] = (
+  [
+    { icon: Store, title: 'المتجر الإلكتروني', desc: 'متجر متكامل لإدارة منتجاتك وطلباتك', href: '/#products' },
+    { icon: ShoppingCart, title: 'نقطة البيع (POS)', desc: 'حوّل أي موبايل لكاشير ذكي لمحلك', href: '/#products' },
+    { icon: CalendarCheck, title: 'الحجوزات والمواعيد', desc: 'نظام حجز ذكي للعيادات والصالونات', href: '/#products' },
+    { icon: Palette, title: 'مصمم الصفحات', desc: 'صمم متجرك بالسحب والإفلات بدون برمجة', href: '/#products' },
+    {
+      icon: BarChart3,
+      title: 'التحليلات والتقارير',
+      desc: 'تقارير مفصلة عن المبيعات والعملاء',
+      href: '/#products',
+      // Market-launch switch: analytics is local-only for now.
+      localOnly: true,
+    },
+    { icon: LayoutDashboard, title: 'لوحة التحكم', desc: 'إدارة كل جوانب نشاطك من مكان واحد', href: '/#products' },
+    { icon: Smartphone, title: 'تطبيق الموبايل', desc: 'أدر أعمالك من أي مكان وفي أي وقت', href: '/#products' },
+    { icon: Shield, title: 'الأمان والحماية', desc: 'حماية متقدمة لبياناتك وبيانات عملائك', href: '/#products' },
+  ] as Solution[]
+).filter((solution) => !HIDE_UNPUBLISHED || !solution.localOnly);
 

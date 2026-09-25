@@ -1,9 +1,11 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import type { ComponentType } from 'react';
 import {
   ShoppingCart, Package, Calendar, BarChart3, Users, Wallet,
   Smartphone, Globe, Shield, Zap, Star, ArrowLeft,
 } from 'lucide-react';
+import { HIDE_UNPUBLISHED } from '@/lib/moduleConfig';
 
 export const metadata: Metadata = {
   title: 'المميزات',
@@ -11,7 +13,15 @@ export const metadata: Metadata = {
   alternates: { canonical: '/features' },
 };
 
-const featureGroups = [
+type FeatureGroup = {
+  title: string;
+  icon: ComponentType<{ className?: string }>;
+  /** Market-launch switch: local-only groups are hidden in production. */
+  localOnly?: boolean;
+  features: string[];
+};
+
+const featureGroups: FeatureGroup[] = [
   {
     title: 'إدارة المبيعات',
     icon: ShoppingCart,
@@ -59,6 +69,8 @@ const featureGroups = [
   {
     title: 'التقارير والتحليلات',
     icon: BarChart3,
+    // Market-launch switch: analytics is local-only for now.
+    localOnly: true,
     features: [
       'تقارير المبيعات اليومية',
       'تحليل أداء المنتجات',
@@ -81,6 +93,8 @@ const featureGroups = [
   {
     title: 'الإدارة المالية',
     icon: Wallet,
+    // Market-launch switch: finance & accounting are local-only for now.
+    localOnly: true,
     features: [
       'فواتير إلكترونية',
       'مصروفات ومشتريات',
@@ -90,6 +104,12 @@ const featureGroups = [
     ],
   },
 ];
+
+// Market-launch switch: local-only feature groups (finance + accounting +
+// analytics) are not advertised in production builds.
+const visibleFeatureGroups = HIDE_UNPUBLISHED
+  ? featureGroups.filter((group) => !group.localOnly)
+  : featureGroups;
 
 export default function FeaturesPage() {
   return (
@@ -107,7 +127,7 @@ export default function FeaturesPage() {
 
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 md:px-6 space-y-16">
-          {featureGroups.map((group) => (
+          {visibleFeatureGroups.map((group) => (
             <div key={group.title} className="flex flex-col md:flex-row gap-8 items-start">
               <div className="flex-shrink-0">
                 <div className="w-16 h-16 bg-brand-cyan/10 rounded-2xl flex items-center justify-center">

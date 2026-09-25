@@ -27,10 +27,12 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { dashboardAuthCallbackUrl } from '@/lib/appUrls';
+import { dashboardLoginUrl } from '@/lib/appUrls';
 import { BUSINESS_ACTIVITIES, groupAccentColors, ActivityWithGroup } from '@/lib/activities';
 import {
   BOOKING_ACTIVITIES,
+  HIDE_UNPUBLISHED,
+  LOCAL_ONLY_MODULES,
   MODULE_DEFINITIONS,
   resolveDependencies,
   type ModuleId,
@@ -263,7 +265,6 @@ function SignupContent() {
       const finalSpecialties = skipped ? [] : specialtiesFromAnswers(questions, answers);
       const accessToken =
         data?.token?.accessToken || data?.data?.token?.accessToken || data?.session?.access_token;
-      const user = data?.user || data?.data?.user;
 
       const resolvedModules = Array.from(resolveDependencies(finalModules));
       const shopPayload: any = {
@@ -310,14 +311,17 @@ function SignupContent() {
         setPendingSetup({
           payload: shopPayload,
           accessToken: accessToken || null,
-          dest: dashboardAuthCallbackUrl({ accessToken, user, returnTo }),
+          // No token in the URL: the merchant signs in on the dashboard
+          // origin where the HttpOnly cookies belong.
+          dest: dashboardLoginUrl({ returnTo }),
         });
         setError(created.message);
         return;
       }
 
-      // Pass token via URL so dashboard-web can bootstrap the session
-      window.location.href = dashboardAuthCallbackUrl({ accessToken, user, returnTo });
+      // Hand off to the dashboard's own login page — cookies get stamped on
+      // the correct domain at sign-in; the access token never rides a URL.
+      window.location.href = dashboardLoginUrl({ returnTo });
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء التسجيل');
     } finally {
@@ -624,11 +628,17 @@ function SignupContent() {
       ? getBaseModules(selectedActivity.id, BOOKING_ACTIVITIES.has(selectedActivity.id))
       : [];
     const baseSet = new Set(base.map((m) => String(m)));
+    // Market-launch switch: local-only sections (finance + accounting + HR +
+    // analytics + AI) never appear in the merchant's live dashboard preview.
+    const keep = (m: ModuleId) => !HIDE_UNPUBLISHED || !LOCAL_ONLY_MODULES.has(String(m));
     return {
-      base: base.filter((m) => m !== 'core'),
-      added: finalModules.filter((m) => !baseSet.has(String(m)) && m !== 'core'),
+      base: base.filter((m) => m !== 'core' && keep(m)),
+      added: finalModules.filter((m) => !baseSet.has(String(m)) && m !== 'core' && keep(m)),
     };
   }, [selectedActivity, finalModules]);
+
+  // How many of the merchant's modules are actually shown in the preview.
+  const previewModuleCount = previewModules.base.length + previewModules.added.length;
 
   const renderQuestionsStep = () => {
     if (!selectedActivity) return null;
@@ -706,12 +716,12 @@ function SignupContent() {
             </span>
             <AnimatePresence mode="wait">
               <motion.span
-                key={finalModules.length}
+                key={previewModuleCount}
                 initial={{ scale: 1.25, color: '#00E5FF' }}
                 animate={{ scale: 1, color: 'rgba(255,255,255,0.4)' }}
                 className="text-[10px] font-black"
               >
-                {finalModules.length} تطبيق مفعّل
+                {previewModuleCount} تطبيق مفعّل
               </motion.span>
             </AnimatePresence>
           </div>

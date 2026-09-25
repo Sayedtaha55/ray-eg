@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { Heart, Percent, Plane, ShoppingCart, Sparkles } from 'lucide-react';
+import { HIDE_UNPUBLISHED } from '@/lib/moduleConfig';
 
 const IMG = {
   cart: '/images/new/shopping-cart.webp',
@@ -12,16 +13,30 @@ const IMG = {
   logo: '/images/new/logo-business.webp',
 };
 
-const  features = [
+type GrowthFeature = {
+  title: string;
+  description: string;
+  position: string;
+  /** Market-launch switch: local-only capabilities are hidden in production. */
+  localOnly?: boolean;
+};
+
+const  features: GrowthFeature[] = [
   { title: "تجربة أفضل على الموبايل", description: "إدارة أعمالك من أي مكان وفي أي وقت", position: "feature-1" },
   { title: "نظام يتكون حسب نشاطك", description: "اختر الأدوات التي تناسب نشاطك فقط", position: "feature-2" },
   { title: "مصمم موقع أكثر مرونة", description: "صمم متجرك وموقعك بدون خبرة تقنية", position: "feature-3" },
   { title: "لوحة تحكم أسهل", description: "كل بياناتك في مكان واحد وبطريقة أبسط", position: "feature-4" },
-  { title: "مساعد الذكاء الاصطناعي", description: "أفكار ذكية تساعدك على التطوير والنمو", position: "feature-5" },
-  { title: "إدارة الموظفين", description: "متابعة الحضور والصلاحيات بسهولة", position: "feature-6" },
+  { title: "مساعد الذكاء الاصطناعي", description: "أفكار ذكية تساعدك على التطوير والنمو", position: "feature-5", localOnly: true },
+  { title: "إدارة الموظفين", description: "متابعة الحضور والصلاحيات بسهولة", position: "feature-6", localOnly: true },
   { title: "إدارة الشحن والتوصيل", description: "متابعة دقيقة لطلباتك من الباب للباب", position: "feature-7" },
   { title: "طرق دفع متعددة", description: "راحة عملائك وثقتهم أولويتنا", position: "feature-8" },
 ];
+
+// Market-launch switch: AI + HR are local-only, so their cards are stripped
+// from the production landing page.
+const visibleFeatures = HIDE_UNPUBLISHED
+  ? features.filter((item) => !item.localOnly)
+  : features;
 
 const services = [
   { title: "تغطية جميع محافظات مصر", description: "مع شبكة واسعة من المندوبين", position: "service-1" },
@@ -105,7 +120,7 @@ function FeaturesSection() {
     <section className="features-band" aria-labelledby="features-title">
       <SectionHeading><span id="features-title">مميزات جديدة .. لتجربة أسهل وأقوى</span></SectionHeading>
       <motion.div className="features-grid" initial="hidden" whileInView="visible" viewport={{ once: true, amount: .18 }}>
-        {features.map((item, index) => <FeatureCard key={item.title} item={item} index={index} />)}
+        {visibleFeatures.map((item, index) => <FeatureCard key={item.title} item={item} index={index} />)}
       </motion.div>
     </section>
   );

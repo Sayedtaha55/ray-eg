@@ -31,12 +31,23 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { RevealSection } from '@/lib/hooks';
+import { HIDE_UNPUBLISHED } from '@/lib/moduleConfig';
 import FooterVideoBackground from '@/components/FooterVideoBackground';
 import { industries } from '@/lib/siteData';
 
+/**
+ * Market-launch switch: marketing blocks must never advertise sections that are
+ * local-only (finance + accounting + HR + analytics + AI), so entries flagged
+ * `localOnly` are stripped from the public page in production builds.
+ */
+function visibleMarketingItems<T extends { localOnly?: boolean }>(items: T[]): T[] {
+  return HIDE_UNPUBLISHED ? items.filter((item) => !item.localOnly) : items;
+}
+
 const growthPoints = [
   { icon: Target, title: 'وصول أوسع', desc: 'اجعل متجرك متاحاً للجميع على الإنترنت وفوق الخريطة.' },
-  { icon: Zap, title: 'قرارات أذكى', desc: 'تحليلات تساعدك على فهم ما يحبه عملاؤك ومتى يشترون.' },
+  // Market-launch switch: analytics is local-only for now.
+  { icon: Zap, title: 'قرارات أذكى', desc: 'تحليلات تساعدك على فهم ما يحبه عملاؤك ومتى يشترون.', localOnly: true },
   {
     icon: Award,
     title: 'ولاء العملاء',
@@ -106,7 +117,7 @@ export function GrowthSection() {
               </p>
             </RevealSection>
             <div className="space-y-4">
-              {growthPoints.map((point, i) => (
+              {visibleMarketingItems(growthPoints).map((point, i) => (
                 <RevealSection
                   key={i}
                   delay={i * 80}
@@ -316,7 +327,7 @@ export function ProductsSection() {
         </RevealSection>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-          {[
+          {visibleMarketingItems([
             {
               icon: ShoppingCart,
               title: 'المتجر الإلكتروني',
@@ -340,6 +351,8 @@ export function ProductsSection() {
               title: 'التحليلات والتقارير',
               desc: 'تقارير مفصلة عن المبيعات والعملاء وأداء المتجر',
               color: 'from-amber-500 to-orange-500',
+              // Market-launch switch: analytics is local-only for now.
+              localOnly: true,
             },
             {
               icon: Smartphone,
@@ -353,7 +366,7 @@ export function ProductsSection() {
               desc: 'حماية متقدمة لبياناتك وبيانات عملائك',
               color: 'from-slate-500 to-slate-600',
             },
-          ].map((product, i) => (
+          ]).map((product, i) => (
             <RevealSection key={i} delay={i * 80}>
               <div className="group relative overflow-hidden rounded-3xl bg-white border border-slate-200 p-6 md:p-8 transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 hover:border-slate-300">
                 <div

@@ -1,4 +1,5 @@
 import type { ModuleId } from './moduleConfig';
+import { HIDE_UNPUBLISHED, LOCAL_ONLY_MODULES } from './moduleConfig';
 
 /**
  * Onboarding question system: for each activity the merchant answers a few
@@ -35,7 +36,12 @@ const HOW_BRANCHES: ActivityQuestion = {
   options: [
     { id: 'one', label: 'فرع واحد', specialty: 'فرع واحد' },
     { id: 'few', label: 'من 2 لـ 4 فروع', modules: ['inventory'], specialty: 'متعدد الفروع' },
-    { id: 'many', label: '5 فروع أو أكثر', modules: ['inventory', 'hr', 'analytics'], specialty: 'سلسلة فروع' },
+    {
+      id: 'many',
+      label: '5 فروع أو أكثر',
+      modules: ['inventory', 'hr', 'analytics'],
+      specialty: 'سلسلة فروع',
+    },
   ],
 };
 
@@ -203,7 +209,12 @@ const BOOKING_QUESTION_SET: ActivityQuestion[] = [
     options: [
       { id: 'appointments', label: 'مواعيد أفراد', specialty: 'مواعيد' },
       { id: 'groups', label: 'مجموعات أو قاعات', specialty: 'قاعات ومجموعات' },
-      { id: 'online', label: 'حجز أونلاين من العملاء', modules: ['website'], specialty: 'حجز أونلاين' },
+      {
+        id: 'online',
+        label: 'حجز أونلاين من العملاء',
+        modules: ['website'],
+        specialty: 'حجز أونلاين',
+      },
     ],
   },
   {
@@ -246,10 +257,33 @@ export const GENERIC_QUESTIONS: ActivityQuestion[] = [
   HOW_BRANCHES,
 ];
 
-export function getQuestionsForActivity(activityId: string, isBookingActivity: boolean): ActivityQuestion[] {
-  if (ACTIVITY_QUESTIONS[activityId]) return ACTIVITY_QUESTIONS[activityId];
-  if (isBookingActivity) return BOOKING_QUESTION_SET;
-  return GENERIC_QUESTIONS;
+export function getQuestionsForActivity(
+  activityId: string,
+  isBookingActivity: boolean
+): ActivityQuestion[] {
+  const raw =
+    ACTIVITY_QUESTIONS[activityId] ??
+    (isBookingActivity ? BOOKING_QUESTION_SET : undefined) ??
+    GENERIC_QUESTIONS;
+  // Market-launch switch: in production, strip any option that would opt the
+  // merchant into a local-only module — questions must never promise sections
+  // that stay hidden after launch. HR_QUESTION becomes useless once hr is
+  // scrubbed, so hide it entirely.
+  if (!HIDE_UNPUBLISHED) return raw;
+  return raw
+    .map((q) => ({
+      ...q,
+      options: q.options.map((opt) => ({
+        ...opt,
+        modules: (opt.modules || []).filter((m) => !LOCAL_ONLY_MODULES.has(String(m))),
+      })),
+    }))
+    .filter((q) => {
+      if (q.id === 'employees') {
+        return q.options.some((o) => (o.modules || []).length > 0);
+      }
+      return q.options.length > 0;
+    });
 }
 
 /**
@@ -267,16 +301,18 @@ export const ACTIVITY_BASE_MODULES: Record<string, ModuleId[]> = {
 };
 
 export function getBaseModules(activityId: string, isBookingActivity: boolean): ModuleId[] {
-  if (ACTIVITY_BASE_MODULES[activityId]) return ACTIVITY_BASE_MODULES[activityId];
-  if (isBookingActivity) return ['core', 'sales', 'bookings'];
-  return ['core', 'sales'];
+  const raw = ACTIVITY_BASE_MODULES[activityId] ??
+    (isBookingActivity ? ['core', 'sales', 'bookings'] : undefined) ?? ['core', 'sales'];
+  // Market-launch switch: local-only modules never ship in production baselines.
+  if (!HIDE_UNPUBLISHED) return raw;
+  return raw.filter((m) => !LOCAL_ONLY_MODULES.has(String(m)));
 }
 
 /** Union of modules selected through answers, on top of activity defaults. */
 export function modulesFromAnswers(
   defaults: ModuleId[],
   questions: ActivityQuestion[],
-  answers: Record<string, string[]>,
+  answers: Record<string, string[]>
 ): ModuleId[] {
   const set = new Set<ModuleId>(defaults);
   for (const q of questions) {
@@ -285,13 +321,19 @@ export function modulesFromAnswers(
       for (const m of opt?.modules || []) set.add(m);
     }
   }
+  // Market-launch switch: local-only modules can never be opted into in production.
+  if (HIDE_UNPUBLISHED) {
+    for (const m of Array.from(set)) {
+      if (LOCAL_ONLY_MODULES.has(String(m))) set.delete(m);
+    }
+  }
   return Array.from(set);
 }
 
 /** Specialties implied by the answers (used for the shop profile). */
 export function specialtiesFromAnswers(
   questions: ActivityQuestion[],
-  answers: Record<string, string[]>,
+  answers: Record<string, string[]>
 ): string[] {
   const out = new Set<string>();
   for (const q of questions) {
@@ -325,10 +367,14 @@ const DASHBOARD_FEATURE_MAP: Record<string, string[]> = {
 
 export function dashboardEnabledFeatures(moduleIds: ModuleId[]): Record<string, string[]> {
   const out: Record<string, string[]> = {};
-  // Sales always brings basic customer management with it (orders create customers).
-  const withCustomers = moduleIds.includes('sales')
-    ? Array.from(new Set<ModuleId>([...moduleIds, 'customers']))
+  // Market-launch switch: never emit feature gates for local-only modules in production.
+  const effective = HIDE_UNPUBLISHED
+    ? moduleIds.filter((m) => !LOCAL_ONLY_MODULES.has(String(m)))
     : moduleIds;
+  // Sales always brings basic customer management with it (orders create customers).
+  const withCustomers = effective.includes('sales')
+    ? Array.from(new Set<ModuleId>([...effective, 'customers']))
+    : effective;
   for (const id of withCustomers) {
     const features = DASHBOARD_FEATURE_MAP[id];
     if (!features) continue;
