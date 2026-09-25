@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
+import React, { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import {
   TrendingUp,
@@ -349,9 +351,11 @@ export default function AnalyticsUnifiedPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadAll(period);
-  }, [period, loadAll]);
+  const analyticsQuery = useQuery({
+    queryKey: ['dashboard', 'analytics', period],
+    queryFn: () => loadAll(period),
+    staleTime: 60_000,
+  });
 
   const inPeriod = useCallback((d: string, range?: { from: string; to: string }) => {
     if (!range) return true;
@@ -559,8 +563,8 @@ export default function AnalyticsUnifiedPage() {
           </select>
 
           <button
-            onClick={() => loadAll(period)}
-            disabled={refreshing}
+            onClick={() => analyticsQuery.refetch()}
+            disabled={analyticsQuery.isFetching}
             className="h-10 px-3.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
             title="تحديث البيانات"
           >

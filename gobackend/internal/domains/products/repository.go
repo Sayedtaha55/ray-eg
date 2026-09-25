@@ -35,9 +35,12 @@ func (r *Repository) FindByIDWithInactive(ctx context.Context, id string) (*Prod
 }
 
 // listOptions combines shop-scoped + filter + paging params.
+// Active filters on is_active (موقع المتجر) and AppActive on app_active (تطبيق الماركت) —
+// the two surfaces are toggled independently from the merchant dashboard.
 type listOptions struct {
 	ShopID    string
 	Active    bool
+	AppActive bool
 	Offset    int
 	Limit     int
 	Filter    ProductFilter
@@ -58,6 +61,9 @@ func buildWhere(opts listOptions) (string, []any) {
 	}
 	if opts.Active {
 		clauses = append(clauses, "p.is_active = true")
+	}
+	if opts.AppActive {
+		clauses = append(clauses, "p.app_active = true")
 	}
 
 	f := opts.Filter
@@ -96,6 +102,14 @@ func buildWhere(opts listOptions) (string, []any) {
 		i++
 	}
 
+	// تصفية بنشاط المتجر (الأقسام في الماركت) عبر subquery بدل تعديل FROM.
+	if strings.TrimSpace(f.ShopActivity) != "" {
+		clauses = append(clauses, fmt.Sprintf(
+			"p.shop_id IN (SELECT s.id FROM shops s WHERE LOWER(s.activity) = LOWER($%d) OR LOWER(s.category) = LOWER($%d))", i, i))
+		args = append(args, strings.TrimSpace(f.ShopActivity))
+		i++
+	}
+
 	if len(clauses) == 0 {
 		return "", args
 	}
@@ -117,9 +131,21 @@ func orderBySQL(sort string) string {
 	}
 }
 
-// ListByShop returns active products for a shop, honoring search/filter/sort.
-func (r *Repository) ListByShop(ctx context.Context, shopID string, limit, offset int, f ProductFilter) ([]Product, error) {
-	opts := listOptions{ShopID: shopID, Active: true, Limit: limit, Offset: offset, Filter: f}
+// surfaceOptions maps a public listing surface to its visibility flag:
+// "site" يقرأ is_active (موقع المتجر)، وأي حاجة تانية — including the default —
+// تقرأ app_active (تطبيق الماركت).
+func surfaceOptions(surface string) (active, appActive bool) {
+	if surface == "site" {
+		return true, false
+	}
+	return false, true
+}
+
+// ListByShop returns visible products for a shop on the requested surface,
+// honoring search/filter/sort.
+func (r *Repository) ListByShop(ctx context.Context, shopID, surface string, limit, offset int, f ProductFilter) ([]Product, error) {
+	active, appActive := surfaceOptions(surface)
+	opts := listOptions{ShopID: shopID, Active: active, AppActive: appActive, Limit: limit, Offset: offset, Filter: f}
 	where, args := buildWhere(opts)
 	query := selectProduct + " WHERE " + where + " " + orderBySQL(f.Sort) +
 		fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
@@ -133,8 +159,9 @@ func (r *Repository) ListByShop(ctx context.Context, shopID string, limit, offse
 }
 
 // CountByShop returns the total matching count for ListByShop.
-func (r *Repository) CountByShop(ctx context.Context, shopID string, f ProductFilter) (int64, error) {
-	opts := listOptions{ShopID: shopID, Active: true, Filter: f}
+func (r *Repository) CountByShop(ctx context.Context, shopID, surface string, f ProductFilter) (int64, error) {
+	active, appActive := surfaceOptions(surface)
+	opts := listOptions{ShopID: shopID, Active: active, AppActive: appActive, Filter: f}
 	where, args := buildWhere(opts)
 	query := "SELECT COUNT(*) FROM products p WHERE " + where
 	var total int64
@@ -145,9 +172,10 @@ func (r *Repository) CountByShop(ctx context.Context, shopID string, f ProductFi
 	return total, nil
 }
 
-// ListAllActive returns all active products across shops, honoring search/filter/sort.
-func (r *Repository) ListAllActive(ctx context.Context, limit, offset int, f ProductFilter) ([]Product, error) {
-	opts := listOptions{Active: true, Limit: limit, Offset: offset, Filter: f}
+// ListAllActive returns visible products across shops on the requested surface.
+func (r *Repository) ListAllActive(ctx context.Context, surface string, limit, offset int, f ProductFilter) ([]Product, error) {
+	active, appActive := surfaceOptions(surface)
+	opts := listOptions{Active: active, AppActive: appActive, Limit: limit, Offset: offset, Filter: f}
 	where, args := buildWhere(opts)
 	query := selectProduct + " WHERE " + where + " " + orderBySQL(f.Sort) +
 		fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
@@ -161,8 +189,9 @@ func (r *Repository) ListAllActive(ctx context.Context, limit, offset int, f Pro
 }
 
 // CountAllActive returns the total matching count for ListAllActive.
-func (r *Repository) CountAllActive(ctx context.Context, f ProductFilter) (int64, error) {
-	opts := listOptions{Active: true, Filter: f}
+func (r *Repository) CountAllActive(ctx context.Context, surface string, f ProductFilter) (int64, error) {
+	active, appActive := surfaceOptions(surface)
+	opts := listOptions{Active: active, AppActive: appActive, Filter: f}
 	where, args := buildWhere(opts)
 	query := "SELECT COUNT(*) FROM products p WHERE " + where
 	var total int64
@@ -209,15 +238,15 @@ func (r *Repository) Create(ctx context.Context, p *Product) (*Product, error) {
 	// columns come back NULL and are filled by upsertFurnitureMeta below.
 	query := `
 		INSERT INTO products (
-			id, name, description, price, stock, category, image_url, is_active,
+			id, name, description, price, stock, category, image_url, is_active, app_active,
 			shop_id, track_stock, unit, images, colors, sizes, addons,
 			menu_variants, pack_options, model_3d_url, spin_images, created_at, updated_at
 		) VALUES (
-			gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW()
+			gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW(), NOW()
 		) RETURNING ` + fmNullColumnsNoAlias
 
 	row := r.pool.QueryRow(ctx, query,
-		p.Name, p.Description, p.Price, p.Stock, p.Category, p.ImageURL, p.IsActive,
+		p.Name, p.Description, p.Price, p.Stock, p.Category, p.ImageURL, p.IsActive, p.AppActive,
 		p.ShopID, p.TrackStock, p.Unit, p.Images, p.Colors, p.Sizes, p.Addons,
 		p.MenuVariants, p.PackOptions, p.Model3DURL, p.SpinImages,
 	)
@@ -357,13 +386,13 @@ func (r *Repository) CreateImported(ctx context.Context, tx pgx.Tx, p *Product) 
 	var id string
 	err := tx.QueryRow(ctx,
 		`INSERT INTO products (
-			id, name, description, price, stock, category, image_url, is_active,
+			id, name, description, price, stock, category, image_url, is_active, app_active,
 			shop_id, track_stock, unit, images, colors, sizes, addons,
 			menu_variants, pack_options, model_3d_url, spin_images, created_at, updated_at
 		) VALUES (
-			gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW()
+			gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW(), NOW()
 		) RETURNING id`,
-		p.Name, p.Description, p.Price, p.Stock, p.Category, p.ImageURL, p.IsActive,
+		p.Name, p.Description, p.Price, p.Stock, p.Category, p.ImageURL, p.IsActive, p.AppActive,
 		p.ShopID, p.TrackStock, p.Unit, p.Images, p.Colors, p.Sizes, p.Addons,
 		p.MenuVariants, p.PackOptions, p.Model3DURL, p.SpinImages).Scan(&id)
 	if err != nil {
@@ -410,7 +439,7 @@ func (r *Repository) upsertFurnitureMeta(ctx context.Context, productID string, 
 }
 
 const productColumns = `
-	p.id, p.name, p.description, p.price, p.stock, p.category, p.image_url, p.is_active,
+	p.id, p.name, p.description, p.price, p.stock, p.category, p.image_url, p.is_active, p.app_active,
 	p.shop_id, p.track_stock, p.unit, p.images, p.colors, p.sizes, p.addons,
 	p.menu_variants, p.pack_options, p.model_3d_url, p.spin_images, p.extra_data, p.created_at, p.updated_at,
 	fm.id AS fm_id, fm.unit AS fm_unit, fm.length_cm AS fm_length, fm.width_cm AS fm_width, fm.height_cm AS fm_height
@@ -419,7 +448,7 @@ const productColumns = `
 // productColumns with the fm join replaced by NULLs — INSERT/UPDATE RETURNING
 // clauses can only reference the mutated table, never a joined one.
 const fmNullColumns = `
-	p.id, p.name, p.description, p.price, p.stock, p.category, p.image_url, p.is_active,
+	p.id, p.name, p.description, p.price, p.stock, p.category, p.image_url, p.is_active, p.app_active,
 	p.shop_id, p.track_stock, p.unit, p.images, p.colors, p.sizes, p.addons,
 	p.menu_variants, p.pack_options, p.model_3d_url, p.spin_images, p.extra_data, p.created_at, p.updated_at,
 	NULL::text AS fm_id, NULL::text AS fm_unit, NULL::float8 AS fm_length, NULL::float8 AS fm_width, NULL::float8 AS fm_height
@@ -428,7 +457,7 @@ const fmNullColumns = `
 // fmNullColumns without the "p." alias — INSERT ... RETURNING exposes the
 // target table's columns bare (no alias exists for INSERT).
 const fmNullColumnsNoAlias = `
-	id, name, description, price, stock, category, image_url, is_active,
+	id, name, description, price, stock, category, image_url, is_active, app_active,
 	shop_id, track_stock, unit, images, colors, sizes, addons,
 	menu_variants, pack_options, model_3d_url, spin_images, extra_data, created_at, updated_at,
 	NULL::text AS fm_id, NULL::text AS fm_unit, NULL::float8 AS fm_length, NULL::float8 AS fm_width, NULL::float8 AS fm_height
@@ -444,7 +473,7 @@ func scanProduct(row pgx.Row) (*Product, error) {
 	var fmLength, fmWidth, fmHeight sql.NullFloat64
 
 	err := row.Scan(
-		&p.ID, &p.Name, &desc, &p.Price, &p.Stock, &p.Category, &imageURL, &p.IsActive,
+		&p.ID, &p.Name, &desc, &p.Price, &p.Stock, &p.Category, &imageURL, &p.IsActive, &p.AppActive,
 		&p.ShopID, &p.TrackStock, &unit, &p.Images, &p.Colors, &p.Sizes, &p.Addons,
 		&p.MenuVariants, &p.PackOptions, &model3d, &p.SpinImages, &extraData, &p.CreatedAt, &p.UpdatedAt,
 		&fmID, &fmUnit, &fmLength, &fmWidth, &fmHeight,

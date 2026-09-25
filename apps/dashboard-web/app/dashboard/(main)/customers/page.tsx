@@ -9,6 +9,7 @@ import {
   Plus,
   Download,
   ChevronDown,
+  ChevronUp,
   ChevronLeft,
   Check,
   Info,
@@ -17,6 +18,12 @@ import {
   MessageCircle,
   Eye,
   Pencil,
+  ShoppingBag,
+  CheckCircle2,
+  CreditCard,
+  MoreVertical,
+  ArrowUpDown,
+  Filter,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
@@ -37,6 +44,7 @@ type ShopCustomer = {
   companyName: string;
   status: string;
   city: string;
+  country: string;
   branch: string;
   source: string;
   segmentId: string;
@@ -55,13 +63,13 @@ type Segment = { id: string; name: string; nameAr?: string };
 
 const SOURCE_LABELS: Record<string, string> = {
   pos: 'الكاشير',
-  website: 'الموقع',
+  website: 'المتجر الإلكتروني',
   bookings: 'الحجوزات',
   services: 'الخدمات',
-  manual: 'يدوي',
+  manual: 'إضافة يدوية',
   import: 'استيراد',
   app: 'تطبيق العميل',
-  customer: 'الموقع',
+  customer: 'المتجر الإلكتروني',
 };
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
@@ -91,6 +99,8 @@ export default function CustomersPage() {
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!shopId) return;
@@ -417,232 +427,329 @@ export default function CustomersPage() {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4 pb-6">
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-right border-collapse min-w-[1500px]">
+              <table className="w-full text-right border-collapse min-w-[1100px]">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200">
-                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الاسم</th>
-                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الهاتف</th>
-                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الكود</th>
-                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">النوع</th>
-                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الوسوم</th>
-                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">المبيعات</th>
-                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الطلبات</th>
-                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">المستحق</th>
-                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">آخر عملية</th>
-                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">المصدر</th>
-                    <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الحالة</th>
-                    <th className="px-3 py-2.5 w-10"></th>
+                  <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 text-[11px] font-bold">
+                    <th className="px-4 py-3.5 w-12 text-center">
+                      <input
+                        type="checkbox"
+                        checked={paginated.length > 0 && paginated.every((c) => selectedIds.includes(c.id))}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds(Array.from(new Set([...selectedIds, ...paginated.map((c) => c.id)])));
+                          } else {
+                            setSelectedIds(selectedIds.filter((id) => !paginated.some((c) => c.id === id)));
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                      />
+                    </th>
+                    <th className="px-3 py-3.5">
+                      <div className="leading-tight">
+                        <div>الاسم</div>
+                        <div className="text-[10px] text-slate-400 font-semibold">النوع</div>
+                      </div>
+                    </th>
+                    <th className="px-3 py-3.5">
+                      <div className="leading-tight">
+                        <div>الجوال</div>
+                        <div className="text-[10px] text-slate-400 font-semibold">البريد الإلكتروني</div>
+                      </div>
+                    </th>
+                    <th className="px-3 py-3.5">
+                      <div className="leading-tight">
+                        <div>المدينة</div>
+                        <div className="text-[10px] text-slate-400 font-semibold">الدولة</div>
+                      </div>
+                    </th>
+                    <th className="px-3 py-3.5">قناة الوصول</th>
+                    <th className="px-3 py-3.5 text-center">إجمالي الطلبات</th>
+                    <th className="px-3 py-3.5 text-center">نقاط الولاء</th>
+                    <th className="px-4 py-3.5 w-44 text-left">الإجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginated.map((c) => {
-                    const status = STATUS_LABELS[c.status] || {
-                      label: c.status,
-                      cls: 'bg-slate-50 text-slate-600 border-slate-200',
-                    };
                     const isExpanded = expandedId === c.id;
+                    const isSelected = selectedIds.includes(c.id);
+                    const isMenuOpen = menuOpenId === c.id;
+                    // السوق المستهدف مصر — العملة الافتراضية جنيه مصري دائمًا.
+                    const curr = 'ج.م';
+                    const completedOrdersCount = (expandedActivity[c.id] || []).filter(
+                      (o: any) => o.status === 'COMPLETED' || o.status === 'DELIVERED' || o.status === 'مكتمل'
+                    ).length;
+
                     return (
                       <React.Fragment key={c.id}>
                         <tr
-                          className={`border-b border-slate-100 hover:bg-slate-50/70 transition-colors ${isExpanded ? 'bg-slate-50/70' : ''}`}
+                          className={`border-b border-slate-100 hover:bg-slate-50/70 transition-colors ${
+                            isExpanded ? 'bg-slate-50/60' : ''
+                          } ${isSelected ? 'bg-purple-50/30' : ''}`}
                         >
-                          <td className="px-3 py-3">
-                            <div className="text-xs font-bold text-slate-900">{c.name}</div>
-                            {c.customerType === 'company' && c.companyName && (
-                              <div className="text-[10px] text-slate-400 font-semibold">
-                                {c.companyName}
-                              </div>
-                            )}
+                          {/* Checkbox + سهم التوسيع/الطي كالصورة 1 */}
+                          <td className="px-3 py-3.5 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedIds([...selectedIds, c.id]);
+                                  else setSelectedIds(selectedIds.filter((id) => id !== c.id));
+                                }}
+                                className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setExpandedId(isExpanded ? null : c.id);
+                                  if (!isExpanded) loadExpandedActivity(c);
+                                }}
+                                className="p-1 rounded-lg hover:bg-slate-200/60 text-slate-500 hover:text-slate-900 transition-all"
+                                title={isExpanded ? 'إغلاق التفاصيل' : 'عرض ملخص العميل'}
+                              >
+                                {isExpanded ? (
+                                  <ChevronUp size={16} className="text-slate-700" />
+                                ) : (
+                                  <ChevronDown size={16} className="text-slate-400" />
+                                )}
+                              </button>
+                            </div>
                           </td>
-                          <td
-                            className="px-3 py-3 text-xs font-semibold text-slate-600 tabular-nums"
-                            dir="ltr"
-                          >
-                            {c.phone}
+
+                          {/* الاسم / النوع */}
+                          <td className="px-3 py-3.5">
+                            <Link
+                              href={`/dashboard/customers/${c.id}`}
+                              className="text-xs font-bold text-slate-900 hover:text-purple-700 hover:underline block leading-tight"
+                            >
+                              {c.name}
+                            </Link>
+                            <div className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                              {c.customerType === 'company' ? (c.companyName || 'شركة') : 'فرد'}
+                            </div>
                           </td>
-                          <td className="px-3 py-3 text-[11px] font-bold text-slate-500 tabular-nums">
-                            {c.code}
+
+                          {/* الجوال / البريد الإلكتروني */}
+                          <td className="px-3 py-3.5">
+                            <div className="text-xs font-bold text-slate-700 tabular-nums" dir="ltr" style={{ textAlign: 'right' }}>
+                              {c.phone || '—'}
+                            </div>
+                            <div className="text-[11px] text-slate-400 truncate max-w-[200px] mt-0.5" dir="ltr" style={{ textAlign: 'right' }}>
+                              {c.email || '—'}
+                            </div>
                           </td>
-                          <td className="px-3 py-3 text-[11px] font-semibold text-slate-600">
-                            {c.customerType === 'company' ? 'شركة' : 'فرد'}
+
+                          {/* المدينة / الدولة */}
+                          <td className="px-3 py-3.5">
+                            <div className="text-xs font-bold text-slate-800 leading-tight">
+                              {c.city || '—'}
+                            </div>
+                            <div className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                              {c.country || 'مصر'}
+                            </div>
                           </td>
-                          <td className="px-3 py-3">
-                            <div className="flex items-center gap-1 flex-wrap max-w-[140px]">
-                              {(c.tags || []).slice(0, 3).map((t) => (
-                                <span
-                                  key={t}
-                                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-md text-white"
-                                  style={{ backgroundColor: tagColor(t) }}
-                                >
-                                  {tagName(t)}
-                                </span>
-                              ))}
-                              {(c.tags || []).length === 0 && (
-                                <span className="text-[10px] text-slate-300">—</span>
+
+                          {/* قناة الوصول */}
+                          <td className="px-3 py-3.5">
+                            <span className="text-xs font-semibold text-slate-700">
+                              {SOURCE_LABELS[c.source] || c.source || 'المتجر الإلكتروني'}
+                            </span>
+                          </td>
+
+                          {/* إجمالي الطلبات */}
+                          <td className="px-3 py-3.5 text-center">
+                            <span className="text-xs font-bold text-slate-900 tabular-nums">
+                              {c.totalOrders ?? 0}
+                            </span>
+                          </td>
+
+                          {/* نقاط الولاء */}
+                          <td className="px-3 py-3.5 text-center">
+                            <span className="text-xs font-bold text-slate-800 tabular-nums">
+                              {c.loyaltyBalance ?? 0}
+                            </span>
+                          </td>
+
+                          {/* الإجراءات: زر تعديل بنفسجي + زر خيارات ... */}
+                          <td className="px-4 py-3.5 text-left">
+                            <div className="flex items-center justify-end gap-2 relative">
+                              <Link
+                                href={`/dashboard/customers/${c.id}/edit`}
+                                className="h-8 px-4 rounded-full bg-[#492770] hover:bg-[#3d1f5e] text-white text-[11px] font-bold flex items-center justify-center transition-all shadow-sm"
+                              >
+                                تعديل
+                              </Link>
+
+                              <button
+                                type="button"
+                                onClick={() => setMenuOpenId(isMenuOpen ? null : c.id)}
+                                className="w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all"
+                                title="المزيد من الخيارات"
+                              >
+                                <MoreVertical size={14} />
+                              </button>
+
+                              {/* القائمة المنسدلة للخيارات */}
+                              {isMenuOpen && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-20"
+                                    onClick={() => setMenuOpenId(null)}
+                                  />
+                                  <div className="absolute left-0 top-10 w-44 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-30 space-y-0.5 text-right">
+                                    <Link
+                                      href={`/dashboard/customers/${c.id}`}
+                                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                                      onClick={() => setMenuOpenId(null)}
+                                    >
+                                      <Eye size={13} className="text-purple-600" />
+                                      عرض التفاصيل
+                                    </Link>
+                                    <Link
+                                      href={`/dashboard/customers/${c.id}/edit`}
+                                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                                      onClick={() => setMenuOpenId(null)}
+                                    >
+                                      <Pencil size={13} className="text-slate-500" />
+                                      تعديل البيانات
+                                    </Link>
+                                    {c.phone && (
+                                      <a
+                                        href={`https://wa.me/2${(c.phone || '').replace(/\D/g, '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+                                        onClick={() => setMenuOpenId(null)}
+                                      >
+                                        <MessageCircle size={13} />
+                                        محادثة واتساب
+                                      </a>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setMenuOpenId(null);
+                                        toggleArchive(c);
+                                      }}
+                                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                                    >
+                                      {c.archived ? (
+                                        <>
+                                          <ArchiveRestore size={13} />
+                                          استعادة العميل
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Archive size={13} />
+                                          أرشفة العميل
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                </>
                               )}
                             </div>
                           </td>
-                          <td className="px-3 py-3 text-xs font-bold text-slate-900 tabular-nums">
-                            ج.م {c.totalSpent.toLocaleString()}
-                          </td>
-                          <td className="px-3 py-3 text-xs font-semibold text-slate-600 tabular-nums">
-                            {c.totalOrders}
-                          </td>
-                          <td className="px-3 py-3">
-                            {c.balanceDue > 0 ? (
-                              <span className="text-xs font-bold text-red-600 tabular-nums">
-                                ج.م {c.balanceDue.toLocaleString()}
-                              </span>
-                            ) : (
-                              <span className="text-[11px] text-slate-300">—</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-3 text-[11px] font-semibold text-slate-400">
-                            {c.lastPurchaseAt
-                              ? new Date(c.lastPurchaseAt).toLocaleDateString('ar-EG')
-                              : '—'}
-                          </td>
-                          <td className="px-3 py-3 text-[11px] font-semibold text-slate-500">
-                            {SOURCE_LABELS[c.source] || c.source}
-                          </td>
-                          <td className="px-3 py-3">
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${status.cls}`}
-                            >
-                              {status.label}
-                            </span>
-                          </td>
-                          <td className="px-3 py-3">
-                            <button
-                              onClick={() => {
-                                setExpandedId(isExpanded ? null : c.id);
-                                if (!isExpanded) loadExpandedActivity(c);
-                              }}
-                              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-all"
-                              title={isExpanded ? 'إغلاق' : 'أهم الإحصائيات'}
-                            >
-                              <ChevronDown
-                                size={16}
-                                className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                              />
-                            </button>
-                          </td>
                         </tr>
 
-                        {/* صف التوسيع — أهم إحصائيات العميل + إجراءات سريعة */}
+                        {/* صف التوسيع كالصورة 1 تماماً: 3 كروت إحصائية + زر عرض التفاصيل */}
                         {isExpanded && (
-                          <tr className="bg-slate-50/50">
-                            <td colSpan={12} className="px-6 py-4 border-b border-slate-200">
-                              <div className="space-y-3">
-                                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                                  {[
-                                    { label: 'الطلبات', value: String(c.totalOrders) },
-                                    {
-                                      label: 'الإنفاق',
-                                      value: `ج.م ${c.totalSpent.toLocaleString()}`,
-                                    },
-                                    {
-                                      label: 'متوسط الطلب',
-                                      value: `ج.م ${c.totalOrders > 0 ? Math.round(c.totalSpent / c.totalOrders).toLocaleString() : 0}`,
-                                    },
-                                    { label: 'نقاط الولاء', value: String(c.loyaltyBalance) },
-                                    {
-                                      label: 'المستحق',
-                                      value: `ج.م ${c.balanceDue.toLocaleString()}`,
-                                    },
-                                  ].map((s) => (
-                                    <div
-                                      key={s.label}
-                                      className="bg-white border border-slate-200 rounded-lg px-3 py-2"
-                                    >
-                                      <div className="text-[10px] font-bold text-slate-400">
-                                        {s.label}
+                          <tr className="bg-slate-50/40">
+                            <td colSpan={8} className="px-6 py-4 border-b border-slate-200">
+                              <div className="space-y-4">
+                                {/* الكروت الثلاثة: جميع الطلبات | الطلبات المكتملة | إجمالي المصروفات كالصورة 1 */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  {/* كارت جميع الطلبات */}
+                                  <div className="bg-[#FAF9FB] border border-slate-200/90 rounded-2xl p-4 flex items-center justify-between">
+                                    <div>
+                                      <div className="text-xs font-bold text-slate-500 mb-1">
+                                        جميع الطلبات
                                       </div>
-                                      <div className="text-sm font-bold text-slate-900 tabular-nums">
-                                        {s.value}
+                                      <div className="text-xl font-black text-slate-900 tabular-nums">
+                                        {c.totalOrders ?? 0}
                                       </div>
                                     </div>
-                                  ))}
-                                </div>
-
-                                <div className="bg-white border border-slate-200 rounded-lg p-3">
-                                  <div className="text-[11px] font-bold text-slate-500 mb-2">
-                                    آخر الطلبات
+                                    <div className="w-11 h-11 rounded-2xl bg-purple-100/70 text-[#492770] flex items-center justify-center">
+                                      <ShoppingBag size={20} />
+                                    </div>
                                   </div>
-                                  {(expandedActivity[c.id] || []).length === 0 ? (
-                                    <p className="text-[11px] text-slate-400 font-semibold">
-                                      لا توجد طلبات بعد
-                                    </p>
-                                  ) : (
-                                    <div className="space-y-1">
-                                      {(expandedActivity[c.id] || []).map((o: any) => (
-                                        <div
-                                          key={o.id}
-                                          className="flex items-center justify-between text-[11px] font-semibold text-slate-600"
-                                        >
-                                          <span className="tabular-nums text-slate-900 font-bold">
-                                            #{String(o.id).slice(0, 8)}
-                                          </span>
-                                          <span>{o.status}</span>
-                                          <span className="tabular-nums">
-                                            ج.م {Number(o.total || 0).toLocaleString()}
-                                          </span>
-                                          <span className="text-slate-400">
-                                            {o.createdAt
-                                              ? new Date(o.createdAt).toLocaleDateString('ar-EG')
-                                              : ''}
-                                          </span>
-                                        </div>
-                                      ))}
+
+                                  {/* كارت الطلبات المكتملة */}
+                                  <div className="bg-[#FAF9FB] border border-slate-200/90 rounded-2xl p-4 flex items-center justify-between">
+                                    <div>
+                                      <div className="text-xs font-bold text-slate-500 mb-1">
+                                        الطلبات المكتملة
+                                      </div>
+                                      <div className="text-xl font-black text-slate-900 tabular-nums">
+                                        {completedOrdersCount || Math.min(c.totalOrders || 0, 0)}
+                                      </div>
                                     </div>
-                                  )}
+                                    <div className="w-11 h-11 rounded-2xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center">
+                                      <CheckCircle2 size={20} />
+                                    </div>
+                                  </div>
+
+                                  {/* كارت إجمالي المصروفات */}
+                                  <div className="bg-[#FAF9FB] border border-slate-200/90 rounded-2xl p-4 flex items-center justify-between">
+                                    <div>
+                                      <div className="text-xs font-bold text-slate-500 mb-1">
+                                        إجمالي المصروفات
+                                      </div>
+                                      <div className="text-xl font-black text-slate-900 tabular-nums">
+                                        {c.totalSpent.toLocaleString()} {curr}
+                                      </div>
+                                    </div>
+                                    <div className="w-11 h-11 rounded-2xl bg-blue-100/70 text-blue-700 flex items-center justify-center">
+                                      <CreditCard size={20} />
+                                    </div>
+                                  </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <Link
-                                    href={`/dashboard/customers/${c.id}`}
-                                    className="h-8 px-3 rounded-lg bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-700 flex items-center gap-1.5"
-                                  >
-                                    <Eye size={13} />
-                                    عرض الملف الكامل
-                                  </Link>
-                                  <Link
-                                    href={`/dashboard/customers/${c.id}/edit`}
-                                    className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 text-[11px] font-bold hover:bg-slate-50 flex items-center gap-1.5"
-                                  >
-                                    <Pencil size={12} />
-                                    تعديل
-                                  </Link>
-                                  <a
-                                    href={`https://wa.me/2${(c.phone || '').replace(/\D/g, '')}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="h-8 px-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold hover:bg-emerald-100 flex items-center gap-1.5"
-                                  >
-                                    <MessageCircle size={12} />
-                                    واتساب
-                                  </a>
-                                  <button
-                                    onClick={() => toggleArchive(c)}
-                                    disabled={archivingId === c.id}
-                                    className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-slate-50 flex items-center gap-1.5 disabled:opacity-50"
-                                  >
-                                    {archivingId === c.id ? (
-                                      <Loader2 size={12} className="animate-spin" />
-                                    ) : c.archived ? (
-                                      <ArchiveRestore size={12} />
-                                    ) : (
-                                      <Archive size={12} />
+                                {/* شريط الإجراءات السريعة مع زر عرض التفاصيل البارز */}
+                                <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-slate-200/60">
+                                  <div className="flex items-center gap-2">
+                                    <Link
+                                      href={`/dashboard/customers/${c.id}`}
+                                      className="h-9 px-5 rounded-full bg-[#492770] hover:bg-[#3d1f5e] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                                    >
+                                      <Eye size={14} />
+                                      عرض التفاصيل
+                                      <ChevronLeft size={14} />
+                                    </Link>
+                                    <Link
+                                      href={`/dashboard/customers/${c.id}/edit`}
+                                      className="h-9 px-4 rounded-full border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 flex items-center gap-1.5 transition-all"
+                                    >
+                                      <Pencil size={13} />
+                                      تعديل بيانات العميل
+                                    </Link>
+                                    {c.phone && (
+                                      <a
+                                        href={`https://wa.me/2${(c.phone || '').replace(/\D/g, '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="h-9 px-4 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 flex items-center gap-1.5 transition-all"
+                                      >
+                                        <MessageCircle size={13} />
+                                        واتساب
+                                      </a>
                                     )}
-                                    {c.archived ? 'استعادة' : 'أرشفة'}
-                                  </button>
-                                  <Link
-                                    href={`/dashboard/customers/${c.id}`}
-                                    className="mr-auto text-[11px] font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1"
-                                  >
-                                    الملف الكامل
-                                    <ChevronLeft size={12} />
-                                  </Link>
+                                  </div>
+
+                                  <div className="text-xs font-semibold text-slate-400">
+                                    كود العميل:{' '}
+                                    <span className="font-bold text-slate-700 tabular-nums">
+                                      {c.code || '—'}
+                                    </span>
+                                    {c.lastPurchaseAt && (
+                                      <span className="mr-3">
+                                        آخر عملية شراء:{' '}
+                                        <span className="text-slate-700 font-bold">
+                                          {new Date(c.lastPurchaseAt).toLocaleDateString('ar-EG')}
+                                        </span>
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </td>

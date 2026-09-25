@@ -68,13 +68,18 @@ func (r *Repository) ListByShop(ctx context.Context, shopID string, from, to *ti
 }
 
 // ListAllAdmin returns orders across all shops with optional filters.
-func (r *Repository) ListAllAdmin(ctx context.Context, shopID string, from, to *time.Time, limit, offset int) ([]Order, error) {
+func (r *Repository) ListAllAdmin(ctx context.Context, shopID, userID string, from, to *time.Time, limit, offset int) ([]Order, error) {
 	filters := "1=1"
 	args := []any{limit, offset}
 	idx := 3
 	if shopID != "" {
 		filters += fmt.Sprintf(" AND o.shop_id = $%d", idx)
 		args = append(args, shopID)
+		idx++
+	}
+	if userID != "" {
+		filters += fmt.Sprintf(" AND o.user_id = $%d", idx)
+		args = append(args, userID)
 		idx++
 	}
 	if from != nil {
@@ -149,13 +154,18 @@ func (r *Repository) CountByShop(ctx context.Context, shopID string, from, to *t
 }
 
 // CountAllAdmin returns the total count of orders across all shops with optional filters.
-func (r *Repository) CountAllAdmin(ctx context.Context, shopID string, from, to *time.Time) (int64, error) {
+func (r *Repository) CountAllAdmin(ctx context.Context, shopID, userID string, from, to *time.Time) (int64, error) {
 	filters := "1=1"
 	args := []any{}
 	idx := 1
 	if shopID != "" {
 		filters += fmt.Sprintf(" AND o.shop_id = $%d", idx)
 		args = append(args, shopID)
+		idx++
+	}
+	if userID != "" {
+		filters += fmt.Sprintf(" AND o.user_id = $%d", idx)
+		args = append(args, userID)
 		idx++
 	}
 	if from != nil {

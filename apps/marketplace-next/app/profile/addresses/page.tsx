@@ -20,7 +20,7 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
-import { api, clearStoredAuthToken, getStoredAuthToken } from '@/lib/api';
+import { api, clearStoredAuthToken, isSessionActive } from '@/lib/api';
 import { LocationPicker } from '@/components/LocationPicker';
 
 interface Address {
@@ -64,8 +64,7 @@ export default function ProfileAddressesPage() {
   const [form, setForm] = useState({ ...emptyForm });
 
   useEffect(() => {
-    const token = getStoredAuthToken();
-    if (!token) {
+    if (!isSessionActive()) {
       router.push('/login');
       return;
     }

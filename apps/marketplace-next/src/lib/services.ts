@@ -77,14 +77,53 @@ export async function getShopBySlug(slug: string): Promise<Shop | null> {
   }
 }
 
-export async function getProducts(shopId: string, limit = 12): Promise<Product[]> {
+// surface: 'site' يعرض ما هو معروض في موقع المتجر فقط، والافتراضي (بدون قيمة)
+// يعرض ما هو معروض في تطبيق الماركت (app_active) — كل سطح ليه علم مستقل عند التاجر.
+export async function getProducts(
+  shopId: string,
+  limit = 12,
+  surface?: 'site' | 'app'
+): Promise<Product[]> {
   try {
     // The public catalog endpoint filters by shopId — /shops/:id/products
     // does not exist on the backend and always came back empty.
-    const data = await api.get<any>(`/products?shopId=${shopId}&limit=${limit}`, {
+    const surfaceQs = surface ? `&surface=${surface}` : '';
+    const data = await api.get<any>(
+      `/products?shopId=${shopId}&limit=${limit}${surfaceQs}`,
+      {
+        revalidate: 300,
+        tags: [`products:${shopId}`],
+      }
+    );
+    return Array.isArray(data) ? data : (data?.data ?? data?.items ?? []);
+  } catch {
+    return [];
+  }
+}
+
+// أحدث المنتجات المعروضة في التطبيق — لتغذية أقسام الهوم الموحدة (بطاقة المنتج الموحدة).
+export async function getLatestProducts(limit = 8): Promise<Product[]> {
+  try {
+    const data = await api.get<any>(`/products?limit=${limit}`, {
       revalidate: 300,
-      tags: [`products:${shopId}`],
+      tags: ['products:latest'],
     });
+    return Array.isArray(data) ? data : (data?.data ?? data?.items ?? []);
+  } catch {
+    return [];
+  }
+}
+
+// منتجات قسم معيّن (نشاط المتجر) — صفحات الأقسام في التطبيق بالبطاقة الموحدة.
+export async function getProductsByActivity(activity: string, limit = 24): Promise<Product[]> {
+  try {
+    const data = await api.get<any>(
+      `/products?shopActivity=${encodeURIComponent(activity)}&limit=${limit}`,
+      {
+        revalidate: 300,
+        tags: [`products:activity:${activity}`],
+      }
+    );
     return Array.isArray(data) ? data : (data?.data ?? data?.items ?? []);
   } catch {
     return [];

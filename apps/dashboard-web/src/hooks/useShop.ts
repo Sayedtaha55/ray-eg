@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/auth';
 
 type Shop = {
@@ -17,34 +18,39 @@ type Shop = {
   openingHours?: string;
 };
 
+export const SHOP_QUERY_KEY = ['shop', 'me'] as const;
+
+/**
+ * The dashboard fires /shops/me from ~160 component/page sites on every
+ * mount. React Query (already a root dependency with the app's
+ * QueryProvider mounted) collapses them into one shared cache entry with
+ * a 30s stale window, focus revalidation and a single retry — same
+ * signature as the old useEffect hook so call sites stay untouched.
+ */
 export function useShop() {
-  const [shop, setShop] = useState<Shop | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: SHOP_QUERY_KEY,
+    queryFn: () => apiRequest<Shop>('/shops/me'),
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    retry: 1,
+  });
 
-  const fetchShop = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiRequest('/shops/me');
-      if (data?.id) {
-        setShop(data);
-      } else {
-        setShop(null);
-      }
-    } catch (err: any) {
-      setError(err?.message || 'Failed to fetch shop data');
-      setShop(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const shop = query.data?.id ? query.data : null;
 
-  useEffect(() => {
-    fetchShop();
-  }, [fetchShop]);
+  const refetch = useCallback(() => {
+    void query.refetch();
+  }, [query]);
 
-  return { shop, loading, error, refetch: fetchShop };
+  return {
+    shop,
+    loading: query.isLoading,
+    error: query.isError
+      ? ((query.error as Error)?.message || 'Failed to fetch shop data')
+      : null,
+    refetch,
+  };
 }
 
 export type { Shop };
+

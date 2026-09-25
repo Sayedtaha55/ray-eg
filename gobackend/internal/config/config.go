@@ -96,6 +96,14 @@ type AuthConfig struct {
 	JWTSecret                string        `env:"JWT_SECRET,required"`
 	AccessTokenExpiry        time.Duration `env:"AUTH_ACCESS_TOKEN_EXPIRY" envDefault:"15m"`
 	RefreshTokenExpiry       time.Duration `env:"AUTH_REFRESH_TOKEN_EXPIRY" envDefault:"168h"`
+	// SessionAbsoluteTTL caps the total lifetime of a session family from its
+	// first login, regardless of how often it is refreshed (sliding idle
+	// expiry alone would otherwise allow an endless session).
+	SessionAbsoluteTTL       time.Duration `env:"AUTH_SESSION_ABSOLUTE_TTL" envDefault:"720h"`
+	// RefreshGrace is the window after a rotation during which the previous
+	// refresh token is still accepted. It absorbs parallel refreshes from
+	// multiple tabs sharing one cookie jar without tripping reuse detection.
+	RefreshGrace             time.Duration `env:"AUTH_REFRESH_GRACE" envDefault:"60s"`
 	// CookieName is the name of the httpOnly cookie that stores the refresh token.
 	CookieName               string        `env:"AUTH_COOKIE_NAME" envDefault:"ray_session"`
 	// AccessCookieName is the name of the httpOnly cookie that stores the short-lived access token.
@@ -127,6 +135,10 @@ type RateLimit struct {
 	AuthMax        int           `env:"AUTH_RATE_LIMIT_MAX" envDefault:"10"`
 	AuthWindow     time.Duration `env:"AUTH_RATE_LIMIT_WINDOW" envDefault:"1m"`
 	AuthLockoutMax time.Duration `env:"AUTH_RATE_LIMIT_LOCKOUT_MAX" envDefault:"15m"`
+	// Dedicated, tighter budget for POST /auth/refresh: it is a token-minting
+	// endpoint and previously fell under the generous global limit only.
+	RefreshMax     int           `env:"AUTH_REFRESH_RATE_LIMIT_MAX" envDefault:"30"`
+	RefreshWindow  time.Duration `env:"AUTH_REFRESH_RATE_LIMIT_WINDOW" envDefault:"1m"`
 }
 
 // LogConfig holds logging configuration.

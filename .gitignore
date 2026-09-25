@@ -152,3 +152,6 @@ scripts/browser-test-out/
 *.old-backup
 testsprite_tests/tmp/
 testsprite_tests/tmp/config.json
+
+# Vercel CLI live env dumps (contain VERCEL_OIDC_TOKEN — never commit)
+.env.vercel*

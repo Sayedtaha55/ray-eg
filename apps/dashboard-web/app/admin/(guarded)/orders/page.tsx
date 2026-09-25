@@ -2,12 +2,16 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  CreditCard, Search, Loader2, ShoppingBag, UserPlus, Filter,
+  CreditCard, ShoppingBag, UserPlus, Filter,
   TrendingUp, Package,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { fetchAdminOrders } from '@/lib/api/orders';
 import { useToast } from '@/components/settings/ToastProvider';
+import {
+  PageHeader, Panel, LoadingBlock, EmptyState, SearchInput, FilterSelect,
+  Pagination, AdminTable, TH, TD, TR, StatChip, Badge, formatEGP, fmtDate, type Tone,
+} from '@/components/admin/ui';
 
 const asCleanText = (v: any) => {
   const s = typeof v === 'string' ? v : (v == null ? '' : String(v));
@@ -71,14 +75,13 @@ const formatOrderItemsFull = (order: any) => {
   return parts.join(' + ');
 };
 
-const formatStatus = (status: any) => {
-  const s = String(status || '').toUpperCase();
-  if (s === 'DELIVERED') return { label: 'تم التوصيل', cls: 'bg-green-500/10 text-green-500' };
-  if (s === 'READY') return { label: 'جاهز', cls: 'bg-blue-500/10 text-blue-500' };
-  if (s === 'PREPARING') return { label: 'قيد التحضير', cls: 'bg-amber-500/10 text-amber-500' };
-  if (s === 'CONFIRMED') return { label: 'مؤكد', cls: 'bg-amber-500/10 text-amber-500' };
-  if (s === 'CANCELLED') return { label: 'ملغي', cls: 'bg-red-500/10 text-red-500' };
-  return { label: 'قيد المراجعة', cls: 'bg-amber-500/10 text-amber-500' };
+const ORDER_STATUS_META: Record<string, { label: string; tone: Tone }> = {
+  DELIVERED: { label: 'تم التوصيل', tone: 'green' },
+  READY: { label: 'جاهز', tone: 'sky' },
+  PREPARING: { label: 'قيد التحضير', tone: 'amber' },
+  CONFIRMED: { label: 'مؤكد', tone: 'amber' },
+  CANCELLED: { label: 'ملغي', tone: 'red' },
+  PENDING: { label: 'قيد المراجعة', tone: 'amber' },
 };
 
 const parseCodLocation = (notes: any) => {
@@ -203,187 +206,164 @@ export default function AdminOrdersPage() {
   }), [orders]);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-amber-500/10 text-amber-400 rounded-2xl">
-            <CreditCard size={24} />
-          </div>
-          <div>
-            <h2 className="text-3xl font-black text-white">إدارة العمليات</h2>
-            <p className="text-slate-500 text-sm font-bold">عرض وإدارة جميع الطلبات على المنصة</p>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={CreditCard}
+        title="إدارة العمليات"
+        subtitle="عرض وإدارة جميع الطلبات على المنصة"
+        tone="amber"
+        stats={
+          <>
+            <StatChip label="إجمالي الطلبات" value={stats.total} icon={ShoppingBag} />
+            <StatChip label="الإيرادات" value={formatEGP(stats.revenue)} icon={TrendingUp} tone="cyan" />
+            <StatChip label="تم التوصيل" value={stats.delivered} icon={Package} tone="green" />
+            <StatChip label="قيد التنفيذ" value={stats.pending} icon={Filter} tone="amber" />
+          </>
+        }
+      />
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full md:w-auto">
-          {[
-            ['إجمالي الطلبات', stats.total, 'text-white', ShoppingBag],
-            ['الإيرادات', `${stats.revenue.toLocaleString()} ج.م`, 'text-[#00E5FF]', TrendingUp],
-            ['تم التوصيل', stats.delivered, 'text-green-400', Package],
-            ['قيد التنفيذ', stats.pending, 'text-amber-400', Filter],
-          ].map(([label, val, color, Icon]: any) => (
-            <div key={label} className="rounded-2xl bg-slate-900/70 border border-white/5 px-4 py-3 text-center">
-              <Icon size={16} className={`mx-auto mb-1 ${color}`} />
-              <div className="text-slate-500 text-[10px] font-black">{label}</div>
-              <div className={`mt-1 text-lg font-black ${color}`}>{val}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-slate-900 border border-white/5 rounded-[3rem] overflow-hidden">
-        <div className="flex flex-col md:flex-row gap-3 p-6 border-b border-white/5">
-          <div className="flex-1 relative">
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-            <input
-              className="w-full bg-slate-900 border border-white/5 rounded-xl py-3 pr-12 pl-4 text-white outline-none focus:border-[#00E5FF]/50 transition-all text-sm"
-              placeholder="ابحث برقم العملية أو اسم المتجر..."
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
-            />
-          </div>
-          <select
+      <Panel>
+        <div className="flex flex-col md:flex-row gap-3 p-5 border-b border-slate-100">
+          <SearchInput
+            value={searchTerm}
+            onChange={(v) => { setSearchTerm(v); setPage(0); }}
+            placeholder="ابحث برقم العملية أو اسم المتجر..."
+          />
+          <FilterSelect
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-            className="px-4 py-3 bg-slate-900 border border-white/5 rounded-xl text-white text-sm font-bold outline-none focus:border-[#00E5FF]/50"
-          >
-            <option value="all">كل الحالات</option>
-            <option value="PENDING">قيد المراجعة</option>
-            <option value="CONFIRMED">مؤكد</option>
-            <option value="PREPARING">قيد التحضير</option>
-            <option value="READY">جاهز</option>
-            <option value="DELIVERED">تم التوصيل</option>
-            <option value="CANCELLED">ملغي</option>
-          </select>
+            onChange={(v) => { setStatusFilter(v); setPage(0); }}
+            options={[
+              { value: 'all', label: 'كل الحالات' },
+              { value: 'PENDING', label: 'قيد المراجعة' },
+              { value: 'CONFIRMED', label: 'مؤكد' },
+              { value: 'PREPARING', label: 'قيد التحضير' },
+              { value: 'READY', label: 'جاهز' },
+              { value: 'DELIVERED', label: 'تم التوصيل' },
+              { value: 'CANCELLED', label: 'ملغي' },
+            ]}
+          />
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="animate-spin text-[#00E5FF]" />
-          </div>
+          <LoadingBlock />
+        ) : paginatedOrders.length === 0 ? (
+          <EmptyState icon={ShoppingBag} title="لا توجد طلبات" />
         ) : (
           <>
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full text-right border-collapse">
-                <thead>
-                  <tr className="border-b border-white/5 bg-white/5">
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">رقم العملية</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">التاريخ</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">المنتجات</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">المبلغ</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">التوصيل</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الدفع</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الموقع</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">المندوب</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الحالة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedOrders.map((order) => {
-                    const meta = formatStatus(order.status);
-                    const itemsText = formatOrderItemsFull(order);
-                    const fee = getDeliveryFeeFromNotes(order.notes);
-                    const loc = parseCodLocation(order.notes);
-                    return (
-                      <tr key={order.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                        <td className="p-6 font-black text-white">#{String(order.id || '').slice(0, 8)}</td>
-                        <td className="p-6 text-slate-500 text-sm">
-                          {order?.createdAt ? new Date(order.createdAt).toLocaleString('ar-EG') : '-'}
-                        </td>
-                        <td className="p-6 text-slate-200 font-black text-xs max-w-[420px]">
-                          <div className="whitespace-normal break-words" title={itemsText || ''}>
-                            {itemsText || '-'}
-                          </div>
-                        </td>
-                        <td className="p-6">
-                          <span className="text-[#00E5FF] font-black">ج.م {Number(order?.total || 0).toLocaleString()}</span>
-                        </td>
-                        <td className="p-6">
-                          <button
-                            onClick={() => editDeliveryFee(order)}
-                            className="text-slate-200 font-black text-xs hover:text-[#00E5FF] transition-colors"
+            <div className="hidden lg:block">
+              <AdminTable
+                minW="min-w-[1080px]"
+                head={
+                  <>
+                    <th className={TH}>رقم العملية</th>
+                    <th className={TH}>التاريخ</th>
+                    <th className={TH}>المنتجات</th>
+                    <th className={TH}>المبلغ</th>
+                    <th className={TH}>التوصيل</th>
+                    <th className={TH}>الدفع</th>
+                    <th className={TH}>الموقع</th>
+                    <th className={TH}>المندوب</th>
+                    <th className={TH}>الحالة</th>
+                  </>
+                }
+              >
+                {paginatedOrders.map((order) => {
+                  const meta = ORDER_STATUS_META[String(order?.status || '').toUpperCase()] || ORDER_STATUS_META.PENDING;
+                  const itemsText = formatOrderItemsFull(order);
+                  const fee = getDeliveryFeeFromNotes(order.notes);
+                  const loc = parseCodLocation(order.notes);
+                  return (
+                    <tr key={order.id} className={TR}>
+                      <td className={TD + ' font-black text-slate-900'}>#{String(order.id || '').slice(0, 8)}</td>
+                      <td className={TD + ' text-slate-500 text-sm'}>{fmtDate(order?.createdAt)}</td>
+                      <td className={TD + ' text-slate-700 font-bold text-xs max-w-[420px]'}>
+                        <div className="whitespace-normal break-words" title={itemsText || ''}>
+                          {itemsText || '-'}
+                        </div>
+                      </td>
+                      <td className={TD}>
+                        <span className="text-cyan-700 font-black">{formatEGP(order?.total)}</span>
+                      </td>
+                      <td className={TD}>
+                        <button
+                          onClick={() => editDeliveryFee(order)}
+                          className="text-slate-700 font-black text-xs hover:text-cyan-600 transition-colors"
+                        >
+                          {fee == null ? 'تحديد' : `${fee} ج.م`}
+                        </button>
+                      </td>
+                      <td className={TD}>
+                        <span className="text-slate-700 font-black text-xs">
+                          {String(order?.paymentMethod || order?.payment_method || '-')}
+                        </span>
+                      </td>
+                      <td className={TD}>
+                        {loc ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-cyan-700 font-black text-xs hover:underline"
                           >
-                            {fee == null ? 'تحديد' : `${fee} ج.م`}
-                          </button>
-                        </td>
-                        <td className="p-6">
-                          <span className="text-slate-200 font-black text-xs">
-                            {String(order?.paymentMethod || order?.payment_method || '-')}
-                          </span>
-                        </td>
-                        <td className="p-6">
-                          {loc ? (
-                            <a
-                              href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[#00E5FF] font-black text-xs hover:underline"
-                            >
-                              فتح الخريطة
-                            </a>
-                          ) : (
-                            <span className="text-slate-500 text-xs font-bold">-</span>
-                          )}
-                        </td>
-                        <td className="p-6">
-                          <button
-                            onClick={() => assignCourier(order)}
-                            className="inline-flex items-center gap-2 text-slate-200 font-black text-xs hover:text-[#00E5FF] transition-colors"
-                          >
-                            <UserPlus size={14} />
-                            {order?.courier?.name || 'تعيين'}
-                          </button>
-                        </td>
-                        <td className="p-6">
-                          <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${meta.cls}`}>
-                            {meta.label}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            فتح الخريطة
+                          </a>
+                        ) : (
+                          <span className="text-slate-400 text-xs font-bold">-</span>
+                        )}
+                      </td>
+                      <td className={TD}>
+                        <button
+                          onClick={() => assignCourier(order)}
+                          className="inline-flex items-center gap-2 text-slate-700 font-black text-xs hover:text-cyan-600 transition-colors"
+                        >
+                          <UserPlus size={14} />
+                          {order?.courier?.name || 'تعيين'}
+                        </button>
+                      </td>
+                      <td className={TD}>
+                        <Badge tone={meta.tone}>{meta.label}</Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </AdminTable>
             </div>
 
-            <div className="lg:hidden space-y-3 p-3">
+            {/* كروت الموبايل — بديل الجدول على الشاشات الصغيرة */}
+            <div className="lg:hidden space-y-3 p-4">
               {paginatedOrders.map((order) => {
-                const meta = formatStatus(order.status);
+                const meta = ORDER_STATUS_META[String(order?.status || '').toUpperCase()] || ORDER_STATUS_META.PENDING;
                 const fee = getDeliveryFeeFromNotes(order.notes);
                 const loc = parseCodLocation(order.notes);
                 const itemsText = formatOrderItemsFull(order);
                 return (
-                  <div key={order.id} className="bg-slate-800/50 border border-white/5 rounded-xl p-3 space-y-2">
+                  <div key={order.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-white font-black text-sm">#{String(order.id || '').slice(0, 8)}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${meta.cls}`}>
-                        {meta.label}
-                      </span>
+                      <span className="text-slate-900 font-black text-sm">#{String(order.id || '').slice(0, 8)}</span>
+                      <Badge tone={meta.tone}>{meta.label}</Badge>
                     </div>
-                    <div className="text-xs text-slate-400">
-                      {order?.createdAt ? new Date(order.createdAt).toLocaleString('ar-EG') : '-'}
-                    </div>
+                    <div className="text-xs text-slate-400 font-bold">{fmtDate(order?.createdAt)}</div>
                     {itemsText && (
-                      <div className="text-xs text-slate-200 font-black whitespace-normal break-words">{itemsText}</div>
+                      <div className="text-xs text-slate-700 font-bold whitespace-normal break-words">{itemsText}</div>
                     )}
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                       <div className="flex justify-between">
                         <span className="text-slate-400">المبلغ:</span>
-                        <span className="text-[#00E5FF] font-black">ج.م {Number(order?.total || 0).toLocaleString()}</span>
+                        <span className="text-cyan-700 font-black">{formatEGP(order?.total)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">الرسوم:</span>
-                        <button onClick={() => editDeliveryFee(order)} className="text-slate-200 font-black hover:text-[#00E5FF]">
+                        <button onClick={() => editDeliveryFee(order)} className="text-slate-700 font-black hover:text-cyan-600">
                           {fee == null ? 'تحديد' : `${fee} ج.م`}
                         </button>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">الدفع:</span>
-                        <span className="text-slate-200 font-black">{String(order?.paymentMethod || order?.payment_method || '-')}</span>
+                        <span className="text-slate-700 font-black">{String(order?.paymentMethod || order?.payment_method || '-')}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">المندوب:</span>
-                        <button onClick={() => assignCourier(order)} className="inline-flex items-center gap-1 text-slate-200 font-black hover:text-[#00E5FF]">
+                        <button onClick={() => assignCourier(order)} className="inline-flex items-center gap-1 text-slate-700 font-black hover:text-cyan-600">
                           <UserPlus size={10} />
                           {order?.courier?.name || 'تعيين'}
                         </button>
@@ -394,7 +374,7 @@ export default function AdminOrdersPage() {
                         href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[#00E5FF] font-black hover:underline text-xs block"
+                        className="text-cyan-700 font-black hover:underline text-xs block"
                       >
                         فتح الخريطة
                       </a>
@@ -406,30 +386,14 @@ export default function AdminOrdersPage() {
           </>
         )}
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between p-4 border-t border-white/5">
-            <span className="text-slate-500 text-xs font-bold">
-              صفحة {page + 1} من {totalPages} ({filteredOrders.length} طلب)
-            </span>
-            <div className="flex gap-2">
-              <button
-                disabled={page === 0}
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                className="px-4 py-2 rounded-xl bg-white/5 text-slate-200 text-xs font-black disabled:opacity-40"
-              >
-                السابق
-              </button>
-              <button
-                disabled={page >= totalPages - 1}
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                className="px-4 py-2 rounded-xl bg-white/5 text-slate-200 text-xs font-black disabled:opacity-40"
-              >
-                التالي
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={filteredOrders.length}
+          unit="طلب"
+          onPage={setPage}
+        />
+      </Panel>
     </div>
   );
 }

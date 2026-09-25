@@ -87,15 +87,26 @@ func (s *TokenService) IssueAccessToken(user User, sessionID string) (string, er
 // The sessionID is embedded as the JWT ID (jti) claim so the server can
 // validate the session is still active and perform rotation.
 func (s *TokenService) IssueRefreshToken(user User, sessionID string) (string, error) {
-	now := time.Now()
+	return s.IssueRefreshTokenAt(user, sessionID, time.Now())
+}
+
+// IssueRefreshTokenAt signs a refresh token whose iat/exp are pinned to iat
+// instead of "now". Rotation and grace re-issue tokens with the session's
+// IssuedAt, which makes the signature byte-identical every time: a grace
+// refresh can therefore return the exact same refresh token the rotated
+// response carried, without ever storing the plaintext server-side.
+func (s *TokenService) IssueRefreshTokenAt(user User, sessionID string, iat time.Time) (string, error) {
+	if iat.IsZero() {
+		iat = time.Now()
+	}
 	claims := TokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   user.ID,
 			Issuer:    s.issuer,
 			Audience:  s.audience,
-			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now.Add(s.refreshTokenExpiry)),
-			NotBefore: jwt.NewNumericDate(now),
+			IssuedAt:  jwt.NewNumericDate(iat),
+			ExpiresAt: jwt.NewNumericDate(iat.Add(s.refreshTokenExpiry)),
+			NotBefore: jwt.NewNumericDate(iat),
 			ID:        sessionID,
 		},
 		Email: user.Email,

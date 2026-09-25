@@ -12,6 +12,7 @@ type Product struct {
 	Category      string         `json:"category"`
 	ImageURL      *string        `json:"imageUrl,omitempty"`
 	IsActive      bool           `json:"isActive"`
+	AppActive     bool           `json:"appActive"`
 	ShopID        string         `json:"shopId"`
 	TrackStock    bool           `json:"trackStock"`
 	Unit          *string        `json:"unit,omitempty"`
@@ -58,6 +59,7 @@ type CreateProductRequest struct {
 	Model3DURL    *string        `json:"model3dUrl,omitempty"`
 	SpinImages    []any          `json:"spinImages,omitempty"`
 	IsActive      *bool          `json:"isActive,omitempty"`
+	AppActive     *bool          `json:"appActive,omitempty"`
 	ExtraData     map[string]any `json:"extraData,omitempty"`
 	FurnitureMeta *FurnitureMeta `json:"furnitureMeta,omitempty"`
 }
@@ -81,6 +83,7 @@ type UpdateProductRequest struct {
 	Model3DURL    *string        `json:"model3dUrl,omitempty"`
 	SpinImages    []any          `json:"spinImages,omitempty"`
 	IsActive      *bool          `json:"isActive,omitempty"`
+	AppActive     *bool          `json:"appActive,omitempty"`
 	ExtraData     map[string]any `json:"extraData,omitempty"`
 	FurnitureMeta *FurnitureMeta `json:"furnitureMeta,omitempty"`
 }
@@ -93,11 +96,13 @@ type ProductFilter struct {
 	MaxPrice        float64 `query:"maxPrice"`
 	Sort            string  `query:"sort"` // newest | price_asc | price_desc | name | oldest
 	IncludeImageMap bool   `query:"includeImageMap"`
+	ShopActivity    string  `query:"shopActivity"`
 }
 
 // ProductListRequest is the query for listing products.
 type ProductListRequest struct {
 	ShopID  string `query:"shopId"`
+	Surface string `query:"surface"` // site → is_active فقط، غير كده app_active (التطبيق)
 	Page    int    `query:"page"`
 	Limit   int    `query:"limit"`
 	Filter  ProductFilter

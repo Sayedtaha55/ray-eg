@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { LogIn, Mail, Lock, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
-import { api, storeAuthToken } from '@/lib/api';
+import { api, markSessionActive } from '@/lib/api';
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -49,7 +49,9 @@ export default function LoginPage() {
                 res?.accessToken ||
                 res?.token;
               if (token) {
-                storeAuthToken(token);
+                // Cookie-first: the response's HttpOnly cookies are the
+                // credential — localStorage only keeps the non-secret UI flag.
+                markSessionActive();
                 try {
                   sessionStorage.setItem('mnmknk_welcome', JSON.stringify({ type: 'login' }));
                 } catch {

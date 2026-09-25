@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { apiRequest } from '@/lib/auth';
 import { useShop } from '@/hooks/useShop';
@@ -62,17 +62,26 @@ export default function EditCustomerPage() {
       className="min-h-full bg-[#F4F5F7] text-slate-900"
       style={{ fontFamily: "'Cairo','Tajawal',system-ui,sans-serif" }}
     >
-      <div className="bg-white border-b border-slate-200">
-        <div className="px-4 sm:px-6 py-5 max-w-[1100px] mx-auto flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">تعديل العميل</h1>
-            <p className="text-xs text-slate-400 mt-0.5">عدّل بيانات العميل ثم احفظ التعديلات</p>
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
+        <div className="px-4 sm:px-6 py-4 max-w-[1100px] mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/dashboard/customers/${customerId}`}
+              className="w-10 h-10 rounded-full border border-slate-200 bg-white hover:bg-slate-100 flex items-center justify-center text-slate-700 transition-all shadow-sm"
+              title="الرجوع لملف العميل"
+            >
+              <ArrowRight size={18} />
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">تعديل العميل</h1>
+              <p className="text-xs text-slate-400 mt-0.5">عدّل بيانات العميل ثم احفظ التعديلات</p>
+            </div>
           </div>
           <Link
             href={`/dashboard/customers/${customerId}`}
-            className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5"
+            className="h-10 px-4 rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-all"
           >
-            <ChevronRight size={14} />
+            <ArrowRight size={14} />
             رجوع للملف
           </Link>
         </div>

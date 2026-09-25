@@ -1,9 +1,17 @@
-import { readToken, writeToken, writeUserJSON } from '@/lib/session-keys';
-
-const API_BASE = '/api/v1';
-// Namespaces this app's auth cookies (ray_session-dashboard) so dashboard and
-// marketplace sessions coexist on the same API host instead of clobbering.
-const APP_SCOPE = 'dashboard';
+/**
+ * Thin compatibility facade over the unified core (lib/api/core.ts).
+ *
+ * This client used to carry its own copy of the refresh/401 logic (a third
+ * parallel implementation) — every path now goes through the core's single
+ * single-flight refresh, shared GET cache and guarded session-expired event.
+ * Public signatures are unchanged for the existing call sites.
+ */
+import {
+  apiRequest as coreApiRequest,
+  apiRequestWithMeta as coreApiRequestWithMeta,
+  clearApiCache,
+  refreshSession,
+} from './core';
 
 export interface PageMeta {
   total: number;
@@ -18,17 +26,6 @@ interface ApiResult<T> {
   raw: any;
 }
 
-function getToken(): string | null {
-  const t = readToken();
-  return t || null;
-}
-
-function getCsrf(): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(/ray_csrf=([^;]+)/);
-  return match ? match[1] : null;
-}
-
 export function buildQueryString(params: Record<string, any>): string {
   const sp = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
@@ -39,101 +36,26 @@ export function buildQueryString(params: Record<string, any>): string {
   return s ? `?${s}` : '';
 }
 
-let refreshInFlight: Promise<string | null> | null = null;
-
-// Silently exchange the ray_session refresh cookie for a fresh access token.
-// Shared logic with lib/auth.tsx — kept local to avoid a circular import.
+/** Silent cookie → access-token exchange (shared single-flight in core). */
 export async function refreshAccessToken(): Promise<string | null> {
-  if (typeof window === 'undefined') return null;
-  if (!refreshInFlight) {
-    refreshInFlight = (async () => {
-      try {
-        const csrf = document.cookie.match(/ray_csrf=([^;]+)/)?.[1] || '';
-        const res = await fetch(`${API_BASE}/auth/refresh`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-App-Scope': APP_SCOPE,
-            ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
-          },
-          body: '{}',
-        });
-        if (!res.ok) return null;
-        const data = await res.json().catch(() => null);
-        const accessToken = data?.data?.token?.accessToken || data?.token?.accessToken;
-        if (!accessToken) return null;
-        writeToken(accessToken);
-        const user = data?.data?.user || data?.user;
-        if (user) {
-          writeUserJSON(JSON.stringify(user));
-          window.dispatchEvent(new Event('ray-user-refreshed'));
-        }
-        return accessToken as string;
-      } catch {
-        return null;
-      } finally {
-        refreshInFlight = null;
-      }
-    })();
-  }
-  return refreshInFlight;
+  return refreshSession();
 }
 
 export async function apiRequestWithMeta<T = any>(
   path: string,
-  options: RequestInit = {},
-  _retried = false
+  options: RequestInit = {}
 ): Promise<ApiResult<T>> {
-  const token = getToken();
-  const csrf = getCsrf();
-  const headers: Record<string, any> = {
-    'Content-Type': 'application/json',
-    'X-App-Scope': APP_SCOPE,
-    ...(options.headers || {}),
+  const result = await coreApiRequestWithMeta<T>(path, options);
+  return {
+    data: result.data,
+    meta: (result.meta as PageMeta) || null,
+    raw: result.raw,
   };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  if (csrf) headers['X-CSRF-Token'] = csrf;
-
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
-
-  if (!res.ok) {
-    let msg = `خطأ في الطلب (${res.status})`;
-    let errBody: any = null;
-    try {
-      errBody = await res.json();
-      if (errBody?.message) msg = errBody.message;
-      if (errBody?.error) msg = errBody.error;
-    } catch {}
-    // access token lives only 15 min — on expiry, refresh silently and retry once
-    const expired = res.status === 401 && /expired|invalid token|invalid_token/i.test(String(msg));
-    if (expired && !_retried) {
-      const newToken = await refreshAccessToken();
-      if (newToken) return apiRequestWithMeta<T>(path, options, true);
-      window.dispatchEvent(new Event('ray-session-expired'));
-      throw new Error('انتهت الجلسة، من فضلك سجل الدخول من جديد');
-    }
-    throw new Error(msg);
-  }
-
-  const raw = await res.json();
-
-  if (raw && typeof raw === 'object' && 'success' in raw && 'data' in raw) {
-    return {
-      data: raw.data as T,
-      meta: raw.meta || null,
-      raw,
-    };
-  }
-
-  return { data: raw as T, meta: null, raw };
 }
 
 export async function apiRequest<T = any>(path: string, options: RequestInit = {}): Promise<T> {
-  const result = await apiRequestWithMeta<T>(path, options);
-  return result.data;
+  return coreApiRequest<T>(path, options);
 }
+
+export { clearApiCache };
+

@@ -25,7 +25,7 @@ import { SearchBar } from './SearchBar';
 import { GovernoratePicker } from './GovernoratePicker';
 import { HERO_SEARCH_ID } from './HeroSearch';
 import { siteConfig, navLinks } from '@/lib/config';
-import { apiPath, clearStoredAuthToken, getStoredAuthToken } from '@/lib/api';
+import { apiPath, APP_SCOPE, clearStoredAuthToken, getStoredAuthToken, isSessionActive } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 export function Navbar() {
@@ -88,19 +88,22 @@ export function Navbar() {
   const lastCountFetchRef = useRef(0);
   useEffect(() => {
     let cancelled = false;
-    setIsLoggedIn(!!getStoredAuthToken());
+    setIsLoggedIn(isSessionActive());
     const load = async (force = false) => {
-      const token = getStoredAuthToken();
-      if (!token) {
+      if (!isSessionActive()) {
         setUnreadNotifs(0);
         return;
       }
+      const token = getStoredAuthToken();
       const now = Date.now();
       if (!force && now - lastCountFetchRef.current < 45_000) return;
       lastCountFetchRef.current = now;
       try {
         const res = await fetch(apiPath('/notifications/me/unread-count'), {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            'X-App-Scope': APP_SCOPE,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
         });
         if (cancelled) return;
         const d = res.status === 401 || !res.ok ? null : await res.json().catch(() => null);

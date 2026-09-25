@@ -35,7 +35,8 @@ function mergeSignals(timeoutSignal: AbortSignal, requestSignal?: AbortSignal): 
 // Identifies the calling app so the backend scopes auth cookies per product
 // (ray_session-market / ray_session-dashboard) — a dashboard login and a
 // marketplace login then coexist instead of overwriting each other.
-const APP_SCOPE = 'market';
+/** Scope header the backend needs to resolve THIS app's cookie names. */
+export const APP_SCOPE = 'market';
 
 async function fetchWithTimeout(
   input: RequestInfo | URL,
@@ -122,36 +123,71 @@ export function backendOrigin(): string {
   return new URL(BACKEND_URL).origin;
 }
 
-// مفاتيح جلسة الماركت — مفصولة عن اللوحة (ray_dashboard_token) حتى لا يتطرش
-// كل تطبيق الجلسة بتاعة التاني. المفاتيح القديمة المشتركة تُقرأ مرة واحدة
-// للترحيل ثم تُمسح عند أول كتابة.
+// ── Session state (cookie-first) ────────────────────────────────────────────
+// The HttpOnly ray_access/ray_session cookies are the real credential. What
+// remains in localStorage is:
+//   - a NON-secret UI flag saying "this browser has an active session", and
+//   - a legacy access token (read-only) kept only as a header fallback for
+//     pre-migration users; it is retired on the first successful refresh.
 const TOKEN_KEY = 'ray_market_token';
 const LEGACY_TOKEN_KEYS = ['ray_token', 'token'] as const;
+const SESSION_ACTIVE_KEY = 'ray_market_session';
 
 export function getStoredAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
   const scoped = localStorage.getItem(TOKEN_KEY);
   if (scoped) return scoped;
+  // Read-only legacy lookup — never re-written (no new localStorage writes
+  // on the auth path; cookies are the primary credential).
   for (const key of LEGACY_TOKEN_KEYS) {
     const legacy = localStorage.getItem(key);
-    if (legacy) {
-      localStorage.setItem(TOKEN_KEY, legacy);
-      return legacy;
-    }
+    if (legacy) return legacy;
   }
   return null;
 }
 
-export function storeAuthToken(token: string) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(TOKEN_KEY, token);
-  for (const key of LEGACY_TOKEN_KEYS) localStorage.removeItem(key);
+/** Sync "logged in?" gate for UI (checkout guest detection, profile
+ *  redirects, navbar). Cookie-first; a legacy stored token also counts so
+ *  pre-migration users aren't bounced before their first refresh. */
+export function isSessionActive(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (localStorage.getItem(SESSION_ACTIVE_KEY) === '1') return true;
+  return !!getStoredAuthToken();
 }
 
-export function clearStoredAuthToken() {
+/** Marks the UI session active after a successful login/refresh. */
+export function markSessionActive(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(SESSION_ACTIVE_KEY, '1');
+}
+
+/** Removes ONLY the legacy bridge token (session flag stays). */
+function retireStoredToken(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(TOKEN_KEY);
   for (const key of LEGACY_TOKEN_KEYS) localStorage.removeItem(key);
+}
+
+/** Full logout: local state + the server-side cookie session. Clearing
+ *  localStorage alone would leave a live HttpOnly session behind on a
+ *  shared machine. */
+export function clearStoredAuthToken() {
+  retireStoredToken();
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(SESSION_ACTIVE_KEY);
+  // /auth/logout is CSRF-exempt by design, so no X-CSRF-Token needed here.
+  void fetch(apiPath('/auth/logout'), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', 'X-App-Scope': APP_SCOPE },
+    body: '{}',
+  }).catch(() => {});
+}
+
+/** Double-submit CSRF token (ray_csrf is deliberately readable by JS). */
+export function getCsrfToken(): string | null {
+  if (typeof document === 'undefined') return null;
+  return document.cookie.match(/ray_csrf=([^;]+)/)?.[1] || null;
 }
 
 // ── Silent access-token refresh ──────────────────────────────────────────────
@@ -161,14 +197,30 @@ export function clearStoredAuthToken() {
 
 let refreshInFlight: Promise<string | null> | null = null;
 let lastRefreshAt = 0;
+/** In-memory marker of the last successful refresh (never persisted). */
+let lastFreshAccessToken: string | null = null;
+/** Fires ray-session-expired at most once per dead session. */
+let sessionExpiredDispatched = false;
 /** Paths that must never trigger a refresh retry (they manage auth themselves). */
 const AUTH_PATHS = ['/auth/refresh', '/auth/login', '/auth/signup', '/auth/logout'];
+
+function dispatchSessionExpiredOnce() {
+  if (sessionExpiredDispatched) return;
+  sessionExpiredDispatched = true;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ray-session-expired'));
+  }
+}
 
 export async function refreshAccessToken(): Promise<string | null> {
   if (typeof window === 'undefined') return null;
   if (refreshInFlight) return refreshInFlight;
-  // A refresh that succeeded less than 10s ago means the stored token is fresh.
-  if (Date.now() - lastRefreshAt < 10_000) return getStoredAuthToken();
+  // A refresh that succeeded less than 10s ago — callers only need a truthy
+  // "session is fresh" marker (they re-read the stored token themselves
+  // when building headers), so serve it from memory instead of refetching.
+  if (Date.now() - lastRefreshAt < 10_000) {
+    return lastFreshAccessToken || (isSessionActive() ? 'session-active' : null);
+  }
 
   refreshInFlight = (async () => {
     try {
@@ -186,8 +238,14 @@ export async function refreshAccessToken(): Promise<string | null> {
         body?.token?.accessToken ||
         null;
       if (!accessToken) return null;
-      storeAuthToken(accessToken);
+      // Cookie-first: nothing is written to localStorage. Retire the legacy
+      // bridge token (headers fall back to the HttpOnly cookies + scope)
+      // and keep the non-secret UI session flag alive.
+      retireStoredToken();
+      markSessionActive();
+      lastFreshAccessToken = accessToken;
       lastRefreshAt = Date.now();
+      sessionExpiredDispatched = false;
       return accessToken as string;
     } catch {
       return null;
@@ -198,22 +256,29 @@ export async function refreshAccessToken(): Promise<string | null> {
   return refreshInFlight;
 }
 
-/** True when the request failed with a dead access token we can try to renew. */
-function isRefreshableAuthFailure(status: number, path: string, hadToken: boolean): boolean {
-  return hadToken && status === 401 && !AUTH_PATHS.some((p) => path.includes(p));
+/**
+ * True when the request failed with credentials we can try to renew.
+ * Cookie-only sessions (no stored Bearer — the post-upgrade default) are
+ * covered too: any 401 outside the auth endpoints earns exactly one
+ * refresh+retry (the retry flag lives at the call site, so no loops).
+ */
+function isRefreshableAuthFailure(status: number, path: string): boolean {
+  return status === 401 && !AUTH_PATHS.some((p) => path.includes(p));
 }
 
 async function tryRefresh(): Promise<string | null> {
   const token = await refreshAccessToken();
   if (!token) {
-    // Session is gone (cookie expired/logged out elsewhere) — stop sending the dead token.
+    // Session is gone (cookie expired/logged out elsewhere) — stop sending
+    // the dead token and announce the expiry once.
     clearStoredAuthToken();
+    dispatchSessionExpiredOnce();
   }
   return token;
 }
 
 export async function jsonRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const send = async (): Promise<{ res: Response; hadToken: boolean }> => {
+  const send = async (): Promise<Response> => {
     const token = getStoredAuthToken();
     const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
     const headers = new Headers(init.headers);
@@ -223,21 +288,27 @@ export async function jsonRequest<T>(path: string, init: RequestInit = {}): Prom
     if (token && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`);
     }
-    const res = await fetchWithTimeout(apiPath(path), {
+    // Cookie-authenticated mutations must satisfy the double-submit check
+    // (Bearer is exempt, cookies are not).
+    const method = (init.method || 'GET').toUpperCase();
+    if (method !== 'GET' && method !== 'HEAD') {
+      const csrf = getCsrfToken();
+      if (csrf && !headers.has('X-CSRF-Token')) headers.set('X-CSRF-Token', csrf);
+    }
+    return fetchWithTimeout(apiPath(path), {
       ...init,
       headers,
       credentials: init.credentials ?? 'include',
     });
-    return { res, hadToken: !!token };
   };
 
-  let { res, hadToken } = await send();
+  let res = await send();
 
-  // Access token expired mid-session — renew it from the session cookie once.
-  if (res.status === 401 && isRefreshableAuthFailure(res.status, path, hadToken)) {
+  // Access token expired (or cookie-only session) — renew once, retry once.
+  if (isRefreshableAuthFailure(res.status, path)) {
     const fresh = await tryRefresh();
     if (fresh) {
-      ({ res, hadToken } = await send());
+      res = await send();
     }
   }
 
@@ -302,7 +373,7 @@ async function apiFetchUncached<T>(
   path: string,
   options?: ApiOptions & { method?: string; body?: unknown }
 ): Promise<T> {
-  const send = async (): Promise<{ res: Response; hadToken: boolean }> => {
+  const send = async (): Promise<Response> => {
     const url = typeof window === 'undefined' ? backendApiUrl(path) : apiPath(path);
 
     let token: string | null = null;
@@ -318,8 +389,15 @@ async function apiFetchUncached<T>(
     if (token && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`);
     }
+    // Cookie-authenticated mutations must satisfy the double-submit check
+    // (Bearer is exempt, cookies are not).
+    const method = (options?.method || 'GET').toUpperCase();
+    if (method !== 'GET' && method !== 'HEAD') {
+      const csrf = getCsrfToken();
+      if (csrf && !headers.has('X-CSRF-Token')) headers.set('X-CSRF-Token', csrf);
+    }
 
-    const res = await fetchWithTimeout(url, {
+    return fetchWithTimeout(url, {
       method: options?.method || 'GET',
       headers,
       body: options?.body
@@ -334,20 +412,15 @@ async function apiFetchUncached<T>(
       cache: options?.revalidate === 0 ? 'no-store' : undefined,
       signal: options?.signal,
     });
-    return { res, hadToken: !!token };
   };
 
-  let { res, hadToken } = await send();
+  let res = await send();
 
-  // Client-side 401 with a stored token — renew from the session cookie once.
-  if (
-    typeof window !== 'undefined' &&
-    res.status === 401 &&
-    isRefreshableAuthFailure(res.status, path, hadToken)
-  ) {
+  // Client-side 401 — renew from the session cookie once and retry once.
+  if (typeof window !== 'undefined' && isRefreshableAuthFailure(res.status, path)) {
     const fresh = await tryRefresh();
     if (fresh) {
-      ({ res, hadToken } = await send());
+      res = await send();
     }
   }
 

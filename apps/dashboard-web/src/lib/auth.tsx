@@ -27,191 +27,40 @@ const AuthContext = createContext<AuthContextType>({
   refreshUser: async () => {},
 });
 
-import {
-  clearToken,
-  clearUserJSON,
-  readToken,
-  readUserJSON,
-  writeToken,
-  writeUserJSON,
-} from '@/lib/session-keys';
-
-function getStoredToken(): string {
-  return readToken();
-}
-
-function storeToken(token: string) {
-  writeToken(token);
-}
-
-function clearStoredToken() {
-  clearToken();
-  clearUserJSON();
-}
-
-let refreshInFlight: Promise<string | null> | null = null;
-
-// Silently exchange the ray_session refresh cookie for a fresh access token.
-async function refreshAccessToken(): Promise<string | null> {
-  if (!refreshInFlight) {
-    refreshInFlight = (async () => {
-      try {
-        const csrf = document.cookie.match(/ray_csrf=([^;]+)/)?.[1] || '';
-        const res = await fetch('/api/v1/auth/refresh', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-App-Scope': 'dashboard',
-            ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
-          },
-          body: '{}',
-        });
-        if (!res.ok) return null;
-        const data = await res.json().catch(() => null);
-        const accessToken = data?.data?.token?.accessToken || data?.token?.accessToken;
-        if (!accessToken) return null;
-        storeToken(accessToken);
-        const user = data?.data?.user || data?.user;
-        if (user && typeof window !== 'undefined') {
-          writeUserJSON(JSON.stringify(user));
-          window.dispatchEvent(new Event('ray-user-refreshed'));
-        }
-        return accessToken as string;
-      } catch {
-        return null;
-      } finally {
-        refreshInFlight = null;
-      }
-    })();
-  }
-  return refreshInFlight;
-}
-
-// ---------------------------------------------------------------------------
-// GET cache + in-flight dedup.
-// Dashboard pages fire many GETs on mount (analytics alone fires ~19) and
-// refetch everything on every navigation because pages use useEffect +
-// apiRequest directly. A short TTL collapses repeat GETs within a session,
-// and in-flight dedup merges identical concurrent GETs. Any non-GET clears
-// the cache so mutations are never masked. Pass `{ cache: 'no-store' }` to
-// bypass.
-// ---------------------------------------------------------------------------
-const GET_TTL_MS = 30_000;
-const getCache = new Map<string, { at: number; data: unknown }>();
-const inflightGets = new Map<string, Promise<unknown>>();
-
-async function apiRequest<T = any>(path: string, options: RequestInit = {}): Promise<T> {
-  const method = (options.method || 'GET').toUpperCase();
-
-  if (method !== 'GET') {
-    getCache.clear();
-  } else if (options.cache !== 'no-store') {
-    const hit = getCache.get(path);
-    if (hit && Date.now() - hit.at < GET_TTL_MS) {
-      return hit.data as T;
-    }
-    const pending = inflightGets.get(path);
-    if (pending) {
-      return pending as Promise<T>;
-    }
-    const exec = apiRequestFetch<T>(path, options)
-      .then((data) => {
-        getCache.set(path, { at: Date.now(), data });
-        return data;
-      })
-      .finally(() => {
-        inflightGets.delete(path);
-      });
-    inflightGets.set(path, exec);
-    return exec;
-  }
-
-  return apiRequestFetch<T>(path, options);
-}
-
-async function apiRequestFetch<T = any>(
-  path: string,
-  options: RequestInit = {},
-  _retried = false
-): Promise<T> {
-  const token = getStoredToken();
-  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
-  const headers = new Headers(options.headers);
-  if (!isFormData && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-  if (!headers.has('X-App-Scope')) {
-    headers.set('X-App-Scope', 'dashboard');
-  }
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-
-  const res = await fetch(`/api/v1${path}`, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    // access token lives only 15 min — on expiry, exchange the refresh cookie
-    // silently and retry the original request exactly once
-    const msg = String(data?.message || data?.error || '');
-    if (res.status === 401 && !_retried && /expired|invalid token|invalid_token/i.test(msg)) {
-      const newToken = await refreshAccessToken();
-      if (newToken) {
-        return apiRequestFetch<T>(path, options, true);
-      }
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('ray-session-expired'));
-      }
-      throw { status: 401, message: 'انتهت الجلسة، من فضلك سجل الدخول من جديد' };
-    }
-    throw { status: res.status, message: data?.message || data?.error || 'Request failed' };
-  }
-  return data?.data !== undefined ? data.data : data;
-}
+import { clearToken, clearUserJSON, readUserJSON, writeUserJSON } from '@/lib/session-keys';
+// All request/refresh/401 logic lives in the unified core — this provider
+// only owns React state. The re-export below feeds the 674 call sites.
+import { apiRequest, clearApiCache, noteAuthSuccess } from '@/lib/api/core';
+import { startAuthScheduler, stopAuthScheduler } from '@/lib/auth-scheduler';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
-    // Read from localStorage first for instant mount
+    // Show the cached profile instantly for a smooth mount (UX cache only —
+    // credentials live in HttpOnly cookies).
     const stored = typeof window !== 'undefined' ? readUserJSON() : null;
     if (stored) {
       try {
-        const parsed = JSON.parse(stored) as User;
-        setUser(parsed);
+        setUser(JSON.parse(stored) as User);
       } catch {
         setUser(null);
       }
     }
     setLoading(false);
 
-    // Then try to validate with backend in background
+    // Then validate against the backend: cookies authenticate, and an
+    // expired access token is refreshed silently by the core.
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(`/api/v1/auth/me`, {
-        credentials: 'include',
-        headers: {
-          'X-App-Scope': 'dashboard',
-          'Content-Type': 'application/json',
-          ...(getStoredToken() ? { Authorization: `Bearer ${getStoredToken()}` } : {}),
-        },
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      const data = await res.json().catch(() => null);
-      const fetchedUser = data?.data || data?.user || (data?.id ? data : null);
+      const fetchedUser = await apiRequest('/auth/me', { cache: 'no-store' });
       if (fetchedUser) {
         setUser(fetchedUser);
         writeUserJSON(JSON.stringify(fetchedUser));
       }
     } catch {
-      // Backend not reachable — keep localStorage user
+      // No session / backend unreachable — keep whatever the cache showed;
+      // a real expiry fires ray-session-expired through the core.
     }
   }, []);
 
@@ -219,11 +68,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser();
   }, [refreshUser]);
 
+  // Proactive refresh: one timer armed at (expiry − 90s), re-armed after
+  // every refresh and on visibility/focus return.
+  useEffect(() => {
+    startAuthScheduler();
+    return () => stopAuthScheduler();
+  }, []);
+
   useEffect(() => {
     const onSessionExpired = () => {
-      clearStoredToken();
+      clearToken();
       if (typeof window !== 'undefined') clearUserJSON();
       setUser(null);
+      stopAuthScheduler();
     };
     const onUserRefreshed = () => {
       try {
@@ -253,18 +110,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: data?.name,
         role: data?.role,
       };
-    const token =
-      data?.token?.accessToken ||
-      data?.access_token ||
-      data?.accessToken ||
-      (typeof data?.token === 'string' ? data.token : null) ||
-      data?.session?.access_token;
     if (user && user.id) {
       setUser(user);
       writeUserJSON(JSON.stringify(user));
-      if (token) {
-        storeToken(token);
-      }
+      // Cookies (access + refresh) are set by the response — arm the
+      // proactive scheduler and retire any leftover bridge token.
+      noteAuthSuccess(data?.token?.expiresAt || data?.data?.token?.expiresAt);
+      clearToken();
+      clearApiCache();
     }
     return data;
   }, []);
@@ -272,7 +125,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     setUser(null);
     clearUserJSON();
-    clearStoredToken();
+    clearToken();
+    clearApiCache();
+    stopAuthScheduler();
+    // core attaches X-CSRF-Token for mutations automatically.
     apiRequest('/auth/logout', { method: 'POST' }).catch(() => {});
   }, []);
 
@@ -288,3 +144,4 @@ export function useAuth() {
 }
 
 export { apiRequest };
+

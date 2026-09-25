@@ -702,7 +702,7 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
             <span>•</span>
             <span>تواصل معنا</span>
           </div>
-          <span className="text-[7px] text-zinc-600 block">الرياض - المملكة العربية السعودية</span>
+          <span className="text-[7px] text-zinc-600 block">القاهرة - جمهورية مصر العربية</span>
         </div>
       );
     }

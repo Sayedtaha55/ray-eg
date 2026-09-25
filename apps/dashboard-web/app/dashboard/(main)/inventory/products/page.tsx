@@ -5,8 +5,9 @@ import {
   Plus,
   Trash2,
   Edit,
-  Eye,
   EyeOff,
+  Globe,
+  Smartphone,
   Loader2,
   Search,
   Package,
@@ -53,6 +54,7 @@ type Product = {
   image_url?: string;
   description?: string;
   isActive?: boolean;
+  appActive?: boolean;
   unit?: string;
   colors?: any[];
   sizes?: any[];
@@ -195,11 +197,11 @@ function ProductsPageContent() {
       });
     }
 
-    // Status tab (visibility on the storefront / low stock)
+    // Status tab (معروض = ظاهر على أي سطح — الموقع أو التطبيق)
     if (stockTab === 'visible') {
-      result = result.filter((p) => p.isActive !== false);
+      result = result.filter((p) => p.isActive !== false || p.appActive !== false);
     } else if (stockTab === 'hidden') {
-      result = result.filter((p) => p.isActive === false);
+      result = result.filter((p) => p.isActive === false && p.appActive === false);
     } else if (stockTab === 'low') {
       result = result.filter((p) => Number(p.stock ?? 999) <= 5);
     }
@@ -233,28 +235,35 @@ function ProductsPageContent() {
 
   const stats = useMemo(() => {
     const total = products.length;
-    const active = products.filter((p) => p.isActive !== false).length;
+    const active = products.filter(
+      (p) => p.isActive !== false || p.appActive !== false
+    ).length;
     const lowStock = products.filter((p) => Number(p.stock ?? 999) <= 5).length;
     const value = products.reduce((s, p) => s + Number(p.price || 0) * Number(p.stock || 0), 0);
     return { total, active, lowStock, value };
   }, [products]);
 
-  const handleToggleActive = useCallback(async (product: Product) => {
-    setTogglingId(product.id);
-    try {
-      await apiRequest(`/products/${product.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ isActive: !product.isActive }),
-      });
-      setProducts((prev) =>
-        prev.map((p) => (p.id === product.id ? { ...p, isActive: !p.isActive } : p))
-      );
-    } catch (err: any) {
-      setError(err?.message || 'فشل تحديث الحالة');
-    } finally {
-      setTogglingId('');
-    }
-  }, []);
+  // التحكم في ظهور المنتج على كل سطح لوحده: الموقع (is_active) والتطبيق (app_active).
+  // إخفاء = إطفاء السطحين مع بعض.
+  const handleVisibility = useCallback(
+    async (product: Product, patch: { isActive?: boolean; appActive?: boolean }) => {
+      setTogglingId(product.id);
+      try {
+        await apiRequest(`/products/${product.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(patch),
+        });
+        setProducts((prev) =>
+          prev.map((p) => (p.id === product.id ? { ...p, ...patch } : p))
+        );
+      } catch (err: any) {
+        setError(err?.message || 'فشل تحديث الحالة');
+      } finally {
+        setTogglingId('');
+      }
+    },
+    []
+  );
 
   const handleDelete = useCallback(async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا المنتج؟')) return;
@@ -638,14 +647,17 @@ function ProductsPageContent() {
                     <div className="col-span-2 text-right text-xs font-bold text-slate-500">
                       الصورة
                     </div>
-                    <div className="col-span-4 text-right text-xs font-bold text-slate-500">
+                    <div className="col-span-3 text-right text-xs font-bold text-slate-500">
                       المنتج
                     </div>
-                    <div className="col-span-2 text-right text-xs font-bold text-slate-500">
+                    <div className="col-span-1 text-right text-xs font-bold text-slate-500">
                       السعر
                     </div>
-                    <div className="col-span-2 text-right text-xs font-bold text-slate-500">
+                    <div className="col-span-1 text-right text-xs font-bold text-slate-500">
                       المخزون
+                    </div>
+                    <div className="col-span-3 text-right text-xs font-bold text-slate-500">
+                      الظهور
                     </div>
                     <div className="col-span-2 text-right text-xs font-bold text-slate-500">
                       إجراءات
@@ -653,7 +665,10 @@ function ProductsPageContent() {
                   </div>
                   {paginatedProducts.map((product) => {
                     const imgSrc = String(product.imageUrl || product.image_url || '').trim();
-                    const isInactive = product.isActive === false;
+                    const onSite = product.isActive !== false;
+                    const onApp = product.appActive !== false;
+                    const isHiddenEverywhere = !onSite && !onApp;
+                    const isBusy = togglingId === product.id;
                     const categoryName =
                       typeof product.category === 'string'
                         ? product.category
@@ -662,7 +677,7 @@ function ProductsPageContent() {
                     return (
                       <div
                         key={product.id}
-                        className={`grid grid-cols-12 px-4 py-3 items-center border-b border-slate-100 hover:bg-slate-50 transition-colors ${isInactive ? 'opacity-60' : ''}`}
+                        className={`grid grid-cols-12 px-4 py-3 items-center border-b border-slate-100 hover:bg-slate-50 transition-colors ${isHiddenEverywhere ? 'opacity-60' : ''}`}
                       >
                         <div className="col-span-2 flex items-center justify-end">
                           <button
@@ -687,7 +702,7 @@ function ProductsPageContent() {
                             )}
                           </button>
                         </div>
-                        <div className="col-span-4 pr-4 text-right">
+                        <div className="col-span-3 pr-4 text-right min-w-0">
                           <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">
                             {product.name}
                           </div>
@@ -695,39 +710,85 @@ function ProductsPageContent() {
                             {categoryName}
                           </div>
                         </div>
-                        <div className="col-span-2 font-semibold text-slate-900 text-xs sm:text-sm">
+                        <div className="col-span-1 font-semibold text-slate-900 text-xs sm:text-sm truncate">
                           ج.م {Number(product.price || 0).toLocaleString()}
                         </div>
-                        <div className="col-span-2 font-semibold text-slate-900 text-xs sm:text-sm">
+                        <div className="col-span-1 font-semibold text-slate-900 text-xs sm:text-sm">
                           <span className={Number(product.stock ?? 0) <= 5 ? 'text-amber-600' : ''}>
                             {product.stock ?? 0}
                           </span>
                         </div>
-                        <div className="col-span-2 flex items-center justify-end gap-1.5">
-                          {/* إظهار/إخفاء المنتج في الموقع */}
+                        <div className="col-span-3 flex flex-wrap items-center justify-end gap-1.5">
+                          {/* إظهار في الموقع — بطاقة موقع المتجر */}
                           <button
-                            onClick={() => handleToggleActive(product)}
-                            disabled={togglingId === product.id}
+                            onClick={() => handleVisibility(product, { isActive: !onSite })}
+                            disabled={isBusy}
                             title={
-                              isInactive
-                                ? 'المنتج مخفي من الموقع — اضغط لإظهاره'
-                                : 'المنتج معروض في الموقع — اضغط لإخفائه'
+                              onSite
+                                ? 'المنتج معروض في موقع متجرك (البطاقة بتاعت الموقع) — اضغط لسحبه من الموقع'
+                                : 'المنتج غير معروض في موقع متجرك — اضغط لإظهاره هناك'
                             }
                             className={`h-8 px-3 rounded-full text-[11px] font-bold flex items-center gap-1.5 border transition-all disabled:opacity-50 ${
-                              isInactive
-                                ? 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200'
-                                : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                              onSite
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                                : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200'
                             }`}
                           >
-                            {togglingId === product.id ? (
+                            {isBusy ? (
                               <Loader2 size={13} className="animate-spin" />
-                            ) : isInactive ? (
-                              <EyeOff size={13} />
+                            ) : onSite ? (
+                              <Globe size={13} />
                             ) : (
-                              <Eye size={13} />
+                              <Globe size={13} className="opacity-50" />
                             )}
-                            {isInactive ? 'مخفي' : 'معروض'}
+                            إظهار في الموقع
                           </button>
+                          {/* إظهار في التطبيق — بطاقة الماركت الموحدة */}
+                          <button
+                            onClick={() => handleVisibility(product, { appActive: !onApp })}
+                            disabled={isBusy}
+                            title={
+                              onApp
+                                ? 'المنتج يظهر في تطبيق الماركت بشكل البطاقة الموحدة — اضغط لسحبه من التطبيق'
+                                : 'المنتج غير ظاهر في تطبيق الماركت — اضغط لعرضه بشكل البطاقة الموحدة'
+                            }
+                            className={`h-8 px-3 rounded-full text-[11px] font-bold flex items-center gap-1.5 border transition-all disabled:opacity-50 ${
+                              onApp
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                                : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200'
+                            }`}
+                          >
+                            {isBusy ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : onApp ? (
+                              <Smartphone size={13} />
+                            ) : (
+                              <Smartphone size={13} className="opacity-50" />
+                            )}
+                            إظهار في التطبيق
+                          </button>
+                          {/* إخفاء المنتج من الموقع والتطبيق معًا */}
+                          <button
+                            onClick={() =>
+                              handleVisibility(product, { isActive: false, appActive: false })
+                            }
+                            disabled={isBusy || isHiddenEverywhere}
+                            title={
+                              isHiddenEverywhere
+                                ? 'المنتج مخفي من الموقع والتطبيق'
+                                : 'إخفاء المنتج من الموقع والتطبيق معًا'
+                            }
+                            className={`h-8 px-3 rounded-full text-[11px] font-bold flex items-center gap-1.5 border transition-all disabled:opacity-50 ${
+                              isHiddenEverywhere
+                                ? 'bg-red-50 border-red-200 text-red-600'
+                                : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200'
+                            }`}
+                          >
+                            <EyeOff size={13} />
+                            إخفاء
+                          </button>
+                        </div>
+                        <div className="col-span-2 flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => router.push(getProductEditPath(product))}
                             title="تعديل المنتج"

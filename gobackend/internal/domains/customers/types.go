@@ -17,9 +17,10 @@ type Customer struct {
 
 // CustomerStats represents customer statistics
 type CustomerStats struct {
-	CustomerID   string  `json:"customer_id"`
-	TotalOrders  int64   `json:"total_orders"`
-	TotalSpent   float64 `json:"total_spent"`
-	AvgOrderValue float64 `json:"avg_order_value"`
-	LastOrderAt  *string `json:"last_order_at,omitempty"`
+	CustomerID      string  `json:"customer_id"`
+	TotalOrders     int64   `json:"total_orders"`
+	CompletedOrders int64   `json:"completed_orders"`
+	TotalSpent      float64 `json:"total_spent"`
+	AvgOrderValue   float64 `json:"avg_order_value"`
+	LastOrderAt     *string `json:"last_order_at,omitempty"`
 }

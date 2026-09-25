@@ -1,8 +1,9 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Shield, Download, Edit3, Trash2, AlertOctagon, FileText, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { APP_SCOPE, getCsrfToken, isSessionActive } from '@/lib/api';
 
 type ConsentType = 'essential' | 'analytics' | 'marketing';
 
@@ -74,8 +75,8 @@ export default function PrivacySettingsPage() {
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    // Check auth
-    const token = localStorage.getItem('ray_access_token') || localStorage.getItem('ray_at');
+    // Cookie-first session check — no localStorage credential anymore.
+    const token = isSessionActive() ? 'active' : '';
     if (!token) {
       router.replace('/login?returnTo=/account/privacy');
       return;
@@ -84,7 +85,10 @@ export default function PrivacySettingsPage() {
     setConsents(readConsents());
 
     // Load DSR requests
-    fetch('/api/v1/dsr', { credentials: 'include' })
+    fetch('/api/v1/dsr', {
+      credentials: 'include',
+      headers: { 'X-App-Scope': APP_SCOPE },
+    })
       .then((res) => res.json())
       .then((data) => {
         const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
@@ -102,7 +106,11 @@ export default function PrivacySettingsPage() {
       // Sync to backend
       fetch('/api/v1/consent', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-App-Scope': APP_SCOPE,
+          ...(getCsrfToken() ? { 'X-CSRF-Token': getCsrfToken()! } : {}),
+        },
         credentials: 'include',
         body: JSON.stringify({ types: Object.keys(next).filter((k) => next[k as ConsentType]) }),
       }).catch(() => {});
@@ -119,12 +127,19 @@ export default function PrivacySettingsPage() {
     try {
       await fetch('/api/v1/dsr', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-App-Scope': APP_SCOPE,
+          ...(getCsrfToken() ? { 'X-CSRF-Token': getCsrfToken()! } : {}),
+        },
         credentials: 'include',
         body: JSON.stringify({ type }),
       });
       // Refresh list
-      const res = await fetch('/api/v1/dsr', { credentials: 'include' });
+      const res = await fetch('/api/v1/dsr', {
+        credentials: 'include',
+        headers: { 'X-App-Scope': APP_SCOPE },
+      });
       const data = await res.json();
       const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
       setDsrRequests(items);

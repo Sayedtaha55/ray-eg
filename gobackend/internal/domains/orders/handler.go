@@ -349,6 +349,7 @@ func parseOrderListRequest(c *fiber.Ctx) OrderListRequest {
 	page, limit := ParsePageLimit(c.Query("page"), c.Query("limit"))
 	return OrderListRequest{
 		ShopID: c.Query("shopId"),
+		UserID: c.Query("userId"),
 		From:   parseOrderDate(c.Query("from")),
 		To:     parseOrderDate(c.Query("to")),
 		Page:   page,

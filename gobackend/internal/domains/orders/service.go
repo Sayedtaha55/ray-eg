@@ -335,11 +335,11 @@ func (s *Service) ListMerchantMine(ctx context.Context, actorShopID, actorRole s
 // ListAllAdmin returns all orders for admin.
 func (s *Service) ListAllAdmin(ctx context.Context, req OrderListRequest) ([]Order, pagination.Meta, error) {
 	page, limit, offset := normalizeOrderPaging(req.Page, req.Limit)
-	orders, err := s.repo.ListAllAdmin(ctx, req.ShopID, req.From, req.To, limit, offset)
+	orders, err := s.repo.ListAllAdmin(ctx, req.ShopID, req.UserID, req.From, req.To, limit, offset)
 	if err != nil {
 		return nil, pagination.Meta{}, err
 	}
-	total, err := s.repo.CountAllAdmin(ctx, req.ShopID, req.From, req.To)
+	total, err := s.repo.CountAllAdmin(ctx, req.ShopID, req.UserID, req.From, req.To)
 	if err != nil {
 		return nil, pagination.Meta{}, err
 	}

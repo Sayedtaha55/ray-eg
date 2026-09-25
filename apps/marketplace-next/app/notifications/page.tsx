@@ -7,7 +7,7 @@ import {
   Bell, Package, Store, Tag, Heart, CheckCircle, Clock,
   Loader2, ArrowLeft, Trash2,
 } from 'lucide-react';
-import { getStoredAuthToken, jsonRequest } from '@/lib/api';
+import { isSessionActive, jsonRequest } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 
 interface Notification {
@@ -43,8 +43,7 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     (async () => {
-      const token = getStoredAuthToken();
-      if (!token) {
+      if (!isSessionActive()) {
         router.push('/login?returnTo=/notifications');
         return;
       }

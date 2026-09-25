@@ -3,7 +3,9 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"time"
@@ -168,8 +170,60 @@ func (s *Service) Me(ctx context.Context, userID string) (*User, error) {
 	return s.repo.FindByID(ctx, userID)
 }
 
-// Refresh issues a new token pair from a valid refresh token.
-// It validates the session server-side and rotates the session ID.
+// refreshDecision classifies how a presented refresh token must be handled
+// relative to the family's live session.
+type refreshDecision int
+
+const (
+	// refreshRotate: the presented token is the family's current one (or a
+	// legacy session with no bound hash) — mint the next generation.
+	refreshRotate refreshDecision = iota
+	// refreshGrace: the presented token is the previous generation inside
+	// the grace window — a parallel tab racing the rotation. Return the
+	// current pair without rotating again.
+	refreshGrace
+	// refreshReuse: a dead generation was replayed — proven theft.
+	refreshReuse
+)
+
+// decideRefresh implements the rotation/grace/reuse state machine. It is a
+// pure function so the security-critical branch is unit-testable without a
+// database or Redis.
+func decideRefresh(cur *session.Session, hash string, now time.Time, grace time.Duration) refreshDecision {
+	if cur == nil {
+		return refreshReuse
+	}
+	if cur.CurrentTokenHash == "" || cur.CurrentTokenHash == hash {
+		return refreshRotate
+	}
+	if cur.PreviousTokenHash != "" && cur.PreviousTokenHash == hash &&
+		!cur.RotatedAt.IsZero() && now.Sub(cur.RotatedAt) <= grace {
+		return refreshGrace
+	}
+	return refreshReuse
+}
+
+// sha256Hex returns the hex-encoded SHA-256 digest of a token. Only hashes
+// are ever persisted — plaintext refresh tokens never reach Redis or the DB.
+func sha256Hex(s string) string {
+	sum := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(sum[:])
+}
+
+// killFamily revokes an entire session family after confirmed refresh-token
+// reuse and records a security event. The caller always returns the standard
+// 401 so an attacker learns nothing about why.
+func (s *Service) killFamily(ctx context.Context, familyID, userID string, meta RequestMeta) error {
+	if s.sessions != nil && familyID != "" {
+		_ = s.sessions.DeleteSessionFamily(ctx, familyID)
+	}
+	s.recordAuthEvent(ctx, nil, "refresh_token_reuse", "failure", meta, "user_id", userID)
+	return errors.Unauthorized("session_expired", "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.")
+}
+
+// Refresh exchanges a valid refresh token for a fresh token pair with real
+// rotation: a new session generation is created in the same family and the
+// old one is deleted. Replaying a dead generation revokes the whole family.
 func (s *Service) Refresh(ctx context.Context, token string, meta RequestMeta) (*AuthResponse, error) {
 	claims, err := s.tokens.Parse(token)
 	if err != nil {
@@ -179,15 +233,74 @@ func (s *Service) Refresh(ctx context.Context, token string, meta RequestMeta) (
 		return nil, errors.Unauthorized("invalid_refresh_token", "رمز التحديث غير صالح")
 	}
 
-	// Validate the session server-side.
-	if s.sessions != nil {
-		sess, err := s.sessions.GetSession(ctx, claims.ID)
+	if s.sessions == nil {
+		// No server-side store configured — behave like a plain re-issue.
+		user, err := s.repo.FindByID(ctx, claims.Subject)
+		if err != nil {
+			return nil, err
+		}
+		if user == nil || !user.IsActive {
+			return nil, errors.Unauthorized("invalid_refresh_token", "المستخدم غير موجود أو معطل")
+		}
+		return s.issueAuthResponse(ctx, *user, meta)
+	}
+
+	hash := sha256Hex(token)
+	now := time.Now().UTC()
+
+	var target *session.Session
+	familyID, err := s.sessions.LookupTokenHash(ctx, hash)
+	if err != nil {
+		return nil, errors.Unauthorized("session_error", "خطأ في الجلسة")
+	}
+
+	if familyID != "" {
+		cur, err := s.sessions.GetCurrentSession(ctx, familyID)
+		if err != nil {
+			return nil, errors.Unauthorized("session_error", "خطأ في الجلسة")
+		}
+		if cur == nil {
+			return nil, errors.Unauthorized("session_expired", "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.")
+		}
+		switch decideRefresh(cur, hash, now, s.sessions.Grace()) {
+		case refreshReuse:
+			return nil, s.killFamily(ctx, cur.FamilyID, claims.Subject, meta)
+		case refreshGrace:
+			user, err := s.repo.FindByID(ctx, claims.Subject)
+			if err != nil {
+				return nil, err
+			}
+			if user == nil || !user.IsActive {
+				return nil, s.killFamily(ctx, cur.FamilyID, claims.Subject, meta)
+			}
+			// Re-sign the exact same refresh token (iat pinned to the
+			// session's IssuedAt) and mint a fresh access token — no
+			// rotation, no hash changes, cookies stay consistent even when
+			// two tab responses land out of order.
+			resp, err := s.issueTokensForSession(ctx, *user, cur, false)
+			if err != nil {
+				return nil, err
+			}
+			s.recordAuthEvent(ctx, user, "token_refresh", "success", meta, "mode", "grace")
+			return resp, nil
+		default:
+			target = cur
+		}
+	} else {
+		// No hash index: a legacy session from before rotation existed, or
+		// an index that already expired. Fall back to the jti record.
+		sess, err := s.sessions.GetSessionRaw(ctx, claims.ID)
 		if err != nil {
 			return nil, errors.Unauthorized("session_error", "خطأ في الجلسة")
 		}
 		if sess == nil {
 			return nil, errors.Unauthorized("session_expired", "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.")
 		}
+		if sess.CurrentTokenHash != "" && sess.CurrentTokenHash != hash {
+			// Same session id presented with a different token → replay.
+			return nil, s.killFamily(ctx, sess.FamilyID, claims.Subject, meta)
+		}
+		target = sess
 	}
 
 	user, err := s.repo.FindByID(ctx, claims.Subject)
@@ -198,12 +311,28 @@ func (s *Service) Refresh(ctx context.Context, token string, meta RequestMeta) (
 		return nil, errors.Unauthorized("invalid_refresh_token", "المستخدم غير موجود أو معطل")
 	}
 
+	// Rotation: mint the next generation inside the same family; the old
+	// record is deleted, so idle sessions no longer pile up in Redis.
+	newSess, newID, err := s.sessions.RotateSession(ctx, target.ID)
+	if err != nil {
+		return nil, errors.Unauthorized("session_error", "خطأ في الجلسة")
+	}
+	if newSess == nil || newID == "" {
+		return nil, errors.Unauthorized("session_expired", "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.")
+	}
+
+	resp, err := s.issueTokensForSession(ctx, *user, newSess, true)
+	if err != nil {
+		return nil, err
+	}
 	s.recordAuthEvent(ctx, user, "token_refresh", "success", meta)
-	return s.issueAuthResponse(ctx, *user, meta)
+	return resp, nil
 }
 
-// Logout invalidates the current session and clears the auth cookie.
-func (s *Service) Logout(ctx context.Context, token string, meta RequestMeta) error {
+// Logout invalidates the current session family and clears the auth cookie.
+// When all is true every session of the user is revoked as well (log out of
+// all devices).
+func (s *Service) Logout(ctx context.Context, token string, all bool, meta RequestMeta) error {
 	claims, err := s.tokens.Parse(token)
 	if err != nil {
 		// Token may be expired; still try to invalidate the session.
@@ -212,11 +341,24 @@ func (s *Service) Logout(ctx context.Context, token string, meta RequestMeta) er
 	}
 
 	if claims != nil && s.sessions != nil {
-		_ = s.sessions.DeleteSession(ctx, claims.ID)
+		sess, _ := s.sessions.GetSessionRaw(ctx, claims.ID)
+		if sess != nil && sess.FamilyID != "" {
+			// Kill the whole family: every generation of this login dies.
+			_ = s.sessions.DeleteSessionFamily(ctx, sess.FamilyID)
+		} else {
+			_ = s.sessions.DeleteSession(ctx, claims.ID)
+		}
+		if all && claims.Subject != "" {
+			_, _ = s.sessions.DeleteAllUserSessions(ctx, claims.Subject)
+		}
 	}
 
 	if claims != nil && claims.Subject != "" {
-		s.recordAuthEvent(ctx, nil, "logout", "success", meta, "user_id", claims.Subject)
+		action := "logout"
+		if all {
+			action = "logout_all"
+		}
+		s.recordAuthEvent(ctx, nil, action, "success", meta, "user_id", claims.Subject)
 	}
 	return nil
 }
@@ -626,33 +768,55 @@ func (s *Service) SeedTestUsers(ctx context.Context) error {
 	return nil
 }
 
-// issueAuthResponse creates a token pair and returns it with the user.
-// It creates a server-side session for refresh token rotation and revocation.
+// issueAuthResponse creates a token pair for a brand-new login session.
+// It creates a server-side session (start of a new family) and binds the
+// refresh token hash to it.
 func (s *Service) issueAuthResponse(ctx context.Context, user User, meta RequestMeta) (*AuthResponse, error) {
 	_ = meta
-	sessionID := ""
 	if s.sessions != nil {
 		sess := &session.Session{
 			UserID: user.ID,
 			Email:  user.Email,
 			Role:   string(user.Role),
 			ShopID: strPtrValue(user.ShopID),
-			// DeviceID: meta.DeviceID, // TODO: Add DeviceID to RequestMeta
 		}
-		id, err := s.sessions.CreateSession(ctx, sess)
-		if err != nil {
+		if _, err := s.sessions.CreateSession(ctx, sess); err != nil {
 			logger.Global().Warn("failed to create session", zap.Error(err))
+			// Fall through: tokens are still issued (jti empty) so a Redis
+			// blip degrades gracefully instead of blocking login outright.
+			return s.issueTokensForSession(ctx, user, nil, true)
 		}
-		sessionID = id
+		return s.issueTokensForSession(ctx, user, sess, true)
+	}
+	return s.issueTokensForSession(ctx, user, nil, true)
+}
+
+// issueTokensForSession signs the access/refresh pair bound to sess and
+// (when bindHash) records the refresh hash for rotation/reuse detection.
+// The refresh token's iat/exp are pinned to the session's IssuedAt so
+// re-signing the same session always reproduces the same token string —
+// which is what makes the grace path possible without storing plaintext.
+func (s *Service) issueTokensForSession(ctx context.Context, user User, sess *session.Session, bindHash bool) (*AuthResponse, error) {
+	sessionID := ""
+	iat := time.Now()
+	if sess != nil {
+		sessionID = sess.ID
+		iat = sess.IssuedAt
 	}
 
 	accessToken, err := s.tokens.IssueAccessToken(user, sessionID)
 	if err != nil {
 		return nil, errors.Internal("access_token_issue_failed", err)
 	}
-	refreshToken, err := s.tokens.IssueRefreshToken(user, sessionID)
+	refreshToken, err := s.tokens.IssueRefreshTokenAt(user, sessionID, iat)
 	if err != nil {
 		return nil, errors.Internal("refresh_token_issue_failed", err)
+	}
+
+	if bindHash && s.sessions != nil && sessionID != "" {
+		if err := s.sessions.SetTokenHash(ctx, sessionID, sha256Hex(refreshToken)); err != nil {
+			logger.Global().Warn("failed to bind refresh token hash", zap.Error(err))
+		}
 	}
 
 	return &AuthResponse{

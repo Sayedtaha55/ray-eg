@@ -30,7 +30,9 @@ func (s *Service) invalidatePublicList() {
 	s.cache.DeletePrefix("products:public:")
 }
 
-// GetByID returns a public product by ID.
+// GetByID returns a public product by ID. The detail page is shared between
+// the two surfaces, so a product is fetchable as long as it is shown on at
+// least one of them (الموقع أو التطبيق) — fully hidden ones 404.
 func (s *Service) GetByID(ctx context.Context, id string) (*Product, error) {
 	if id == "" {
 		return nil, errors.Validation("id_required", "id مطلوب")
@@ -39,7 +41,7 @@ func (s *Service) GetByID(ctx context.Context, id string) (*Product, error) {
 	if err != nil {
 		return nil, err
 	}
-	if p == nil || !p.IsActive {
+	if p == nil || (!p.IsActive && !p.AppActive) {
 		return nil, errors.NotFound("product", id)
 	}
 	if isHiddenCategory(p.Category) {
@@ -48,7 +50,7 @@ func (s *Service) GetByID(ctx context.Context, id string) (*Product, error) {
 	return p, nil
 }
 
-// ListByShop lists active products for a public shop.
+// ListByShop lists products visible on the requested surface for a public shop.
 func (s *Service) ListByShop(ctx context.Context, req ProductListRequest) ([]Product, pagination.Meta, error) {
 	shopID := strings.TrimSpace(req.ShopID)
 	if shopID == "" {
@@ -56,11 +58,11 @@ func (s *Service) ListByShop(ctx context.Context, req ProductListRequest) ([]Pro
 	}
 	_, limit, offset := normalizePaging(req.Page, req.Limit)
 	req.Filter.Sort = normalizeSort(req.Filter.Sort)
-	total, err := s.repo.CountByShop(ctx, shopID, req.Filter)
+	total, err := s.repo.CountByShop(ctx, shopID, req.Surface, req.Filter)
 	if err != nil {
 		return nil, pagination.Meta{}, err
 	}
-	products, err := s.repo.ListByShop(ctx, shopID, limit, offset, req.Filter)
+	products, err := s.repo.ListByShop(ctx, shopID, req.Surface, limit, offset, req.Filter)
 	if err != nil {
 		return nil, pagination.Meta{}, err
 	}
@@ -73,20 +75,21 @@ type productListResult struct {
 	Meta     pagination.Meta `json:"meta"`
 }
 
-// ListAllActive lists all active public products. Cached briefly: the public
-// catalog is read-heavy and stale-for-15s is acceptable; writes invalidate.
+// ListAllActive lists products visible on the requested surface. Cached
+// briefly: the public catalog is read-heavy and stale-for-15s is acceptable;
+// writes invalidate.
 func (s *Service) ListAllActive(ctx context.Context, req ProductListRequest) ([]Product, pagination.Meta, error) {
 	_, limit, offset := normalizePaging(req.Page, req.Limit)
 	req.Filter.Sort = normalizeSort(req.Filter.Sort)
-	key := fmt.Sprintf("products:public:%d:%d:%s:%s:%s:%v:%v:%v", limit, offset,
-		req.Filter.Search, req.Filter.Category, req.Filter.Sort,
+	key := fmt.Sprintf("products:public:%s:%d:%d:%s:%s:%s:%s:%v:%v:%v", req.Surface, limit, offset,
+		req.Filter.Search, req.Filter.Category, req.Filter.ShopActivity, req.Filter.Sort,
 		req.Filter.MinPrice, req.Filter.MaxPrice, req.Filter.IncludeImageMap)
 	res, err := cache.GetOrLoadJSON(s.cache, key, 15*time.Second, func() (productListResult, error) {
-		total, err := s.repo.CountAllActive(ctx, req.Filter)
+		total, err := s.repo.CountAllActive(ctx, req.Surface, req.Filter)
 		if err != nil {
 			return productListResult{}, err
 		}
-		products, err := s.repo.ListAllActive(ctx, limit, offset, req.Filter)
+		products, err := s.repo.ListAllActive(ctx, req.Surface, limit, offset, req.Filter)
 		if err != nil {
 			return productListResult{}, err
 		}
@@ -166,6 +169,7 @@ func (s *Service) Create(ctx context.Context, req CreateProductRequest, shopID, 
 		ImageURL:      req.ImageURL,
 		TrackStock:    trackStock,
 		IsActive:      true,
+		AppActive:     req.AppActive == nil || *req.AppActive,
 		ShopID:        shopID,
 		Images:        req.Images,
 		Colors:        req.Colors,
@@ -273,6 +277,9 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateProductReques
 	}
 	if req.IsActive != nil {
 		fields["is_active"] = *req.IsActive
+	}
+	if req.AppActive != nil {
+		fields["app_active"] = *req.AppActive
 	}
 
 	var furnitureMeta *FurnitureMeta

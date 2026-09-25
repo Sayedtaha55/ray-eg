@@ -157,10 +157,11 @@ func parseProductListRequest(c *fiber.Ctx) ProductListRequest {
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))
 	return ProductListRequest{
-		ShopID: c.Query("shopId"),
-		Page:   page,
-		Limit:  limit,
-		Filter: parseProductFilter(c),
+		ShopID:  c.Query("shopId"),
+		Surface: c.Query("surface"),
+		Page:    page,
+		Limit:   limit,
+		Filter:  parseProductFilter(c),
 	}
 }
 
@@ -175,6 +176,7 @@ func parseProductFilter(c *fiber.Ctx) ProductFilter {
 		MaxPrice:        maxPrice,
 		Sort:            c.Query("sort"),
 		IncludeImageMap: c.Query("includeImageMap") == "true",
+		ShopActivity:    c.Query("shopActivity"),
 	}
 }
 

@@ -234,11 +234,19 @@ reportsHandler          *reports.Handler
 		// Server-side refresh sessions live in Redis; without them every
 		// /auth/refresh fails with "session_expired" and users get logged out
 		// as soon as the 15-minute access token dies. NewStore falls back to
-		// in-memory storage when Redis is unavailable.
-		sessionStore := session.NewStore(redisClient.UniversalClient, cfg.Auth.RefreshTokenExpiry)
+		// in-memory storage when Redis is unavailable. Sessions slide for
+		// AUTH_REFRESH_TOKEN_EXPIRY of idle time, capped at
+		// AUTH_SESSION_ABSOLUTE_TTL from the original login.
+		sessionStore := session.NewStore(redisClient.UniversalClient,
+			cfg.Auth.RefreshTokenExpiry,
+			cfg.Auth.SessionAbsoluteTTL,
+			cfg.Auth.RefreshGrace)
 		authSvc := auth.NewService(cfg, authRepo, tokenService, lockoutMgr, appMailer, jobsClient, sessionStore)
 		cookieCfg := auth.AuthCookieConfig{
 			Name:     cfg.Auth.CookieName,
+			// Short-lived access token cookie: with this set the frontend no
+			// longer needs localStorage for auth (HttpOnly + Secure + Lax).
+			AccessCookieName: cfg.Auth.AccessCookieName,
 			Domain:   cfg.Auth.CookieDomain,
 			MaxAge:   cfg.Auth.CookieMaxAge,
 			Secure:   cfg.IsProduction(),

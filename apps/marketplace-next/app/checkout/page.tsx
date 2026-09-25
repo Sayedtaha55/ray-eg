@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { formatPrice } from '@/lib/utils';
-import { getStoredAuthToken, jsonRequest } from '@/lib/api';
+import { isSessionActive, jsonRequest } from '@/lib/api';
 import { LocationPicker } from '@/components/LocationPicker';
 import { playOrderNotifSound } from '@/lib/sounds';
 
@@ -49,7 +49,7 @@ export default function CheckoutPage() {
   // Prefill name/phone from the logged-in account so returning customers
   // don't retype them — the chips below the phone field restore them too.
   useEffect(() => {
-    if (!getStoredAuthToken()) return;
+    if (!isSessionActive()) return;
     jsonRequest<any>('/users/me')
       .then((body) => {
         const user = body?.data || body?.user || body;
@@ -74,7 +74,7 @@ export default function CheckoutPage() {
 
     try {
       // Guest checkout: visitors without an account order via the public endpoint.
-      const isGuest = !getStoredAuthToken();
+      const isGuest = !isSessionActive();
       const endpoint = isGuest ? '/orders/public' : '/orders';
 
       const orders: any[] = [];

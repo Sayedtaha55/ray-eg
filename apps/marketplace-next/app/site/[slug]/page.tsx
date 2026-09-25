@@ -91,7 +91,8 @@ export default async function PublishedSitePage({ params }: Props) {
   const c = site.config || {};
   const website: Website | undefined = c.website;
 
-  const products = await getProducts(site.shop.id, 100);
+  // surface=site → المنتجات المعروضة في موقع المتجر فقط (علم مستقل عن التطبيق)
+  const products = await getProducts(site.shop.id, 100, 'site');
   // عرض المنتجات النشطة فقط والتي لم يقم التاجر بإخفائها من صفحة المنتجات
   const activeOnlyProducts = (products || []).filter(
     (p: any) => p.isActive !== false && p.is_active !== false

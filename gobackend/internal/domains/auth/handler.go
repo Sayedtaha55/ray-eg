@@ -81,8 +81,16 @@ func (h *Handler) Logout(c *fiber.Ctx) error {
 	if token == "" {
 		token = h.getRefreshToken(c)
 	}
+
+	// Optional {"all": true} body closes every session of the user, not
+	// just the family this token belongs to.
+	var body struct {
+		All bool `json:"all"`
+	}
+	_ = c.BodyParser(&body)
+
 	if token != "" && h.service != nil {
-		if err := h.service.Logout(c.UserContext(), token, extractMeta(c)); err != nil {
+		if err := h.service.Logout(c.UserContext(), token, body.All, extractMeta(c)); err != nil {
 			return err
 		}
 		// Record logout event
@@ -171,7 +179,12 @@ func (h *Handler) Refresh(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	h.setAuthCookie(c, resp.Token.RefreshToken)
+	// Both cookies rotate together: the refresh cookie only changes when a
+	// new token was minted (grace responses re-send the identical value).
+	if resp.Token.RefreshToken != "" {
+		h.setAuthCookie(c, resp.Token.RefreshToken)
+	}
+	h.setAccessCookie(c, resp.Token.AccessToken, h.appCfg.Auth.AccessTokenExpiry)
 	return c.JSON(fiber.Map{"success": true, "data": resp})
 }
 
@@ -264,6 +277,7 @@ func (h *Handler) DevMerchantLogin(c *fiber.Ctx) error {
 		return err
 	}
 	h.setAuthCookie(c, resp.Token.RefreshToken)
+	h.setAccessCookie(c, resp.Token.AccessToken, h.appCfg.Auth.AccessTokenExpiry)
 	return c.JSON(fiber.Map{"success": true, "data": resp})
 }
 
@@ -278,6 +292,7 @@ func (h *Handler) DevCourierLogin(c *fiber.Ctx) error {
 		return err
 	}
 	h.setAuthCookie(c, resp.Token.RefreshToken)
+	h.setAccessCookie(c, resp.Token.AccessToken, h.appCfg.Auth.AccessTokenExpiry)
 	return c.JSON(fiber.Map{"success": true, "data": resp})
 }
 
@@ -292,6 +307,7 @@ func (h *Handler) DevCustomerLogin(c *fiber.Ctx) error {
 		return err
 	}
 	h.setAuthCookie(c, resp.Token.RefreshToken)
+	h.setAccessCookie(c, resp.Token.AccessToken, h.appCfg.Auth.AccessTokenExpiry)
 	return c.JSON(fiber.Map{"success": true, "data": resp})
 }
 

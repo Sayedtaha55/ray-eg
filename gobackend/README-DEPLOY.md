@@ -1,4 +1,4 @@
-# Deploy Guide — Supabase + Back4app Containers (Go backend)
+# Deploy Guide — Railway + Supabase + external Redis (Go backend)
 
 > الباك الوحيد: Go 1.25 + Fiber في `gobackend/` (المنفذ `4000`). باك NestJS القديم حُذف 2026-08-24.
 
@@ -10,7 +10,7 @@
 | Upstash | Redis (`REDIS_URL`) | upstash.com |
 | Cloudflare R2 | File storage (اختياري — تحذير `s3 client not available` تحذير فقط) | cloudflare.com |
 | Resend | Email | resend.com |
-| Back4app Containers | Hosting الـ Go API + الـ Worker | back4app.com |
+| Railway | Hosting الـ Go API + الـ Worker | railway.app |
 
 الصور: `gobackend/Dockerfile` للـ API و`gobackend/Dockerfile.worker` للـ worker (بناء متعدد المراحل).
 
@@ -66,27 +66,18 @@ go run scripts/migrate.go up
 - `REDIS_URL` أو `REDIS_HOST`
 - الدخول التجريبي (`dev-*-login`) ممنوع إنتاجيًا — يعمل فقط مع `APP_ENV=development` و`ALLOW_DEV_*_BOOTSTRAP=true`
 
-### 6. Deploy الـ API على Render
+### 6. Deploy الـ API والـ Worker على Railway
 
-1. روح [render.com](https://render.com) → New Web Service
-2. اربطه بالـ GitHub repo
-3. الإعدادات:
-   - **Root Directory:** `gobackend`
-   - **Build Command:** `go build -o api ./cmd/api`
-   - **Start Command:** `./api`
-4. أضف كل الـ environment variables من `.env.production` (بما فيها الخمسة الإلزامية أعلاه)
+1. أنشئ **API service** و**Worker service** من نفس GitHub repository، وحدد Root Directory باسم `gobackend`.
+2. لكل service أضف متغيرات الإنتاج نفسها، وبالأخص:
+   - `DATABASE_URL`: سلسلة اتصال Supabase (Session Pooler).
+   - `REDIS_URL`: رابط Redis الخارجي، وليس `localhost`.
+   - `APP_ENV=production` و`CSRF_DISABLED=false`.
+3. للـAPI استخدم start command مبني على `go run ./cmd/api` أو binary المبني من `gobackend/Dockerfile` حسب إعداد Railway.
+4. للـworker استخدم `go run ./cmd/worker` أو `gobackend/Dockerfile.worker`.
+5. لا تنشئ PostgreSQL أو Redis كـRailway services لهذا المشروع؛ Supabase هو مصدر البيانات وRedis هو التخزين المؤقت والجلسات.
 
-### 7. Deploy الـ Worker على Render
-
-1. New Background Worker
-2. نفس الإعدادات بس:
-   - **Build Command:** `go build -o worker ./cmd/worker`
-   - **Start Command:** `./worker`
-3. نفس متغيرات البيئة (`DATABASE_URL` + `REDIS_URL` + الأسرار)
-
----
-
-## بعد الـ Deploy — تحقق
+### 7. التحقق بعد النشر
 
 ```bash
 # Readiness (DB + Redis)

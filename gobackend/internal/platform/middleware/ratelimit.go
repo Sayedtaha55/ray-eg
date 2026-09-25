@@ -18,8 +18,9 @@ import (
 
 // RateLimiter wraps an ulule/limiter instance and exposes Fiber middleware.
 type RateLimiter struct {
-	global *limiter.Limiter
-	auth   *limiter.Limiter
+	global  *limiter.Limiter
+	auth    *limiter.Limiter
+	refresh *limiter.Limiter
 }
 
 // NewRateLimiter creates the global and auth limiters backed by Redis when
@@ -41,6 +42,16 @@ func NewRateLimiter(cfg *config.Config, client redis.UniversalClient) (*RateLimi
 		return nil, err
 	}
 
+	// Dedicated bucket for /auth/refresh — a token-minting endpoint that
+	// previously rode the generous global limit (10000/15m).
+	refreshStore, err := newStore(client, "rl_refresh", limiter.Rate{
+		Period: cfg.RateLimit.RefreshWindow,
+		Limit:  int64(cfg.RateLimit.RefreshMax),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &RateLimiter{
 		global: limiter.New(globalStore, limiter.Rate{
 			Period: cfg.RateLimit.GlobalWindow,
@@ -49,6 +60,10 @@ func NewRateLimiter(cfg *config.Config, client redis.UniversalClient) (*RateLimi
 		auth: limiter.New(authStore, limiter.Rate{
 			Period: cfg.RateLimit.AuthWindow,
 			Limit:  int64(cfg.RateLimit.AuthMax),
+		}),
+		refresh: limiter.New(refreshStore, limiter.Rate{
+			Period: cfg.RateLimit.RefreshWindow,
+			Limit:  int64(cfg.RateLimit.RefreshMax),
 		}),
 	}, nil
 }
@@ -59,8 +74,13 @@ func (rl *RateLimiter) Global() fiber.Handler {
 }
 
 // Auth middleware applies a stricter rate limit to authentication endpoints.
+// /auth/refresh gets its own, tighter budget (AUTH_REFRESH_RATE_LIMIT_MAX
+// per window) because it mints fresh tokens.
 func (rl *RateLimiter) Auth() fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		if c.Path() == "/api/v1/auth/refresh" {
+			return rl.handle(rl.refresh, "refresh")(c)
+		}
 		if !isAuthPath(c.Path()) {
 			return c.Next()
 		}

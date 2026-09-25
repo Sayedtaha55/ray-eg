@@ -2,11 +2,10 @@ import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Tag, TrendingUp, Sparkles } from 'lucide-react';
-import { getShops, getOffers, getSeasonalOffers } from '@/lib/services';
+import { getOffers, getSeasonalOffers, getLatestProducts } from '@/lib/services';
 import { activities, siteConfig } from '@/lib/config';
-import { ShopCard } from '@/components/ShopCard';
 import { ProductCard } from '@/components/ProductCard';
-import { ShopCardSkeleton } from '@/components/Skeleton';
+import { ProductCardSkeleton } from '@/components/Skeleton';
 import { HeroSlider } from '@/components/HeroSlider';
 import { AppDownloadBanner } from '@/components/AppDownloadBanner';
 import { HeroSearch } from '@/components/HeroSearch';
@@ -23,13 +22,14 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 export default async function HomePage() {
-  const [shops, offers, seasonalOffers] = await Promise.all([
-    getShops(24),
+  const [latestProducts, offers, seasonalOffers] = await Promise.all([
+    getLatestProducts(16),
     getOffers(),
     getSeasonalOffers(),
   ]);
-  const featuredShops = shops.slice(0, 8);
-  const trendingShops = shops.slice(8, 16);
+  // الهوم بالكامل بطاقة المنتج الموحدة — مفيش بطاقات متاجر هنا
+  const featuredProducts = latestProducts.slice(0, 8);
+  const newArrivals = latestProducts.slice(8, 16);
   const featuredOffers = offers.slice(0, 8);
   const activeSeasonal = seasonalOffers
     .filter((s) => s.status === 'active' || new Date(s.endDate) >= new Date())
@@ -127,39 +127,33 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured Section */}
+      {/* Featured Products — بطاقة المنتج الموحدة في كل الهوم */}
       <section className="py-10 md:py-24 bg-slate-50 dark:bg-slate-950/50">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6">
           <div className="flex items-end justify-between mb-6 md:mb-12">
             <div className="text-right">
               <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight">
-                متاجر مميزة
+                منتجات مميزة
               </h2>
             </div>
             <Link
-              href="/dalil"
+              href="/offers"
               className="group flex items-center gap-2 md:gap-3 text-brand-cyan font-semibold text-xs md:text-sm"
             >
               <span className="border-b-2 border-brand-cyan/0 group-hover:border-brand-cyan transition-all">
-                عرض جميع المتاجر
+                تصفح المزيد
               </span>
               <ArrowLeft className="w-4 h-4 rotate-180 transition-transform group-hover:translate-x-2" />
             </Link>
           </div>
 
-          {featuredShops.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-              {featuredShops.map((shop) => (
-                <ShopCard key={shop.id} shop={shop} />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <ShopCardSkeleton key={i} />
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+            {featuredProducts.length > 0
+              ? featuredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))
+              : Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+          </div>
         </div>
       </section>
 
@@ -248,20 +242,20 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Trending Products/Shops */}
-      {trendingShops.length > 0 && (
+      {/* New Arrivals — نفس بطاقة المنتج الموحدة */}
+      {newArrivals.length > 0 && (
         <section className="py-24 bg-white dark:bg-brand-black">
           <div className="max-w-[1400px] mx-auto px-4 md:px-6">
             <div className="flex items-end justify-between mb-12">
               <div className="text-right">
                 <div className="flex items-center gap-2 mb-3 justify-end">
                   <TrendingUp className="w-5 h-5 text-brand-purple" />
-                  <span className="text-xs font-semibold text-brand-purple">الأكثر طلباً</span>
+                  <span className="text-xs font-semibold text-brand-purple">أحدث الإضافات</span>
                 </div>
-                <h2 className="text-4xl md:text-6xl font-bold tracking-tight">متاجر رائجة</h2>
+                <h2 className="text-4xl md:text-6xl font-bold tracking-tight">وصل حديثاً</h2>
               </div>
               <Link
-                href="/dalil"
+                href="/offers"
                 className="group flex items-center gap-3 text-brand-purple font-semibold text-sm"
               >
                 <span>عرض الكل</span>
@@ -269,9 +263,9 @@ export default async function HomePage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-              {trendingShops.map((shop) => (
-                <ShopCard key={shop.id} shop={shop} />
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+              {newArrivals.map((product) => (
+                <ProductCard key={product.id} product={product} />
               ))}
             </div>
           </div>

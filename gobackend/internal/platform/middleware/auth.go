@@ -80,13 +80,21 @@ func extractUser(c *fiber.Ctx, secret string) (AuthUser, error) {
 
 	// Only real session tokens may authenticate. One-time tokens (password
 	// reset, email verification) are signed with the same key but must never
-	// act as credentials. Refresh tokens are accepted only when they arrive
-	// via the httpOnly session cookie, which is where login stores them.
+	// act as credentials.
+	//
+	// Trust order: access tokens (header or the short-lived ray_access
+	// cookie) are the primary credential. Refresh tokens from the
+	// ray_session cookie remain accepted as a compatibility bridge for
+	// sessions established before the access cookie shipped — remove that
+	// branch once every active client has refreshed at least once.
 	typ, _ := claims["typ"].(string)
 	switch typ {
 	case "access":
+		if source == tokenSourceSessionCookie {
+			return AuthUser{}, fmt.Errorf("access token must not arrive via the session cookie")
+		}
 	case "refresh":
-		if source != tokenSourceCookie {
+		if source != tokenSourceSessionCookie {
 			return AuthUser{}, fmt.Errorf("refresh token must be sent via session cookie")
 		}
 	default:
@@ -113,8 +121,9 @@ func extractUser(c *fiber.Ctx, secret string) (AuthUser, error) {
 }
 
 const (
-	tokenSourceBearer = "bearer"
-	tokenSourceCookie = "cookie"
+	tokenSourceBearer        = "bearer"
+	tokenSourceCookie        = "cookie"
+	tokenSourceSessionCookie = "session_cookie"
 )
 
 func extractToken(c *fiber.Ctx) (string, string) {
@@ -123,17 +132,27 @@ func extractToken(c *fiber.Ctx) (string, string) {
 		return strings.TrimSpace(strings.TrimPrefix(auth, "Bearer ")), tokenSourceBearer
 	}
 
-	// Session cookies are namespaced per client app (ray_session-DASHBOARD,
+	// Cookies are namespaced per client app (ray_access-DASHBOARD,
 	// ray_session-MARKET, ...) so the dashboard and the marketplace keep
-	// independent logins. Resolve the scoped name first, then fall back to the
-	// unsuffixed legacy cookie.
-	if scope := scopedCookieSuffix(c.Get("X-App-Scope")); scope != "" {
-		if cookie := c.Cookies("ray_session"+scope); cookie != "" {
+	// independent logins. Prefer the short-lived access cookie; fall back to
+	// the refresh session cookie for clients that have not yet received an
+	// access cookie (compatibility with pre-upgrade sessions).
+	scope := scopedCookieSuffix(c.Get("X-App-Scope"))
+	if scope != "" {
+		if cookie := c.Cookies("ray_access" + scope); cookie != "" {
 			return cookie, tokenSourceCookie
 		}
 	}
-	if cookie := c.Cookies("ray_session"); cookie != "" {
+	if cookie := c.Cookies("ray_access"); cookie != "" {
 		return cookie, tokenSourceCookie
+	}
+	if scope != "" {
+		if cookie := c.Cookies("ray_session"+scope); cookie != "" {
+			return cookie, tokenSourceSessionCookie
+		}
+	}
+	if cookie := c.Cookies("ray_session"); cookie != "" {
+		return cookie, tokenSourceSessionCookie
 	}
 
 	return "", ""

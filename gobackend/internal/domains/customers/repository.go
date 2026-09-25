@@ -21,7 +21,7 @@ func NewRepository(pool *db.Pool) *Repository {
 // ListCustomers retrieves all customers
 func (r *Repository) ListCustomers(ctx context.Context, shopID *string, limit, offset int) ([]Customer, int64, error) {
 	query := `
-		SELECT u.id, u.name, u.email, u.phone, u.address, u.city, u.created_at, u.updated_at
+		SELECT u.id, u.name, u.email, u.phone, u.created_at, u.updated_at
 		FROM users u
 		WHERE u.role = 'CUSTOMER'
 	`
@@ -64,21 +64,13 @@ func (r *Repository) ListCustomers(ctx context.Context, shopID *string, limit, o
 	var customers []Customer
 	for rows.Next() {
 		var customer Customer
-		var address, city sql.NullString
 
 		err := rows.Scan(
 			&customer.ID, &customer.Name, &customer.Email, &customer.Phone,
-			&address, &city, &customer.CreatedAt, &customer.UpdatedAt,
+			&customer.CreatedAt, &customer.UpdatedAt,
 		)
 		if err != nil {
 			continue
-		}
-
-		if address.Valid {
-			customer.Address = &address.String
-		}
-		if city.Valid {
-			customer.City = &city.String
 		}
 
 		// Get customer stats
@@ -97,17 +89,16 @@ func (r *Repository) ListCustomers(ctx context.Context, shopID *string, limit, o
 // GetCustomerByID retrieves a customer by ID
 func (r *Repository) GetCustomerByID(ctx context.Context, id string) (*Customer, error) {
 	query := `
-		SELECT u.id, u.name, u.email, u.phone, u.address, u.city, u.created_at, u.updated_at
+		SELECT u.id, u.name, u.email, u.phone, u.created_at, u.updated_at
 		FROM users u
 		WHERE u.id = $1 AND u.role = 'CUSTOMER'
 	`
 
 	var customer Customer
-	var address, city sql.NullString
 
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&customer.ID, &customer.Name, &customer.Email, &customer.Phone,
-		&address, &city, &customer.CreatedAt, &customer.UpdatedAt,
+		&customer.CreatedAt, &customer.UpdatedAt,
 	)
 
 	if err != nil {
@@ -115,13 +106,6 @@ func (r *Repository) GetCustomerByID(ctx context.Context, id string) (*Customer,
 			return nil, fmt.Errorf("customer not found")
 		}
 		return nil, fmt.Errorf("failed to get customer: %w", err)
-	}
-
-	if address.Valid {
-		customer.Address = &address.String
-	}
-	if city.Valid {
-		customer.City = &city.String
 	}
 
 	// Get customer stats
@@ -139,6 +123,7 @@ func (r *Repository) GetCustomerStats(ctx context.Context, customerID string) (*
 	query := `
 		SELECT 
 			COUNT(*) as total_orders,
+			COUNT(*) FILTER (WHERE status = 'DELIVERED') as completed_orders,
 			COALESCE(SUM(total), 0) as total_spent,
 			COALESCE(AVG(total), 0) as avg_order_value,
 			MAX(created_at) as last_order_at
@@ -150,7 +135,7 @@ func (r *Repository) GetCustomerStats(ctx context.Context, customerID string) (*
 	var lastOrderAt sql.NullString
 
 	err := r.pool.QueryRow(ctx, query, customerID).Scan(
-		&stats.TotalOrders, &stats.TotalSpent, &stats.AvgOrderValue, &lastOrderAt,
+		&stats.TotalOrders, &stats.CompletedOrders, &stats.TotalSpent, &stats.AvgOrderValue, &lastOrderAt,
 	)
 
 	if err != nil {

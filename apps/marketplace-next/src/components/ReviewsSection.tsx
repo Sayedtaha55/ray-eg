@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Star, Loader2, MessageSquare, Send, User } from 'lucide-react';
-import { apiPath, getStoredAuthToken } from '@/lib/api';
+import { apiPath, APP_SCOPE, getCsrfToken, getStoredAuthToken, isSessionActive } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 
 interface Review {
@@ -55,7 +55,7 @@ export function ReviewsSection({ type, targetId }: ReviewsSectionProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = getStoredAuthToken();
-    if (!token) {
+    if (!isSessionActive()) {
       setError('يجب تسجيل الدخول أولاً');
       return;
     }
@@ -66,7 +66,9 @@ export function ReviewsSection({ type, targetId }: ReviewsSectionProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          'X-App-Scope': APP_SCOPE,
+          ...(getCsrfToken() ? { 'X-CSRF-Token': getCsrfToken()! } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ rating, comment }),
       });

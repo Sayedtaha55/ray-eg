@@ -34,21 +34,20 @@ export const DASHBOARD_URL = sanitizeUrl(
 export const DASHBOARD_APP_PATH = '/dashboard';
 
 /**
- * Builds the dashboard auth-callback URL that bootstraps the merchant session
- * (the access token travels in the query string, exactly as dashboard-web's
- * /auth/callback expects). An explicit returnTo always wins.
+ * Builds the dashboard login URL. The merchant now signs in ON the
+ * dashboard's own origin so both auth cookies (ray_access + ray_session)
+ * are stamped on the correct domain from the first moment — no token ever
+ * travels through a query string.
  */
-export function dashboardAuthCallbackUrl(params: {
-  accessToken?: string | null;
-  user?: unknown;
+export function dashboardLoginUrl(params: {
   returnTo?: string | null;
+  followShopId?: string | null;
 }): string {
+  const q = new URLSearchParams();
   const returnTo = (params.returnTo || '').trim();
-  if (returnTo) return returnTo;
-
-  const query = new URLSearchParams();
-  if (params.accessToken) query.set('token', params.accessToken);
-  if (params.user) query.set('user', JSON.stringify(params.user));
-  const qs = query.toString();
-  return `${DASHBOARD_URL}/auth/callback${qs ? `?${qs}` : ''}`;
+  const followShopId = (params.followShopId || '').trim();
+  if (returnTo) q.set('returnTo', returnTo);
+  if (followShopId) q.set('followShopId', followShopId);
+  const qs = q.toString();
+  return `${DASHBOARD_URL}/login${qs ? `?${qs}` : ''}`;
 }

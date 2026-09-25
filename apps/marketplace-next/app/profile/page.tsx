@@ -16,7 +16,7 @@ import {
   XCircle,
   ChevronRight
 } from 'lucide-react';
-import { api, clearStoredAuthToken, getStoredAuthToken } from '@/lib/api';
+import { api, clearStoredAuthToken, isSessionActive } from '@/lib/api';
 
 interface Order {
   id: string;
@@ -33,8 +33,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = getStoredAuthToken();
-    if (!token) {
+    if (!isSessionActive()) {
       router.push('/login');
       return;
     }

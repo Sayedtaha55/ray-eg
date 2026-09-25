@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { X, PartyPopper, Trash2 } from 'lucide-react';
-import { getStoredAuthToken } from '@/lib/api';
+import { APP_SCOPE, getStoredAuthToken } from '@/lib/api';
 
 const FLAG_KEY = 'mnmknk_welcome';
 
@@ -49,7 +49,10 @@ export function WelcomeToast() {
         const token = getStoredAuthToken();
         fetch('/api/v1/auth/me', {
           credentials: 'include',
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          headers: {
+            'X-App-Scope': APP_SCOPE,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
         })
           .then((r) => (r.ok ? r.json() : null))
           .then((body) => {

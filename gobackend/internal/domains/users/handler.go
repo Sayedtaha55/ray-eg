@@ -40,6 +40,7 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	admin.Get("/couriers/:id", h.GetCourierDetails)
 	admin.Patch("/couriers/:id/status", h.SetCourierStatus)
 	admin.Patch("/:id/role", h.SetUserRole)
+	admin.Patch("/:id", h.UpdateUserAsAdmin)
 	admin.Delete("/:id", h.DeleteUser)
 
 	// Top-level /couriers routes for dashboard delivery page compatibility
@@ -229,6 +230,29 @@ func (h *Handler) ListUsers(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(fiber.Map{"success": true, "data": users})
+}
+
+// UpdateUserAsAdmin lets an admin update another user's profile fields
+// (name / phone). Reuses the same validation as UpdateMe.
+func (h *Handler) UpdateUserAsAdmin(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return errors.Validation("id_required", "id مطلوب")
+	}
+
+	var req UpdateMeRequest
+	if err := c.BodyParser(&req); err != nil {
+		return errors.Validation("invalid_body", "تعذر قراءة بيانات التحديث")
+	}
+	if err := validate.Struct(req); err != nil {
+		return err
+	}
+
+	user, err := h.service.UpdateMe(c.UserContext(), id, req)
+	if err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{"success": true, "data": user})
 }
 
 func (h *Handler) SetUserRole(c *fiber.Ctx) error {

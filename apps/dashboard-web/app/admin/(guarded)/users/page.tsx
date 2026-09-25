@@ -3,13 +3,34 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Users, Search, MoreVertical, User, Trash2, ArrowLeftRight,
-  Loader2, RefreshCw, Shield, ShieldCheck,
+  Users, MoreVertical, User, Trash2, ArrowLeftRight,
+  RefreshCw, Shield, ChevronDown, ChevronUp, Eye, ShoppingBag,
+  CheckCircle2, Wallet, CalendarDays, Pencil, Mail, Phone,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useToast } from '@/components/settings/ToastProvider';
+import {
+  PageHeader, Panel, LoadingBlock, EmptyState, SearchInput, FilterSelect,
+  Pagination, AdminTable, TH, TD, TR, StatChip, Badge, fmtDate, formatEGP,
+  Field, INPUT_CLASS, BTN_PRIMARY, BTN_SOFT, Spinner, type Tone,
+} from '@/components/admin/ui';
+import AdminModal from '@/components/admin/AdminModal';
 
 const MotionDiv = motion.div as any;
+
+const ROLE_TONE: Record<string, Tone> = { admin: 'red', merchant: 'cyan', customer: 'slate' };
+const ROLE_LABEL: Record<string, string> = { admin: 'أدمن', merchant: 'تاجر', customer: 'عميل' };
+
+const ORDER_STATUS_META: Record<string, { label: string; tone: Tone }> = {
+  DELIVERED: { label: 'تم التوصيل', tone: 'green' },
+  READY: { label: 'جاهز', tone: 'sky' },
+  PREPARING: { label: 'قيد التحضير', tone: 'amber' },
+  CONFIRMED: { label: 'مؤكد', tone: 'amber' },
+  SHIPPED: { label: 'تم الشحن', tone: 'sky' },
+  CANCELLED: { label: 'ملغي', tone: 'red' },
+  REFUNDED: { label: 'مسترجع', tone: 'red' },
+  PENDING: { label: 'قيد المراجعة', tone: 'amber' },
+};
 
 export default function AdminUsersPage() {
   const { toast } = useToast();
@@ -17,16 +38,29 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'merchant' | 'customer'>('all');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const pageSize = 25;
+
+  // ملخص العميل الموسّع داخل الصف
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [statsMap, setStatsMap] = useState<Record<string, any | null>>({});
+  const [statsLoadingId, setStatsLoadingId] = useState<string | null>(null);
+
+  // نافذة التفاصيل الكاملة
+  const [detailsUser, setDetailsUser] = useState<any | null>(null);
+  const [detailsOrders, setDetailsOrders] = useState<any[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', phone: '' });
+  const [saving, setSaving] = useState(false);
 
   const loadUsers = async (quiet = false) => {
     if (!quiet) setLoading(true);
     else setIsRefreshing(true);
     try {
-      const data = await apiRequest('/users');
+      const data = await apiRequest('/users?take=200');
       setUsers(Array.isArray(data) ? data : []);
     } catch {
       toast({ title: 'فشل تحميل المستخدمين', variant: 'destructive' });
@@ -38,6 +72,70 @@ export default function AdminUsersPage() {
   };
 
   useEffect(() => { loadUsers(); }, []);
+
+  const ensureStats = async (userId: string) => {
+    if (statsMap[userId] !== undefined || statsLoadingId === userId) return;
+    setStatsLoadingId(userId);
+    try {
+      const data = await apiRequest(`/customers/${userId}/stats`);
+      setStatsMap((m) => ({ ...m, [userId]: data || null }));
+    } catch {
+      setStatsMap((m) => ({ ...m, [userId]: null }));
+    } finally {
+      setStatsLoadingId(null);
+    }
+  };
+
+  const toggleExpand = (userId: string) => {
+    const next = expandedId === userId ? null : userId;
+    setExpandedId(next);
+    if (next) ensureStats(next);
+  };
+
+  const openDetails = async (user: any) => {
+    setActiveMenu(null);
+    setExpandedId(null);
+    setDetailsUser(user);
+    setEditing(false);
+    setDetailsOrders([]);
+    setEditForm({ name: String(user?.name || ''), phone: String(user?.phone || '') });
+    ensureStats(user.id);
+    setDetailsLoading(true);
+    try {
+      const data = await apiRequest(`/orders/admin?userId=${user.id}&limit=50`);
+      setDetailsOrders(Array.isArray(data) ? data : []);
+    } catch {
+      toast({ title: 'فشل تحميل طلبات العميل', variant: 'destructive' });
+      setDetailsOrders([]);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!detailsUser) return;
+    if (!editForm.name.trim()) {
+      toast({ title: 'الاسم مطلوب', variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const updated = await apiRequest(`/users/${detailsUser.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name: editForm.name.trim(), phone: editForm.phone.trim() }),
+      });
+      toast({ title: 'تم حفظ التعديلات', variant: 'success' });
+      setEditing(false);
+      setDetailsUser((u: any) => ({ ...u, name: editForm.name.trim(), phone: editForm.phone.trim() }));
+      setUsers((list) => list.map((u) => (u.id === detailsUser.id ? { ...u, name: editForm.name.trim(), phone: editForm.phone.trim() } : u)));
+      void updated;
+      await loadUsers(true);
+    } catch {
+      toast({ title: 'فشل حفظ التعديلات', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleDelete = async (userId: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا المستخدم نهائياً؟')) return;
@@ -89,115 +187,140 @@ export default function AdminUsersPage() {
     customers: users.filter((u) => String(u?.role || '').toLowerCase() === 'customer').length,
   }), [users]);
 
-  return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-purple-500/10 text-purple-400 rounded-2xl">
-            <Users size={24} />
-          </div>
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-black text-white">إدارة المستخدمين</h2>
-              {isRefreshing && <RefreshCw size={16} className="text-[#00E5FF] animate-spin" />}
-            </div>
-            <p className="text-slate-500 text-sm font-bold">عرض وإدارة جميع مستخدمي المنصة</p>
-          </div>
+  const summaryCards = (userId: string) => {
+    const stats = statsMap[userId];
+    const loading = statsLoadingId === userId;
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center gap-3 py-8 text-slate-500 text-sm font-bold">
+          <Spinner size={16} /> جاري تحميل ملخص العميل...
         </div>
-
-        <div className="grid grid-cols-4 gap-3 w-full md:w-auto">
-          {[
-            ['الإجمالي', roleStats.total, 'text-white'],
-            ['أدمن', roleStats.admins, 'text-red-400'],
-            ['تجار', roleStats.merchants, 'text-[#00E5FF]'],
-            ['عملاء', roleStats.customers, 'text-slate-400'],
-          ].map(([label, val, color]: any) => (
-            <div key={label} className="rounded-2xl bg-slate-900/70 border border-white/5 px-4 py-3 text-center">
-              <div className="text-slate-500 text-[10px] font-black">{label}</div>
-              <div className={`mt-1 text-xl font-black ${color}`}>{val}</div>
-            </div>
-          ))}
+      );
+    }
+    if (!stats) {
+      return (
+        <div className="py-6 text-center text-slate-400 text-xs font-bold">
+          لا توجد إحصائيات متاحة لهذا العميل
+        </div>
+      );
+    }
+    return (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="rounded-2xl bg-white border border-slate-200 p-4 text-center shadow-sm">
+          <ShoppingBag size={16} className="mx-auto mb-1.5 text-indigo-500" />
+          <div className="text-slate-500 text-[10px] font-black">إجمالي الطلبات</div>
+          <div className="mt-1 text-xl font-black text-slate-900 tabular-nums">{Number(stats.total_orders || 0).toLocaleString('ar-EG')}</div>
+        </div>
+        <div className="rounded-2xl bg-white border border-slate-200 p-4 text-center shadow-sm">
+          <CheckCircle2 size={16} className="mx-auto mb-1.5 text-emerald-500" />
+          <div className="text-slate-500 text-[10px] font-black">الطلبات المكتملة</div>
+          <div className="mt-1 text-xl font-black text-emerald-600 tabular-nums">{Number(stats.completed_orders || 0).toLocaleString('ar-EG')}</div>
+        </div>
+        <div className="rounded-2xl bg-white border border-slate-200 p-4 text-center shadow-sm">
+          <Wallet size={16} className="mx-auto mb-1.5 text-cyan-500" />
+          <div className="text-slate-500 text-[10px] font-black">إجمالي المصروفات</div>
+          <div className="mt-1 text-xl font-black text-cyan-700 tabular-nums">{formatEGP(stats.total_spent)}</div>
+        </div>
+        <div className="rounded-2xl bg-white border border-slate-200 p-4 text-center shadow-sm">
+          <CalendarDays size={16} className="mx-auto mb-1.5 text-amber-500" />
+          <div className="text-slate-500 text-[10px] font-black">آخر طلب</div>
+          <div className="mt-1 text-xs font-black text-slate-700">{stats.last_order_at ? fmtDate(stats.last_order_at) : 'لا يوجد'}</div>
         </div>
       </div>
+    );
+  };
 
-      <div className="bg-slate-900 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
-        <div className="flex flex-col md:flex-row gap-3 p-6 border-b border-white/5">
-          <div className="flex-1 relative">
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-            <input
-              className="w-full bg-slate-900 border border-white/5 rounded-xl py-3 pr-12 pl-4 text-white outline-none focus:border-[#00E5FF]/50 transition-all text-sm"
-              placeholder="ابحث بالاسم أو البريد..."
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
-            />
-          </div>
-          <select
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        icon={Users}
+        title="إدارة المستخدمين"
+        subtitle="عرض وإدارة جميع مستخدمي المنصة"
+        tone="purple"
+        actions={isRefreshing ? <RefreshCw size={16} className="text-cyan-600 animate-spin" /> : undefined}
+        stats={
+          <>
+            <StatChip label="الإجمالي" value={roleStats.total} />
+            <StatChip label="أدمن" value={roleStats.admins} tone="red" />
+            <StatChip label="تجار" value={roleStats.merchants} tone="cyan" />
+            <StatChip label="عملاء" value={roleStats.customers} tone="indigo" />
+          </>
+        }
+      />
+
+      <Panel>
+        <div className="flex flex-col md:flex-row gap-3 p-5 border-b border-slate-100">
+          <SearchInput
+            value={searchTerm}
+            onChange={(v) => { setSearchTerm(v); setPage(0); }}
+            placeholder="ابحث بالاسم أو البريد..."
+          />
+          <FilterSelect
             value={roleFilter}
-            onChange={(e) => { setRoleFilter(e.target.value as any); setPage(0); }}
-            className="px-4 py-3 bg-slate-900 border border-white/5 rounded-xl text-white text-sm font-bold outline-none focus:border-[#00E5FF]/50"
-          >
-            <option value="all">كل الأدوار</option>
-            <option value="admin">أدمن</option>
-            <option value="merchant">تاجر</option>
-            <option value="customer">عميل</option>
-          </select>
+            onChange={(v) => { setRoleFilter(v); setPage(0); setExpandedId(null); }}
+            options={[
+              { value: 'all', label: 'كل الأدوار' },
+              { value: 'admin', label: 'أدمن' },
+              { value: 'merchant', label: 'تاجر' },
+              { value: 'customer', label: 'عميل' },
+            ]}
+          />
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-24">
-            <Loader2 className="animate-spin text-[#00E5FF] w-10 h-10" />
-          </div>
+          <LoadingBlock />
         ) : paginatedUsers.length === 0 ? (
-          <div className="py-24 text-center">
-            <User size={48} className="mx-auto text-slate-700 mb-4 opacity-20" />
-            <p className="text-slate-500 font-bold">لا توجد نتائج</p>
-          </div>
+          <EmptyState icon={User} title="لا توجد نتائج" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-right border-collapse min-w-[700px]">
-              <thead>
-                <tr className="border-b border-white/5 bg-white/5">
-                  <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">المستخدم</th>
-                  <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الدور</th>
-                  <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">البريد</th>
-                  <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">تاريخ الانضمام</th>
-                  <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest text-left">تحكم</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedUsers.map((user) => (
-                  <tr key={user.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
-                    <td className="p-6">
-                      <div className="flex items-center gap-4 flex-row-reverse">
-                        <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-black text-[#00E5FF] border border-white/5">
+          <AdminTable
+            head={
+              <>
+                <th className={TH + ' w-10'}></th>
+                <th className={TH}>المستخدم</th>
+                <th className={TH}>الدور</th>
+                <th className={TH}>البريد</th>
+                <th className={TH}>تاريخ الانضمام</th>
+                <th className={TH + ' text-left'}>تحكم</th>
+              </>
+            }
+          >
+            {paginatedUsers.map((user) => {
+              const role = String(user?.role || '').toLowerCase();
+              const isCustomer = role === 'customer';
+              const isExpanded = expandedId === user.id;
+              return (
+                <React.Fragment key={user.id}>
+                  <tr className={TR + (isExpanded ? ' bg-slate-50/70' : '')}>
+                    <td className={TD + ' text-center'}>
+                      {isCustomer ? (
+                        <button
+                          onClick={() => toggleExpand(user.id)}
+                          title={isExpanded ? 'إغلاق الملخص' : 'ملخص العميل'}
+                          className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors"
+                        >
+                          {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        </button>
+                      ) : (
+                        <span className="text-slate-200">—</span>
+                      )}
+                    </td>
+                    <td className={TD}>
+                      <div className="flex items-center gap-3 flex-row-reverse">
+                        <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-black text-cyan-600 border border-slate-200">
                           {String(user?.name || '?').charAt(0)}
                         </div>
-                        <span className="text-white font-bold group-hover:text-[#00E5FF] transition-colors">
-                          {user?.name || '-'}
-                        </span>
+                        <span className="text-slate-900 font-bold">{user?.name || '-'}</span>
                       </div>
                     </td>
-                    <td className="p-6">
-                      <span
-                        className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${
-                          user?.role === 'admin'
-                            ? 'bg-red-500/10 text-red-500 border border-red-500/20'
-                            : user?.role === 'merchant'
-                            ? 'bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/20'
-                            : 'bg-slate-800 text-slate-400'
-                        }`}
-                      >
-                        {user?.role === 'admin' ? 'أدمن' : user?.role === 'merchant' ? 'تاجر' : 'عميل'}
-                      </span>
+                    <td className={TD}>
+                      <Badge tone={ROLE_TONE[role] || 'slate'}>{ROLE_LABEL[role] || role || '-'}</Badge>
                     </td>
-                    <td className="p-6 text-slate-500 text-sm font-medium">{user?.email || '-'}</td>
-                    <td className="p-6 text-slate-500 text-xs font-bold">
-                      {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ar-EG') : '-'}
-                    </td>
-                    <td className="p-6 relative text-left">
+                    <td className={TD + ' text-slate-500 text-sm font-medium'}>{user?.email || '-'}</td>
+                    <td className={TD + ' text-slate-500 text-xs font-bold'}>{fmtDate(user?.createdAt)}</td>
+                    <td className={TD + ' relative text-left'}>
                       <button
                         onClick={() => setActiveMenu(activeMenu === user.id ? null : user.id)}
-                        className="p-2 text-slate-500 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+                        className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-lg hover:bg-slate-100"
                       >
                         <MoreVertical size={18} />
                       </button>
@@ -210,27 +333,34 @@ export default function AdminUsersPage() {
                               initial={{ opacity: 0, scale: 0.9, x: -10 }}
                               animate={{ opacity: 1, scale: 1, x: 0 }}
                               exit={{ opacity: 0, scale: 0.9, x: -10 }}
-                              className="absolute left-12 top-0 mt-2 w-56 bg-slate-800 border border-white/10 rounded-2xl shadow-2xl z-20 overflow-hidden"
+                              className="absolute left-12 top-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl z-20 overflow-hidden"
                             >
-                              {user?.role !== 'admin' && (
+                              <button
+                                onClick={() => openDetails(user)}
+                                className="w-full flex items-center justify-between p-4 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all"
+                              >
+                                عرض التفاصيل الكاملة
+                                <Eye size={14} className="text-purple-600" />
+                              </button>
+                              {role !== 'admin' && (
                                 <button
-                                  onClick={() => handleChangeRole(user.id, user.role)}
-                                  className="w-full flex items-center justify-between p-4 hover:bg-white/5 text-slate-300 text-xs font-bold transition-all"
+                                  onClick={() => handleChangeRole(user.id, role)}
+                                  className="w-full flex items-center justify-between p-4 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all border-t border-slate-100"
                                 >
-                                  {user?.role === 'customer' ? 'ترقية إلى تاجر' : 'خفض إلى عميل'}
-                                  <ArrowLeftRight size={14} className="text-[#00E5FF]" />
+                                  {role === 'customer' ? 'ترقية إلى تاجر' : 'خفض إلى عميل'}
+                                  <ArrowLeftRight size={14} className="text-cyan-600" />
                                 </button>
                               )}
-                              {user?.role !== 'admin' && (
+                              {role !== 'admin' && (
                                 <button
                                   onClick={() => handleDelete(user.id)}
-                                  className="w-full flex items-center justify-between p-4 hover:bg-red-500/10 text-red-400 text-xs font-bold transition-all border-t border-white/5"
+                                  className="w-full flex items-center justify-between p-4 hover:bg-red-50 text-red-600 text-xs font-bold transition-all border-t border-slate-100"
                                 >
                                   حذف نهائي
                                   <Trash2 size={14} />
                                 </button>
                               )}
-                              {user?.role === 'admin' && (
+                              {role === 'admin' && (
                                 <div className="p-4 text-slate-500 text-xs font-bold flex items-center gap-2">
                                   <Shield size={14} /> لا يمكن تعديل الأدمن
                                 </div>
@@ -241,36 +371,199 @@ export default function AdminUsersPage() {
                       </AnimatePresence>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+
+                  {/* الصف الموسّع: ملخص سريع عن العميل */}
+                  {isCustomer && isExpanded && (
+                    <tr className="bg-slate-50/50">
+                      <td colSpan={6} className="p-5 border-b border-slate-100">
+                        <motion.div
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.18 }}
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <span className="text-xs font-black text-slate-500">
+                              ملخص سريع — {user?.name}
+                            </span>
+                            <button
+                              onClick={() => openDetails(user)}
+                              className={BTN_SOFT}
+                            >
+                              <Eye size={14} />
+                              عرض التفاصيل الكاملة
+                            </button>
+                          </div>
+                          {summaryCards(user.id)}
+                        </motion.div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </AdminTable>
         )}
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between p-4 border-t border-white/5">
-            <span className="text-slate-500 text-xs font-bold">
-              صفحة {page + 1} من {totalPages} ({filteredUsers.length} مستخدم)
-            </span>
-            <div className="flex gap-2">
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={filteredUsers.length}
+          unit="مستخدم"
+          onPage={(p) => { setPage(p); setExpandedId(null); }}
+        />
+      </Panel>
+
+      {/* نافذة تفاصيل العميل الكاملة */}
+      <AdminModal
+        isOpen={!!detailsUser}
+        onClose={() => { setDetailsUser(null); setEditing(false); }}
+        title="تفاصيل العميل"
+        size="xl"
+      >
+        {detailsUser && (
+          <div className="space-y-6">
+            {/* بطاقة العميل */}
+            <div className="flex flex-col md:flex-row md:items-center gap-4 bg-gradient-to-l from-purple-50 to-cyan-50 rounded-2xl p-5 border border-slate-200">
+              <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-2xl font-black text-purple-600 shadow-sm shrink-0">
+                {String(detailsUser?.name || '?').charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h4 className="text-lg font-black text-slate-900">{detailsUser?.name || '-'}</h4>
+                  <Badge tone={ROLE_TONE[String(detailsUser?.role || '').toLowerCase()] || 'slate'}>
+                    {ROLE_LABEL[String(detailsUser?.role || '').toLowerCase()] || detailsUser?.role}
+                  </Badge>
+                </div>
+                <p className="text-slate-500 text-xs font-bold mt-1 flex items-center gap-1.5">
+                  <Mail size={12} /> {detailsUser?.email || '-'}
+                </p>
+              </div>
               <button
-                disabled={page === 0}
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                className="px-4 py-2 rounded-xl bg-white/5 text-slate-200 text-xs font-black disabled:opacity-40"
+                onClick={() => setEditing((e) => !e)}
+                className={editing ? BTN_SOFT : BTN_PRIMARY}
               >
-                السابق
+                <Pencil size={14} />
+                {editing ? 'إلغاء التعديل' : 'تعديل'}
               </button>
-              <button
-                disabled={page >= totalPages - 1}
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                className="px-4 py-2 rounded-xl bg-white/5 text-slate-200 text-xs font-black disabled:opacity-40"
-              >
-                التالي
-              </button>
+            </div>
+
+            {/* بيانات العميل */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                <div className="text-[10px] font-black text-slate-400 mb-1">رقم الهاتف</div>
+                <div className="text-sm font-black text-slate-800 flex items-center gap-1.5" dir="ltr">
+                  <Phone size={13} className="text-slate-400" />
+                  {detailsUser?.phone ? String(detailsUser.phone) : '—'}
+                </div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                <div className="text-[10px] font-black text-slate-400 mb-1">تاريخ الانضمام</div>
+                <div className="text-xs font-black text-slate-800">{fmtDate(detailsUser?.createdAt)}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                <div className="text-[10px] font-black text-slate-400 mb-1">آخر دخول</div>
+                <div className="text-xs font-black text-slate-800">{detailsUser?.lastLogin ? fmtDate(detailsUser.lastLogin) : 'لم يسجل الدخول'}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                <div className="text-[10px] font-black text-slate-400 mb-1">حالة الحساب</div>
+                <div className="text-xs font-black">
+                  {detailsUser?.isActive !== false
+                    ? <Badge tone="green">نشط</Badge>
+                    : <Badge tone="red">موقوف</Badge>}
+                </div>
+              </div>
+            </div>
+
+            {/* نموذج التعديل */}
+            {editing && (
+              <div className="rounded-2xl border border-purple-200 bg-purple-50/40 p-5 space-y-4">
+                <h5 className="text-sm font-black text-slate-900">تعديل بيانات العميل</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field label="الاسم">
+                    <input
+                      value={editForm.name}
+                      onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                      className={INPUT_CLASS}
+                      placeholder="اسم العميل"
+                    />
+                  </Field>
+                  <Field label="رقم الهاتف">
+                    <input
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                      className={INPUT_CLASS}
+                      placeholder="رقم الهاتف"
+                      dir="ltr"
+                    />
+                  </Field>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={saveEdit} disabled={saving} className={BTN_PRIMARY}>
+                    {saving ? <Spinner size={14} className="text-white" /> : null}
+                    حفظ التعديلات
+                  </button>
+                  <button onClick={() => setEditing(false)} className={BTN_SOFT}>إلغاء</button>
+                </div>
+              </div>
+            )}
+
+            {/* إحصائيات العميل */}
+            {String(detailsUser?.role || '').toLowerCase() === 'customer' && (
+              <div>
+                <h5 className="text-xs font-black text-slate-500 uppercase tracking-wider mb-3">إحصائيات الشراء</h5>
+                {summaryCards(detailsUser.id)}
+              </div>
+            )}
+
+            {/* سجل الطلبات */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h5 className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                  سجل الطلبات {detailsOrders.length > 0 && `(${detailsOrders.length})`}
+                </h5>
+              </div>
+              {detailsLoading ? (
+                <div className="flex items-center justify-center gap-3 py-10 text-slate-500 text-sm font-bold">
+                  <Spinner size={16} /> جاري تحميل الطلبات...
+                </div>
+              ) : detailsOrders.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 py-10 text-center">
+                  <ShoppingBag size={32} className="mx-auto text-slate-300 mb-2" />
+                  <p className="text-slate-400 text-xs font-bold">لا توجد طلبات لهذا العميل</p>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-right border-collapse min-w-[560px]">
+                      <thead>
+                        <tr className="border-b border-slate-200 bg-slate-50">
+                          <th className={TH}>رقم الطلب</th>
+                          <th className={TH}>التاريخ</th>
+                          <th className={TH}>الحالة</th>
+                          <th className={TH + ' text-left'}>الإجمالي</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detailsOrders.map((order) => {
+                          const meta = ORDER_STATUS_META[String(order?.status || '').toUpperCase()] || ORDER_STATUS_META.PENDING;
+                          return (
+                            <tr key={order.id} className={TR}>
+                              <td className={TD + ' font-black text-slate-900 text-xs'}>#{String(order.id || '').slice(0, 8)}</td>
+                              <td className={TD + ' text-slate-500 text-xs font-bold'}>{fmtDate(order?.createdAt)}</td>
+                              <td className={TD}><Badge tone={meta.tone}>{meta.label}</Badge></td>
+                              <td className={TD + ' text-left text-cyan-700 font-black text-sm'}>{formatEGP(order?.total)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
-      </div>
+      </AdminModal>
     </div>
   );
 }

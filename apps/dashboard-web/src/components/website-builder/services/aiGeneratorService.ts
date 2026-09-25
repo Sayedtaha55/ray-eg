@@ -1541,10 +1541,10 @@ export function generateCompleteAiWebsite(
         title: 'احجز استشارتك أو موعدك الآن',
         subtitle: 'املأ بياناتك وسيقوم فريقنا بالتواصل معك لتزويدك بكافة التفاصيل وعروض الأسعار.',
         submitText: 'إرسال طلب الحجز فوراً 🚀',
-        phone: '+966 800 123 4567',
-        whatsapp: '+966 50 000 0000',
-        email: 'vip@almajd-group.sa',
-        address: 'طريق الملك فهد، حي الصحافة، الرياض، المملكة العربية السعودية',
+        phone: '+20 100 123 4567',
+        whatsapp: '+20 100 000 0000',
+        email: 'info@almajd-group.eg',
+        address: 'شارع التسعين، التجمع الخامس، القاهرة، جمهورية مصر العربية',
       },
       styles: {
         desktop: {

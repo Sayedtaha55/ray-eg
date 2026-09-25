@@ -17,7 +17,7 @@ import {
   ChevronRight,
   ArrowRight
 } from 'lucide-react';
-import { api, clearStoredAuthToken, getStoredAuthToken } from '@/lib/api';
+import { api, clearStoredAuthToken, isSessionActive } from '@/lib/api';
 
 interface Order {
   id: string;
@@ -35,8 +35,7 @@ export default function ProfileOrdersPage() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all');
 
   useEffect(() => {
-    const token = getStoredAuthToken();
-    if (!token) {
+    if (!isSessionActive()) {
       router.push('/login');
       return;
     }

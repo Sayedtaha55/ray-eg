@@ -19,7 +19,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { businessBrand } from '@/lib/brand';
-import { DASHBOARD_URL, dashboardAuthCallbackUrl } from '@/lib/appUrls';
+import { DASHBOARD_URL, dashboardLoginUrl } from '@/lib/appUrls';
 
 const MotionDiv = motion.div as any;
 
@@ -113,24 +113,15 @@ function LoginContent() {
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-
-      if (!res.ok)
-        throw new Error(data?.message || data?.error || 'فشل تسجيل الدخول، تأكد من بياناتك');
-
-      const accessToken =
-        data?.token?.accessToken ||
-        data?.data?.token?.accessToken ||
-        data?.session?.access_token ||
-        data?.accessToken;
-      const user = data?.user || data?.data?.user;
-
-      window.location.href = dashboardAuthCallbackUrl({ accessToken, user, returnTo });
+      // Root-cause fix for the 15-minute logout: signing in against the
+      // API directly from this origin can never stamp the refresh cookie
+      // on the dashboard's domain (cross-origin Set-Cookie is dropped
+      // without credentials:'include', and even then it would land on the
+      // wrong host). The merchant now signs in ON the dashboard origin —
+      // its Next rewrite proxies same-origin, so both HttpOnly cookies
+      // (ray_access + ray_session) are set correctly from the first
+      // moment. No access token ever travels through a URL.
+      window.location.href = dashboardLoginUrl({ returnTo, followShopId });
     } catch (err: any) {
       setError(err.message || 'فشل تسجيل الدخول، تأكد من بياناتك');
     } finally {

@@ -1,19 +1,7 @@
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: ray-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
+  # Production uses the platform-managed Redis service configured by REDIS_URL.
+  # PostgreSQL is Supabase and is configured by DATABASE_URL; neither database
+  # is started by this compose file.
   api:
     build:
       context: .
@@ -24,9 +12,6 @@ services:
       - "${PORT:-4000}:${PORT:-4000}"
     env_file:
       - .env.production
-    depends_on:
-      redis:
-        condition: service_healthy
 
   worker:
     build:
@@ -36,9 +21,4 @@ services:
     restart: unless-stopped
     env_file:
       - .env.production
-    depends_on:
-      redis:
-        condition: service_healthy
 
-volumes:
-  redis_data:

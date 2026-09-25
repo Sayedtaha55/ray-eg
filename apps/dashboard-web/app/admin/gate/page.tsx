@@ -366,24 +366,24 @@ export default function AdminGatePage() {
 
   return (
     <div
-      className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-right"
+      className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-purple-50 flex items-center justify-center p-6 text-right"
       dir="rtl"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-lg bg-slate-900 border border-white/5 p-12 rounded-[4rem] shadow-2xl"
+        className="w-full max-w-lg bg-white border border-slate-200 p-10 md:p-12 rounded-[3rem] shadow-xl"
       >
         <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-[#BD00FF] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_50px_rgba(189,0,255,0.4)]">
+          <div className="w-20 h-20 bg-gradient-to-br from-purple-600 to-purple-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/30">
             <ShieldAlert size={40} className="text-white" />
           </div>
-          <h1 className="text-3xl font-black text-white tracking-tighter">بوابة الأدمن</h1>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">بوابة الأدمن</h1>
           <p className="text-slate-500 font-bold mt-2">دخول مخصص للمسؤولين فقط</p>
         </div>
 
         {error && (
-          <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl mb-8 text-sm font-bold">
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-2xl mb-8 text-sm font-bold">
             {error}
           </div>
         )}
@@ -399,7 +399,7 @@ export default function AdminGatePage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin"
-              className="w-full bg-slate-800 border-none rounded-2xl py-5 px-8 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+              className="w-full bg-white border border-slate-200 rounded-2xl py-5 px-8 text-slate-900 placeholder:text-slate-400 font-bold outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
             />
           </div>
           <div className="space-y-2">
@@ -413,12 +413,12 @@ export default function AdminGatePage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••"
-                className="w-full bg-slate-800 border-none rounded-2xl py-5 px-8 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                className="w-full bg-white border border-slate-200 rounded-2xl py-5 px-8 text-slate-900 placeholder:text-slate-400 font-bold outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 transition-colors"
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -426,7 +426,7 @@ export default function AdminGatePage() {
           </div>
           <button
             disabled={loading}
-            className="w-full py-6 bg-white text-black rounded-[2rem] font-black text-xl hover:bg-[#BD00FF] hover:text-white transition-all shadow-2xl flex items-center justify-center gap-3 cursor-pointer"
+            className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black text-xl hover:bg-purple-600 transition-all shadow-lg flex items-center justify-center gap-3 cursor-pointer"
           >
             {loading ? <Loader2 className="animate-spin" /> : <KeyRound />}
             دخول الأدمن
@@ -463,9 +463,9 @@ export default function AdminGatePage() {
                     setLoading(false);
                   }
                 }}
-                className="w-full py-4 bg-purple-600/30 border border-purple-500/50 text-purple-200 rounded-[2rem] font-black text-sm hover:bg-purple-600 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                className="w-full py-4 bg-purple-50 border border-purple-200 text-purple-700 rounded-[2rem] font-black text-sm hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
               >
-                <ShieldAlert size={18} className="text-purple-400" />
+                <ShieldAlert size={18} className="text-purple-600" />
                 <span>دخول سريع كـ Super Admin بنقرة واحدة</span>
               </button>
               {/* Dev merchant login with activity menu */}
@@ -474,7 +474,7 @@ export default function AdminGatePage() {
                   type="button"
                   disabled={loading}
                   onClick={() => setIsDevActivityMenuOpen((v) => !v)}
-                  className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
+                  className="w-full py-4 bg-slate-100 text-slate-700 rounded-[2rem] font-black text-sm hover:text-slate-900 hover:bg-slate-200 transition-all flex items-center justify-center gap-3"
                 >
                   <Store size={18} />
                   دخول مطور (تاجر)
@@ -486,12 +486,12 @@ export default function AdminGatePage() {
                       className="fixed inset-0 z-40"
                       onClick={() => setIsDevActivityMenuOpen(false)}
                     />
-                    <div className="absolute z-50 left-0 right-0 mt-3 bg-slate-900 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl max-h-[70vh]">
-                      <div className="px-6 pt-3 pb-2 sticky top-0 bg-slate-900">
-                        <div className="text-[10px] font-black text-indigo-200 uppercase tracking-[0.25em]">
+                    <div className="absolute z-50 left-0 right-0 mt-3 bg-white border border-slate-200 rounded-[2rem] overflow-hidden shadow-xl max-h-[70vh]">
+                      <div className="px-6 pt-3 pb-2 sticky top-0 bg-white">
+                        <div className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.25em]">
                           أنشطة المتجر
                         </div>
-                        <p className="text-[9px] font-bold text-slate-500 mt-1">
+                        <p className="text-[9px] font-bold text-slate-400 mt-1">
                           اختر نشاط المتجر للدخول كتاجر
                         </p>
                       </div>
@@ -505,13 +505,13 @@ export default function AdminGatePage() {
                                 type="button"
                                 disabled={loading}
                                 onClick={() => setExpandedDevGroup(isExpanded ? null : group.id)}
-                                className="w-full py-3 px-6 text-right flex items-center gap-3 border-b border-white/5 hover:bg-slate-800/60 transition-all"
+                                className="w-full py-3 px-6 text-right flex items-center gap-3 border-b border-slate-100 hover:bg-slate-50 transition-all"
                               >
                                 <GroupIcon className="w-4 h-4 text-slate-400 shrink-0" />
-                                <span className="text-xs font-black text-white flex-1">
+                                <span className="text-xs font-black text-slate-900 flex-1">
                                   {group.title}
                                 </span>
-                                <span className="text-[9px] font-bold text-slate-400 bg-white/5 px-1.5 py-0.5 rounded-md">
+                                <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md">
                                   {group.activities.length}
                                 </span>
                                 <ChevronDown
@@ -520,7 +520,7 @@ export default function AdminGatePage() {
                                 />
                               </button>
                               {isExpanded && (
-                                <div className="bg-slate-900/80">
+                                <div className="bg-slate-50/60">
                                   {group.activities.map((activity) => {
                                     const IconComp = getDevActivityIcon(activity.id);
                                     return (
@@ -531,10 +531,10 @@ export default function AdminGatePage() {
                                         onClick={() =>
                                           handleDevActivitySelect(activity.id, activity.category)
                                         }
-                                        className="w-full py-2.5 pr-8 pl-6 text-right flex items-center gap-3 border-b border-white/5 hover:bg-slate-800 transition-all"
+                                        className="w-full py-2.5 pr-8 pl-6 text-right flex items-center gap-3 border-b border-slate-100 hover:bg-slate-50 transition-all"
                                       >
                                         <IconComp className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                                        <span className="text-[11px] font-bold text-slate-100">
+                                        <span className="text-[11px] font-bold text-slate-700">
                                           {activity.title}
                                         </span>
                                       </button>
@@ -552,10 +552,10 @@ export default function AdminGatePage() {
                             setIsDevActivityMenuOpen(false);
                             handleDevMerchantLogin();
                           }}
-                          className="w-full py-3 px-6 text-right flex items-center gap-3 hover:bg-slate-800 transition-all border-t border-white/10"
+                          className="w-full py-3 px-6 text-right flex items-center gap-3 hover:bg-slate-50 transition-all border-t border-slate-200"
                         >
                           <Store className="w-4 h-4 text-slate-400 shrink-0" />
-                          <span className="text-xs font-black text-white">
+                          <span className="text-xs font-black text-slate-900">
                             تاجر افتراضي (بدون نشاط محدد)
                           </span>
                         </button>
@@ -571,7 +571,7 @@ export default function AdminGatePage() {
                   type="button"
                   disabled={loading}
                   onClick={() => setIsDevBookingMenuOpen((v) => !v)}
-                  className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
+                  className="w-full py-4 bg-slate-100 text-slate-700 rounded-[2rem] font-black text-sm hover:text-slate-900 hover:bg-slate-200 transition-all flex items-center justify-center gap-3"
                 >
                   <Calendar size={18} />
                   دخول مطور حجوزات
@@ -583,12 +583,12 @@ export default function AdminGatePage() {
                       className="fixed inset-0 z-40"
                       onClick={() => setIsDevBookingMenuOpen(false)}
                     />
-                    <div className="absolute z-50 left-0 right-0 mt-3 bg-slate-900 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl max-h-[70vh]">
-                      <div className="px-6 pt-3 pb-2 sticky top-0 bg-slate-900">
-                        <div className="text-[10px] font-black text-emerald-200 uppercase tracking-[0.25em]">
+                    <div className="absolute z-50 left-0 right-0 mt-3 bg-white border border-slate-200 rounded-[2rem] overflow-hidden shadow-xl max-h-[70vh]">
+                      <div className="px-6 pt-3 pb-2 sticky top-0 bg-white">
+                        <div className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.25em]">
                           أنشطة الحجوزات
                         </div>
-                        <p className="text-[9px] font-bold text-slate-500 mt-1">
+                        <p className="text-[9px] font-bold text-slate-400 mt-1">
                           اختر نشاط الحجز للدخول كتاجر
                         </p>
                       </div>
@@ -601,11 +601,11 @@ export default function AdminGatePage() {
                               type="button"
                               disabled={loading}
                               onClick={() => handleDevBookingSelect(activity.id)}
-                              className="w-full py-3 px-6 text-right flex items-center gap-3 border-b border-white/5 hover:bg-slate-800 transition-all"
+                              className="w-full py-3 px-6 text-right flex items-center gap-3 border-b border-slate-100 hover:bg-slate-50 transition-all"
                             >
                               <IconComp className="w-4 h-4 text-slate-400 shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <span className="text-xs font-black text-white block">
+                                <span className="text-xs font-black text-slate-900 block">
                                   {activity.title}
                                 </span>
                                 <span className="text-[9px] font-bold text-slate-500 block truncate">
@@ -626,7 +626,7 @@ export default function AdminGatePage() {
                 type="button"
                 disabled={loading}
                 onClick={handleDevCourierLogin}
-                className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
+                className="w-full py-4 bg-slate-100 text-slate-700 rounded-[2rem] font-black text-sm hover:text-slate-900 hover:bg-slate-200 transition-all flex items-center justify-center gap-3"
               >
                 <MapPin size={18} />
                 دخول مطور (مندوب)
@@ -637,7 +637,7 @@ export default function AdminGatePage() {
                 type="button"
                 disabled={loading}
                 onClick={handleDevPortalLogin}
-                className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
+                className="w-full py-4 bg-slate-100 text-slate-700 rounded-[2rem] font-black text-sm hover:text-slate-900 hover:bg-slate-200 transition-all flex items-center justify-center gap-3"
               >
                 <Store size={18} />
                 دخول مطور بورتال (نشاط خارجي)
@@ -650,14 +650,14 @@ export default function AdminGatePage() {
               <button
                 type="button"
                 onClick={() => setBootstrapOpen((v) => !v)}
-                className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all"
+                className="w-full py-4 bg-slate-100 text-slate-700 rounded-[2rem] font-black text-sm hover:text-slate-900 hover:bg-slate-200 transition-all"
               >
                 تهيئة أدمن جديد (Bootstrap)
               </button>
 
               {bootstrapOpen && (
-                <div className="p-6 bg-slate-950/40 border border-white/5 rounded-[2.5rem] space-y-4">
-                  <div className="text-[11px] font-black text-slate-400">
+                <div className="p-6 bg-slate-50 border border-slate-200 rounded-[2.5rem] space-y-4">
+                  <div className="text-[11px] font-black text-slate-500">
                     استخدم توكن البوتستراب لإنشاء حساب أدمن جديد. هذا الخيار متاح فقط في بيئة
                     التطوير.
                   </div>
@@ -669,12 +669,12 @@ export default function AdminGatePage() {
                         value={bootstrapToken}
                         onChange={(e) => setBootstrapToken(e.target.value)}
                         placeholder="ADMIN_BOOTSTRAP_TOKEN"
-                        className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                        className="w-full bg-white border border-slate-200 rounded-2xl py-4 px-6 text-slate-900 placeholder:text-slate-400 font-bold outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => setShowBootstrapToken(!showBootstrapToken)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 transition-colors"
                       >
                         {showBootstrapToken ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
@@ -685,7 +685,7 @@ export default function AdminGatePage() {
                       value={bootstrapEmail}
                       onChange={(e) => setBootstrapEmail(e.target.value)}
                       placeholder="admin@mnmknk.com"
-                      className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                      className="w-full bg-white border border-slate-200 rounded-2xl py-4 px-6 text-slate-900 placeholder:text-slate-400 font-bold outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
                     />
                     <div className="relative">
                       <input
@@ -694,12 +694,12 @@ export default function AdminGatePage() {
                         value={bootstrapPassword}
                         onChange={(e) => setBootstrapPassword(e.target.value)}
                         placeholder="كلمة مرور الأدمن"
-                        className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                        className="w-full bg-white border border-slate-200 rounded-2xl py-4 px-6 text-slate-900 placeholder:text-slate-400 font-bold outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => setShowBootstrapPassword(!showBootstrapPassword)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 transition-colors"
                       >
                         {showBootstrapPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
@@ -709,11 +709,11 @@ export default function AdminGatePage() {
                       value={bootstrapName}
                       onChange={(e) => setBootstrapName(e.target.value)}
                       placeholder="اسم الأدمن"
-                      className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                      className="w-full bg-white border border-slate-200 rounded-2xl py-4 px-6 text-slate-900 placeholder:text-slate-400 font-bold outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
                     />
                     <button
                       disabled={bootstrapLoading}
-                      className="w-full py-4 bg-[#BD00FF] text-white rounded-[2rem] font-black text-sm hover:brightness-110 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+                      className="w-full py-4 bg-purple-600 text-white rounded-[2rem] font-black text-sm hover:bg-purple-700 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
                     >
                       {bootstrapLoading ? (
                         <Loader2 className="animate-spin" size={18} />
@@ -731,7 +731,7 @@ export default function AdminGatePage() {
           <button
             type="button"
             onClick={() => router.push('/login')}
-            className="w-full py-4 text-slate-500 font-bold text-sm flex items-center justify-center gap-2 hover:text-white transition-colors"
+            className="w-full py-4 text-slate-400 font-bold text-sm flex items-center justify-center gap-2 hover:text-slate-900 transition-colors"
           >
             <ArrowRight size={16} /> العودة لتسجيل الدخول
           </button>

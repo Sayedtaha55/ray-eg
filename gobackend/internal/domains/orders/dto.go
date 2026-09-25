@@ -129,6 +129,7 @@ type AssignCourierRequest struct {
 // OrderListRequest is the query for listing orders.
 type OrderListRequest struct {
 	ShopID string     `query:"shopId"`
+	UserID string     `query:"userId"`
 	From   *time.Time `query:"from"`
 	To     *time.Time `query:"to"`
 	Page   int        `query:"page"`

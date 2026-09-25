@@ -1,19 +1,20 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, ShieldAlert, Users, Settings, LogOut, Bell, Menu, Sparkles,
+  LayoutDashboard, ShieldAlert, Users, Settings, LogOut, Bell, Menu,
   MessageSquare, CreditCard, Store, BarChart3, FileText, Truck, Headphones, Eye,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { ToastProvider } from '@/components/settings/ToastProvider';
+import { Spinner } from '@/components/admin/ui';
+import { cn } from '@/lib/cn';
 
 const NAV_ITEMS = [
   { href: '/admin/dashboard', label: 'نظرة عامة', icon: LayoutDashboard },
-  { href: '/admin/new-shops', label: 'المتاجر الجديدة', icon: Sparkles },
   { href: '/admin/approvals', label: 'الموافقات', icon: ShieldAlert },
   { href: '/admin/shops', label: 'المتاجر', icon: Store },
   { href: '/admin/users', label: 'المستخدمون', icon: Users },
@@ -56,10 +57,16 @@ export default function GuardedAdminLayout({
     router.replace('/login');
   };
 
+  // عنوان الصفحة الحالية يظهر في الهيدر بدل نص ثابت
+  const currentLabel = useMemo(
+    () => NAV_ITEMS.find((n) => pathname.startsWith(n.href))?.label || 'لوحة الأدمن',
+    [pathname]
+  );
+
   if (!checked || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
-        <div className="w-12 h-12 border-4 border-slate-800 border-t-[#BD00FF] rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Spinner size={40} />
       </div>
     );
   }
@@ -67,7 +74,7 @@ export default function GuardedAdminLayout({
   const initial = String(user?.name || user?.email || 'A').charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col md:flex-row-reverse text-right font-sans" dir="rtl">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-right font-sans" dir="rtl">
       {/* Sidebar Overlay (mobile) */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -76,79 +83,81 @@ export default function GuardedAdminLayout({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] md:hidden"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] md:hidden"
           />
         )}
       </AnimatePresence>
 
       {/* Sidebar */}
       <aside
-        className={`w-80 bg-slate-900 text-white flex flex-col fixed inset-y-0 right-0 z-[110] shadow-2xl transition-transform duration-500 md:translate-x-0 ${
+        className={`w-72 bg-white border-l border-slate-200 text-slate-800 flex flex-col fixed inset-y-0 right-0 z-[110] shadow-sm transition-transform duration-300 md:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="p-10 flex items-center gap-3">
-          <span className="text-2xl font-black tracking-tighter uppercase">
-            MNMKNK <span className="text-[#BD00FF]">ROOT</span>
+        <div className="px-8 py-7 flex items-center gap-3 border-b border-slate-100">
+          <span className="text-xl font-black tracking-tight text-slate-900">
+            نمّي <span className="text-cyan-600">ROOT</span>
           </span>
         </div>
 
-        <nav className="flex-1 px-6 space-y-2 py-6 overflow-y-auto">
+        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = pathname.startsWith(item.href);
             return (
-              <a
+              // Link مع prefetch — تنقل فوري من غير إعادة تحميل الصفحة بالكامل
+              <Link
                 key={item.href}
                 href={item.href}
+                prefetch
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-4 px-6 py-4 rounded-2xl transition-all font-bold ${
+                className={cn(
+                  'flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold',
                   active
-                    ? 'bg-[#00E5FF] text-black shadow-[0_10px_30px_rgba(0,229,255,0.2)]'
-                    : 'text-slate-400 hover:bg-white/5'
-                }`}
+                    ? 'bg-slate-900 text-white shadow-md'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                )}
               >
-                <Icon size={20} />
+                <Icon size={18} className={active ? 'text-cyan-300' : 'text-slate-400'} />
                 <span className="text-sm">{item.label}</span>
-              </a>
+              </Link>
             );
           })}
         </nav>
 
-        <div className="p-8 border-t border-white/5">
+        <div className="p-4 border-t border-slate-100">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-red-400 hover:bg-red-500/10 transition-all font-bold"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-all font-bold text-sm"
           >
-            <LogOut size={20} />
+            <LogOut size={18} />
             <span>تسجيل الخروج</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 md:mr-80 overflow-x-hidden min-h-screen">
-        <header className="h-24 bg-slate-900/50 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-8 sticky top-0 z-40">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="md:hidden p-3 bg-white/5 rounded-xl text-white"
-          >
-            <Menu size={24} />
-          </button>
-          <div className="flex items-center gap-6">
-            <div className="relative cursor-pointer">
-              <Bell className="w-6 h-6 text-slate-500" />
-            </div>
-            <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center font-black text-[#00E5FF]">
+      <main className="flex-1 md:mr-72 overflow-x-hidden min-h-screen flex flex-col">
+        <header className="h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-40">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="md:hidden p-2.5 bg-slate-100 rounded-xl text-slate-700"
+              aria-label="فتح القائمة"
+            >
+              <Menu size={22} />
+            </button>
+            <h1 className="text-sm font-black text-slate-900">{currentLabel}</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <Bell className="w-5 h-5 text-slate-400" />
+            <div className="w-9 h-9 rounded-full bg-slate-900 flex items-center justify-center font-black text-cyan-300 text-sm">
               {initial}
             </div>
           </div>
-          <div className="hidden md:block">
-            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">MNMKNK ROOT</p>
-          </div>
         </header>
 
-        <div className="p-6 md:p-12"><ToastProvider>{children}</ToastProvider></div>
+        <div className="p-4 md:p-8 flex-1"><ToastProvider>{children}</ToastProvider></div>
       </main>
     </div>
   );

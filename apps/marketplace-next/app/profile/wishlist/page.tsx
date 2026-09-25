@@ -14,7 +14,7 @@ import {
   ChevronRight,
   ArrowRight
 } from 'lucide-react';
-import { api, clearStoredAuthToken, getStoredAuthToken } from '@/lib/api';
+import { api, clearStoredAuthToken, isSessionActive } from '@/lib/api';
 import { useWishlist } from '@/lib/wishlist';
 import { ProductCard } from '@/components/ProductCard';
 
@@ -25,8 +25,7 @@ export default function ProfileWishlistPage() {
   const { items, clear, count } = useWishlist();
 
   useEffect(() => {
-    const token = getStoredAuthToken();
-    if (!token) {
+    if (!isSessionActive()) {
       router.push('/login');
       return;
     }

@@ -1,31 +1,44 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import React, { Suspense, useEffect, useMemo, useState, useCallback } from 'react';
 import {
-  Store, Search, Eye, Edit, Check, X, Loader2, ExternalLink,
+  Store, Eye, Edit, Check, X, ExternalLink,
   MapPin, Phone, Mail, Globe, Ban, ShieldCheck, Truck, LayoutGrid,
+  MessageCircle, Lock, Unlock, RefreshCw, Sparkles, CheckCircle2,
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { apiRequest } from '@/lib/auth';
 import { useToast } from '@/components/settings/ToastProvider';
 import AdminModal from '@/components/admin/AdminModal';
+import {
+  PageHeader, Panel, LoadingBlock, EmptyState, SearchInput, FilterSelect,
+  Pagination, AdminTable, TH, TD, TR, StatChip, Badge, Spinner, TabBar,
+  BTN_SUCCESS, BTN_DANGER_SOFT, BTN_SOFT,
+  fmtDate, formatEGP, timeAgo, type Tone,
+} from '@/components/admin/ui';
+import { cn } from '@/lib/cn';
 
-const MotionDiv = motion.div as any;
+type StatusKey = 'all' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+type ShopsTab = 'all' | 'new';
 
-const fmtDate = (value: any) => {
-  if (!value) return '-';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '-';
-  return d.toLocaleString('ar-EG');
+const STATUS_META: Record<string, { label: string; tone: Tone }> = {
+  APPROVED: { label: 'نشط', tone: 'green' },
+  REJECTED: { label: 'مرفوض', tone: 'red' },
+  SUSPENDED: { label: 'معلّق إدارياً', tone: 'purple' },
+  PENDING: { label: 'قيد المراجعة', tone: 'amber' },
 };
 
-export default function AdminShopsPage() {
+function ShopsContent() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+
+  const [tab, setTab] = useState<ShopsTab>('all');
+
   const [loading, setLoading] = useState(true);
   const [shops, setShops] = useState<any[]>([]);
   const [pendingShops, setPendingShops] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [shopStatusFilter, setShopStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'>('all');
+  const [shopStatusFilter, setShopStatusFilter] = useState<StatusKey>('all');
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [selectedShop, setSelectedShop] = useState<any>(null);
@@ -33,6 +46,17 @@ export default function AdminShopsPage() {
   const [actionId, setActionId] = useState('');
   const [page, setPage] = useState(0);
   const pageSize = 20;
+
+  // ── تبويب المتاجر الجديدة ──
+  const [newShops, setNewShops] = useState<any[]>([]);
+  const [newLoading, setNewLoading] = useState(false);
+  const [newLoaded, setNewLoaded] = useState(false);
+  const [daysFilter, setDaysFilter] = useState<'3' | '7' | '30' | 'all'>('3');
+
+  useEffect(() => {
+    const t = String(searchParams?.get('tab') || '').trim().toLowerCase();
+    if (t === 'new' || t === 'all') setTab(t as ShopsTab);
+  }, [searchParams]);
 
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -54,7 +78,34 @@ export default function AdminShopsPage() {
     }
   }, [toast]);
 
+  // قائمة المتاجر الجديدة: بتُحمَّل أول مرة يفتح فيها المستخدم التبويب فقط
+  const loadNewShops = useCallback(async (silent = false) => {
+    if (!silent) setNewLoading(true);
+    try {
+      const data = await apiRequest('/shops/admin?status=all&take=200');
+      setNewShops(Array.isArray(data) ? data : (data?.items || []));
+    } catch (err: any) {
+      if (!silent) toast({ title: `فشل تحميل المتاجر: ${err?.message || 'خطأ غير معروف'}`, variant: 'destructive' });
+    } finally {
+      if (!silent) setNewLoading(false);
+      setNewLoaded(true);
+    }
+  }, [toast]);
+
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    if (tab === 'new' && !newLoaded) loadNewShops();
+  }, [tab, newLoaded, loadNewShops]);
+
+  const refreshAll = useCallback(async (id?: string) => {
+    await loadData(true);
+    if (newLoaded) await loadNewShops(true);
+    if (id && selectedShop?.id === id) {
+      const refreshed = await apiRequest(`/shops/admin/${id}`);
+      setSelectedShopDetails(refreshed);
+    }
+  }, [loadData, loadNewShops, newLoaded, selectedShop]);
 
   const getShopDeliveryFee = (shop: any): number | null => {
     const raw = shop?.layoutConfig?.deliveryFee;
@@ -77,11 +128,7 @@ export default function AdminShopsPage() {
         body: JSON.stringify({ deliveryFee: fee }),
       });
       toast({ title: 'تم تحديث رسوم التوصيل', variant: 'success' });
-      await loadData(true);
-      if (selectedShop?.id === shop?.id) {
-        const refreshed = await apiRequest(`/shops/admin/${shop.id}`);
-        setSelectedShopDetails(refreshed);
-      }
+      await refreshAll(shop.id);
     } catch {
       toast({ title: 'فشل تحديث رسوم التوصيل', variant: 'destructive' });
     }
@@ -98,11 +145,7 @@ export default function AdminShopsPage() {
         title: action === 'approved' ? 'تم قبول المتجر' : action === 'rejected' ? 'تم رفض المتجر' : 'تم الإرجاع للمراجعة',
         variant: 'success',
       });
-      await loadData(true);
-      if (selectedShop?.id === id) {
-        const refreshed = await apiRequest(`/shops/admin/${id}`);
-        setSelectedShopDetails(refreshed);
-      }
+      await refreshAll(id);
     } catch {
       toast({ title: 'فشل تنفيذ العملية', variant: 'destructive' });
     } finally {
@@ -115,19 +158,37 @@ export default function AdminShopsPage() {
       setActionId(String(shop?.id || ''));
       await apiRequest(`/shops/${shop?.id}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: nextStatus === 'approved' ? 'approved' : 'suspended' }),
+        body: JSON.stringify({ status: nextStatus }),
       });
       toast({
         title: nextStatus === 'approved' ? 'تم إعادة تفعيل المتجر' : 'تم تعليق المتجر',
         variant: 'success',
       });
-      await loadData(true);
-      if (selectedShop?.id === shop?.id) {
-        const refreshed = await apiRequest(`/shops/admin/${shop.id}`);
-        setSelectedShopDetails(refreshed);
-      }
+      await refreshAll(String(shop?.id || ''));
     } catch {
       toast({ title: 'فشل تنفيذ العملية', variant: 'destructive' });
+    } finally {
+      setActionId('');
+    }
+  };
+
+  // قفل/فتح متجر من تبويب الجديد (نفس عملية التعليق/التفعيل)
+  const toggleLock = async (shop: any) => {
+    const current = String(shop?.status || '').toUpperCase();
+    const next = current === 'SUSPENDED' ? 'APPROVED' : 'SUSPENDED';
+    setActionId(String(shop?.id || ''));
+    try {
+      await apiRequest(`/shops/${shop?.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: next }),
+      });
+      toast({
+        title: next === 'SUSPENDED' ? `تم قفل "${shop?.name}" — التاجر مش هيقدر يدخل` : `تم فتح "${shop?.name}" ورجوع تفعيله`,
+        variant: 'success',
+      });
+      await refreshAll(String(shop?.id || ''));
+    } catch (err: any) {
+      toast({ title: `فشل تنفيذ العملية: ${err?.message || 'خطأ'}`, variant: 'destructive' });
     } finally {
       setActionId('');
     }
@@ -144,11 +205,7 @@ export default function AdminShopsPage() {
         title: key === 'publicDisabled' ? 'تم تحديث الظهور العام' : 'تم تحديث حالة التوصيل',
         variant: 'success',
       });
-      await loadData(true);
-      if (selectedShop?.id === shop?.id) {
-        const refreshed = await apiRequest(`/shops/admin/${shop.id}`);
-        setSelectedShopDetails(refreshed);
-      }
+      await refreshAll(String(shop?.id || ''));
     } catch (e: any) {
       toast({ title: String(e?.message || 'فشل الحفظ'), variant: 'destructive' });
     } finally {
@@ -174,11 +231,7 @@ export default function AdminShopsPage() {
         title: nextActive ? 'تم إعادة التفعيل' : 'تم التعطيل',
         variant: 'success',
       });
-      await loadData(true);
-      if (selectedShop?.id === id) {
-        const refreshed = await apiRequest(`/shops/admin/${id}`);
-        setSelectedShopDetails(refreshed);
-      }
+      await refreshAll(id);
     } catch (e: any) {
       toast({ title: String(e?.message || 'فشل تنفيذ العملية'), variant: 'destructive' });
     } finally {
@@ -201,6 +254,7 @@ export default function AdminShopsPage() {
     }
   };
 
+  // ── بيانات تبويب "كل المتاجر" ──
   const filteredShops = useMemo(() => {
     return shops.filter((shop) => {
       const q = searchTerm.toLowerCase();
@@ -215,6 +269,43 @@ export default function AdminShopsPage() {
   const paginatedShops = filteredShops.slice(page * pageSize, (page + 1) * pageSize);
   const totalPages = Math.ceil(filteredShops.length / pageSize);
 
+  // ── بيانات تبويب "المتاجر الجديدة" (الأحدث أولاً) ──
+  const filteredNewShops = useMemo(() => {
+    return newShops
+      .filter((s) => {
+        const createdAt = s?.createdAt ? new Date(String(s.createdAt)) : null;
+        if (daysFilter !== 'all' && createdAt) {
+          const days = (Date.now() - createdAt.getTime()) / 86400000;
+          if (days > Number(daysFilter)) return false;
+        }
+        if (!searchTerm) return true;
+        const q = searchTerm.trim().toLowerCase();
+        return (
+          String(s?.name || '').toLowerCase().includes(q) ||
+          String(s?.phone || '').includes(q) ||
+          String(s?.owner_email || s?.ownerEmail || s?.owner?.email || '').toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => new Date(String(b?.createdAt || 0)).getTime() - new Date(String(a?.createdAt || 0)).getTime());
+  }, [newShops, daysFilter, searchTerm]);
+
+  // رقم المالك الحقيقي من حساب التسجيل، ولو مش موجود رقم المتجر
+  const ownerPhone = (s: any) => {
+    const raw = String(s?.owner?.phone || s?.owner_phone || s?.phone || '');
+    const digits = raw.replace(/[^\d+]/g, '');
+    if (!digits) return '';
+    if (digits.startsWith('+')) return digits;
+    if (digits.startsWith('20')) return `+${digits}`;
+    if (digits.startsWith('0')) return `+2${digits}`;
+    return digits;
+  };
+  const ownerName = (s: any) => String(s?.owner?.name || s?.name || 'متجر');
+  const formatPhone = (p: string) => {
+    const m = p.match(/^\+20(1[0125])(\d{4})(\d{4})$/);
+    if (m) return `+20 ${m[1]} ${m[2]} ${m[3]}`;
+    return p;
+  };
+
   const selected = selectedShopDetails || selectedShop;
   const selectedStatus = String(selected?.status || '').toUpperCase();
   const selectedPublicDisabled = Boolean(selected?.publicDisabled ?? selected?.public_disabled ?? false);
@@ -222,302 +313,414 @@ export default function AdminShopsPage() {
   const selectedIsActive = Boolean(selected?.isActive ?? selected?.is_active ?? true);
   const enabledModules = Array.isArray(selected?.layoutConfig?.enabledModules) ? selected.layoutConfig.enabledModules : [];
 
-  if (loading) {
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#00E5FF] w-10 h-10" />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-blue-500/10 text-blue-400 rounded-2xl"><Store size={24} /></div>
-          <div>
-            <h2 className="text-3xl font-black text-white">إدارة المتاجر</h2>
-            <p className="text-slate-500 text-sm font-bold">عرض وإدارة جميع متاجر المنصة</p>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Store}
+        title="إدارة المتاجر"
+        subtitle="عرض وإدارة جميع متاجر المنصة، ومتابعة التجار الجدد والتواصل معاهم"
+        tone="sky"
+        actions={
+          <TabBar
+            tabs={[
+              { id: 'all', label: 'كل المتاجر', icon: Store },
+              { id: 'new', label: 'المتاجر الجديدة', icon: Sparkles },
+            ]}
+            active={tab}
+            onChange={(id) => setTab(id as ShopsTab)}
+          />
+        }
+        stats={
+          tab === 'all' ? (
+            <>
+              <StatChip label="الإجمالي" value={shops.length} />
+              <StatChip label="قيد المراجعة" value={pendingShops.length} tone="amber" />
+              <StatChip
+                label="نشطة"
+                value={shops.filter((s) => String(s?.status || '').toUpperCase() === 'APPROVED').length}
+                tone="green"
+              />
+            </>
+          ) : (
+            <>
+              <StatChip label="في الفترة" value={filteredNewShops.length} tone="cyan" />
+              <StatChip
+                label="مقفولة"
+                value={filteredNewShops.filter((s) => String(s?.status || '').toUpperCase() === 'SUSPENDED').length}
+                tone="red"
+              />
+            </>
+          )
+        }
+      />
 
-        <div className="grid grid-cols-3 gap-3 w-full md:w-auto">
-          <div className="rounded-2xl bg-slate-900/70 border border-white/5 px-5 py-4 text-center">
-            <div className="text-slate-500 text-xs font-black">الإجمالي</div>
-            <div className="mt-2 text-white text-2xl font-black">{shops.length}</div>
-          </div>
-          <div className="rounded-2xl bg-slate-900/70 border border-white/5 px-5 py-4 text-center">
-            <div className="text-slate-500 text-xs font-black">قيد المراجعة</div>
-            <div className="mt-2 text-amber-400 text-2xl font-black">{pendingShops.length}</div>
-          </div>
-          <div className="rounded-2xl bg-slate-900/70 border border-white/5 px-5 py-4 text-center">
-            <div className="text-slate-500 text-xs font-black">نشطة</div>
-            <div className="mt-2 text-emerald-400 text-2xl font-black">
-              {shops.filter((s) => String(s?.status || '').toUpperCase() === 'APPROVED').length}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {pendingShops.length > 0 && (
-        <MotionDiv
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-900/60 border border-white/5 rounded-[2.5rem] p-6"
-        >
-          <h3 className="text-white font-black text-lg mb-4">
-            موافقات معلقة ({pendingShops.length})
-          </h3>
-          <div className="space-y-3">
-            {pendingShops.slice(0, 6).map((shop) => (
-              <div
-                key={shop.id}
-                className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4"
-              >
-                <div className="flex items-center gap-4 flex-row-reverse">
-                  <img
-                    src={shop.logoUrl || shop.logo_url || '/default-shop.png'}
-                    className="w-12 h-12 rounded-xl object-cover bg-slate-800"
-                    loading="lazy"
-                  />
-                  <div className="text-right">
-                    <div className="text-white font-black">{shop.name}</div>
-                    <div className="text-slate-500 text-xs font-bold">
-                      {shop.governorate} • {shop.city} • {shop.category}
+      {tab === 'all' && (
+        <>
+          {pendingShops.length > 0 && (
+            <Panel className="p-6">
+              <h3 className="text-slate-900 font-black text-lg mb-4">
+                موافقات معلقة ({pendingShops.length})
+              </h3>
+              <div className="space-y-3">
+                {pendingShops.slice(0, 6).map((shop) => (
+                  <div
+                    key={shop.id}
+                    className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4"
+                  >
+                    <div className="flex items-center gap-4 flex-row-reverse">
+                      <img
+                        src={shop.logoUrl || shop.logo_url || '/default-shop.png'}
+                        className="w-12 h-12 rounded-xl object-cover bg-slate-100 border border-slate-200"
+                        loading="lazy"
+                      />
+                      <div className="text-right">
+                        <div className="text-slate-900 font-black">{shop.name}</div>
+                        <div className="text-slate-500 text-xs font-bold">
+                          {shop.governorate} • {shop.city} • {shop.category}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => openShopDetails(shop)} className={BTN_SOFT}>
+                        <Eye size={16} /> تفاصيل
+                      </button>
+                      <button onClick={() => handleApprovalAction(shop.id, 'approved')} className={BTN_SUCCESS}>
+                        <Check size={16} /> قبول
+                      </button>
+                      <button onClick={() => handleApprovalAction(shop.id, 'rejected')} className={BTN_DANGER_SOFT}>
+                        <X size={16} /> رفض
+                      </button>
                     </div>
                   </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => openShopDetails(shop)}
-                    className="px-4 py-2 bg-white/5 text-slate-200 rounded-xl font-black text-xs flex items-center gap-2"
-                  >
-                    <Eye size={16} /> تفاصيل
-                  </button>
-                  <button
-                    onClick={() => handleApprovalAction(shop.id, 'approved')}
-                    className="px-4 py-2 bg-green-500 text-white rounded-xl font-black text-xs flex items-center gap-2"
-                  >
-                    <Check size={16} /> قبول
-                  </button>
-                  <button
-                    onClick={() => handleApprovalAction(shop.id, 'rejected')}
-                    className="px-4 py-2 bg-red-500/10 text-red-400 rounded-xl font-black text-xs flex items-center gap-2"
-                  >
-                    <X size={16} /> رفض
-                  </button>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </MotionDiv>
+            </Panel>
+          )}
+
+          <Panel>
+            <div className="flex flex-col md:flex-row gap-3 p-5 border-b border-slate-100">
+              <SearchInput
+                value={searchTerm}
+                onChange={(v) => { setSearchTerm(v); setPage(0); }}
+                placeholder="ابحث بالاسم، البريد، الهاتف، المدينة..."
+              />
+              <FilterSelect
+                value={shopStatusFilter}
+                onChange={(v) => { setShopStatusFilter(v as StatusKey); setPage(0); }}
+                options={[
+                  { value: 'all', label: 'كل الحالات' },
+                  { value: 'APPROVED', label: 'نشط' },
+                  { value: 'PENDING', label: 'قيد المراجعة' },
+                  { value: 'REJECTED', label: 'مرفوض' },
+                  { value: 'SUSPENDED', label: 'معلّق' },
+                ]}
+              />
+            </div>
+
+            {loading ? (
+              <LoadingBlock />
+            ) : paginatedShops.length === 0 ? (
+              <EmptyState
+                icon={Store}
+                title={searchTerm || shopStatusFilter !== 'all' ? 'لا توجد نتائج مطابقة' : 'لا توجد متاجر بعد'}
+              />
+            ) : (
+              <AdminTable
+                minW="min-w-[1180px]"
+                head={
+                  <>
+                    <th className={TH}>المتجر</th>
+                    <th className={TH}>المالك</th>
+                    <th className={TH}>الموقع</th>
+                    <th className={TH}>التوصيل</th>
+                    <th className={TH}>الأزرار</th>
+                    <th className={TH}>الحالة</th>
+                    <th className={TH}>إجراءات</th>
+                  </>
+                }
+              >
+                {paginatedShops.map((shop) => {
+                  const status = String(shop.status || '').toUpperCase();
+                  const meta = STATUS_META[status] || STATUS_META.PENDING;
+                  const isActive = Boolean(shop?.isActive ?? shop?.is_active ?? true);
+                  const busy = actionId === String(shop?.id);
+                  return (
+                    <tr key={shop.id} className={TR}>
+                      <td className={TD}>
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={shop.logoUrl || shop.logo_url || '/default-shop.png'}
+                            className="w-10 h-10 rounded-xl object-cover bg-slate-100 border border-slate-200"
+                            loading="lazy"
+                          />
+                          <div className="min-w-0">
+                            <div className="text-slate-900 font-black truncate">{shop.name}</div>
+                            <div className="text-slate-400 text-xs font-bold truncate">
+                              /{shop.slug || '-'} • {shop.category || '-'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className={TD + ' text-slate-700 font-bold text-sm'}>
+                        <div>{shop?.owner?.name || '-'}</div>
+                        <div className="text-slate-400 text-xs mt-1">{shop?.owner?.email || shop?.email || '-'}</div>
+                      </td>
+                      <td className={TD + ' text-slate-700 font-bold text-sm'}>
+                        {shop.governorate || '-'}
+                        <div className="text-slate-400 text-xs mt-1">{shop.city || '-'}</div>
+                      </td>
+                      <td className={TD + ' text-slate-700 font-bold text-sm'}>
+                        <button onClick={() => editShopDeliveryFee(shop)} className="hover:text-cyan-600 transition-colors">
+                          {getShopDeliveryFee(shop) ?? 0} ج.م
+                        </button>
+                        <div className="text-slate-400 text-xs mt-1">
+                          {Boolean(shop?.deliveryDisabled ?? shop?.delivery_disabled) ? 'معطّل' : 'مفعّل'}
+                        </div>
+                      </td>
+                      <td className={TD + ' text-slate-700 font-bold text-sm'}>{getEnabledModulesCount(shop)} زر</td>
+                      <td className={TD}>
+                        <Badge tone={meta.tone}>{meta.label}</Badge>
+                      </td>
+                      <td className={TD}>
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => openShopDetails(shop)}
+                            className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:text-slate-900"
+                            title="عرض"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => editShopDeliveryFee(shop)}
+                            className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:text-slate-900"
+                            title="تعديل رسوم التوصيل"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          {status === 'PENDING' && (
+                            <button
+                              onClick={() => handleApprovalAction(shop.id, 'approved')}
+                              className="p-2 rounded-xl bg-emerald-50 text-emerald-600"
+                              title="قبول"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                          )}
+                          {isActive ? (
+                            <button
+                              disabled={busy}
+                              onClick={() => toggleShopActive(shop, false)}
+                              className="p-2 rounded-xl bg-red-50 text-red-500"
+                              title="تعطيل من التطبيق"
+                            >
+                              <Ban className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <button
+                              disabled={busy}
+                              onClick={() => toggleShopActive(shop, true)}
+                              className="p-2 rounded-xl bg-emerald-50 text-emerald-600"
+                              title="إعادة تفعيل"
+                            >
+                              <ShieldCheck className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </AdminTable>
+            )}
+
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={filteredShops.length}
+              unit="متجر"
+              onPage={setPage}
+            />
+          </Panel>
+        </>
       )}
 
-      <div className="bg-slate-900 border border-white/5 rounded-[3rem] p-6 md:p-8 shadow-2xl">
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="ابحث بالاسم، البريد، الهاتف، المدينة..."
+      {tab === 'new' && (
+        <>
+          <div className="flex flex-col md:flex-row gap-3 md:items-center">
+            <SearchInput
               value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
-              className="w-full pl-12 pr-4 py-3 bg-slate-800/50 border border-white/5 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/30"
+              onChange={setSearchTerm}
+              placeholder="ابحث بالاسم أو الرقم أو الإيميل..."
             />
+            <div className="flex gap-2">
+              {(['3', '7', '30', 'all'] as const).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDaysFilter(d)}
+                  className={cn(
+                    'px-4 py-2.5 rounded-2xl text-xs font-black transition-all',
+                    daysFilter === d
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-white border border-slate-200 text-slate-500 hover:text-slate-900'
+                  )}
+                >
+                  {d === 'all' ? 'الكل' : `آخر ${d} يوم`}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => loadNewShops(true)}
+              disabled={newLoading}
+              className="p-3 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50"
+              title="تحديث"
+            >
+              <RefreshCw size={18} className={newLoading ? 'animate-spin' : ''} />
+            </button>
           </div>
-          <select
-            value={shopStatusFilter}
-            onChange={(e) => { setShopStatusFilter(e.target.value as any); setPage(0); }}
-            className="px-4 py-3 bg-slate-800/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/30"
-          >
-            <option value="all">كل الحالات</option>
-            <option value="APPROVED">نشط</option>
-            <option value="PENDING">قيد المراجعة</option>
-            <option value="REJECTED">مرفوض</option>
-            <option value="SUSPENDED">معلّق</option>
-          </select>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-right border-collapse min-w-[1180px]">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">المتجر</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">المالك</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">الموقع</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">التوصيل</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">الأزرار</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">الحالة</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedShops.map((shop) => {
-                const status = String(shop.status || '').toUpperCase();
-                const isActive = Boolean(shop?.isActive ?? shop?.is_active ?? true);
+          {newLoading && !newLoaded ? (
+            <LoadingBlock />
+          ) : filteredNewShops.length === 0 ? (
+            <Panel>
+              <EmptyState
+                icon={Store}
+                title="مفيش متاجر جديدة في الفترة المحددة"
+                subtitle="التجار الجدد اللي سجلوا نفسهم هيظهروا هنا"
+              />
+            </Panel>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {filteredNewShops.map((shop) => {
+                const status = String(shop?.status || '').toUpperCase();
+                const locked = status === 'SUSPENDED';
+                const phone = ownerPhone(shop);
+                const busy = actionId === String(shop?.id || '');
                 return (
-                  <tr key={shop.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                    <td className="p-4">
+                  <div
+                    key={shop?.id}
+                    className={cn(
+                      'bg-white border p-5 rounded-3xl shadow-sm',
+                      locked ? 'border-red-300' : 'border-slate-200'
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-4 mb-4">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={shop.logoUrl || shop.logo_url || '/default-shop.png'}
-                          className="w-10 h-10 rounded-xl object-cover bg-slate-800"
-                          loading="lazy"
-                        />
-                        <div className="min-w-0">
-                          <div className="text-white font-black truncate">{shop.name}</div>
-                          <div className="text-slate-500 text-xs font-bold truncate">
-                            /{shop.slug || '-'} • {shop.category || '-'}
+                        <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center text-xl', locked ? 'bg-red-50 text-red-500' : 'bg-cyan-50 text-cyan-600')}>
+                          {locked ? <Lock size={22} /> : <Store size={22} />}
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                            {ownerName(shop)}
+                            {status === 'APPROVED' && <CheckCircle2 size={15} className="text-emerald-500" />}
+                          </h4>
+                          <div className="text-slate-400 text-[11px] font-bold mt-0.5 flex items-center gap-2 flex-wrap">
+                            <span className="flex items-center gap-1"><Store size={11} /> {shop?.name || '—'}</span>
+                            <span>{shop?.category || '—'}</span>
+                            {shop?.createdAt && <span>· {timeAgo(String(shop.createdAt))}</span>}
+                            {locked && <span className="text-red-500">· مقفول</span>}
                           </div>
                         </div>
                       </div>
-                    </td>
-                    <td className="p-4 text-slate-300 font-bold text-sm">
-                      <div>{shop?.owner?.name || '-'}</div>
-                      <div className="text-slate-500 text-xs mt-1">{shop?.owner?.email || shop?.email || '-'}</div>
-                    </td>
-                    <td className="p-4 text-slate-300 font-bold text-sm">
-                      {shop.governorate || '-'}
-                      <div className="text-slate-500 text-xs mt-1">{shop.city || '-'}</div>
-                    </td>
-                    <td className="p-4 text-slate-300 font-bold text-sm">
-                      <button onClick={() => editShopDeliveryFee(shop)} className="hover:text-[#00E5FF] transition-colors">
-                        {getShopDeliveryFee(shop) ?? 0} ج.م
-                      </button>
-                      <div className="text-slate-500 text-xs mt-1">
-                        {Boolean(shop?.deliveryDisabled ?? shop?.delivery_disabled) ? 'معطّل' : 'مفعّل'}
-                      </div>
-                    </td>
-                    <td className="p-4 text-slate-300 font-bold text-sm">{getEnabledModulesCount(shop)} زر</td>
-                    <td className="p-4">
-                      <span
-                        className={`px-3 py-1 rounded-xl text-xs font-black ${
-                          status === 'APPROVED'
-                            ? 'bg-green-500/20 text-green-400'
-                            : status === 'REJECTED'
-                            ? 'bg-red-500/20 text-red-400'
-                            : status === 'SUSPENDED'
-                            ? 'bg-fuchsia-500/20 text-fuchsia-300'
-                            : 'bg-amber-500/20 text-amber-400'
-                        }`}
-                      >
-                        {status === 'APPROVED' ? 'نشط' : status === 'REJECTED' ? 'مرفوض' : status === 'SUSPENDED' ? 'معلّق إدارياً' : 'قيد المراجعة'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex gap-2 justify-end">
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={() => openShopDetails(shop)}
-                          className="p-2 rounded-xl bg-white/5 text-slate-300 hover:text-white"
-                          title="عرض"
+                          className="p-2.5 rounded-xl bg-slate-100 text-slate-600 hover:text-slate-900"
+                          title="عرض التفاصيل"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye size={16} />
                         </button>
                         <button
-                          onClick={() => editShopDeliveryFee(shop)}
-                          className="p-2 rounded-xl bg-white/5 text-slate-300 hover:text-white"
-                          title="تعديل رسوم التوصيل"
+                          onClick={() => toggleLock(shop)}
+                          disabled={busy}
+                          className={cn(
+                            'px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 transition-all disabled:opacity-50',
+                            locked
+                              ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                              : 'bg-red-50 text-red-600 hover:bg-red-100'
+                          )}
                         >
-                          <Edit className="w-4 h-4" />
+                          {busy
+                            ? <RefreshCw size={15} className="animate-spin" />
+                            : locked
+                              ? <><Unlock size={15} /> فتح</>
+                              : <><Lock size={15} /> قفل</>}
                         </button>
-                        {status === 'PENDING' && (
-                          <button
-                            onClick={() => handleApprovalAction(shop.id, 'approved')}
-                            className="p-2 rounded-xl bg-emerald-500/10 text-emerald-300"
-                            title="قبول"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                        )}
-                        {isActive ? (
-                          <button
-                            disabled={actionId === String(shop?.id)}
-                            onClick={() => toggleShopActive(shop, false)}
-                            className="p-2 rounded-xl bg-red-500/10 text-red-300"
-                            title="تعطيل من التطبيق"
-                          >
-                            <Ban className="w-4 h-4" />
-                          </button>
-                        ) : (
-                          <button
-                            disabled={actionId === String(shop?.id)}
-                            onClick={() => toggleShopActive(shop, true)}
-                            className="p-2 rounded-xl bg-emerald-500/10 text-emerald-300"
-                            title="إعادة تفعيل"
-                          >
-                            <ShieldCheck className="w-4 h-4" />
-                          </button>
-                        )}
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <Phone size={16} className="text-cyan-600" />
+                        <span dir="ltr" className="text-slate-900 font-black text-sm tracking-wide">
+                          {phone ? formatPhone(phone) : 'مفيش رقم'}
+                        </span>
+                      </div>
+                      {phone && (
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`tel:${phone}`}
+                            className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors text-[11px] font-black flex items-center gap-1.5"
+                          >
+                            <Phone size={13} /> اتصال
+                          </a>
+                          <a
+                            href={`https://wa.me/${phone.replace('+', '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors text-[11px] font-black flex items-center gap-1.5"
+                          >
+                            <MessageCircle size={13} /> واتساب
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
+                    {shop?.owner?.email ? (
+                      <div className="text-[11px] font-bold text-slate-400 mt-2.5" dir="ltr">
+                        {String(shop.owner.email)}
+                      </div>
+                    ) : null}
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredShops.length === 0 && (
-          <div className="text-center py-12 text-slate-500 font-bold">
-            {searchTerm || shopStatusFilter !== 'all' ? 'لا توجد نتائج مطابقة' : 'لا توجد متاجر بعد'}
-          </div>
-        )}
-
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/5">
-            <span className="text-slate-500 text-xs font-bold">
-              صفحة {page + 1} من {totalPages} ({filteredShops.length} متجر)
-            </span>
-            <div className="flex gap-2">
-              <button
-                disabled={page === 0}
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                className="px-4 py-2 rounded-xl bg-white/5 text-slate-200 text-xs font-black disabled:opacity-40"
-              >
-                السابق
-              </button>
-              <button
-                disabled={page >= totalPages - 1}
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                className="px-4 py-2 rounded-xl bg-white/5 text-slate-200 text-xs font-black disabled:opacity-40"
-              >
-                التالي
-              </button>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </>
+      )}
 
       <AdminModal isOpen={detailsOpen} onClose={() => setDetailsOpen(false)} title="تفاصيل المتجر" size="xl">
         {detailsLoading ? (
           <div className="flex justify-center py-20">
-            <Loader2 className="animate-spin text-[#00E5FF]" />
+            <Spinner />
           </div>
         ) : selected ? (
           <div className="space-y-5 text-right">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="lg:col-span-2 rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+              <div className="lg:col-span-2 rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-2xl font-black text-white">{selected?.name || 'متجر'}</h3>
-                    <div className="mt-2 space-y-2 text-sm font-bold text-slate-300">
-                      <div className="flex items-center gap-2 justify-end"><Globe size={14} className="text-slate-500" /> /{selected?.slug || '-'}</div>
-                      <div className="flex items-center gap-2 justify-end"><Mail size={14} className="text-slate-500" /> {selected?.email || selected?.owner?.email || '-'}</div>
-                      <div className="flex items-center gap-2 justify-end"><Phone size={14} className="text-slate-500" /> {selected?.phone || '-'}</div>
-                      <div className="flex items-center gap-2 justify-end"><MapPin size={14} className="text-slate-500" /> {selected?.governorate || '-'} • {selected?.city || '-'}</div>
+                    <h3 className="text-2xl font-black text-slate-900">{selected?.name || 'متجر'}</h3>
+                    <div className="mt-2 space-y-2 text-sm font-bold text-slate-600">
+                      <div className="flex items-center gap-2 justify-end"><Globe size={14} className="text-slate-400" /> /{selected?.slug || '-'}</div>
+                      <div className="flex items-center gap-2 justify-end"><Mail size={14} className="text-slate-400" /> {selected?.email || selected?.owner?.email || '-'}</div>
+                      <div className="flex items-center gap-2 justify-end"><Phone size={14} className="text-slate-400" /> {selected?.phone || '-'}</div>
+                      <div className="flex items-center gap-2 justify-end"><MapPin size={14} className="text-slate-400" /> {selected?.governorate || '-'} • {selected?.city || '-'}</div>
                     </div>
                   </div>
-                  <img src={selected?.logoUrl || selected?.logo_url || '/default-shop.png'} className="w-20 h-20 rounded-3xl object-cover bg-slate-800" />
+                  <img
+                    src={selected?.logoUrl || selected?.logo_url || '/default-shop.png'}
+                    className="w-20 h-20 rounded-3xl object-cover bg-white border border-slate-200"
+                  />
                 </div>
-                {selected?.description ? <div className="mt-4 text-sm font-bold text-slate-300 leading-7">{selected.description}</div> : null}
+                {selected?.description ? <div className="mt-4 text-sm font-bold text-slate-600 leading-7">{selected.description}</div> : null}
               </div>
 
-              <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-                <div className="text-white font-black">إجراءات سريعة</div>
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                <div className="text-slate-900 font-black">إجراءات سريعة</div>
                 <div className="mt-4 space-y-3">
                   <button
                     onClick={() => window.open(`/shop/${selected?.slug || selected?.id}`, '_blank')}
-                    className="w-full px-4 py-3 rounded-2xl bg-white/5 text-slate-100 font-black text-sm flex items-center justify-center gap-2"
+                    className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-800 font-black text-sm flex items-center justify-center gap-2 hover:bg-slate-100"
                   >
                     <ExternalLink size={16} /> فتح صفحة المتجر
                   </button>
@@ -526,14 +729,14 @@ export default function AdminShopsPage() {
                       <button
                         disabled={actionId === String(selected?.id)}
                         onClick={() => handleApprovalAction(String(selected?.id), 'approved')}
-                        className="w-full px-4 py-3 rounded-2xl bg-green-500 text-white font-black text-sm flex items-center justify-center gap-2"
+                        className="w-full px-4 py-3 rounded-2xl bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2 hover:bg-emerald-600"
                       >
                         <Check size={16} /> قبول المتجر
                       </button>
                       <button
                         disabled={actionId === String(selected?.id)}
                         onClick={() => handleApprovalAction(String(selected?.id), 'rejected')}
-                        className="w-full px-4 py-3 rounded-2xl bg-red-500/15 text-red-300 font-black text-sm flex items-center justify-center gap-2"
+                        className="w-full px-4 py-3 rounded-2xl bg-red-50 text-red-600 border border-red-200 font-black text-sm flex items-center justify-center gap-2"
                       >
                         <X size={16} /> رفض الطلب
                       </button>
@@ -543,7 +746,7 @@ export default function AdminShopsPage() {
                     <button
                       disabled={actionId === String(selected?.id)}
                       onClick={() => handleSuspendToggle(selected, 'suspended')}
-                      className="w-full px-4 py-3 rounded-2xl bg-fuchsia-500/15 text-fuchsia-300 font-black text-sm flex items-center justify-center gap-2"
+                      className="w-full px-4 py-3 rounded-2xl bg-purple-50 text-purple-700 border border-purple-200 font-black text-sm flex items-center justify-center gap-2"
                     >
                       <Ban size={16} /> تعليق المتجر
                     </button>
@@ -552,7 +755,7 @@ export default function AdminShopsPage() {
                     <button
                       disabled={actionId === String(selected?.id)}
                       onClick={() => handleSuspendToggle(selected, 'approved')}
-                      className="w-full px-4 py-3 rounded-2xl bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2"
+                      className="w-full px-4 py-3 rounded-2xl bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2 hover:bg-emerald-600"
                     >
                       <ShieldCheck size={16} /> إعادة تفعيل
                     </button>
@@ -561,7 +764,7 @@ export default function AdminShopsPage() {
                     <button
                       disabled={actionId === String(selected?.id)}
                       onClick={() => toggleShopActive(selected, false)}
-                      className="w-full px-4 py-3 rounded-2xl bg-red-500/15 text-red-300 font-black text-sm flex items-center justify-center gap-2"
+                      className="w-full px-4 py-3 rounded-2xl bg-red-50 text-red-600 border border-red-200 font-black text-sm flex items-center justify-center gap-2"
                     >
                       <Ban size={16} /> تعطيل من التطبيق
                     </button>
@@ -569,7 +772,7 @@ export default function AdminShopsPage() {
                     <button
                       disabled={actionId === String(selected?.id)}
                       onClick={() => toggleShopActive(selected, true)}
-                      className="w-full px-4 py-3 rounded-2xl bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2"
+                      className="w-full px-4 py-3 rounded-2xl bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2 hover:bg-emerald-600"
                     >
                       <ShieldCheck size={16} /> إعادة تفعيل المتجر
                     </button>
@@ -580,31 +783,33 @@ export default function AdminShopsPage() {
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
-                ['الحالة', selectedStatus || '-'],
-                ['رسوم التوصيل', `ج.م ${Number(getShopDeliveryFee(selected) || 0).toLocaleString()}`],
+                ['الحالة', STATUS_META[selectedStatus]?.label || selectedStatus || '-'],
+                ['رسوم التوصيل', formatEGP(getShopDeliveryFee(selected) || 0)],
                 ['عدد الأزرار', enabledModules.length],
                 ['تاريخ الإنشاء', fmtDate(selected?.createdAt)],
               ].map(([label, value]: any) => (
-                <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+                <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
                   <div className="text-slate-500 text-[11px] font-black">{label}</div>
-                  <div className="mt-2 text-white font-black">{value}</div>
+                  <div className="mt-2 text-slate-900 font-black">{value}</div>
                 </div>
               ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-                <div className="text-white font-black flex items-center gap-2 justify-end">
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                <div className="text-slate-900 font-black flex items-center gap-2 justify-end">
                   <LayoutGrid size={16} /> الظهور والخدمات
                 </div>
-                <div className="mt-4 space-y-3 text-sm font-bold text-slate-300">
+                <div className="mt-4 space-y-3 text-sm font-bold text-slate-600">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-slate-500">الظهور العام</span>
                     <button
                       disabled={actionId === String(selected?.id)}
                       onClick={() => toggleFlag(selected, 'publicDisabled', !selectedPublicDisabled)}
                       className={`px-4 py-2 rounded-xl text-xs font-black ${
-                        selectedPublicDisabled ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300'
+                        selectedPublicDisabled
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                       }`}
                     >
                       {selectedPublicDisabled ? 'إظهار' : 'إخفاء'}
@@ -616,7 +821,9 @@ export default function AdminShopsPage() {
                       disabled={actionId === String(selected?.id)}
                       onClick={() => toggleFlag(selected, 'deliveryDisabled', !selectedDeliveryDisabled)}
                       className={`px-4 py-2 rounded-xl text-xs font-black ${
-                        selectedDeliveryDisabled ? 'bg-amber-500/15 text-amber-300' : 'bg-sky-500/15 text-sky-300'
+                        selectedDeliveryDisabled
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : 'bg-sky-50 text-sky-700 border border-sky-200'
                       }`}
                     >
                       {selectedDeliveryDisabled ? 'تفعيل' : 'تعطيل'}
@@ -633,11 +840,11 @@ export default function AdminShopsPage() {
                 </div>
               </div>
 
-              <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-                <div className="text-white font-black flex items-center gap-2 justify-end">
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                <div className="text-slate-900 font-black flex items-center gap-2 justify-end">
                   <Truck size={16} /> تفاصيل إضافية
                 </div>
-                <div className="mt-4 space-y-3 text-sm font-bold text-slate-300">
+                <div className="mt-4 space-y-3 text-sm font-bold text-slate-600">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-slate-500">العنوان المعروض</span>
                     <span>{selected?.displayAddress || selected?.addressDetailed || '-'}</span>
@@ -648,7 +855,7 @@ export default function AdminShopsPage() {
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-slate-500">عدد الزيارات</span>
-                    <span>{Number(selected?.visitors || 0).toLocaleString()}</span>
+                    <span>{Number(selected?.visitors || 0).toLocaleString('ar-EG')}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-slate-500">آخر تحديث</span>
@@ -658,8 +865,8 @@ export default function AdminShopsPage() {
               </div>
             </div>
 
-            <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-              <div className="text-white font-black mb-4">الأزرار المفعّلة</div>
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+              <div className="text-slate-900 font-black mb-4">الأزرار المفعّلة</div>
               <div className="flex flex-wrap gap-2 justify-end">
                 {enabledModules.length === 0 ? (
                   <span className="text-slate-500 font-bold">لا توجد أزرار مفعّلة</span>
@@ -667,7 +874,7 @@ export default function AdminShopsPage() {
                   enabledModules.map((moduleId: string) => (
                     <span
                       key={String(moduleId)}
-                      className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-200 text-xs font-black"
+                      className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black"
                     >
                       {String(moduleId)}
                     </span>
@@ -677,9 +884,17 @@ export default function AdminShopsPage() {
             </div>
           </div>
         ) : (
-          <div className="text-slate-400 font-bold text-center py-16">لا توجد بيانات</div>
+          <div className="text-slate-500 font-bold text-center py-16">لا توجد بيانات</div>
         )}
       </AdminModal>
     </div>
+  );
+}
+
+export default function AdminShopsPage() {
+  return (
+    <Suspense fallback={<LoadingBlock />}>
+      <ShopsContent />
+    </Suspense>
   );
 }

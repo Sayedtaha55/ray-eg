@@ -161,21 +161,31 @@ export function useOrderBell(onOrder?: (evt: OrderBellEvent) => void) {
 
   useEffect(() => {
     fetchNotifications();
-    // Poll on an interval, but skip while the tab is hidden so background
-    // tabs don't hammer the API; a fresh fetch runs when the tab returns.
-    const t = setInterval(() => {
-      if (typeof document === 'undefined' || !document.hidden) {
-        fetchNotifications();
-      }
-    }, POLL_MS);
+
+    // Self-rescheduling timer instead of a blind setInterval: hidden tabs
+    // skip the tick entirely (and don't drift), while returning to the
+    // foreground triggers an immediate fetch on a fresh schedule.
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (timer !== null) clearTimeout(timer);
+      timer = setTimeout(async () => {
+        timer = null;
+        if (typeof document === 'undefined' || !document.hidden) {
+          await fetchNotifications();
+        }
+        schedule();
+      }, POLL_MS);
+    };
+    schedule();
+
     const onVisible = () => {
-      if (typeof document !== 'undefined' && !document.hidden) {
-        fetchNotifications();
-      }
+      if (typeof document !== 'undefined' && document.hidden) return;
+      schedule(); // reset the cadence for the new foreground period
+      fetchNotifications();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
-      clearInterval(t);
+      if (timer !== null) clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [fetchNotifications]);

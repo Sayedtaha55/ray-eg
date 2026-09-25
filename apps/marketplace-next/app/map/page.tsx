@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, MapPin } from 'lucide-react';
+import { Loader2, MapPin, Store, Briefcase } from 'lucide-react';
 import { apiPath } from '@/lib/api';
 import { buildShopMarkerHtml, buildListingMarkerHtml, escapeHtml } from '@/lib/mapUtils';
 
@@ -22,6 +22,10 @@ interface Coords {
   lng: number;
 }
 
+// ثيم صفحة الخريطة مطابق للوحة التحكم: أبيض/سليت مع لمسة السماوي #00e5ff
+const DASHBOARD_CYAN = '#00e5ff';
+const DASHBOARD_DARK = '#0f172a';
+
 export default function MapPage() {
   const router = useRouter();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -36,15 +40,11 @@ export default function MapPage() {
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
 
+  // الخريطة تعرض جميع المواقع الموجودة فعليًا — بدون أي تصفية نطاق/مسافة.
   const loadPins = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (coords?.lat != null) params.set('lat', String(coords.lat));
-      if (coords?.lng != null) params.set('lng', String(coords.lng));
-      params.set('radiusKm', '50');
-      const qs = params.toString();
-      const res = await fetch(`${apiPath('/map/pins')}${qs ? `?${qs}` : ''}`);
+      const res = await fetch(apiPath('/map/pins'));
       if (res.ok) {
         const data = await res.json();
         setPins(Array.isArray(data) ? data : (data?.data ?? data?.items ?? []));
@@ -56,14 +56,14 @@ export default function MapPage() {
     } finally {
       setLoading(false);
     }
-  }, [coords]);
+  }, []);
 
   useEffect(() => {
     loadPins();
-    // Skip the refresh while the tab is hidden; reload once when it returns.
+    // تحديث دوري خفيف — كل الداتا بتنزل مرة واحدة مش ضمن نطاق
     const timer = setInterval(() => {
       if (!document.hidden) loadPins();
-    }, 20000);
+    }, 60000);
     const onVisible = () => {
       if (!document.hidden) loadPins();
     };
@@ -85,34 +85,20 @@ export default function MapPage() {
         if (cancelled) return;
         leafletRef.current = L;
 
-        const markerIcon = (await import('leaflet/dist/images/marker-icon.png'))
-          .default as unknown as string;
-        const markerIcon2x = (await import('leaflet/dist/images/marker-icon-2x.png'))
-          .default as unknown as string;
-        const markerShadow = (await import('leaflet/dist/images/marker-shadow.png'))
-          .default as unknown as string;
-
-        const defaultIcon = L.icon({
-          iconUrl: markerIcon,
-          iconRetinaUrl: markerIcon2x,
-          shadowUrl: markerShadow,
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          shadowSize: [41, 41],
-        });
-        L.Marker.prototype.options.icon = defaultIcon;
-
         const mapEl = mapContainerRef.current;
         if (!mapEl) return;
 
         if (!mapRef.current) {
           mapRef.current = L.map(mapEl, {
             zoomControl: true,
-            attributionControl: false,
-          }).setView([30.0444, 31.2357], 12);
+            attributionControl: true,
+          }).setView([30.0444, 31.2357], 7);
 
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          // بلاطات فاتحة نظيفة بنفس روح اللوحة (CARTO / OpenStreetMap)
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             maxZoom: 19,
+            subdomains: 'abcd',
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
           }).addTo(mapRef.current);
 
           markersLayerRef.current = L.layerGroup().addTo(mapRef.current);
@@ -174,7 +160,14 @@ export default function MapPage() {
     const L = leafletRef.current;
 
     if (!userMarkerRef.current) {
-      userMarkerRef.current = L.marker([coords.lat, coords.lng]);
+      userMarkerRef.current = L.marker([coords.lat, coords.lng], {
+        icon: L.divIcon({
+          className: '',
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
+          html: `<div style="width:18px;height:18px;border-radius:999px;background:${DASHBOARD_CYAN};border:3px solid ${DASHBOARD_DARK};box-shadow:0 0 0 4px rgba(0,229,255,0.25);"></div>`,
+        }),
+      });
       userMarkerRef.current.addTo(mapRef.current);
     } else {
       userMarkerRef.current.setLatLng([coords.lat, coords.lng]);
@@ -220,53 +213,108 @@ export default function MapPage() {
     }
   };
 
+  const shopCount = pins.filter((p) => p.type === 'shop').length;
+  const listingCount = pins.length - shopCount;
+
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6 md:py-10" dir="rtl">
-      <div className="flex items-start justify-between gap-6 mb-6 md:mb-10">
-        <div>
-          <h1 className="text-3xl md:text-5xl font-bold tracking-tight">الخريطة</h1>
-          <p className="text-slate-500 font-semibold mt-2">اكتشف المتاجر والأنشطة القريبة منك</p>
+    <div
+      className="min-h-screen bg-white"
+      dir="rtl"
+      style={{ color: DASHBOARD_DARK, fontFamily: "'Inter', system-ui, sans-serif" }}
+    >
+      {/* شريط علوي بنفس هيكل الهيدر في اللوحة */}
+      <header className="h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-[2500]">
+        <div className="flex items-center gap-3">
+          <span className="w-9 h-9 rounded-full bg-slate-900 flex items-center justify-center">
+            <MapPin size={16} style={{ color: DASHBOARD_CYAN }} />
+          </span>
+          <h1 className="text-sm font-black text-slate-900">الخريطة — جميع المواقع</h1>
         </div>
         <button
           onClick={() => router.push('/')}
-          className="px-5 py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-semibold text-xs md:text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+          className="px-4 py-2 bg-slate-100 rounded-xl font-bold text-xs text-slate-700 hover:bg-slate-200 transition-all"
         >
           العودة
         </button>
-      </div>
+      </header>
 
-      <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-        <div className="w-full h-[70vh] md:h-[78vh]">
-          <div ref={mapContainerRef} className="w-full h-full" />
+      <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6 md:py-8">
+        {/* شريط إحصاءات بنفس شكل الكروت في اللوحة */}
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          <div className="bg-white border border-slate-200 rounded-xl p-4">
+            <div className="text-xs font-bold text-slate-500 mb-1">إجمالي المواقع</div>
+            <div className="text-2xl font-black text-slate-900 tabular-nums">
+              {loading ? '…' : pins.length}
+            </div>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4">
+            <div className="text-xs font-bold text-slate-500 mb-1">متاجر</div>
+            <div className="text-2xl font-black text-slate-900 tabular-nums">
+              {loading ? '…' : shopCount}
+            </div>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4">
+            <div className="text-xs font-bold text-slate-500 mb-1">أنشطة</div>
+            <div className="text-2xl font-black text-slate-900 tabular-nums">
+              {loading ? '…' : listingCount}
+            </div>
+          </div>
         </div>
 
-        <div className="absolute top-4 right-4 left-4 md:left-auto md:w-[420px] z-[2500] pointer-events-auto">
-          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-5 space-y-3 pointer-events-auto relative">
-            {locationError && (
-              <p className="text-red-500 text-xs font-semibold text-center">{locationError}</p>
-            )}
+        <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+          <div className="w-full h-[70vh] md:h-[74vh]">
+            <div ref={mapContainerRef} className="w-full h-full" />
+          </div>
 
-            <button
-              onClick={handleLocateMe}
-              disabled={locating}
-              className="w-full py-4 bg-brand-black text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-slate-800 transition-all"
-              style={{ touchAction: 'manipulation' }}
-            >
-              {locating ? (
-                <Loader2 className="animate-spin w-4 h-4" />
-              ) : (
-                <>
-                  <MapPin className="w-4 h-4" /> حدد موقعي
-                </>
+          <div className="absolute top-4 right-4 left-4 md:left-auto md:w-[360px] z-[1000] pointer-events-auto">
+            <div className="bg-white/95 backdrop-blur border border-slate-200 rounded-xl p-4 md:p-5 space-y-3 pointer-events-auto relative shadow-sm">
+              {locationError && (
+                <p className="text-red-500 text-xs font-semibold text-center">{locationError}</p>
               )}
-            </button>
 
-            <div className="text-xs font-semibold text-slate-500 text-center">
-              {loading ? (
-                <span className="inline-block w-40 h-4 skeleton rounded-lg" />
-              ) : (
-                `عدد الأماكن الظاهرة: ${pins.length}`
-              )}
+              <button
+                onClick={handleLocateMe}
+                disabled={locating}
+                className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-slate-800 transition-all"
+                style={{ touchAction: 'manipulation' }}
+              >
+                {locating ? (
+                  <Loader2 className="animate-spin w-4 h-4" />
+                ) : (
+                  <>
+                    <MapPin className="w-4 h-4" style={{ color: DASHBOARD_CYAN }} /> حدد موقعي
+                  </>
+                )}
+              </button>
+
+              {/* مفتاح الخريطة */}
+              <div className="flex items-center justify-center gap-4 pt-1">
+                <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                  <span
+                    className="w-3 h-3 rounded-full inline-flex items-center justify-center"
+                    style={{ background: DASHBOARD_DARK }}
+                  >
+                    <Store size={8} color={DASHBOARD_CYAN} />
+                  </span>
+                  متجر
+                </span>
+                <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                  <span
+                    className="w-3 h-3 rounded-full inline-flex items-center justify-center border"
+                    style={{ background: '#ffffff', borderColor: DASHBOARD_CYAN }}
+                  >
+                    <Briefcase size={8} color={DASHBOARD_DARK} />
+                  </span>
+                  نشاط
+                </span>
+                <span className="text-[11px] font-bold text-slate-400 tabular-nums">
+                  {loading ? (
+                    <span className="inline-block w-16 h-3 rounded bg-slate-100 animate-pulse" />
+                  ) : (
+                    `${pins.length} موقع`
+                  )}
+                </span>
+              </div>
             </div>
           </div>
         </div>

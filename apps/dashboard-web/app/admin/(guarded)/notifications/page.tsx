@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bell, Check, Loader2, RefreshCw } from 'lucide-react';
+import { Bell, Check, RefreshCw } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useToast } from '@/components/settings/ToastProvider';
+import { PageHeader, Panel, LoadingBlock, EmptyState, BTN_GHOST, fmtDate } from '@/components/admin/ui';
 
 export default function AdminNotificationsPage() {
   const { toast } = useToast();
@@ -58,9 +59,7 @@ export default function AdminNotificationsPage() {
     return (Array.isArray(items) ? items : []).map((n) => {
       const isRead = Boolean(n?.isRead ?? n?.is_read);
       const message = String(n?.content || n?.message || '').trim();
-      const createdAtRaw = n?.createdAt || n?.created_at;
-      const createdAt = new Date(createdAtRaw || 0);
-      const createdAtText = !Number.isNaN(createdAt.getTime()) ? createdAt.toLocaleString('ar-EG') : '';
+      const createdAtText = fmtDate(n?.createdAt || n?.created_at);
       const title = String(n?.title || '').trim();
       const type = String(n?.type || '').trim();
       return { ...n, isRead, message, createdAtText, title, type };
@@ -69,81 +68,68 @@ export default function AdminNotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-amber-500/10 text-amber-400 rounded-2xl">
-            <Bell size={24} />
-          </div>
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-black text-white">الإشعارات</h2>
-              <span className="text-xs font-black px-3 py-1 rounded-full bg-slate-900 border border-white/5 text-slate-200">
-                غير مقروء: {unreadCount.toLocaleString('ar-EG')}
-              </span>
-            </div>
-            <p className="text-slate-500 text-sm font-bold">إدارة إشعارات النظام</p>
-          </div>
-        </div>
+      <PageHeader
+        icon={Bell}
+        title="الإشعارات"
+        subtitle="إدارة إشعارات النظام"
+        tone="amber"
+        stats={
+          <span className="text-xs font-black px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 shadow-sm">
+            غير مقروء: {unreadCount.toLocaleString('ar-EG')}
+          </span>
+        }
+        actions={
+          <>
+            <button onClick={() => loadData(true)} disabled={loading || refreshing} className={BTN_GHOST}>
+              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+              تحديث
+            </button>
+            <button
+              onClick={markAllRead}
+              disabled={loading || refreshing || unreadCount === 0}
+              className="px-4 py-2 rounded-xl text-xs font-black bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 disabled:opacity-60 inline-flex items-center gap-2"
+            >
+              <Check size={14} />
+              تحديد الكل كمقروء
+            </button>
+          </>
+        }
+      />
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={() => loadData(true)}
-            disabled={loading || refreshing}
-            className="px-4 py-2 rounded-2xl text-xs font-black bg-slate-900 border border-white/5 text-slate-200 hover:bg-slate-800 disabled:opacity-60 flex items-center gap-2"
-          >
-            {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-            تحديث
-          </button>
-          <button
-            onClick={markAllRead}
-            disabled={loading || refreshing || unreadCount === 0}
-            className="px-4 py-2 rounded-2xl text-xs font-black bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/15 disabled:opacity-60 flex items-center gap-2"
-          >
-            <Check size={16} />
-            تحديد الكل كمقروء
-          </button>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="bg-slate-900 border border-white/5 rounded-[2.5rem] p-10 text-slate-400 font-bold flex items-center gap-3">
-          <Loader2 className="animate-spin" size={18} />
-          جاري التحميل...
-        </div>
-      ) : (
-        <div className="bg-slate-900 border border-white/5 rounded-[2.5rem] overflow-hidden">
-          {normalized.length === 0 ? (
-            <div className="p-10 text-slate-500 font-bold">لا توجد إشعارات</div>
-          ) : (
-            <div className="divide-y divide-white/5">
-              {normalized.map((n) => (
-                <div key={String(n?.id)} className="p-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${n.isRead ? 'bg-slate-700' : 'bg-amber-400'}`} />
-                      <div className="text-slate-200 font-black text-sm">
-                        {n.title || n.type || 'إشعار'}
-                      </div>
-                      <div className="text-slate-600 font-bold text-xs">{n.createdAtText}</div>
+      <Panel>
+        {loading ? (
+          <LoadingBlock />
+        ) : normalized.length === 0 ? (
+          <EmptyState icon={Bell} title="لا توجد إشعارات" />
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {normalized.map((n) => (
+              <div key={String(n?.id)} className="p-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${n.isRead ? 'bg-slate-200' : 'bg-amber-400'}`} />
+                    <div className="text-slate-800 font-black text-sm">
+                      {n.title || n.type || 'إشعار'}
                     </div>
-                    <div className={`mt-2 text-sm font-bold leading-7 ${n.isRead ? 'text-slate-500' : 'text-slate-200'}`}>
-                      {n.message || '—'}
-                    </div>
+                    <div className="text-slate-400 font-bold text-xs">{n.createdAtText}</div>
                   </div>
-                  {!n.isRead && (
-                    <button
-                      onClick={() => markOneRead(String(n?.id))}
-                      className="px-4 py-2 rounded-2xl text-xs font-black bg-white/5 border border-white/10 text-slate-200 hover:bg-white/10"
-                    >
-                      تحديد كمقروء
-                    </button>
-                  )}
+                  <div className={`mt-2 text-sm font-bold leading-7 ${n.isRead ? 'text-slate-400' : 'text-slate-700'}`}>
+                    {n.message || '—'}
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                {!n.isRead && (
+                  <button
+                    onClick={() => markOneRead(String(n?.id))}
+                    className="px-4 py-2 rounded-2xl text-xs font-black bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 shrink-0"
+                  >
+                    تحديد كمقروء
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Panel>
     </div>
   );
 }

@@ -20,7 +20,7 @@ import {
   AlertTriangle,
   Loader2,
 } from 'lucide-react';
-import { api, clearStoredAuthToken, getStoredAuthToken } from '@/lib/api';
+import { api, clearStoredAuthToken, isSessionActive } from '@/lib/api';
 
 export default function ProfileSettingsPage() {
   const router = useRouter();
@@ -42,8 +42,7 @@ export default function ProfileSettingsPage() {
   const [newExtraPhone, setNewExtraPhone] = useState('');
 
   useEffect(() => {
-    const token = getStoredAuthToken();
-    if (!token) {
+    if (!isSessionActive()) {
       router.push('/login');
       return;
     }

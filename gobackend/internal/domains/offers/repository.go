@@ -33,12 +33,14 @@ const offerJoinColumns = `
 `
 
 // FindActiveByID returns an active, non-expired offer by ID with join data.
+// Offers of products hidden from the app (app_active=false) stay out of the app.
 func (r *Repository) FindActiveByID(ctx context.Context, id string) (*Offer, error) {
 	query := "SELECT " + offerColumns + ", " + offerJoinColumns + `
 		FROM offers o
 		LEFT JOIN products p ON p.id = o.product_id
 		LEFT JOIN shops s ON s.id = o.shop_id
 		WHERE o.id = $1 AND o.is_active = true AND o.expires_at > NOW()
+		  AND (p.id IS NULL OR p.app_active = true)
 		LIMIT 1
 	`
 	row := r.pool.QueryRow(ctx, query, id)
@@ -47,7 +49,7 @@ func (r *Repository) FindActiveByID(ctx context.Context, id string) (*Offer, err
 
 // ListActive returns active, non-expired offers filtered by optional shop/category/product.
 func (r *Repository) ListActive(ctx context.Context, shopID, shopCategory, productID string, limit, offset int) ([]Offer, error) {
-	filters := "o.is_active = true AND o.expires_at > NOW()"
+	filters := "o.is_active = true AND o.expires_at > NOW() AND (p.id IS NULL OR p.app_active = true)"
 	args := []any{limit, offset}
 	idx := 3
 	if shopID != "" {
