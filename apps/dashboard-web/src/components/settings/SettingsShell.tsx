@@ -19,6 +19,7 @@ import PaymentsTab from './tabs/PaymentsTab';
 import SocialMediaTab from './tabs/SocialMediaTab';
 import NotificationsTab from './tabs/NotificationsTab';
 import InventorySettingsTab from './tabs/InventorySettingsTab';
+import { HIDE_UNPUBLISHED } from '@/config/sidebar';
 import BranchesSettingsTab from './tabs/BranchesSettingsTab';
 import AccountingSettingsTab from './tabs/AccountingSettingsTab';
 import CustomersSettingsTab from './tabs/CustomersSettingsTab';
@@ -104,7 +105,18 @@ export default function SettingsShell({ shop, onSaved }: SettingsShellProps) {
   const requestedTab = String(searchParams?.get('tab') || '')
     .trim()
     .toLowerCase() as SettingsTab;
-  const activeTab: SettingsTab = ALLOWED_TABS.has(requestedTab) ? requestedTab : 'overview';
+  // Market-launch switch: local-only settings tabs fall back to overview in production.
+  const LOCAL_ONLY_TABS: ReadonlySet<string> = new Set([
+    'accounting_settings',
+    'hr_settings',
+    'analytics_settings',
+    // Payment gateways are deferred (cash-on-delivery only at launch), so the
+    // finance/payments tab is local-only as well.
+    'payments',
+  ]);
+  const safeRequestedTab =
+    HIDE_UNPUBLISHED && LOCAL_ONLY_TABS.has(requestedTab) ? 'overview' : requestedTab;
+  const activeTab: SettingsTab = ALLOWED_TABS.has(safeRequestedTab) ? safeRequestedTab : 'overview';
   const settingsContext =
     SETTINGS_CONTEXT[
       String(searchParams?.get('from') || '')

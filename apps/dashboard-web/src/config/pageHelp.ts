@@ -1,4 +1,25 @@
 import { PageHelpConfig } from '@/components/InfoButton';
+import { HIDE_UNPUBLISHED } from '@/config/sidebar';
+
+// Market-launch switch: local-only sections. Help panels must never deep-link
+// merchants into them in production builds.
+const LOCAL_ONLY_HREFS = [
+  '/dashboard/finance',
+  '/dashboard/accounting',
+  '/dashboard/hr',
+  '/dashboard/team',
+  '/dashboard/analytics',
+  '/dashboard/ai',
+];
+
+function visibleRelatedPages(
+  relatedPages: PageHelpConfig['relatedPages']
+): PageHelpConfig['relatedPages'] {
+  if (!HIDE_UNPUBLISHED || !relatedPages) return relatedPages;
+  return relatedPages.filter(
+    (page) => !LOCAL_ONLY_HREFS.some((prefix) => page.href === prefix || page.href.startsWith(`${prefix}/`))
+  );
+}
 
 export const pageHelpConfig: Record<string, PageHelpConfig> = {
   // Sales Pages
@@ -262,14 +283,13 @@ export const pageHelpConfig: Record<string, PageHelpConfig> = {
 };
 
 export function getPageHelpConfig(pageKey: string): PageHelpConfig {
-  return (
-    pageHelpConfig[pageKey] || {
-      title: 'معلومات',
-      description: 'معلومات إضافية حول هذه الصفحة.',
-      whenToUse: [],
-      businessExample: 'استخدم هذه الصفحة لإدارة نشاطك التجاري.',
-      tips: [],
-      relatedPages: [],
-    }
-  );
+  const config = pageHelpConfig[pageKey] || {
+    title: 'معلومات',
+    description: 'معلومات إضافية حول هذه الصفحة.',
+    whenToUse: [],
+    businessExample: 'استخدم هذه الصفحة لإدارة نشاطك التجاري.',
+    tips: [],
+    relatedPages: [],
+  };
+  return { ...config, relatedPages: visibleRelatedPages(config.relatedPages) };
 }

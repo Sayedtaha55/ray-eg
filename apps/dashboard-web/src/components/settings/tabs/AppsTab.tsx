@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../ToastProvider';
 import { apiRequest } from '@/lib/auth';
+import { HIDE_UNPUBLISHED } from '@/config/sidebar';
 
 interface AppsTabProps {
   shop: any;
@@ -33,11 +34,24 @@ type AppWithStatus = {
   isActive?: boolean;
 };
 
+/**
+ * Market-launch switch: finance, accounting, HR, and AI/assistant apps are
+ * local-only for now, so they are stripped from the merchant app store in
+ * production. Matching metadata also covers newly seeded server-side apps.
+ */
+function isLocalOnlyApp(app: Pick<AppWithStatus, 'key' | 'name' | 'description'>): boolean {
+  const haystack = `${app?.key || ''} ${app?.name || ''} ${app?.description || ''}`;
+  return /(^|[-_\s])(finance|financial|accounting|accountant|hr|payroll|ai)([-_\s]|$)|assistant|chatbot|chat-?gpt|gemini|مالي|محاس|موارد|رواتب|ذكاء/i.test(
+    haystack
+  );
+}
+
 export default function AppsTab({ shop, onSaved }: AppsTabProps) {
   const { toast } = useToast();
   const [apps, setApps] = useState<AppWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const visibleApps = HIDE_UNPUBLISHED ? apps.filter((app) => !isLocalOnlyApp(app)) : apps;
   const getAppIcon = (key: string) => {
     switch (key) {
       case 'image-editor':
@@ -158,14 +172,14 @@ export default function AppsTab({ shop, onSaved }: AppsTabProps) {
         ثبّت التطبيقات التي تناسب أعمالك وفعّلها بنقرة واحدة
       </p>
 
-      {apps.length === 0 ? (
+      {visibleApps.length === 0 ? (
         <div className="text-center py-16">
           <Store size={48} className="mx-auto text-slate-300 mb-4" />
           <p className="text-slate-500 font-semibold">لا توجد تطبيقات متاحة حالياً</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {apps.map((app) => {
+          {visibleApps.map((app) => {
             const busy = !!actionLoading[app.key];
             const AppIcon = getAppIcon(app.key);
             const colorClass = getAppColor(app.key);

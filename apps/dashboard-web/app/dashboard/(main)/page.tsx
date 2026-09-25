@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
+import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -49,6 +51,13 @@ import {
 import { useAuth, apiRequest } from '@/lib/auth';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { palette, chartColors, shadows, iconTint, cardClass } from '@/lib/ui/tokens';
+import { HIDE_UNPUBLISHED } from '@/config/sidebar';
+
+// Market-launch switch: analytics is local-only, so these dashboard KPIs fall
+// back to their own section in production builds instead of deep-linking into
+// a hidden analytics page.
+const analyticsHref = (analyticsPath: string, fallbackPath: string) =>
+  HIDE_UNPUBLISHED ? fallbackPath : analyticsPath;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -140,12 +149,14 @@ type LoginSession = {
 const LOCALE = 'ar-EG-u-nu-latn';
 
 // اختصارات افتراضية تظهر لما مفيش تاريخ زيارات لسه
+// Market-launch switch: local-only sections are excluded in production builds.
 const DEFAULT_SHORTCUTS: { href: string; labelAr: string }[] = [
   { href: '/dashboard/sales', labelAr: 'كل الطلبات' },
   { href: '/dashboard/inventory/products', labelAr: 'المنتجات' },
   { href: '/dashboard/notifications', labelAr: 'الإشعارات' },
   { href: '/dashboard/pos', labelAr: 'الكاشير' },
-  { href: '/dashboard/analytics', labelAr: 'التحليلات' },
+  // التحليلات: لوكال فقط (نفس نمط المالية/المحاسبة/HR/AI).
+  ...(HIDE_UNPUBLISHED ? [] : [{ href: '/dashboard/analytics', labelAr: 'التحليلات' }]),
   { href: '/dashboard/marketing', labelAr: 'التسويق' },
 ];
 
@@ -771,9 +782,11 @@ export default function DashboardOverview() {
     [user?.shopId]
   );
 
-  useEffect(() => {
-    load(period);
-  }, [period, load]);
+  const dashboardQuery = useQuery({
+    queryKey: ['dashboard', 'overview', period, user?.shopId],
+    queryFn: () => load(period),
+    staleTime: 60_000,
+  });
 
   const statByLabel = useMemo(() => {
     const map: Record<string, number> = {};
@@ -833,7 +846,7 @@ export default function DashboardOverview() {
         delta: pctDelta(statByLabel.Revenue || 0, prevByLabel.Revenue || 0),
         spark: trend.map((t) => t.revenue),
         icon: <DollarSign size={14} />,
-        href: '/dashboard/analytics/performance?tab=sales',
+        href: analyticsHref('/dashboard/analytics/performance?tab=sales', '/dashboard/sales'),
         sub:
           completedBookingsRevenue > 0
             ? `تشمل ${fmtEGP(completedBookingsRevenue)} حجوزات`
@@ -871,7 +884,7 @@ export default function DashboardOverview() {
         delta: pctDelta(statByLabel.Customers || 0, prevByLabel.Customers || 0),
         spark: [] as number[],
         icon: <Users size={14} />,
-        href: '/dashboard/analytics/customers?tab=insights',
+        href: analyticsHref('/dashboard/analytics/customers?tab=insights', '/dashboard/customers'),
       },
       {
         key: 'Views',
@@ -880,7 +893,7 @@ export default function DashboardOverview() {
         delta: null,
         spark: [] as number[],
         icon: <Eye size={14} />,
-        href: '/dashboard/analytics/customers?tab=conversions',
+        href: analyticsHref('/dashboard/analytics/customers?tab=conversions', '/dashboard/website'),
       },
     ],
     [
@@ -1063,8 +1076,8 @@ export default function DashboardOverview() {
           </div>
           <button
             type="button"
-            onClick={() => load(period)}
-            disabled={refreshing}
+            onClick={() => dashboardQuery.refetch()}
+            disabled={dashboardQuery.isFetching}
             className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors disabled:opacity-50"
             title="تحديث"
           >
@@ -1152,7 +1165,58 @@ export default function DashboardOverview() {
         </button>
       )}
 
-      {/* ===== KPIs — المؤشرات الرئيسية ===== */}
+      {/* ===== أداء المتجر — بعرض الصفحة كاملاً تحت آخر ما اطّلع عليه ===== */}
+      <MotionCard className="w-full p-0 overflow-hidden" delay={0.1}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 pt-4 pb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+              <BarChart3 size={15} />
+            </span>
+            <div>
+              <h3 className="text-[14px] font-extrabold text-slate-900 leading-5">أداء المتجر</h3>
+              <p className="text-[11px] font-medium text-slate-400 leading-4">
+                آخر {fmtNum(trendPoints.length)} يوم
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-lg p-0.5">
+              {(
+                [
+                  { key: 'revenue', label: 'الإيرادات' },
+                  { key: 'orders', label: 'الطلبات' },
+                ] as { key: Metric; label: string }[]
+              ).map((m) => (
+                <button
+                  key={m.key}
+                  onClick={() => setMetric(m.key)}
+                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${metric === m.key ? 'bg-white text-slate-900 border border-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            <span className="text-base sm:text-lg font-extrabold text-slate-900 tabular-nums">
+              {metric === 'revenue' ? fmtEGP(trendTotal) : fmtNum(trendTotal)}
+            </span>
+          </div>
+        </div>
+
+        <div className="px-3 pb-3 pt-1">
+          {loading ? (
+            <Skeleton className="h-64 m-2" />
+          ) : (
+            <PerformanceAreaChart
+              data={chartData}
+              color={metric === 'revenue' ? chartColors.revenue : chartColors.orders}
+              formatY={fmtCompact}
+              formatTip={(n) => (metric === 'revenue' ? fmtEGP(n) : `${fmtNum(n)} طلب`)}
+            />
+          )}
+        </div>
+      </MotionCard>
+
+      {/* ===== KPIs — المربعات والمؤشرات الرئيسية تحت أداء المتجر مباشرة ===== */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3.5">
         {kpis.map((k: any, i) => (
           <MotionCard
@@ -1200,142 +1264,6 @@ export default function DashboardOverview() {
             )}
           </MotionCard>
         ))}
-      </div>
-
-      {/* ===== Main grid: الأداء + الجانب ===== */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        {/* --- كارت الأداء الرئيسي (أعلى وزن بصري) --- */}
-        <MotionCard className="xl:col-span-2 p-0" delay={0.15}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 pt-4 pb-3">
-            <div className="flex items-center gap-2.5">
-              <span className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                <BarChart3 size={15} />
-              </span>
-              <div>
-                <h3 className="text-[14px] font-extrabold text-slate-900 leading-5">أداء المتجر</h3>
-                <p className="text-[11px] font-medium text-slate-400 leading-4">
-                  آخر {fmtNum(trendPoints.length)} يوم
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-lg p-0.5">
-                {(
-                  [
-                    { key: 'revenue', label: 'الإيرادات' },
-                    { key: 'orders', label: 'الطلبات' },
-                  ] as { key: Metric; label: string }[]
-                ).map((m) => (
-                  <button
-                    key={m.key}
-                    onClick={() => setMetric(m.key)}
-                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${metric === m.key ? 'bg-white text-slate-900 border border-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-              <span className="text-base sm:text-lg font-extrabold text-slate-900 tabular-nums">
-                {metric === 'revenue' ? fmtEGP(trendTotal) : fmtNum(trendTotal)}
-              </span>
-            </div>
-          </div>
-
-          <div className="px-3 pb-3 pt-1">
-            {loading ? (
-              <Skeleton className="h-64 m-2" />
-            ) : (
-              <PerformanceAreaChart
-                data={chartData}
-                color={metric === 'revenue' ? chartColors.revenue : chartColors.orders}
-                formatY={fmtCompact}
-                formatTip={(n) => (metric === 'revenue' ? fmtEGP(n) : `${fmtNum(n)} طلب`)}
-              />
-            )}
-          </div>
-        </MotionCard>
-
-        {/* --- Right column --- */}
-        <div className="space-y-4">
-          {/* Shop stats — التقييم والمتابع فقط (الهوية فوق في الهيدر) */}
-          <MotionCard className="p-5" delay={0.2}>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="text-center py-2">
-                <div className="flex items-center justify-center gap-1.5 text-amber-500 mb-1">
-                  <Star size={14} fill="currentColor" />
-                  <span className="text-xl font-extrabold text-slate-900 tabular-nums">
-                    {(shop?.rating || 0).toFixed(1)}
-                  </span>
-                </div>
-                <span className="text-[11px] text-slate-400 font-semibold">التقييم</span>
-              </div>
-              <div className="text-center py-2 border-r border-slate-100">
-                <span className="text-xl font-extrabold text-slate-900 tabular-nums">
-                  {fmtNum(shop?.followers || 0)}
-                </span>
-                <div className="text-[11px] text-slate-400 font-semibold mt-1">متابع</div>
-              </div>
-            </div>
-          </MotionCard>
-
-          {/* Quick actions — list style */}
-          <MotionCard className="p-2" delay={0.25}>
-            {[
-              {
-                label: 'إضافة منتج جديد',
-                desc: 'وسّع كتالوج متجرك',
-                icon: <Plus size={16} />,
-                href: '/dashboard/inventory/products',
-              },
-              {
-                label: 'طلب جديد',
-                desc: 'سجّل بيع من الكاشير',
-                icon: <ShoppingCart size={16} />,
-                href: '/dashboard/pos',
-              },
-              {
-                label: 'حجز جديد',
-                desc: 'احجز موعدًا لعميل',
-                icon: <Calendar size={16} />,
-                href: '/dashboard/bookings',
-              },
-              {
-                label: 'حملة إعلانية',
-                desc: 'أطلق عرضًا لعملائك',
-                icon: <Megaphone size={16} />,
-                href: '/dashboard/marketing',
-              },
-              {
-                label: 'تقرير مالي',
-                desc: 'راجع أرباحك ومصروفاتك',
-                icon: <Wallet size={16} />,
-                href: '/dashboard/finance',
-              },
-              {
-                label: 'إعدادات المتجر',
-                desc: 'بيانات المتجر والрؤية',
-                icon: <SettingsIcon size={16} />,
-                href: '/dashboard/settings',
-              },
-            ].map((a) => (
-              <button
-                key={a.label}
-                type="button"
-                onClick={() => router.push(a.href)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors text-right"
-              >
-                <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                  {a.icon}
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className="block text-xs font-bold text-slate-800">{a.label}</span>
-                  <span className="block text-[10px] text-slate-400">{a.desc}</span>
-                </span>
-                <ChevronLeft size={14} className="text-slate-300 shrink-0" />
-              </button>
-            ))}
-          </MotionCard>
-        </div>
       </div>
 
       {/* ===== Orders + Notifications ===== */}
@@ -1479,6 +1407,90 @@ export default function DashboardOverview() {
         </MotionCard>
 
         <div className="space-y-4">
+          {/* Shop stats — التقييم والمتابع */}
+          <MotionCard className="p-4" delay={0.2}>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="text-center py-1">
+                <div className="flex items-center justify-center gap-1.5 text-amber-500 mb-1">
+                  <Star size={14} fill="currentColor" />
+                  <span className="text-lg font-extrabold text-slate-900 tabular-nums">
+                    {(shop?.rating || 0).toFixed(1)}
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-400 font-semibold">التقييم</span>
+              </div>
+              <div className="text-center py-1 border-r border-slate-100">
+                <span className="text-lg font-extrabold text-slate-900 tabular-nums">
+                  {fmtNum(shop?.followers || 0)}
+                </span>
+                <div className="text-[11px] text-slate-400 font-semibold mt-1">متابع</div>
+              </div>
+            </div>
+          </MotionCard>
+
+          {/* Quick actions — إجراءات سريعة */}
+          <MotionCard className="p-2" delay={0.22}>
+            {[
+              {
+                label: 'إضافة منتج جديد',
+                desc: 'وسّع كتالوج متجرك',
+                icon: <Plus size={15} />,
+                href: '/dashboard/inventory/products',
+              },
+              {
+                label: 'طلب جديد',
+                desc: 'سجّل بيع من الكاشير',
+                icon: <ShoppingCart size={15} />,
+                href: '/dashboard/pos',
+              },
+              {
+                label: 'حجز جديد',
+                desc: 'احجز موعدًا لعميل',
+                icon: <Calendar size={15} />,
+                href: '/dashboard/bookings',
+              },
+              {
+                label: 'حملة إعلانية',
+                desc: 'أطلق عرضًا لعملائك',
+                icon: <Megaphone size={15} />,
+                href: '/dashboard/marketing',
+              },
+              // Market-launch switch: التقرير المالي لوكال فقط.
+              ...(HIDE_UNPUBLISHED
+                ? []
+                : [
+                    {
+                      label: 'تقرير مالي',
+                      desc: 'راجع أرباحك ومصروفاتك',
+                      icon: <Wallet size={15} />,
+                      href: '/dashboard/finance',
+                    },
+                  ]),
+              {
+                label: 'إعدادات المتجر',
+                desc: 'بيانات المتجر والرؤية',
+                icon: <SettingsIcon size={15} />,
+                href: '/dashboard/settings',
+              },
+            ].map((a) => (
+              <button
+                key={a.label}
+                type="button"
+                onClick={() => router.push(a.href)}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors text-right"
+              >
+                <span className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                  {a.icon}
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-xs font-bold text-slate-800">{a.label}</span>
+                  <span className="block text-[10px] text-slate-400">{a.desc}</span>
+                </span>
+                <ChevronLeft size={13} className="text-slate-300 shrink-0" />
+              </button>
+            ))}
+          </MotionCard>
+
           <MotionCard className="p-0" delay={0.25}>
             <SectionHead
               title="آخر الإشعارات"

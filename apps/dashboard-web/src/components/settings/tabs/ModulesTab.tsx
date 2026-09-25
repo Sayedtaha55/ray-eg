@@ -80,6 +80,8 @@ interface ModulesTabProps {
   onSaved: () => void;
 }
 
+import { HIDE_UNPUBLISHED } from '@/config/sidebar';
+
 const moduleIcons: Record<string, any> = {
   overview: LayoutGrid,
   apps: LayoutGrid,
@@ -185,15 +187,25 @@ const MODULE_GROUPS = [
   { id: 'sales', label: 'المبيعات والطلبات', icon: CreditCard, color: '#2563EB' },
   { id: 'pos', label: 'الكاشير ومبيعات نقاط البيع', icon: ShoppingCart, color: '#0F766E' },
   { id: 'inventory', label: 'المخزون والمنتجات', icon: Package, color: '#16A34A' },
-  { id: 'finance', label: 'المالية والفواتير', icon: Receipt, color: '#7C3AED' },
-  { id: 'accounting', label: 'المحاسبة والدفاتر', icon: BookOpen, color: '#16A34A' },
+  // Market-launch switch: local-only groups are stripped in production builds.
+  ...(HIDE_UNPUBLISHED
+    ? []
+    : [
+        { id: 'finance', label: 'المالية والفواتير', icon: Receipt, color: '#7C3AED' },
+        { id: 'accounting', label: 'المحاسبة والدفاتر', icon: BookOpen, color: '#16A34A' },
+      ]),
   { id: 'crm', label: 'علاقات العملاء', icon: Users, color: '#DC2626' },
   { id: 'marketing', label: 'التسويق والعروض', icon: Megaphone, color: '#EA580C' },
   { id: 'bookings', label: 'الحجوزات والمواعيد', icon: Calendar, color: '#0891B2' },
   { id: 'website', label: 'الموقع الإلكتروني والمتجر', icon: Globe, color: '#0EA5E9' },
-  { id: 'hr', label: 'الموارد البشرية', icon: UserCog, color: '#9333EA' },
-  { id: 'analytics', label: 'التحليلات والتقارير', icon: BarChart3, color: '#059669' },
-  { id: 'ai', label: 'مساعد الذكاء الاصطناعي', icon: Sparkles, color: '#BD00FF' },
+  // Market-launch switch: local-only groups are stripped in production builds.
+  ...(HIDE_UNPUBLISHED
+    ? []
+    : [
+        { id: 'hr', label: 'الموارد البشرية', icon: UserCog, color: '#9333EA' },
+        { id: 'analytics', label: 'التحليلات والتقارير', icon: BarChart3, color: '#059669' },
+        { id: 'ai', label: 'مساعد الذكاء الاصطناعي', icon: Sparkles, color: '#BD00FF' },
+      ]),
 ];
 
 // Feature registry (simplified — mirrors React app's MODULE_REGISTRY structure)
@@ -260,7 +272,12 @@ const REGISTRY_FEATURES: Record<
     { id: 'creditLimits', label: 'Credit Limits', labelAr: 'حدود الائتمان', defaultEnabled: true },
     { id: 'customerSegments', label: 'Segments', labelAr: 'الشرائح', defaultEnabled: true },
     { id: 'customerTags', label: 'Tags', labelAr: 'الوسوم', defaultEnabled: true },
-    { id: 'loyaltyProgram', label: 'Loyalty & Rewards', labelAr: 'الولاء والمكافآت', defaultEnabled: true },
+    {
+      id: 'loyaltyProgram',
+      label: 'Loyalty & Rewards',
+      labelAr: 'الولاء والمكافآت',
+      defaultEnabled: true,
+    },
     { id: 'chats', label: 'Chats', labelAr: 'المحادثات' },
     { id: 'tickets', label: 'Tickets', labelAr: 'التذاكر' },
     { id: 'complaints', label: 'Complaints', labelAr: 'الشكاوى' },

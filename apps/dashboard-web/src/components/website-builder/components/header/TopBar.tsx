@@ -28,6 +28,7 @@ import {
   Minimize2,
   SlidersHorizontal,
 } from 'lucide-react';
+import { HIDE_UNPUBLISHED } from '@/config/sidebar';
 import { useBuilder } from '../../context/BuilderContext';
 
 export const TopBar: React.FC = () => {
@@ -324,14 +325,16 @@ export const TopBar: React.FC = () => {
                 أدوات متقدمة
               </div>
 
-              {/* AI Assistant */}
-              <button
-                onClick={() => setIsAiModalOpen(true)}
-                className="flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-slate-700 font-semibold transition-colors w-full text-right"
-              >
-                <Sparkles className="w-4 h-4 text-indigo-500" />
-                <span>مساعد الذكاء الاصطناعي</span>
-              </button>
+              {/* AI Assistant — market-launch switch: AI is local-only for now. */}
+              {!HIDE_UNPUBLISHED && (
+                <button
+                  onClick={() => setIsAiModalOpen(true)}
+                  className="flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-slate-700 font-semibold transition-colors w-full text-right"
+                >
+                  <Sparkles className="w-4 h-4 text-indigo-500" />
+                  <span>مساعد الذكاء الاصطناعي</span>
+                </button>
+              )}
 
               {/* Live Preview Modal */}
               <button
@@ -439,16 +442,19 @@ export const TopBar: React.FC = () => {
               <span>معاينة حية</span>
             </button>
 
-            <button
-              onClick={() => {
-                setIsAiModalOpen(true);
-                setIsMobileMenuOpen(false);
-              }}
-              className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-medium text-slate-800"
-            >
-              <Sparkles className="w-4 h-4 text-indigo-600" />
-              <span>مساعد الذكاء</span>
-            </button>
+            {/* Market-launch switch: AI assistant is local-only for now. */}
+            {!HIDE_UNPUBLISHED && (
+              <button
+                onClick={() => {
+                  setIsAiModalOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-medium text-slate-800"
+              >
+                <Sparkles className="w-4 h-4 text-indigo-600" />
+                <span>مساعد الذكاء</span>
+              </button>
+            )}
           </div>
         </div>
       )}

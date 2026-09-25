@@ -29,6 +29,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { HIDE_UNPUBLISHED } from '@/config/sidebar';
 
 interface OverviewTabProps {
   shop: any;
@@ -47,7 +48,7 @@ interface SettingCard {
   accent: string;
 }
 
-const ALL_SETTING_CARDS: SettingCard[] = [
+const BASE_SETTING_CARDS: SettingCard[] = [
   // 1. Store & System
   {
     id: 'store',
@@ -214,8 +215,12 @@ const ALL_SETTING_CARDS: SettingCard[] = [
     id: 'apps',
     category: 'team',
     categoryName: 'الفريق والتحليلات',
-    title: 'التطبيقات والذكاء الاصطناعي',
-    description: 'تطبيقات الربط الخارجي، مفاتيح API، ومساعد الذكاء الاصطناعي',
+    // Market-launch switch: the AI assistant is local-only, so the app store
+    // card drops the AI wording in production builds.
+    title: HIDE_UNPUBLISHED ? 'التطبيقات والربط الخارجي' : 'التطبيقات والذكاء الاصطناعي',
+    description: HIDE_UNPUBLISHED
+      ? 'تطبيقات الربط الخارجي ومفاتيح API'
+      : 'تطبيقات الربط الخارجي، مفاتيح API، ومساعد الذكاء الاصطناعي',
     icon: LayoutGrid,
     accent: 'text-purple-600',
   },
@@ -230,7 +235,20 @@ const ALL_SETTING_CARDS: SettingCard[] = [
   },
 ];
 
-const CATEGORIES: { key: CategoryKey; label: string }[] = [
+// Market-launch switch: local-only settings cards (finance + accounting +
+// HR + analytics) are stripped from the settings hub in production builds.
+const LOCAL_ONLY_CARD_IDS: ReadonlySet<string> = new Set([
+  'payments',
+  'accounting_settings',
+  'hr_settings',
+  'analytics_settings',
+]);
+
+const ALL_SETTING_CARDS: SettingCard[] = HIDE_UNPUBLISHED
+  ? BASE_SETTING_CARDS.filter((card) => !LOCAL_ONLY_CARD_IDS.has(card.id))
+  : BASE_SETTING_CARDS;
+
+const BASE_CATEGORIES: { key: CategoryKey; label: string }[] = [
   { key: 'all', label: 'جميع الإعدادات' },
   { key: 'store', label: 'المتجر والنظام' },
   { key: 'operations', label: 'العمليات والبيع' },
@@ -238,6 +256,11 @@ const CATEGORIES: { key: CategoryKey; label: string }[] = [
   { key: 'customers', label: 'العملاء والتسويق' },
   { key: 'team', label: 'الفريق والتحليلات' },
 ];
+
+// The finance & accounting category has no published cards left after launch.
+const CATEGORIES = HIDE_UNPUBLISHED
+  ? BASE_CATEGORIES.filter((cat) => cat.key !== 'finance')
+  : BASE_CATEGORIES;
 
 export default function OverviewTab({ shop, onSelectTab }: OverviewTabProps) {
   const router = useRouter();
@@ -281,15 +304,21 @@ export default function OverviewTab({ shop, onSelectTab }: OverviewTabProps) {
           ? 'الحساب قيد المراجعة'
           : 'حالة الحساب نشطة',
     },
-    {
-      title: 'بوابة الدفع الإلكتروني',
-      value: hasPaymentConfig ? 'مفعّلة' : 'غير مربوطة بعد',
-      icon: hasPaymentConfig ? CheckCircle : AlertTriangle,
-      color: hasPaymentConfig ? 'text-emerald-500' : 'text-amber-500',
-      description: hasPaymentConfig
-        ? 'البوابة جاهزة لقبول الدفع بالبطاقات'
-        : 'اربط بوابتك لقبول البطاقات والمحافظ',
-    },
+    // Market-launch switch: the gateway card points at the local-only payments
+    // tab, so it is hidden in production builds (cash on delivery only).
+    ...(HIDE_UNPUBLISHED
+      ? []
+      : [
+          {
+            title: 'بوابة الدفع الإلكتروني',
+            value: hasPaymentConfig ? 'مفعّلة' : 'غير مربوطة بعد',
+            icon: hasPaymentConfig ? CheckCircle : AlertTriangle,
+            color: hasPaymentConfig ? 'text-emerald-500' : 'text-amber-500',
+            description: hasPaymentConfig
+              ? 'البوابة جاهزة لقبول الدفع بالبطاقات'
+              : 'اربط بوابتك لقبول البطاقات والمحافظ',
+          },
+        ]),
     {
       title: 'نظام العمليات والمبيعات',
       value: 'مدمج وموحّد',

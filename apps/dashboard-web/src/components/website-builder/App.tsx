@@ -1,5 +1,6 @@
 import React from 'react';
 import { BuilderProvider, useBuilder } from './context/BuilderContext';
+import { HIDE_UNPUBLISHED } from '@/config/sidebar';
 import { TopBar } from './components/header/TopBar';
 import { PublishModal } from './components/header/PublishModal';
 import { LeftSidebar } from './components/sidebar/LeftSidebar';
@@ -35,7 +36,8 @@ const BuilderWorkspace: React.FC<{ fullScreen?: boolean }> = ({ fullScreen = fal
 
       {/* Modals, Drawers & Overlays */}
       <PublishModal />
-      <AiAssistantModal />
+      {/* Market-launch switch: the AI assistant is local-only for now. */}
+      {!HIDE_UNPUBLISHED && <AiAssistantModal />}
       <LivePreviewModal />
       <DeveloperModeDrawer />
       <CartDrawer />

@@ -6,17 +6,29 @@
  * Order matters: the most specific prefix wins.
  */
 
+import { HIDE_UNPUBLISHED } from '@/config/sidebar';
+
 export interface SectionSettingsTarget {
   tab: string;
   from: string;
 }
 
-const ROUTE_MAP: Array<{ prefix: string; target: SectionSettingsTarget }> = [
+const PUBLISHED_ROUTES: Array<{ prefix: string; target: SectionSettingsTarget }> = [
   { prefix: '/dashboard/website', target: { tab: 'store', from: 'website' } },
   { prefix: '/dashboard/sales', target: { tab: 'orders_settings', from: 'sales' } },
   { prefix: '/dashboard/pos', target: { tab: 'pos_settings', from: 'pos' } },
   { prefix: '/dashboard/inventory', target: { tab: 'inventory_settings', from: 'inventory' } },
   { prefix: '/dashboard/branches', target: { tab: 'branches_settings', from: 'branches' } },
+  { prefix: '/dashboard/marketing', target: { tab: 'social_media', from: 'marketing' } },
+  { prefix: '/dashboard/customers', target: { tab: 'customers_settings', from: 'customers' } },
+  { prefix: '/dashboard/crm', target: { tab: 'crm_settings', from: 'crm' } },
+  { prefix: '/dashboard/bookings', target: { tab: 'booking_settings', from: 'bookings' } },
+];
+
+// Market-launch switch: local-only sections (finance + accounting + HR + team +
+// analytics + AI). Their settings tabs are unpublished too, so in production
+// these routes fall back to the plain settings overview instead.
+const LOCAL_ONLY_ROUTES: Array<{ prefix: string; target: SectionSettingsTarget }> = [
   // accounting lives under /dashboard/finance/accounts — must match before finance
   {
     prefix: '/dashboard/finance/accounts',
@@ -24,14 +36,15 @@ const ROUTE_MAP: Array<{ prefix: string; target: SectionSettingsTarget }> = [
   },
   { prefix: '/dashboard/finance', target: { tab: 'payments', from: 'finance' } },
   { prefix: '/dashboard/team', target: { tab: 'hr_settings', from: 'hr' } },
-  { prefix: '/dashboard/marketing', target: { tab: 'social_media', from: 'marketing' } },
-  { prefix: '/dashboard/customers', target: { tab: 'customers_settings', from: 'customers' } },
-  { prefix: '/dashboard/crm', target: { tab: 'crm_settings', from: 'crm' } },
-  { prefix: '/dashboard/bookings', target: { tab: 'booking_settings', from: 'bookings' } },
   { prefix: '/dashboard/hr', target: { tab: 'hr_settings', from: 'hr' } },
   { prefix: '/dashboard/analytics', target: { tab: 'analytics_settings', from: 'analytics' } },
   { prefix: '/dashboard/ai', target: { tab: 'apps', from: 'ai' } },
 ];
+
+const ROUTE_MAP: Array<{ prefix: string; target: SectionSettingsTarget }> = HIDE_UNPUBLISHED
+  ? PUBLISHED_ROUTES
+  : [...LOCAL_ONLY_ROUTES, ...PUBLISHED_ROUTES];
+
 
 /**
  * Returns the settings URL for the given dashboard path. Outside a known

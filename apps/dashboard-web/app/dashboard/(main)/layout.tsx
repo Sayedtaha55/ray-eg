@@ -10,6 +10,7 @@ import OrderBellWatcher from '@/components/OrderBellWatcher';
 import RouteProgress from '@/components/RouteProgress';
 import { RecentlyViewedTracker } from '@/hooks/useRecentlyViewed';
 import { useAuth } from '@/lib/auth';
+import { isLocalOnlyPathname } from '@/lib/localOnlySections';
 import CreateShopGate from '@/components/CreateShopGate';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -37,6 +38,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, loading, router]);
 
+  // Market-launch switch: local-only sections (finance, accounting, HR, team,
+  // analytics, AI) are unreachable in production — even by direct URL.
+  const localOnlyRoute = isLocalOnlyPathname(pathname);
+
+  useEffect(() => {
+    if (localOnlyRoute) router.replace('/dashboard');
+  }, [localOnlyRoute, router]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -46,6 +55,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-12 h-12 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // While the local-only redirect above kicks in, keep the shell blank instead
+  // of flashing a page that is not released yet.
+  if (localOnlyRoute) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="w-12 h-12 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />

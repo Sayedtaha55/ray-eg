@@ -390,6 +390,7 @@ export const sidebarSections: SidebarSection[] = [
   },
   {
     id: 'finance',
+    published: false,
     title: 'Finance',
     titleAr: 'المالية',
     moduleId: 'finance',
@@ -740,7 +741,7 @@ export const sidebarSections: SidebarSection[] = [
   },
   {
     id: 'hr',
-    published: true,
+    published: false,
     title: 'Human Resources',
     titleAr: 'الموارد البشرية',
     moduleId: 'hr',
@@ -806,6 +807,7 @@ export const sidebarSections: SidebarSection[] = [
   },
   {
     id: 'analytics',
+    published: false,
     title: 'Analytics',
     titleAr: 'التحليلات',
     moduleId: 'analytics',
@@ -1029,6 +1031,7 @@ export const sidebarSections: SidebarSection[] = [
       },
       {
         id: 'settings_payments',
+        published: false,
         label: 'Payments',
         labelAr: 'المدفوعات',
         icon: CreditCard,
@@ -1036,6 +1039,7 @@ export const sidebarSections: SidebarSection[] = [
       },
       {
         id: 'settings_accounting',
+        published: false,
         label: 'Accounting Settings',
         labelAr: 'إعدادات المحاسبة',
         icon: Calculator,
@@ -1057,6 +1061,7 @@ export const sidebarSections: SidebarSection[] = [
       },
       {
         id: 'settings_hr',
+        published: false,
         label: 'Team Settings',
         labelAr: 'إعدادات الفريق',
         icon: UserCog,
@@ -1064,6 +1069,7 @@ export const sidebarSections: SidebarSection[] = [
       },
       {
         id: 'settings_analytics',
+        published: false,
         label: 'Analytics Settings',
         labelAr: 'إعدادات التحليلات',
         icon: BarChart3,

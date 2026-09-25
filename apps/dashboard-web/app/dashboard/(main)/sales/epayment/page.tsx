@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { HIDE_UNPUBLISHED } from '@/config/sidebar';
 import {
   Smartphone,
   CreditCard,
@@ -25,7 +27,21 @@ import {
 import { apiRequest } from '@/lib/auth';
 import { useShop } from '@/hooks/useShop';
 
+/**
+ * Market-launch switch: payment gateways are deferred (cash on delivery only at
+ * launch), so this finance page is local-only and falls back to sales in
+ * production builds.
+ */
 export default function SalesEpaymentPage() {
+  const router = useRouter();
+  useEffect(() => {
+    if (HIDE_UNPUBLISHED) router.replace('/dashboard/sales');
+  }, [router]);
+  if (HIDE_UNPUBLISHED) return null;
+  return <SalesEpaymentContent />;
+}
+
+function SalesEpaymentContent() {
   const [shop, setShop] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [guideOpen, setGuideOpen] = useState(false);

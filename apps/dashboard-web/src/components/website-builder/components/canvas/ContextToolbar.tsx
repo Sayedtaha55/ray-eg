@@ -1,4 +1,5 @@
 import React from 'react';
+import { HIDE_UNPUBLISHED } from '@/config/sidebar';
 import {
   Paintbrush,
   Code2,
@@ -73,15 +74,17 @@ export const ContextToolbar: React.FC = () => {
         <span className="font-medium">كود</span>
       </button>
 
-      {/* AI Patch Trigger */}
-      <button
-        onClick={() => setIsAiModalOpen(true)}
-        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold transition-all shadow-xs cursor-pointer shrink-0 animate-in fade-in"
-        title="تعديل هذا المكون بالذكاء الاصطناعي (AI)"
-      >
-        <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
-        <span className="font-bold text-[11px] sm:text-xs">تعديل AI</span>
-      </button>
+      {/* AI Patch Trigger — market-launch switch: AI is local-only for now. */}
+      {!HIDE_UNPUBLISHED && (
+        <button
+          onClick={() => setIsAiModalOpen(true)}
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold transition-all shadow-xs cursor-pointer shrink-0 animate-in fade-in"
+          title="تعديل هذا المكون بالذكاء الاصطناعي (AI)"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
+          <span className="font-bold text-[11px] sm:text-xs">تعديل AI</span>
+        </button>
+      )}
 
       <div className="h-4 w-px bg-slate-700/80 mx-0.5 shrink-0" />
 
