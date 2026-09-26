@@ -44,7 +44,9 @@ func CORS(cfg *config.Config) fiber.Handler {
 		},
 		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
 		AllowHeaders:     "Origin,Content-Type,Accept,Authorization,X-Request-Id,X-Idempotency-Key,X-CSRF-Token,X-App-Scope",
-		ExposeHeaders:    "X-CSRF-Token,X-Request-Id",
+		// Deprecation/Sunset/Link are exposed so browser clients can detect a
+		// scheduled API retirement without a CORS error (see middleware.Deprecated).
+		ExposeHeaders:    "X-CSRF-Token,X-Request-Id,Deprecation,Sunset,Link",
 		AllowCredentials: true,
 		MaxAge:           86400,
 	})

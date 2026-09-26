@@ -13,6 +13,15 @@ import (
 // AuthContextKey is the key used to store authenticated user data in fiber Locals.
 const AuthContextKey = "auth_user"
 
+// AuthSourceContextKey is the key used to store the credential source that
+// authenticated the request: tokenSourceBearer, tokenSourceCookie or
+// tokenSourceSessionCookie. It stays empty for anonymous requests.
+//
+// It exists so telemetry can measure how much traffic still depends on each
+// credential (notably the ray_session refresh-token bridge used by
+// pre-upgrade sessions) before any of them is retired.
+const AuthSourceContextKey = "auth_token_source"
+
 // AuthUser represents the authenticated caller extracted from a JWT.
 type AuthUser struct {
 	ID     string `json:"id"`
@@ -26,11 +35,12 @@ type AuthUser struct {
 // an authentication error.
 func RequireAuth(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		user, err := extractUser(c, cfg.Auth.JWTSecret)
+		user, source, err := extractUser(c, cfg.Auth.JWTSecret)
 		if err != nil {
 			return errors.Unauthorized("invalid_token", err.Error())
 		}
 		c.Locals(AuthContextKey, user)
+		c.Locals(AuthSourceContextKey, source)
 		return c.Next()
 	}
 }
@@ -39,9 +49,10 @@ func RequireAuth(cfg *config.Config) fiber.Handler {
 // without authentication.
 func OptionalAuth(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		user, err := extractUser(c, cfg.Auth.JWTSecret)
+		user, source, err := extractUser(c, cfg.Auth.JWTSecret)
 		if err == nil {
 			c.Locals(AuthContextKey, user)
+			c.Locals(AuthSourceContextKey, source)
 		}
 		return c.Next()
 	}
@@ -57,10 +68,22 @@ func AuthUserFromContext(c *fiber.Ctx) (AuthUser, bool) {
 	return u, ok
 }
 
-func extractUser(c *fiber.Ctx, secret string) (AuthUser, error) {
+// AuthSourceFromContext returns the credential source recorded by RequireAuth
+// or OptionalAuth: "bearer", "cookie" or "session_cookie". It returns "" when
+// the request carried no valid credential (anonymous request).
+func AuthSourceFromContext(c *fiber.Ctx) string {
+	if v, ok := c.Locals(AuthSourceContextKey).(string); ok {
+		return v
+	}
+	return ""
+}
+
+// extractUser validates the request credential and also reports which source it
+// came from so callers can record it for telemetry.
+func extractUser(c *fiber.Ctx, secret string) (AuthUser, string, error) {
 	tokenStr, source := extractToken(c)
 	if tokenStr == "" {
-		return AuthUser{}, fmt.Errorf("missing token")
+		return AuthUser{}, "", fmt.Errorf("missing token")
 	}
 
 	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
@@ -70,12 +93,12 @@ func extractUser(c *fiber.Ctx, secret string) (AuthUser, error) {
 		return []byte(secret), nil
 	}, jwt.WithValidMethods([]string{"HS256"}))
 	if err != nil {
-		return AuthUser{}, err
+		return AuthUser{}, "", err
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		return AuthUser{}, fmt.Errorf("invalid claims")
+		return AuthUser{}, "", fmt.Errorf("invalid claims")
 	}
 
 	// Only real session tokens may authenticate. One-time tokens (password
@@ -91,14 +114,14 @@ func extractUser(c *fiber.Ctx, secret string) (AuthUser, error) {
 	switch typ {
 	case "access":
 		if source == tokenSourceSessionCookie {
-			return AuthUser{}, fmt.Errorf("access token must not arrive via the session cookie")
+			return AuthUser{}, "", fmt.Errorf("access token must not arrive via the session cookie")
 		}
 	case "refresh":
 		if source != tokenSourceSessionCookie {
-			return AuthUser{}, fmt.Errorf("refresh token must be sent via session cookie")
+			return AuthUser{}, "", fmt.Errorf("refresh token must be sent via session cookie")
 		}
 	default:
-		return AuthUser{}, fmt.Errorf("token type %q cannot authenticate", typ)
+		return AuthUser{}, "", fmt.Errorf("token type %q cannot authenticate", typ)
 	}
 
 	user := AuthUser{
@@ -114,10 +137,10 @@ func extractUser(c *fiber.Ctx, secret string) (AuthUser, error) {
 	}
 
 	if user.ID == "" {
-		return AuthUser{}, fmt.Errorf("missing sub claim")
+		return AuthUser{}, "", fmt.Errorf("missing sub claim")
 	}
 
-	return user, nil
+	return user, source, nil
 }
 
 const (
@@ -125,6 +148,10 @@ const (
 	tokenSourceCookie        = "cookie"
 	tokenSourceSessionCookie = "session_cookie"
 )
+
+// AuthSourceAnonymous is the label used by telemetry for requests that were not
+// authenticated by RequireAuth or OptionalAuth.
+const AuthSourceAnonymous = "anonymous"
 
 func extractToken(c *fiber.Ctx) (string, string) {
 	auth := c.Get("Authorization")
@@ -147,7 +174,7 @@ func extractToken(c *fiber.Ctx) (string, string) {
 		return cookie, tokenSourceCookie
 	}
 	if scope != "" {
-		if cookie := c.Cookies("ray_session"+scope); cookie != "" {
+		if cookie := c.Cookies("ray_session" + scope); cookie != "" {
 			return cookie, tokenSourceSessionCookie
 		}
 	}
