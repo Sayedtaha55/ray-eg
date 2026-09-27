@@ -1,9 +1,5 @@
-import { Loader2 } from 'lucide-react';
+import { ProfileShellSkeleton } from '@/components/Skeleton';
 
 export default function Loading() {
-  return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
-    </div>
-  );
+  return <ProfileShellSkeleton rows={4} stats={4} />;
 }

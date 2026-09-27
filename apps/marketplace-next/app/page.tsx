@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Tag, TrendingUp, Sparkles } from 'lucide-react';
+import { Tag, TrendingUp, Sparkles } from 'lucide-react';
 import { getOffers, getSeasonalOffers, getLatestProducts } from '@/lib/services';
 import { activities, siteConfig } from '@/lib/config';
-import { ProductCard } from '@/components/ProductCard';
-import { ProductCardSkeleton } from '@/components/Skeleton';
+import { ProductRail } from '@/components/ProductRail';
+
 import { HeroSlider } from '@/components/HeroSlider';
 import { AppDownloadBanner } from '@/components/AppDownloadBanner';
 import { HeroSearch } from '@/components/HeroSearch';
@@ -23,14 +23,13 @@ export const revalidate = 300;
 
 export default async function HomePage() {
   const [latestProducts, offers, seasonalOffers] = await Promise.all([
-    getLatestProducts(16),
+    getLatestProducts(24),
     getOffers(),
     getSeasonalOffers(),
   ]);
-  // الهوم بالكامل بطاقة المنتج الموحدة — مفيش بطاقات متاجر هنا
-  const featuredProducts = latestProducts.slice(0, 8);
-  const newArrivals = latestProducts.slice(8, 16);
-  const featuredOffers = offers.slice(0, 8);
+  const featuredProducts = latestProducts.slice(0, 12);
+  const newArrivals = latestProducts.slice(12, 24);
+  const featuredOffers = offers;
   const activeSeasonal = seasonalOffers
     .filter((s) => s.status === 'active' || new Date(s.endDate) >= new Date())
     .slice(0, 3);
@@ -127,33 +126,19 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products — بطاقة المنتج الموحدة في كل الهوم */}
-      <section className="py-10 md:py-24 bg-slate-50 dark:bg-slate-950/50">
+      {/* Featured Products — شريط أفقي سريع بالسحب بالإصبع أو الأسهم */}
+      <section className="py-8 md:py-16 bg-slate-50 dark:bg-slate-950/50">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6">
-          <div className="flex items-end justify-between mb-6 md:mb-12">
-            <div className="text-right">
-              <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight">
-                منتجات مميزة
-              </h2>
-            </div>
-            <Link
-              href="/offers"
-              className="group flex items-center gap-2 md:gap-3 text-brand-cyan font-semibold text-xs md:text-sm"
-            >
-              <span className="border-b-2 border-brand-cyan/0 group-hover:border-brand-cyan transition-all">
-                تصفح المزيد
-              </span>
-              <ArrowLeft className="w-4 h-4 rotate-180 transition-transform group-hover:translate-x-2" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-            {featuredProducts.length > 0
-              ? featuredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))
-              : Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
-          </div>
+          <ProductRail
+            title="منتجات مميزة"
+            subtitle="مختارة لك من أفضل المتاجر"
+            icon={<Sparkles className="w-5 h-5" />}
+            products={featuredProducts}
+            viewAllHref="/offers"
+            viewAllLabel="تصفح المزيد"
+            initialCount={6}
+            step={6}
+          />
         </div>
       </section>
 
@@ -213,61 +198,36 @@ export default async function HomePage() {
 
       {/* Featured Offers Section */}
       {featuredOffers.length > 0 && (
-        <section className="py-24 bg-slate-50 dark:bg-slate-950/50">
+        <section className="py-8 md:py-16 bg-slate-50 dark:bg-slate-950/50">
           <div className="max-w-[1400px] mx-auto px-4 md:px-6">
-            <div className="flex items-end justify-between mb-12">
-              <div className="text-right">
-                <div className="flex items-center gap-2 mb-3 justify-end">
-                  <Tag className="w-5 h-5 text-amber-400" />
-                  <span className="text-xs font-semibold text-amber-400">خصومات حصرية</span>
-                </div>
-                <h2 className="text-4xl md:text-6xl font-bold tracking-tight">أحدث العروض</h2>
-              </div>
-              <Link
-                href="/offers"
-                className="group flex items-center gap-3 text-amber-400 font-semibold text-sm"
-              >
-                <span className="border-b-2 border-amber-400/0 group-hover:border-amber-400 transition-all">
-                  عرض جميع العروض
-                </span>
-                <ArrowLeft className="w-4 h-4 rotate-180 transition-transform group-hover:translate-x-2" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-              {featuredOffers.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <ProductRail
+              title="أحدث العروض والخصومات"
+              subtitle="أفضل التخفيضات المتاحة الآن"
+              icon={<Tag className="w-5 h-5 text-amber-500" />}
+              products={featuredOffers}
+              viewAllHref="/offers"
+              viewAllLabel="عرض جميع العروض"
+              initialCount={8}
+              step={6}
+            />
           </div>
         </section>
       )}
 
-      {/* New Arrivals — نفس بطاقة المنتج الموحدة */}
+      {/* New Arrivals */}
       {newArrivals.length > 0 && (
-        <section className="py-24 bg-white dark:bg-brand-black">
+        <section className="py-8 md:py-16 bg-white dark:bg-brand-black">
           <div className="max-w-[1400px] mx-auto px-4 md:px-6">
-            <div className="flex items-end justify-between mb-12">
-              <div className="text-right">
-                <div className="flex items-center gap-2 mb-3 justify-end">
-                  <TrendingUp className="w-5 h-5 text-brand-purple" />
-                  <span className="text-xs font-semibold text-brand-purple">أحدث الإضافات</span>
-                </div>
-                <h2 className="text-4xl md:text-6xl font-bold tracking-tight">وصل حديثاً</h2>
-              </div>
-              <Link
-                href="/offers"
-                className="group flex items-center gap-3 text-brand-purple font-semibold text-sm"
-              >
-                <span>عرض الكل</span>
-                <ArrowLeft className="w-4 h-4 rotate-180 transition-transform group-hover:translate-x-2" />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-              {newArrivals.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <ProductRail
+              title="وصل حديثاً"
+              subtitle="أجدد المنتجات المضافة للمنصة"
+              icon={<TrendingUp className="w-5 h-5 text-brand-purple" />}
+              products={newArrivals}
+              viewAllHref="/offers"
+              viewAllLabel="عرض الكل"
+              initialCount={8}
+              step={6}
+            />
           </div>
         </section>
       )}

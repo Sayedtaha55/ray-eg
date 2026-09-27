@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { Filter, X, SlidersHorizontal } from 'lucide-react';
 import type { Product } from '@/lib/services';
 import { formatPrice } from '@/lib/utils';
-import { ProductCard } from './ProductCard';
+import { ProductGrid } from './ProductGrid';
 
 interface ShopProductsProps {
   products: Product[];
@@ -46,7 +46,8 @@ export function ShopProducts({ products }: ShopProductsProps) {
     return result;
   }, [products, category, maxPrice, sortBy]);
 
-  const activeFilters = (category ? 1 : 0) + (maxPrice != null ? 1 : 0) + (sortBy !== 'default' ? 1 : 0);
+  const activeFilters =
+    (category ? 1 : 0) + (maxPrice != null ? 1 : 0) + (sortBy !== 'default' ? 1 : 0);
 
   const clearFilters = () => {
     setCategory('');
@@ -65,11 +66,16 @@ export function ShopProducts({ products }: ShopProductsProps) {
           <SlidersHorizontal className="w-4 h-4" />
           فلترة
           {activeFilters > 0 && (
-            <span className="w-5 h-5 rounded-full bg-brand-cyan text-white text-[10px] flex items-center justify-center">{activeFilters}</span>
+            <span className="w-5 h-5 rounded-full bg-brand-cyan text-white text-[10px] flex items-center justify-center">
+              {activeFilters}
+            </span>
           )}
         </button>
         {activeFilters > 0 && (
-          <button onClick={clearFilters} className="flex items-center gap-1 text-xs font-bold text-red-400 hover:text-red-500">
+          <button
+            onClick={clearFilters}
+            className="flex items-center gap-1 text-xs font-bold text-red-400 hover:text-red-500"
+          >
             <X className="w-3 h-3" />
             مسح الفلاتر
           </button>
@@ -148,24 +154,28 @@ export function ShopProducts({ products }: ShopProductsProps) {
         </div>
       )}
 
-      {/* Products grid */}
-      {filtered.length > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-          {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-20">
-          <Filter className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
-          <p className="text-slate-500 font-bold">لا توجد منتجات مطابقة للفلاتر</p>
-          {activeFilters > 0 && (
-            <button onClick={clearFilters} className="mt-4 text-brand-cyan font-bold text-sm hover:underline">
-              مسح الفلاتر
-            </button>
-          )}
-        </div>
-      )}
+      {/* Products grid with "عرض المزيد" and filter reset */}
+      <ProductGrid
+        products={filtered}
+        initialCount={12}
+        step={8}
+        resetKey={`${category}-${maxPrice}-${sortBy}`}
+        emptyState={
+          <div className="text-center py-20">
+            <Filter className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
+            <p className="text-slate-500 font-bold">لا توجد منتجات مطابقة للفلاتر</p>
+            {activeFilters > 0 && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="mt-4 text-brand-cyan font-bold text-sm hover:underline"
+              >
+                مسح الفلاتر
+              </button>
+            )}
+          </div>
+        }
+      />
     </div>
   );
 }

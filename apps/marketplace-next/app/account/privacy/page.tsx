@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Download, Edit3, Trash2, AlertOctagon, FileText, RefreshCw } from 'lucide-react';
+import { Shield, Download, Edit3, Trash2, AlertOctagon, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { APP_SCOPE, getCsrfToken, isSessionActive } from '@/lib/api';
+import { Skeleton } from '@/components/Skeleton';
 
 type ConsentType = 'essential' | 'analytics' | 'marketing';
 
@@ -67,7 +68,11 @@ const statusColors: Record<string, string> = {
 
 export default function PrivacySettingsPage() {
   const router = useRouter();
-  const [consents, setConsents] = useState<ConsentState>({ essential: true, analytics: false, marketing: false });
+  const [consents, setConsents] = useState<ConsentState>({
+    essential: true,
+    analytics: false,
+    marketing: false,
+  });
   const [dsrRequests, setDsrRequests] = useState<DSRRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState<string | null>(null);
@@ -153,8 +158,17 @@ export default function PrivacySettingsPage() {
 
   if (!authChecked || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" dir="rtl">
-        <RefreshCw className="w-8 h-8 text-[#00E5FF] animate-spin" />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-8" dir="rtl" aria-busy>
+        <span className="sr-only">جاري التحميل...</span>
+        <div className="container mx-auto px-4 max-w-3xl space-y-6">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-8 h-8 rounded-xl" />
+            <Skeleton className="h-8 w-56 rounded-xl" />
+          </div>
+          <Skeleton className="h-40 rounded-2xl" />
+          <Skeleton className="h-52 rounded-2xl" />
+          <Skeleton className="h-36 rounded-2xl" />
+        </div>
       </div>
     );
   }
@@ -172,8 +186,13 @@ export default function PrivacySettingsPage() {
           <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">تفضيلات الكوكيز</h2>
           <div className="space-y-3">
             {(Object.keys(consents) as ConsentType[]).map((type) => (
-              <div key={type} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
-                <span className="font-semibold text-sm text-slate-700 dark:text-slate-300">{consentLabels[type]}</span>
+              <div
+                key={type}
+                className="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800"
+              >
+                <span className="font-semibold text-sm text-slate-700 dark:text-slate-300">
+                  {consentLabels[type]}
+                </span>
                 <button
                   type="button"
                   onClick={() => toggleConsent(type)}
@@ -183,9 +202,11 @@ export default function PrivacySettingsPage() {
                     ${type === 'essential' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
                   `}
                 >
-                  <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all
+                  <div
+                    className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all
                     ${consents[type] ? 'right-1' : 'right-6'}
-                  `} />
+                  `}
+                  />
                 </button>
               </div>
             ))}
@@ -207,10 +228,14 @@ export default function PrivacySettingsPage() {
                   disabled={submitting !== null}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50"
                 >
-                  <div className={`w-9 h-9 rounded-lg ${action.color} flex items-center justify-center`}>
+                  <div
+                    className={`w-9 h-9 rounded-lg ${action.color} flex items-center justify-center`}
+                  >
                     <Icon className="w-4 h-4 text-white" />
                   </div>
-                  <span className="font-bold text-sm text-slate-900 dark:text-white">{action.label}</span>
+                  <span className="font-bold text-sm text-slate-900 dark:text-white">
+                    {action.label}
+                  </span>
                   {submitting === action.type && (
                     <div className="w-4 h-4 border-2 border-[#00E5FF] border-t-transparent rounded-full animate-spin mr-auto" />
                   )}
@@ -252,12 +277,21 @@ export default function PrivacySettingsPage() {
           ) : (
             <div className="space-y-2">
               {dsrRequests.map((req) => (
-                <div key={req.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800">
+                <div
+                  key={req.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800"
+                >
                   <div className="flex flex-col">
-                    <span className="font-semibold text-sm text-slate-700 dark:text-slate-300">{req.type}</span>
-                    <span className="text-xs text-slate-400">{new Date(req.createdAt).toLocaleDateString('ar-EG')}</span>
+                    <span className="font-semibold text-sm text-slate-700 dark:text-slate-300">
+                      {req.type}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {new Date(req.createdAt).toLocaleDateString('ar-EG')}
+                    </span>
                   </div>
-                  <span className={`px-2 py-1 rounded-md text-xs font-bold ${statusColors[req.status] || ''}`}>
+                  <span
+                    className={`px-2 py-1 rounded-md text-xs font-bold ${statusColors[req.status] || ''}`}
+                  >
                     {statusLabels[req.status] || req.status}
                   </span>
                 </div>

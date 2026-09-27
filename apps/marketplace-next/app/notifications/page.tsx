@@ -3,12 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  Bell, Package, Store, Tag, Heart, CheckCircle, Clock,
-  Loader2, ArrowLeft, Trash2,
-} from 'lucide-react';
+import { Bell, Package, Store, Tag, Heart, CheckCircle, Clock, ArrowLeft } from 'lucide-react';
 import { isSessionActive, jsonRequest } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { ListSkeleton, PageHeaderSkeleton } from '@/components/Skeleton';
 
 interface Notification {
   id: string;
@@ -73,9 +71,10 @@ export default function NotificationsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-20 flex flex-col items-center">
-        <Loader2 className="w-10 h-10 text-brand-cyan animate-spin mb-4" />
-        <p className="text-slate-500 font-bold">جاري التحميل...</p>
+      <div className="max-w-2xl mx-auto px-4 md:px-6 py-8 md:py-12 space-y-6" aria-busy>
+        <span className="sr-only">جاري التحميل...</span>
+        <PageHeaderSkeleton />
+        <ListSkeleton rows={5} />
       </div>
     );
   }
@@ -122,16 +121,22 @@ export default function NotificationsPage() {
                     : 'bg-brand-cyan/5 border-brand-cyan/20'
                 }`}
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${colorCls}`}>
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${colorCls}`}
+                >
                   <Icon className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-sm">{notif.title}</h3>
-                    {!notif.read && <span className="w-2 h-2 rounded-full bg-brand-cyan flex-shrink-0" />}
+                    {!notif.read && (
+                      <span className="w-2 h-2 rounded-full bg-brand-cyan flex-shrink-0" />
+                    )}
                   </div>
                   {notif.body && (
-                    <p className="text-xs font-semibold text-slate-500 mt-1 leading-relaxed">{notif.body}</p>
+                    <p className="text-xs font-semibold text-slate-500 mt-1 leading-relaxed">
+                      {notif.body}
+                    </p>
                   )}
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-xs text-slate-400 font-semibold flex items-center gap-1">
@@ -140,7 +145,10 @@ export default function NotificationsPage() {
                     </span>
                     {!notif.read && (
                       <button
-                        onClick={(e) => { e.preventDefault(); markAsRead(notif.id); }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          markAsRead(notif.id);
+                        }}
                         className="text-xs font-bold text-brand-cyan hover:underline mr-auto"
                       >
                         تعليم كمقروء
@@ -163,7 +171,10 @@ export default function NotificationsPage() {
       )}
 
       <div className="mt-8 text-center">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-cyan">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-cyan"
+        >
           <ArrowLeft className="w-4 h-4" />
           العودة للرئيسية
         </Link>

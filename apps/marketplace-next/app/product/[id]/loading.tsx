@@ -1,5 +1,3 @@
-import { ProductCardSkeleton } from '@/components/Skeleton';
-
 export default function Loading() {
   return (
     <div className="min-h-screen bg-white dark:bg-brand-black">

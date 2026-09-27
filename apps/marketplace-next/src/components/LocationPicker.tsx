@@ -166,9 +166,10 @@ export function LocationPicker({
         style={{ height: '280px' }}
       >
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 z-10">
-            <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
-          </div>
+          <div
+            className="absolute inset-0 z-10 bg-slate-100 dark:bg-slate-800 animate-pulse"
+            aria-hidden
+          />
         )}
         <div ref={containerRef} className="w-full h-full" />
       </div>

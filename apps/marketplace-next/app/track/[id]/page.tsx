@@ -13,12 +13,12 @@ import {
   Store,
   Phone,
   ArrowLeft,
-  Loader2,
   XCircle,
   AlertCircle,
 } from 'lucide-react';
 import { jsonRequest } from '@/lib/api';
 import { formatPrice, formatDate } from '@/lib/utils';
+import { PageHeaderSkeleton, Skeleton } from '@/components/Skeleton';
 
 interface OrderItem {
   productId: string;
@@ -98,9 +98,19 @@ export default function TrackOrderPage() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-20 flex flex-col items-center">
-        <Loader2 className="w-10 h-10 text-brand-cyan animate-spin mb-4" />
-        <p className="text-slate-500 font-bold">جاري تحميل الطلب...</p>
+      <div className="max-w-2xl mx-auto px-4 py-12 space-y-6" aria-busy>
+        <span className="sr-only">جاري تحميل الطلب...</span>
+        <PageHeaderSkeleton />
+        <Skeleton className="h-32 rounded-2xl" />
+        {/* Status timeline */}
+        <div className="space-y-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="w-9 h-9 rounded-full shrink-0" />
+              <Skeleton className="h-4 rounded-md flex-1" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

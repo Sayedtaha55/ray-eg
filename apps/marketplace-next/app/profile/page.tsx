@@ -3,20 +3,21 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  User, 
-  ShoppingBag, 
-  Heart, 
-  MapPin, 
-  Settings, 
-  LogOut, 
+import {
+  User,
+  ShoppingBag,
+  Heart,
+  MapPin,
+  Settings,
+  LogOut,
   Package,
   Clock,
   CheckCircle,
   XCircle,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-react';
 import { api, clearStoredAuthToken, isSessionActive } from '@/lib/api';
+import { ProfileShellSkeleton } from '@/components/Skeleton';
 
 interface Order {
   id: string;
@@ -45,7 +46,7 @@ export default function ProfilePage() {
     try {
       const userData = await api.get('/auth/me');
       setUser((userData as any)?.user ?? (userData as any)?.data?.user ?? userData);
-      
+
       const ordersData = await api.get('/orders/me');
       setOrders(((ordersData as any)?.data ?? ordersData ?? []) as Order[]);
     } catch (error) {
@@ -61,11 +62,7 @@ export default function ProfilePage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-cyan" />
-      </div>
-    );
+    return <ProfileShellSkeleton rows={4} />;
   }
 
   const getStatusIcon = (status: string) => {
@@ -119,31 +116,49 @@ export default function ProfilePage() {
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
               <nav className="space-y-2">
-                <Link href="/profile" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-brand-cyan/10 text-brand-cyan font-semibold">
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-brand-cyan/10 text-brand-cyan font-semibold"
+                >
                   <User className="w-5 h-5" />
                   <span>الملف الشخصي</span>
                 </Link>
-                <Link href="/profile/orders" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors">
+                <Link
+                  href="/profile/orders"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors"
+                >
                   <ShoppingBag className="w-5 h-5" />
                   <span>طلباتي</span>
                   <ChevronRight className="w-4 h-4 mr-auto" />
                 </Link>
-                <Link href="/profile/wishlist" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors">
+                <Link
+                  href="/profile/wishlist"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors"
+                >
                   <Heart className="w-5 h-5" />
                   <span>المفضلة</span>
                   <ChevronRight className="w-4 h-4 mr-auto" />
                 </Link>
-                <Link href="/profile/addresses" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors">
+                <Link
+                  href="/profile/addresses"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors"
+                >
                   <MapPin className="w-5 h-5" />
                   <span>العناوين</span>
                   <ChevronRight className="w-4 h-4 mr-auto" />
                 </Link>
-                <Link href="/profile/settings" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors">
+                <Link
+                  href="/profile/settings"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors"
+                >
                   <Settings className="w-5 h-5" />
                   <span>الإعدادات</span>
                   <ChevronRight className="w-4 h-4 mr-auto" />
                 </Link>
-                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 font-semibold transition-colors mt-4">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 font-semibold transition-colors mt-4"
+                >
                   <LogOut className="w-5 h-5" />
                   <span>تسجيل الخروج</span>
                 </button>
@@ -158,33 +173,43 @@ export default function ProfilePage() {
               <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <ShoppingBag className="w-5 h-5 text-brand-cyan" />
-                  <span className="text-slate-500 dark:text-slate-400 text-sm font-semibold">الطلبات</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-sm font-semibold">
+                    الطلبات
+                  </span>
                 </div>
-                <div className="text-2xl font-bold text-slate-900 dark:text-white">{orders.length}</div>
+                <div className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {orders.length}
+                </div>
               </div>
               <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Heart className="w-5 h-5 text-red-500" />
-                  <span className="text-slate-500 dark:text-slate-400 text-sm font-semibold">المفضلة</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-sm font-semibold">
+                    المفضلة
+                  </span>
                 </div>
                 <div className="text-2xl font-bold text-slate-900 dark:text-white">0</div>
               </div>
               <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Package className="w-5 h-5 text-green-500" />
-                  <span className="text-slate-500 dark:text-slate-400 text-sm font-semibold">مكتمل</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-sm font-semibold">
+                    مكتمل
+                  </span>
                 </div>
                 <div className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {orders.filter(o => o.status === 'completed').length}
+                  {orders.filter((o) => o.status === 'completed').length}
                 </div>
               </div>
               <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="w-5 h-5 text-amber-500" />
-                  <span className="text-slate-500 dark:text-slate-400 text-sm font-semibold">قيد المعالجة</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-sm font-semibold">
+                    قيد المعالجة
+                  </span>
                 </div>
                 <div className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {orders.filter(o => o.status === 'pending' || o.status === 'processing').length}
+                  {orders.filter((o) => o.status === 'pending' || o.status === 'processing').length}
                 </div>
               </div>
             </div>
@@ -195,7 +220,10 @@ export default function ProfilePage() {
               {orders.length > 0 ? (
                 <div className="space-y-4">
                   {orders.slice(0, 5).map((order) => (
-                    <div key={order.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                    <div
+                      key={order.id}
+                      className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-lg"
+                    >
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center">
                           <Package className="w-6 h-6 text-slate-400" />
@@ -212,12 +240,17 @@ export default function ProfilePage() {
                       <div className="text-left">
                         <div className="flex items-center gap-2 mb-1">
                           {getStatusIcon(order.status)}
-                          <span className="text-sm font-semibold">{getStatusText(order.status)}</span>
+                          <span className="text-sm font-semibold">
+                            {getStatusText(order.status)}
+                          </span>
                         </div>
                         <div className="text-lg font-bold text-slate-900 dark:text-white">
                           {order.total} ج.م
                         </div>
-                        <Link href={`/track/${order.id}`} className="text-xs font-bold text-brand-cyan hover:underline mt-1 inline-block">
+                        <Link
+                          href={`/track/${order.id}`}
+                          className="text-xs font-bold text-brand-cyan hover:underline mt-1 inline-block"
+                        >
                           تتبع الطلب
                         </Link>
                       </div>
@@ -227,8 +260,13 @@ export default function ProfilePage() {
               ) : (
                 <div className="text-center py-12">
                   <ShoppingBag className="w-16 h-16 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
-                  <p className="text-slate-500 dark:text-slate-400 font-semibold">لا توجد طلبات بعد</p>
-                  <Link href="/dalil" className="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-brand-cyan text-black rounded-lg font-semibold hover:bg-cyan-400 transition-colors">
+                  <p className="text-slate-500 dark:text-slate-400 font-semibold">
+                    لا توجد طلبات بعد
+                  </p>
+                  <Link
+                    href="/dalil"
+                    className="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-brand-cyan text-black rounded-lg font-semibold hover:bg-cyan-400 transition-colors"
+                  >
                     ابدأ التسوق
                   </Link>
                 </div>
@@ -239,19 +277,31 @@ export default function ProfilePage() {
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
               <h2 className="text-xl font-bold mb-4">إجراءات سريعة</h2>
               <div className="grid grid-cols-2 gap-4">
-                <Link href="/dalil" className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <Link
+                  href="/dalil"
+                  className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
                   <ShoppingBag className="w-5 h-5 text-brand-cyan" />
                   <span className="font-semibold">تصفح المتاجر</span>
                 </Link>
-                <Link href="/offers" className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <Link
+                  href="/offers"
+                  className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
                   <Heart className="w-5 h-5 text-red-500" />
                   <span className="font-semibold">العروض</span>
                 </Link>
-                <Link href="/map" className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <Link
+                  href="/map"
+                  className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
                   <MapPin className="w-5 h-5 text-green-500" />
                   <span className="font-semibold">الخريطة</span>
                 </Link>
-                <Link href="/support" className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <Link
+                  href="/support"
+                  className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
                   <Settings className="w-5 h-5 text-purple-500" />
                   <span className="font-semibold">الدعم الفني</span>
                 </Link>

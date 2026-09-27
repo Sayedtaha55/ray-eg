@@ -5,7 +5,6 @@ import {
   Phone,
   MapPin,
   Facebook,
-  Loader2,
   AlertCircle,
   CheckCircle,
   Clock,

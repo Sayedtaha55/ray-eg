@@ -1,16 +1,25 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Tag, TrendingUp, Sparkles, Shirt, Utensils, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { Tag, Sparkles, Shirt, Utensils, ShoppingCart } from 'lucide-react';
 import { getOffers, getSeasonalOffers } from '@/lib/services';
-import { ProductCard } from '@/components/ProductCard';
-import { ProductCardSkeleton } from '@/components/Skeleton';
+import { ProductGrid } from '@/components/ProductGrid';
+import { ProductGridSkeleton } from '@/components/Skeleton';
 
 export const metadata: Metadata = {
   title: 'العروض',
   description: 'اكتشف أحدث العروض والخصومات من المتاجر على منصة من مكانك',
   alternates: { canonical: '/offers' },
-  openGraph: { title: 'العروض - من مكانك', description: 'اكتشف أحدث العروض والخصومات من المتاجر على منصة من مكانك', url: '/offers', type: 'website' },
-  twitter: { card: 'summary_large_image', title: 'العروض - من مكانك', description: 'اكتشف أحدث العروض والخصومات من المتاجر على منصة من مكانك' },
+  openGraph: {
+    title: 'العروض - من مكانك',
+    description: 'اكتشف أحدث العروض والخصومات من المتاجر على منصة من مكانك',
+    url: '/offers',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'العروض - من مكانك',
+    description: 'اكتشف أحدث العروض والخصومات من المتاجر على منصة من مكانك',
+  },
 };
 
 export const revalidate = 300;
@@ -23,12 +32,11 @@ const CATEGORY_TABS = [
 ];
 
 export default async function OffersPage() {
-  const [offers, seasonalOffers] = await Promise.all([
-    getOffers(),
-    getSeasonalOffers(),
-  ]);
+  const [offers, seasonalOffers] = await Promise.all([getOffers(), getSeasonalOffers()]);
 
-  const activeSeasonal = seasonalOffers.filter(s => s.status === 'active' || new Date(s.endDate) >= new Date());
+  const activeSeasonal = seasonalOffers.filter(
+    (s) => s.status === 'active' || new Date(s.endDate) >= new Date()
+  );
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-12 md:py-16">
@@ -39,7 +47,9 @@ export default async function OffersPage() {
         </div>
         <div>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight">العروض</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm md:text-base mt-1">أحدث الخصومات والعروض من المتاجر</p>
+          <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm md:text-base mt-1">
+            أحدث الخصومات والعروض من المتاجر
+          </p>
         </div>
       </div>
 
@@ -65,11 +75,17 @@ export default async function OffersPage() {
                     {offer.occasion}
                   </span>
                   <h3 className="text-white font-black text-lg md:text-xl mb-1">{offer.name}</h3>
-                  {offer.description && <p className="text-white/70 text-xs font-semibold line-clamp-2">{offer.description}</p>}
+                  {offer.description && (
+                    <p className="text-white/70 text-xs font-semibold line-clamp-2">
+                      {offer.description}
+                    </p>
+                  )}
                 </div>
                 <div className="relative z-10 flex items-center justify-between mt-3">
                   <span className="text-white font-black text-xl">
-                    {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `${offer.discountValue} ج.م`}
+                    {offer.discountType === 'percentage'
+                      ? `${offer.discountValue}%`
+                      : `${offer.discountValue} ج.م`}
                   </span>
                   <span className="text-white/60 text-[10px] font-semibold">
                     حتى {new Date(offer.endDate).toLocaleDateString('ar-EG')}
@@ -102,17 +118,11 @@ export default async function OffersPage() {
         })}
       </div>
 
-      {/* Products Grid */}
+      {/* Products Grid with Progressive "عرض المزيد" */}
       {offers.length > 0 ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-          {offers.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        <ProductGrid products={offers} initialCount={12} step={8} />
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-          {Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
-        </div>
+        <ProductGridSkeleton count={8} />
       )}
     </div>
   );

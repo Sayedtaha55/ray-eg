@@ -3,21 +3,22 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  User, 
-  ShoppingBag, 
-  Heart, 
-  MapPin, 
-  Settings, 
-  LogOut, 
-  Package, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
+import {
+  User,
+  ShoppingBag,
+  Heart,
+  MapPin,
+  Settings,
+  LogOut,
+  Package,
+  Clock,
+  CheckCircle,
+  XCircle,
   ChevronRight,
-  ArrowRight
+  ArrowRight,
 } from 'lucide-react';
 import { api, clearStoredAuthToken, isSessionActive } from '@/lib/api';
+import { ProfileShellSkeleton } from '@/components/Skeleton';
 
 interface Order {
   id: string;
@@ -44,7 +45,7 @@ export default function ProfileOrdersPage() {
       try {
         const userData = await api.get('/auth/me');
         setUser((userData as any)?.user ?? (userData as any)?.data?.user ?? userData);
-        
+
         const ordersData = await api.get('/orders/me');
         setOrders(((ordersData as any)?.data ?? ordersData ?? []) as Order[]);
       } catch (error) {
@@ -99,11 +100,7 @@ export default function ProfileOrdersPage() {
   });
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-cyan" />
-      </div>
-    );
+    return <ProfileShellSkeleton rows={5} />;
   }
 
   return (
@@ -129,31 +126,49 @@ export default function ProfileOrdersPage() {
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
               <nav className="space-y-2">
-                <Link href="/profile" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors">
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors"
+                >
                   <User className="w-5 h-5" />
                   <span>الملف الشخصي</span>
                   <ChevronRight className="w-4 h-4 mr-auto" />
                 </Link>
-                <Link href="/profile/orders" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-brand-cyan/10 text-brand-cyan font-semibold">
+                <Link
+                  href="/profile/orders"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-brand-cyan/10 text-brand-cyan font-semibold"
+                >
                   <ShoppingBag className="w-5 h-5" />
                   <span>طلباتي</span>
                 </Link>
-                <Link href="/profile/wishlist" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors">
+                <Link
+                  href="/profile/wishlist"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors"
+                >
                   <Heart className="w-5 h-5" />
                   <span>المفضلة</span>
                   <ChevronRight className="w-4 h-4 mr-auto" />
                 </Link>
-                <Link href="/profile/addresses" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors">
+                <Link
+                  href="/profile/addresses"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors"
+                >
                   <MapPin className="w-5 h-5" />
                   <span>العناوين</span>
                   <ChevronRight className="w-4 h-4 mr-auto" />
                 </Link>
-                <Link href="/profile/settings" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors">
+                <Link
+                  href="/profile/settings"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors"
+                >
                   <Settings className="w-5 h-5" />
                   <span>الإعدادات</span>
                   <ChevronRight className="w-4 h-4 mr-auto" />
                 </Link>
-                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 font-semibold transition-colors mt-4">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 font-semibold transition-colors mt-4"
+                >
                   <LogOut className="w-5 h-5" />
                   <span>تسجيل الخروج</span>
                 </button>
@@ -167,7 +182,9 @@ export default function ProfileOrdersPage() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                 <div>
                   <h2 className="text-xl font-bold">سجل الطلبات</h2>
-                  <p className="text-sm text-slate-500 mt-1">تتبع وإدارة جميع طلباتك السابقة والحالية</p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    تتبع وإدارة جميع طلباتك السابقة والحالية
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {(['all', 'pending', 'completed', 'cancelled'] as const).map((key) => (
@@ -192,27 +209,47 @@ export default function ProfileOrdersPage() {
               {filteredOrders.length > 0 ? (
                 <div className="space-y-4">
                   {filteredOrders.map((order) => (
-                    <div key={order.id} className="p-4 bg-slate-50 dark:bg-slate-900/80 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div
+                      key={order.id}
+                      className="p-4 bg-slate-50 dark:bg-slate-900/80 rounded-xl border border-slate-100 dark:border-slate-800"
+                    >
                       <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/60 pb-3 mb-3">
                         <div className="flex items-center gap-3">
                           {getStatusIcon(order.status)}
                           <div>
-                            <span className="font-bold text-sm block">طلب #{order.id.slice(0, 8)}</span>
-                            <span className="text-xs text-slate-400">{new Date(order.createdAt || Date.now()).toLocaleDateString('ar-EG')}</span>
+                            <span className="font-bold text-sm block">
+                              طلب #{order.id.slice(0, 8)}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              {new Date(order.createdAt || Date.now()).toLocaleDateString('ar-EG')}
+                            </span>
                           </div>
                         </div>
                         <div className="text-left">
-                          <span className="text-base font-black text-brand-cyan">{order.total?.toLocaleString('ar-EG') || 0} ج.م</span>
-                          <span className="text-xs block text-slate-400 font-semibold">{getStatusText(order.status)}</span>
+                          <span className="text-base font-black text-brand-cyan">
+                            {order.total?.toLocaleString('ar-EG') || 0} ج.م
+                          </span>
+                          <span className="text-xs block text-slate-400 font-semibold">
+                            {getStatusText(order.status)}
+                          </span>
                         </div>
                       </div>
 
                       {order.items && order.items.length > 0 && (
                         <div className="space-y-1.5">
                           {order.items.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
-                              <span>{item.name} × {item.quantity}</span>
-                              {item.price && <span>{(item.price * item.quantity).toLocaleString('ar-EG')} ج.م</span>}
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400"
+                            >
+                              <span>
+                                {item.name} × {item.quantity}
+                              </span>
+                              {item.price && (
+                                <span>
+                                  {(item.price * item.quantity).toLocaleString('ar-EG')} ج.م
+                                </span>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -223,8 +260,13 @@ export default function ProfileOrdersPage() {
               ) : (
                 <div className="text-center py-12">
                   <Package className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-                  <p className="font-bold text-slate-700 dark:text-slate-300">لا توجد طلبات في هذا القسم</p>
-                  <Link href="/dalil" className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-cyan text-black font-bold text-sm">
+                  <p className="font-bold text-slate-700 dark:text-slate-300">
+                    لا توجد طلبات في هذا القسم
+                  </p>
+                  <Link
+                    href="/dalil"
+                    className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-cyan text-black font-bold text-sm"
+                  >
                     ابدأ التسوق الآن <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
@@ -236,4 +278,3 @@ export default function ProfileOrdersPage() {
     </div>
   );
 }
-

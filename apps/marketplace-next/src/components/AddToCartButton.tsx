@@ -1,9 +1,10 @@
 'use client';
 
-import { ShoppingBag, Check, Plus, Minus } from 'lucide-react';
+import { ShoppingBag, Check, Plus, Minus, Ban } from 'lucide-react';
 import { useState } from 'react';
 import { useCart } from '@/lib/cart';
 import type { Product } from '@/lib/services';
+import { cn } from '@/lib/utils';
 
 export function AddToCartButton({
   product,
@@ -11,12 +12,20 @@ export function AddToCartButton({
   color,
   initialQuantity = 1,
   showQuantityStepper = false,
+  variant = 'button',
 }: {
   product: Product;
   size?: 'sm' | 'md' | 'lg';
   color?: string;
   initialQuantity?: number;
+  /** Button variant only: shows the stepper before the first add. */
   showQuantityStepper?: boolean;
+  /**
+   * `button` → the full "أضف للسلة" pill (product page, drawers).
+   * `icon`   → compact circular "+" used inside the product cards: it becomes
+   *            the quantity stepper as soon as the product is in the cart.
+   */
+  variant?: 'button' | 'icon';
 }) {
   const { addItem, updateQuantity, items } = useCart();
   const [added, setAdded] = useState(false);
@@ -51,6 +60,70 @@ export function AddToCartButton({
         ? 'px-8 py-4 text-base'
         : 'px-4 py-2.5 text-sm';
   const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : size === 'lg' ? 'w-5 h-5' : 'w-4 h-4';
+
+  /* ── Compact icon variant (product cards) ─────────────────────────────── */
+  if (variant === 'icon') {
+    const label = product.name ? `أضف ${product.name} للسلة` : 'أضف للسلة';
+
+    if (product.isAvailable === false) {
+      return (
+        <button
+          type="button"
+          disabled
+          aria-label="غير متوفر"
+          title="غير متوفر"
+          className="w-9 h-9 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center cursor-not-allowed"
+        >
+          <Ban className="w-4 h-4" />
+        </button>
+      );
+    }
+
+    // Already in the cart → the "+" turns into a compact stepper so quantity
+    // can be tuned from the card without opening the cart drawer.
+    if (cartQty > 0) {
+      return (
+        <div className="flex items-center gap-0.5 h-9 px-1 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          <button
+            type="button"
+            onClick={(e) => handleStep(e, -1)}
+            aria-label="تقليل الكمية"
+            title="تقليل الكمية"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 active:scale-95 transition"
+          >
+            <Minus className="w-3.5 h-3.5" />
+          </button>
+          <span className="min-w-5 text-center text-xs font-black font-mono text-slate-900 dark:text-white">
+            {cartQty}
+          </span>
+          <button
+            type="button"
+            onClick={(e) => handleStep(e, 1)}
+            aria-label="زيادة الكمية"
+            title="زيادة الكمية"
+            className="w-7 h-7 rounded-full bg-brand-gradient text-white flex items-center justify-center active:scale-95 transition"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={handleAdd}
+        aria-label={added ? 'تمت الإضافة للسلة' : label}
+        title="أضف للسلة"
+        className={cn(
+          'w-9 h-9 shrink-0 rounded-full text-white flex items-center justify-center shadow-sm transition-all active:scale-90',
+          added ? 'bg-green-500' : 'bg-brand-gradient hover:shadow-glow-cyan hover:scale-105'
+        )}
+      >
+        {added ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+      </button>
+    );
+  }
 
   if (product.isAvailable === false) {
     return (

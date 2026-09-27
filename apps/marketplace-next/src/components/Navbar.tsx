@@ -25,7 +25,13 @@ import { SearchBar } from './SearchBar';
 import { GovernoratePicker } from './GovernoratePicker';
 import { HERO_SEARCH_ID } from './HeroSearch';
 import { siteConfig, navLinks } from '@/lib/config';
-import { apiPath, APP_SCOPE, clearStoredAuthToken, getStoredAuthToken, isSessionActive } from '@/lib/api';
+import {
+  apiPath,
+  APP_SCOPE,
+  clearStoredAuthToken,
+  getStoredAuthToken,
+  isSessionActive,
+} from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 export function Navbar() {
@@ -224,6 +230,29 @@ export function Navbar() {
               </span>
             )}
           </Link>
+
+          {/* Account — desktop only: the hamburger (which carries the login /
+              signup entries) is hidden from lg and up, so the desktop header
+              needs its own login entry point. */}
+          {isLoggedIn ? (
+            <Link
+              href="/profile"
+              aria-label={lang === 'ar' ? 'حسابي' : 'My Account'}
+              className="hidden lg:inline-flex items-center gap-2 h-10 px-3.5 rounded-full text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+            >
+              <User className="w-5 h-5" />
+              {lang === 'ar' ? 'حسابي' : 'My Account'}
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              aria-label={lang === 'ar' ? 'دخول' : 'Login'}
+              className="hidden lg:inline-flex items-center gap-2 h-10 px-4 rounded-full bg-brand-gradient text-white text-sm font-bold shadow-sm hover:shadow-glow-cyan transition-all shrink-0"
+            >
+              <LogIn className="w-4 h-4" />
+              {lang === 'ar' ? 'دخول' : 'Login'}
+            </Link>
+          )}
 
           {/* Menu — mobile only; desktop shows the inline links above */}
           <button
