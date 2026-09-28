@@ -20,7 +20,12 @@ export interface CartItem {
 
 interface CartContextValue {
   items: CartItem[];
-  addItem: (product: Product, quantity?: number) => void;
+  /**
+   * @param openDrawer When true the cart drawer pops open on add. Defaults to
+   * true (builder sites rely on it); the marketplace quick-add passes `false`
+   * so tapping "+" just adds the product instead of hijacking the screen.
+   */
+  addItem: (product: Product, quantity?: number, openDrawer?: boolean) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -70,7 +75,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (hydrated) saveToStorage(items);
   }, [items, hydrated]);
 
-  const addItem = useCallback((product: Product, quantity = 1) => {
+  const addItem = useCallback((product: Product, quantity = 1, openDrawer = true) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === product.id);
       if (existing) {
@@ -93,7 +98,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       };
       return [...prev, newItem];
     });
-    setCartOpen(true);
+    if (openDrawer) setCartOpen(true);
     playCartSound();
   }, []);
 

@@ -39,6 +39,10 @@ export default function MapPage() {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
+  // Leaflet is imported asynchronously. The pins effect bails out when the map
+  // is not ready yet, and `pins` never changes again — so without this flag the
+  // markers would silently never be drawn. Bump it once the map is live.
+  const [mapReady, setMapReady] = useState(false);
 
   // الخريطة تعرض جميع المواقع الموجودة فعليًا — بدون أي تصفية نطاق/مسافة.
   const loadPins = useCallback(async () => {
@@ -94,15 +98,22 @@ export default function MapPage() {
             attributionControl: true,
           }).setView([30.0444, 31.2357], 7);
 
-          // بلاطات فاتحة نظيفة بنفس روح اللوحة (CARTO / OpenStreetMap)
-          L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+          // بلاطات OpenStreetMap القياسية: مجانية وبتعرض أسماء المواقع
+          // بالعربي (labels) من غير ما تحتاج API key.
+          // ملاحظة: روابط CARTO (basemaps.cartocdn.com) بقت بترجع بلاطة
+          // "API KEY REQUIRED" مدمجة، فبقت الخريطة مش مفهومة.
+          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            subdomains: 'abcd',
-            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            attribution: '&copy; OpenStreetMap contributors',
           }).addTo(mapRef.current);
 
           markersLayerRef.current = L.layerGroup().addTo(mapRef.current);
         }
+        // Let the pins effect know the map now exists, even if the pins
+        // already arrived while Leaflet was still loading.
+        setMapReady(true);
+        // The container may have been measured before layout settled.
+        setTimeout(() => mapRef.current?.invalidateSize?.(), 0);
       } catch (err) {
         console.error('Leaflet load error:', err);
       }
@@ -110,6 +121,7 @@ export default function MapPage() {
 
     return () => {
       cancelled = true;
+      setMapReady(false);
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -153,7 +165,7 @@ export default function MapPage() {
 
       marker.addTo(markersLayerRef.current);
     }
-  }, [pins, router]);
+  }, [pins, router, mapReady]);
 
   useEffect(() => {
     if (!mapRef.current || !leafletRef.current || !coords) return;
@@ -213,9 +225,6 @@ export default function MapPage() {
     }
   };
 
-  const shopCount = pins.filter((p) => p.type === 'shop').length;
-  const listingCount = pins.length - shopCount;
-
   return (
     <div
       className="min-h-screen bg-white"
@@ -239,28 +248,6 @@ export default function MapPage() {
       </header>
 
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6 md:py-8">
-        {/* شريط إحصاءات بنفس شكل الكروت في اللوحة */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-xs font-bold text-slate-500 mb-1">إجمالي المواقع</div>
-            <div className="text-2xl font-black text-slate-900 tabular-nums">
-              {loading ? '…' : pins.length}
-            </div>
-          </div>
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-xs font-bold text-slate-500 mb-1">متاجر</div>
-            <div className="text-2xl font-black text-slate-900 tabular-nums">
-              {loading ? '…' : shopCount}
-            </div>
-          </div>
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-xs font-bold text-slate-500 mb-1">أنشطة</div>
-            <div className="text-2xl font-black text-slate-900 tabular-nums">
-              {loading ? '…' : listingCount}
-            </div>
-          </div>
-        </div>
-
         <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
           <div className="w-full h-[70vh] md:h-[74vh]">
             <div ref={mapContainerRef} className="w-full h-full" />

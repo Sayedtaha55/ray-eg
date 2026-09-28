@@ -23,10 +23,23 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Checkout is a focused, one-task flow: the market navbar, the big footer and
+  // the fixed mobile bar are all distractions there (the bar also sits on top of
+  // the order summary / pay button on mobile). The page renders its own compact
+  // back bar, and the cart is already summarised inside it, so the drawer is
+  // dropped too — otherwise "إتمام الطلب" could be re-triggered behind the modal.
+  if (pathname === '/checkout') {
+    return <main className="min-h-screen">{children}</main>;
+  }
+
   return (
     <>
       <Navbar />
-      <main className="min-h-screen pb-16 lg:pb-0">{children}</main>
+      {/* The mobile bar is ~64px tall but its centre cart button is pulled up
+          with -mt-6, so its real footprint is ~88px. Reserve enough room
+          (plus the iOS home-indicator inset) so the last product row's price
+          is never hidden behind the bar. */}
+      <main className="min-h-screen pb-28 lg:pb-0">{children}</main>
       <Footer />
       <MobileFooter />
       <CartDrawer />

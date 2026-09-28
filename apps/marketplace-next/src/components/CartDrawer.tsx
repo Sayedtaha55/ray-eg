@@ -30,14 +30,16 @@ export function CartDrawer() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setCartOpen(false)}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90]"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110]"
           />
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'tween', duration: 0.3 }}
-            className="fixed top-0 left-0 bottom-0 w-full max-w-md bg-white dark:bg-slate-900 z-[95] flex flex-col shadow-2xl"
+            /* Must sit above MobileFooter (z-[100]), otherwise the bottom bar
+               floats over the drawer and hides the total + "إتمام الطلب". */
+            className="fixed top-0 left-0 bottom-0 w-full max-w-md bg-white dark:bg-slate-900 z-[115] flex flex-col shadow-2xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800">
@@ -150,7 +152,7 @@ export function CartDrawer() {
 
             {/* Footer */}
             {items.length > 0 && (
-              <div className="border-t border-slate-200 dark:border-slate-800 p-5 space-y-4">
+              <div className="border-t border-slate-200 dark:border-slate-800 p-5 space-y-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-500">الإجمالي</span>
                   <span className="text-xl font-black text-slate-900 dark:text-white">

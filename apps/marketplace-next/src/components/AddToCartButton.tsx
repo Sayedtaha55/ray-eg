@@ -2,7 +2,9 @@
 
 import { ShoppingBag, Check, Plus, Minus, Ban } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useCart } from '@/lib/cart';
+import { productHasOptions } from '@/lib/product-options';
 import type { Product } from '@/lib/services';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +30,8 @@ export function AddToCartButton({
   variant?: 'button' | 'icon';
 }) {
   const { addItem, updateQuantity, items } = useCart();
+  const router = useRouter();
+  const pathname = usePathname();
   const [added, setAdded] = useState(false);
   const [qty, setQty] = useState(initialQuantity);
 
@@ -38,7 +42,15 @@ export function AddToCartButton({
     e.preventDefault();
     e.stopPropagation();
     if (product.isAvailable === false) return;
-    addItem(product, qty);
+    // Products with sizes/colors/variants must be configured on the product
+    // page first — adding them blind would put an unspecified variant in the cart.
+    // Skip when we are already there (the product page's own button).
+    const onProductPage = pathname === `/product/${product.id}`;
+    if (!onProductPage && productHasOptions(product)) {
+      router.push(`/product/${product.id}`);
+      return;
+    }
+    addItem(product, qty, false);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   };
