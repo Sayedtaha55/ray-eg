@@ -5,8 +5,24 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, ShieldAlert, Users, Settings, LogOut, Bell, Menu,
-  MessageSquare, CreditCard, Store, BarChart3, FileText, Truck, Headphones, Eye,
+  LayoutDashboard,
+  ShieldAlert,
+  Users,
+  Settings,
+  LogOut,
+  Bell,
+  Menu,
+  MessageSquare,
+  CreditCard,
+  Store,
+  BarChart3,
+  FileText,
+  Truck,
+  Headphones,
+  Eye,
+  Wallet,
+  Percent,
+  ScrollText,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { ToastProvider } from '@/components/settings/ToastProvider';
@@ -15,6 +31,8 @@ import { cn } from '@/lib/cn';
 
 const NAV_ITEMS = [
   { href: '/admin/dashboard', label: 'نظرة عامة', icon: LayoutDashboard },
+  { href: '/admin/finance', label: 'مالية المنصة', icon: Wallet },
+  { href: '/admin/tax', label: 'الالتزامات الضريبية', icon: Percent },
   { href: '/admin/approvals', label: 'الموافقات', icon: ShieldAlert },
   { href: '/admin/shops', label: 'المتاجر', icon: Store },
   { href: '/admin/users', label: 'المستخدمون', icon: Users },
@@ -24,16 +42,13 @@ const NAV_ITEMS = [
   { href: '/admin/customer-service', label: 'خدمة العملاء', icon: Headphones },
   { href: '/admin/analytics', label: 'التحليلات', icon: BarChart3 },
   { href: '/admin/visitors', label: 'زيارات الموقع', icon: Eye },
+  { href: '/admin/audit-log', label: 'سجل العمليات', icon: ScrollText },
   { href: '/admin/notifications', label: 'الإشعارات', icon: Bell },
   { href: '/admin/content', label: 'المحتوى', icon: FileText },
   { href: '/admin/settings', label: 'الإعدادات', icon: Settings },
 ];
 
-export default function GuardedAdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function GuardedAdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
@@ -71,10 +86,15 @@ export default function GuardedAdminLayout({
     );
   }
 
-  const initial = String(user?.name || user?.email || 'A').charAt(0).toUpperCase();
+  const initial = String(user?.name || user?.email || 'A')
+    .charAt(0)
+    .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-right font-sans" dir="rtl">
+    <div
+      className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-right font-sans"
+      dir="rtl"
+    >
       {/* Sidebar Overlay (mobile) */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -157,7 +177,9 @@ export default function GuardedAdminLayout({
           </div>
         </header>
 
-        <div className="p-4 md:p-8 flex-1"><ToastProvider>{children}</ToastProvider></div>
+        <div className="p-4 md:p-8 flex-1">
+          <ToastProvider>{children}</ToastProvider>
+        </div>
       </main>
     </div>
   );
