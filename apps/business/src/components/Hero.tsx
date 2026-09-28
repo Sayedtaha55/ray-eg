@@ -1,25 +1,26 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  ArrowLeft, Sparkles, Shield, Zap, Headphones,
-} from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export default function Hero() {
   return (
     <section className="biz-hero relative overflow-hidden">
       {/* سحاب زي صفحة "جديد" */}
-      <span className="biz-cloud biz-cloud-top" aria-hidden="true"><i /><i /><i /></span>
-      <span className="biz-cloud biz-cloud-right" aria-hidden="true"><i /><i /><i /></span>
+      <span className="biz-cloud biz-cloud-top" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
+      <span className="biz-cloud biz-cloud-right" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         <div className="grid md:grid-cols-2 gap-10 md:gap-8 items-center">
           {/* Text content - right side (RTL) */}
           <div className="order-2 md:order-1 text-center md:text-right">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full text-slate-800 font-bold text-[10px] md:text-xs uppercase tracking-widest mb-4 md:mb-6 shadow-sm border border-cyan-100">
-              <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#0057FF]" />
-              نمو بلا حدود
-            </div>
-
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight mb-3 md:mb-5 leading-[1.1] text-slate-900">
               تجارتك على أرض الواقع..
               <br />
@@ -30,7 +31,7 @@ export default function Hero() {
               من أول محل.. لأكبر منظومة. أدوات تساعدك تبيع، تدير، تتابع وتكبّر — كل ده في مكان واحد.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center md:items-start gap-3 mb-6">
+            <div className="flex flex-col sm:flex-row items-center md:items-start gap-3">
               <Link
                 href="/signup"
                 className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#0057FF] text-white px-8 py-3.5 rounded-2xl font-black text-sm sm:text-base shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
@@ -45,27 +46,14 @@ export default function Hero() {
                 تعرّف على الحلول
               </Link>
             </div>
-
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-              {[
-                { icon: Shield, text: 'آمن وموثوق' },
-                { icon: Zap, text: 'سريع وخفيف' },
-                { icon: Headphones, text: 'دعم 24/7' },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-100 text-slate-700 text-xs sm:text-sm font-medium shadow-sm"
-                >
-                  <item.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0057FF]" />
-                  {item.text}
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* Visual - left side */}
           <div className="order-1 md:order-2 relative">
-            <div className="absolute -inset-4 bg-gradient-to-br from-[#00E5FF]/20 to-[#0057FF]/20 rounded-[2.5rem] blur-2xl" aria-hidden />
+            <div
+              className="absolute -inset-4 bg-gradient-to-br from-[#00E5FF]/20 to-[#0057FF]/20 rounded-[2.5rem] blur-2xl"
+              aria-hidden
+            />
             <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-blue-600/25 border border-slate-200/80 bg-white">
               {/* شريط متصفح */}
               <div className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-50 border-b border-slate-200/80">

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Sparkles, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { businessBrand } from '@/lib/brand';
 import { industries, solutions } from '@/lib/siteData';
 
@@ -40,7 +40,13 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center overflow-hidden">
-            <Image src={businessBrand.logo} alt={businessBrand.name} width={28} height={28} className="w-6 h-6 object-contain" />
+            <Image
+              src={businessBrand.logo}
+              alt={businessBrand.name}
+              width={28}
+              height={28}
+              className="w-6 h-6 object-contain"
+            />
           </div>
           <span className="text-slate-900 font-black text-lg">{businessBrand.name}</span>
         </Link>
@@ -52,28 +58,59 @@ export default function Navbar() {
             className="inline-flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors"
           >
             الحلول
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${open === 'solutions' ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform duration-300 ${open === 'solutions' ? 'rotate-180' : ''}`}
+            />
           </button>
-          <Link href="/#features" className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors">المميزات</Link>
-          <Link href="/#products" className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors">المنتجات</Link>
+          <Link
+            href="/#features"
+            className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors"
+          >
+            المميزات
+          </Link>
+          <Link
+            href="/#products"
+            className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors"
+          >
+            المنتجات
+          </Link>
           <button
             type="button"
             onMouseEnter={() => openMenu('industries')}
             className="inline-flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors"
           >
             الأنشطة
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${open === 'industries' ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform duration-300 ${open === 'industries' ? 'rotate-180' : ''}`}
+            />
           </button>
-          <Link href="/#faq" className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors">الأسئلة الشائعة</Link>
-          <Link href="/new" className="inline-flex items-center gap-1 text-sm font-black text-cyan-600 hover:text-cyan-500 transition-colors">
-            <Sparkles className="w-3.5 h-3.5" />
+          <Link
+            href="/#faq"
+            className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors"
+          >
+            الأسئلة الشائعة
+          </Link>
+          <Link
+            href="/new"
+            className="text-sm font-black text-cyan-600 hover:text-cyan-500 transition-colors"
+          >
             جديد
           </Link>
         </div>
 
         <div className="flex items-center gap-3">
-          <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors">دخول</Link>
-          <Link href="/signup" className="px-4 py-2 rounded-xl bg-[#0057FF] text-white text-sm font-black hover:bg-[#0046CC] transition-all">ابدأ مجاناً</Link>
+          <Link
+            href="/login"
+            className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors"
+          >
+            دخول
+          </Link>
+          <Link
+            href="/signup"
+            className="px-4 py-2 rounded-xl bg-[#0057FF] text-white text-sm font-black hover:bg-[#0046CC] transition-all"
+          >
+            ابدأ مجاناً
+          </Link>
         </div>
       </div>
 
@@ -91,8 +128,12 @@ export default function Navbar() {
                       href={s.href}
                       className="group/item p-3 rounded-xl hover:bg-cyan-50 transition-colors"
                     >
-                      <span className="block text-sm font-bold text-slate-800 group-hover/item:text-cyan-700 transition-colors">{s.title}</span>
-                      <span className="block text-xs text-slate-500 mt-0.5 leading-relaxed">{s.desc}</span>
+                      <span className="block text-sm font-bold text-slate-800 group-hover/item:text-cyan-700 transition-colors">
+                        {s.title}
+                      </span>
+                      <span className="block text-xs text-slate-500 mt-0.5 leading-relaxed">
+                        {s.desc}
+                      </span>
                     </Link>
                   ))}
                 </div>
@@ -100,7 +141,7 @@ export default function Navbar() {
             </div>
           </div>
         )}
-{/* لوحة الأنشطة */}
+        {/* لوحة الأنشطة */}
         {open === 'industries' && (
           <div onMouseEnter={() => openMenu('industries')} onMouseLeave={scheduleClose}>
             <div className="border-t border-slate-200 bg-white shadow-xl shadow-slate-900/10">
@@ -112,7 +153,9 @@ export default function Navbar() {
                       href="/#industries"
                       className="p-3 rounded-xl hover:bg-cyan-50 transition-colors"
                     >
-                      <span className="block text-sm font-bold text-slate-700 hover:text-cyan-700 transition-colors">{it.label}</span>
+                      <span className="block text-sm font-bold text-slate-700 hover:text-cyan-700 transition-colors">
+                        {it.label}
+                      </span>
                     </Link>
                   ))}
                 </div>

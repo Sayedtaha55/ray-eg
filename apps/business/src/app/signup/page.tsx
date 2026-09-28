@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { dashboardLoginUrl } from '@/lib/appUrls';
+import { AuthSkeleton } from '@/components/ui/Skeleton';
 import { BUSINESS_ACTIVITIES, groupAccentColors, ActivityWithGroup } from '@/lib/activities';
 import {
   BOOKING_ACTIVITIES,
@@ -1102,13 +1103,7 @@ function SignupContent() {
 
 export default function SignupPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-[80vh] flex items-center justify-center">
-          <Loader2 className="animate-spin text-slate-400" size={32} />
-        </div>
-      }
-    >
+    <Suspense fallback={<AuthSkeleton withSplit />}>
       <SignupContent />
     </Suspense>
   );

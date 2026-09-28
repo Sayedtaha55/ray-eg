@@ -20,6 +20,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { businessBrand } from '@/lib/brand';
 import { DASHBOARD_URL, dashboardLoginUrl } from '@/lib/appUrls';
+import { AuthSkeleton } from '@/components/ui/Skeleton';
 
 const MotionDiv = motion.div as any;
 
@@ -371,13 +372,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-[80vh] flex items-center justify-center">
-          <Loader2 className="animate-spin text-slate-400" size={32} />
-        </div>
-      }
-    >
+    <Suspense fallback={<AuthSkeleton />}>
       <LoginContent />
     </Suspense>
   );
