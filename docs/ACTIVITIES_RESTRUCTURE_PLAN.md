@@ -1,8 +1,27 @@
 # خطة إعادة هيكلة الأقسام في الماركت (5174)
 
-> حالة المستند: **مخطط — لم يُكتب كود بعد**
-> التاريخ: 2026-09-28
+> حالة المستند: **المرحلة 0 خلصت (مرفوعة) — المرحلة 1 هي اللي بعدها**
+> التاريخ: 2026-09-30
 > النطاق: `apps/marketplace-next` + تعديلات لازمة في `gobackend` و `apps/business` و `apps/dashboard-web`
+
+---
+
+## 0. اكتشافات مهمة (اتأكدنا منها على بيانات حقيقية) ⚠️
+
+دي حاجتين كانوا بيمنعوا كل صفحات الأقسام إنها تعرض أي حاجة:
+
+1. **`shops.activity` بيخزّن العنوان العربي، مش الـ id الإنجليزي.**
+   `apps/business/src/app/signup/page.tsx:286` بيعمل `activity: selectedActivity.title`، وبالتالي
+   قاعدة البيانات فيها `'معارض سيارات'` وليس `'carShowroom'`.
+   ⇒ أي فلترة بالـ ids الإنجليزي بترجّع صفر. لازم نفلتر بالعناوين العربية (أو نخزّن slug ثابت).
+
+2. **الفلتر في الباك إند كان بيرجّع 500 لكل طلب.**
+   `shops.category` نوعه enum في Postgres اسمه `"ShopCategory"`، و`LOWER()` مش معرّفة على الـ enum:
+   `ERROR: function lower("ShopCategory") does not exist (SQLSTATE 42883)`.
+   ⇒ أي `?shopActivity=` كان بيفشل بالكامل. اتصلح بـ `LOWER(s.category::text)`.
+
+3. **الفلتر بقى يدعم أكتر من قيمة مفصولة بفاصلة** (OR بينهم)، عشان القسم الواحد يجمّع أكتر من نشاط.
+   ✅ اتأكدنا: `?shopActivity=RETAIL,معارض سيارات` → رجّع النتايج، و`zzz_nope` → صفر بدون أخطاء.
 
 ---
 
@@ -56,14 +75,16 @@ export type ActivityDef = {
 
 ## 3. المراحل التنفيذية
 
-### 🟢 المرحلة 0 — الأساس (لا يكسر أي حاجة موجودة)
+### ✅ المرحلة 0 — الأساس (خلصت ومرفوعة)
 
-1. إنشاء `src/lib/activity-catalog.ts` فيه كل الأقسام الحالية (7 في `config.ts` + الباقي من `businessActivityCatalog.ts`) وكل واحد(mode + supportsPrice + supportsCart).
-2. تعديل `activities` في `config.ts` يبقى **re-export** من الكاتالوج الجديد (عشان `activity/[activity]/page.tsx` والـ filters في `DalilClient` يكملوا شغالين).
-3. **إضافة** أوضاع جديدة للكاتالوج: مطاعم، سوبر ماركت، أثاث، عيادات، صيدلية.
-4. اختبار: كل قسم قديم بيفتح زي ما كان.
+1. **`src/lib/activity-catalog.ts`** (جديد) — كتالوج مركزي: **15 قسم ظاهر + 4 أسماء مستعارة**، كل قسم فيه `mode` و`supportsPrice` و`supportsCart` و`query` و`quoteCta` و`unitLabel`.
+2. **`src/lib/config.ts`** — `activities` بقى re-export من الكاتالوج (كل الروابط القديمة شغالة)، و`VISIBLE_ACTIVITIES` للشرائط عشان الأسماء المستعارة ما تظهرش.
+3. **الباك إند** — `products/repository.go`: إصلاح الـ 500 (`LOWER(s.category::text)`) + دعم قيم متعددة مفصولة بفاصلة.
+4. **9 أيقونات SVG جديدة** بنفس ستايل الموجود (restaurant, supermarket, bakery, fashion, electronics, furniture, health, clinic, gym).
+5. اتحدّثت الشاشات اللي بتستهلك الأقسام: `app/page.tsx`، `app/dalil/page.tsx`، `src/components/DalilClient.tsx`، `app/sitemap.ts`.
 
-**القبول:** `tsc` نظيف + كل روابط الأقسام القديمة شغالة + مفيش كسر.
+**التحقق:** `tsc` ✅ · `eslint` ✅ (0 errors) · `go build` ✅ · `go vet` ✅ · prettier ✅،
+وتشغيل حقيقي: الباك إند + PostgreSQL اتشغلوا، و`/` و`/activity/*` و`/dalil` و`/sitemap.xml` كلهم رجّعوا 200، والصفحة الرئيسية عرضت الـ 15 قسم مع المنتجات.
 
 ### 🟡 المرحلة 1 — الصفحة الرئيسية ودليل الأقسام
 
