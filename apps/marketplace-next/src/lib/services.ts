@@ -26,6 +26,10 @@ export interface Shop {
   productCount?: number;
   pageDesign?: Record<string, any>;
   builderConfig?: Record<string, any>;
+  /** إعدادات المتجر — منها layoutConfig.commerce اللي بتحدد طريقة البيع (سعر/سلة/حجز) */
+  layoutConfig?: Record<string, any>;
+  addons?: any[];
+  isActive?: boolean;
 }
 
 export interface Product {
@@ -88,13 +92,10 @@ export async function getProducts(
     // The public catalog endpoint filters by shopId — /shops/:id/products
     // does not exist on the backend and always came back empty.
     const surfaceQs = surface ? `&surface=${surface}` : '';
-    const data = await api.get<any>(
-      `/products?shopId=${shopId}&limit=${limit}${surfaceQs}`,
-      {
-        revalidate: 300,
-        tags: [`products:${shopId}`],
-      }
-    );
+    const data = await api.get<any>(`/products?shopId=${shopId}&limit=${limit}${surfaceQs}`, {
+      revalidate: 300,
+      tags: [`products:${shopId}`],
+    });
     return Array.isArray(data) ? data : (data?.data ?? data?.items ?? []);
   } catch {
     return [];

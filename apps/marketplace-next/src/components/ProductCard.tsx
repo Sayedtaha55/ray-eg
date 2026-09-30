@@ -1,21 +1,34 @@
 import Link from 'next/link';
 import { Star } from 'lucide-react';
-import type { Product } from '@/lib/services';
+import type { Product, Shop } from '@/lib/services';
+import type { MarketActivity } from '@/lib/activity-catalog';
+import { resolveCommerce, type CommerceDecision } from '@/lib/commerce';
 import { formatPrice } from '@/lib/utils';
 import { resolveProductImage } from '@/lib/product-image';
 import { ProductImage } from './ProductImage';
-import { AddToCartButton } from './AddToCartButton';
+import { CommerceAction } from './CommerceAction';
 import { WishlistButton } from './WishlistButton';
 
 export function ProductCard({
   product,
   priority = false,
+  shop,
+  activity,
+  commerce,
 }: {
   product: Product;
   priority?: boolean;
+  /** بيانات المتجر — لو اتمرّرت، بنقرا منها layoutConfig.commerce (اختيار التاجر) */
+  shop?: Pick<Shop, 'layoutConfig'> | null;
+  /** القسم — بيتستخدم كـ fallback بس لما المتجر ماخدش قرار */
+  activity?: Pick<MarketActivity, 'mode'> | null;
+  /** لو Decision جاهز (من صفحة القسم) بيستخدمه على طول */
+  commerce?: CommerceDecision;
 }) {
   const image = resolveProductImage(product);
-  const hasDiscount = product.oldPrice != null && product.oldPrice > (product.price || 0);
+  const decision = commerce ?? resolveCommerce({ product, shop, activity });
+  const hasDiscount =
+    product.oldPrice != null && product.oldPrice > (product.price || 0) && decision.showPrice;
   const discountPercent = hasDiscount
     ? Math.round(((product.oldPrice! - (product.price || 0)) / product.oldPrice!) * 100)
     : 0;
@@ -89,7 +102,7 @@ export function ProductCard({
           {product.name}
         </h3>
 
-        {/* Price & Action Row */}
+        {/* Price & Action Row — بيتقرر من المتجر (سعر/سلة/حجز) */}
         <div className="mt-auto pt-2.5 flex items-end justify-between gap-2 border-t border-slate-100 dark:border-slate-800/80">
           <div className="flex flex-col">
             {hasDiscount && (
@@ -97,14 +110,33 @@ export function ProductCard({
                 {formatPrice(product.oldPrice!, product.currency)}
               </span>
             )}
-            <span className="font-black text-xs md:text-sm text-slate-900 dark:text-white leading-tight">
-              {product.price != null ? formatPrice(product.price, product.currency) : '—'}
-            </span>
+            {decision.showPrice ? (
+              <span className="font-black text-xs md:text-sm text-slate-900 dark:text-white leading-tight">
+                {product.price != null ? formatPrice(product.price, product.currency) : '—'}
+              </span>
+            ) : (
+              <>
+                <span className="font-black text-[11px] md:text-xs text-slate-900 dark:text-white leading-tight">
+                  السعر عند الطلب
+                </span>
+                {decision.booking === '24h' && (
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold leading-tight">
+                    رد خلال {decision.bookingWindowHours} ساعة
+                  </span>
+                )}
+              </>
+            )}
           </div>
 
-          {/* Quick Add (+) Button (interactive above card link) */}
+          {/* Action (interactive above card link) — cart أو حجز حسب قرار التاجر */}
           <div className="pointer-events-auto">
-            <AddToCartButton product={product} variant="icon" size="sm" />
+            <CommerceAction
+              decision={decision}
+              product={product}
+              shopId={product.shopId}
+              shopName={product.shopName}
+              variant="icon"
+            />
           </div>
         </div>
       </div>

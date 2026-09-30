@@ -2,9 +2,10 @@ import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Package, ArrowLeft } from 'lucide-react';
-import { getProductsByActivity } from '@/lib/services';
+import { getProductsByActivity, getShops } from '@/lib/services';
 import { ProductCard } from '@/components/ProductCard';
-import { activities } from '@/lib/config';
+import { activities, getMarketActivity } from '@/lib/config';
+import { indexShopsById } from '@/lib/commerce';
 
 export const revalidate = 300;
 
@@ -32,9 +33,13 @@ export async function generateStaticParams() {
 
 export default async function ActivityPage({ params }: Props) {
   const { activity } = await params;
-  const config = activities.find((a) => a.id === activity);
-  // الأقسام تعرض منتجات بالبطاقة الموحدة — مش بطاقات متاجر
-  const products = await getProductsByActivity(activity, 24);
+  const config = getMarketActivity(activity);
+  // الأقسام عناصر بتاعة متاجر، وطريقة العرض (سعر/سلة/حجز) بتتقرر من كل متجر على حدة.
+  const [products, shops] = await Promise.all([
+    getProductsByActivity(config?.query ?? activity, 24),
+    getShops(300),
+  ]);
+  const shopsById = indexShopsById(shops);
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-12 md:py-16">
@@ -69,7 +74,12 @@ export default async function ActivityPage({ params }: Props) {
       {products.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              shop={shopsById.get(product.shopId)}
+              activity={config}
+            />
           ))}
         </div>
       ) : (
