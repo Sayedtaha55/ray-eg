@@ -401,3 +401,98 @@
   transform: scale(1.5);
   animation-delay: -6s;
 }
+
+/* ============================================================
+   إضافات صفحة «نمّي أعمالك» — منقولة من src/index.css في مشروع Vite
+   (مشروع نمّي كان Tailwind v4 نفس المشروع الأساسي، فالكلاسات متوافقة)
+   ============================================================ */
+
+/* Glassmorphism and specialized micro-effects */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 20px 50px -12px rgba(15, 23, 42, 0.08),
+    0 4px 16px -2px rgba(99, 102, 241, 0.05);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.glass-floating-card {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 16px 36px -8px rgba(30, 41, 59, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+}
+
+/* Atmospheric ambient glow */
+.ambient-glow {
+  background: radial-gradient(
+    circle at 50% 30%,
+    rgba(139, 92, 246, 0.15) 0%,
+    rgba(56, 189, 248, 0.12) 35%,
+    rgba(249, 115, 22, 0.05) 60%,
+    transparent 80%
+  );
+}
+
+/* Hide scrollbar for the mobile quick-dock in نمّي */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* أنيميشن الدخول بدل tailwindcss-animate (مش مركّب في المشروع الأساسي)
+   مستخدمة في المصدَر بنفس الأسماء: animate-in / fade-in / zoom-in-95 */
+@keyframes nm-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes nm-zoom-in-95 {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-in {
+  animation: nm-fade-in 0.2s ease-out both;
+}
+.fade-in {
+  animation: nm-fade-in 0.2s ease-out both;
+}
+.zoom-in-95 {
+  animation: nm-zoom-in-95 0.2s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in,
+  .fade-in,
+  .zoom-in-95 {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
