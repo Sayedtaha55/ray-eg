@@ -103,11 +103,28 @@ func buildWhere(opts listOptions) (string, []any) {
 	}
 
 	// تصفية بنشاط المتجر (الأقسام في الماركت) عبر subquery بدل تعديل FROM.
-	if strings.TrimSpace(f.ShopActivity) != "" {
-		clauses = append(clauses, fmt.Sprintf(
-			"p.shop_id IN (SELECT s.id FROM shops s WHERE LOWER(s.activity) = LOWER($%d) OR LOWER(s.category) = LOWER($%d))", i, i))
-		args = append(args, strings.TrimSpace(f.ShopActivity))
-		i++
+	// بتدعم أكتر من قيمة مفصولة بفاصلة (OR بينهم) — مثال: "cars,carShowroom,auto_parts".
+	// ده بيخلّي القسم الواحد في الماركت يجمّع أكتر من نشاط/تصنيف في الباك إند.
+	if raw := strings.TrimSpace(f.ShopActivity); raw != "" {
+		values := make([]string, 0, 4)
+		for _, part := range strings.Split(raw, ",") {
+			if v := strings.TrimSpace(part); v != "" && len([]rune(v)) <= 64 {
+				values = append(values, v)
+			}
+		}
+		if len(values) > 0 {
+			ors := make([]string, 0, len(values))
+			for _, v := range values {
+				// ملاحظة: s.category نوعه enum في Postgres (ShopCategory) و LOWER مش معرّفة على الـ enum،
+				// فلازم نحوّله text قبل LOWER وإلا الاستعلام كله بيرجّع 500.
+				ors = append(ors, fmt.Sprintf(
+					"LOWER(s.activity) = LOWER($%d) OR LOWER(s.category::text) = LOWER($%d)", i, i))
+				args = append(args, v)
+				i++
+			}
+			clauses = append(clauses, fmt.Sprintf(
+				"p.shop_id IN (SELECT s.id FROM shops s WHERE %s)", strings.Join(ors, " OR ")))
+		}
 	}
 
 	if len(clauses) == 0 {
