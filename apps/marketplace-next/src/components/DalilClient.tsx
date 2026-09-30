@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { Store, MapPin, Star, Filter, X } from 'lucide-react';
 import { ShopCard } from './ShopCard';
-import { activities } from '@/lib/config';
+import { VISIBLE_ACTIVITIES } from '@/lib/config';
 import type { Shop } from '@/lib/services';
 
 interface DalilClientProps {
@@ -104,7 +104,7 @@ export function DalilClient({ shops }: DalilClientProps) {
               >
                 الكل
               </button>
-              {activities.map((a) => (
+              {VISIBLE_ACTIVITIES.map((a) => (
                 <button
                   key={a.id}
                   onClick={() => setActivity(a.id)}

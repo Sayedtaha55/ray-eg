@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Store } from 'lucide-react';
 import { getShops } from '@/lib/services';
 import { DalilClient } from '@/components/DalilClient';
-import { activities, siteConfig } from '@/lib/config';
+import { VISIBLE_ACTIVITIES, siteConfig } from '@/lib/config';
 import { serializeJsonLd } from '@/lib/jsonld';
 
 export const metadata: Metadata = {
@@ -64,7 +64,7 @@ export default async function DalilPage() {
         >
           الكل
         </Link>
-        {activities.map((a) => (
+        {VISIBLE_ACTIVITIES.map((a) => (
           <Link
             key={a.id}
             href={`/activity/${a.id}`}

@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Tag, TrendingUp, Sparkles } from 'lucide-react';
 import { getOffers, getSeasonalOffers, getLatestProducts } from '@/lib/services';
-import { activities, siteConfig } from '@/lib/config';
+import { VISIBLE_ACTIVITIES, siteConfig } from '@/lib/config';
 import { ProductRail } from '@/components/ProductRail';
 
 import { HeroSlider } from '@/components/HeroSlider';
@@ -101,7 +101,7 @@ export default async function HomePage() {
       <section aria-label="الأقسام" className="pt-5 md:pt-8">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6">
           <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 md:flex-wrap md:justify-center md:overflow-visible">
-            {activities.map((a, i) => (
+            {VISIBLE_ACTIVITIES.map((a) => (
               <Link
                 key={a.id}
                 href={`/activity/${a.id}`}
