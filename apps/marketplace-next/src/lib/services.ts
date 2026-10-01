@@ -63,9 +63,18 @@ export interface BlogPost {
   readTime?: string;
 }
 
-export async function getShops(take = 100): Promise<Shop[]> {
+/**
+ * فهرس المتاجر — عليه قرار التاجر في `layoutConfig.commerce`.
+ *
+ * `fresh: true` بيلغي كاش السيرفر (Data Cache) عشان الصفحة تبان على طول بعد ما
+ * التاجر يغيّر إعداده. من غيرها كان لازم يتغير يفضل باين لحد 5 دقايق (300 ثانية).
+ */
+export async function getShops(take = 100, fresh = false): Promise<Shop[]> {
   try {
-    const data = await api.get<any>(`/shops?take=${take}`, { revalidate: 300, tags: ['shops'] });
+    const data = await api.get<any>(`/shops?take=${take}`, {
+      revalidate: fresh ? 0 : 300,
+      tags: ['shops'],
+    });
     return Array.isArray(data) ? data : (data?.data ?? data?.items ?? []);
   } catch {
     return [];

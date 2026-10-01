@@ -3,16 +3,20 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Star, Store, Tag, ArrowLeft, MessageCircle, Phone, CheckCircle } from 'lucide-react';
-import { getProductById, getProducts, getShopBySlug } from '@/lib/services';
+import { getProductById, getProducts, getShops } from '@/lib/services';
 import { formatPrice, truncate } from '@/lib/utils';
 import { siteConfig } from '@/lib/config';
 import ShareButton from '@/components/ShareButton';
-import { AddToCartButton } from '@/components/AddToCartButton';
+import { CommerceAction } from '@/components/CommerceAction';
+import { resolveCommerce } from '@/lib/commerce';
 import { ReviewsSection } from '@/components/ReviewsSection';
 import { ProductCard } from '@/components/ProductCard';
 import { serializeJsonLd } from '@/lib/jsonld';
 
-export const revalidate = 300;
+// السعر وزرار الشراء هنا بيتحسبوا من قرار التاجر (layoutConfig.commerce)،
+// يعني لازم الصفحة تتعرض لكل زيارة — ISR كان بيقدّم قرار قديم لحد 5 دقايق
+// (مثلاً: التاجر خفى السعر والصفحة لسه بتوري السعر والسلة).
+export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -51,8 +55,15 @@ export default async function ProductPage({ params }: Props) {
   const product = await getProductById(id);
   if (!product) notFound();
 
-  const shop = product.shopSlug ? await getShopBySlug(product.shopSlug) : null;
-  const hasDiscount = product.oldPrice && product.oldPrice > (product.price || 0);
+  // مفيش shopSlug في payload بتاع المنتج، فبنلاقي المتجر من فهرس المتاجر بنفسه
+  // (نفس مصدر بيانات الكارت) عشان قرار التاجر في layoutConfig.commerce يتطبّق هنا كمان.
+  const shop = product.shopId
+    ? ((await getShops(300, true)).find((s) => s.id === product.shopId) ?? null)
+    : null;
+  // قرار البيع (سلة/حجز/تواصل + إظهار السعر) بييجي من اختيار التاجر في layoutConfig.commerce.
+  const decision = resolveCommerce({ product, shop });
+  const hasDiscount =
+    decision.showPrice && !!product.oldPrice && product.oldPrice > (product.price || 0);
   const discountPercent = hasDiscount
     ? Math.round(((product.oldPrice! - (product.price || 0)) / product.oldPrice!) * 100)
     : 0;
@@ -75,7 +86,8 @@ export default async function ProductPage({ params }: Props) {
     brand: shop ? { '@type': 'Brand', name: shop.name } : undefined,
     offers: {
       '@type': 'Offer',
-      price: product.price,
+      // سعر مخفي عند التاجر ما ينفعش يتسرب في الـ structured data.
+      price: decision.showPrice ? product.price : undefined,
       priceCurrency: product.currency || 'EGP',
       availability:
         product.isAvailable !== false
@@ -215,8 +227,8 @@ export default async function ProductPage({ params }: Props) {
             </div>
           )}
 
-          {/* Price */}
-          {product.price != null && (
+          {/* Price — التاجر ممكن يخفي السعر ويعرض "السعر عند الطلب" */}
+          {decision.showPrice && product.price != null ? (
             <div className="flex items-center gap-3 mb-6">
               <span className="text-3xl md:text-4xl font-bold" style={{ color: priceColor }}>
                 {formatPrice(product.price, product.currency)}
@@ -225,6 +237,17 @@ export default async function ProductPage({ params }: Props) {
                 <span className="text-lg text-slate-500 line-through font-semibold">
                   {formatPrice(product.oldPrice!, product.currency)}
                 </span>
+              )}
+            </div>
+          ) : (
+            <div className="mb-6">
+              <span className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white">
+                السعر عند الطلب
+              </span>
+              {decision.booking === '24h' && (
+                <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                  رد خلال {decision.bookingWindowHours} ساعة
+                </p>
               )}
             </div>
           )}
@@ -268,12 +291,16 @@ export default async function ProductPage({ params }: Props) {
           </div>
 
           {/* Actions */}
-          <div className="flex flex-wrap items-center gap-3 mt-auto">
+          <div className="flex flex-wrap items-center gap-3 mt-auto" data-testid="product-actions">
             {product.isAvailable !== false && (
-              <AddToCartButton
+              <CommerceAction
+                decision={decision}
                 product={product}
-                size="lg"
-                color={buttonColor}
+                shopId={product.shopId}
+                shopName={shop?.name}
+                variant="button"
+                cartSize="lg"
+                cartColor={buttonColor}
                 showQuantityStepper={true}
               />
             )}
@@ -329,7 +356,9 @@ export default async function ProductPage({ params }: Props) {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {relatedProducts.map((rp) => (
-              <ProductCard key={rp.id} product={rp} />
+              // نفس المتجر بالظبط (شوف getProducts أعلاه) — بنمرّره عشان قرار التاجر
+              // (السعر المخفي + زرار الحجز) يبان من أول HTML من غير فلاش قبل الهيدرايشن.
+              <ProductCard key={rp.id} product={rp} shop={shop} />
             ))}
           </div>
         </div>

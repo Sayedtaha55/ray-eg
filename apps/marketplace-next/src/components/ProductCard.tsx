@@ -1,8 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import { Star } from 'lucide-react';
 import type { Product, Shop } from '@/lib/services';
 import type { MarketActivity } from '@/lib/activity-catalog';
 import { resolveCommerce, type CommerceDecision } from '@/lib/commerce';
+import { useShopCommerce } from '@/lib/useShopCommerce';
 import { formatPrice } from '@/lib/utils';
 import { resolveProductImage } from '@/lib/product-image';
 import { ProductImage } from './ProductImage';
@@ -26,7 +29,10 @@ export function ProductCard({
   commerce?: CommerceDecision;
 }) {
   const image = resolveProductImage(product);
-  const decision = commerce ?? resolveCommerce({ product, shop, activity });
+  // لو الصفحة مرّرت shop (صفحة القسم) نستخدمه، وإلا نجيب قرار التاجر من فهرس المتاجر —
+  // عشان اختيار التاجر يفضل مطبّق في كل مكان بيظهر فيه المنتج مش بس في صفحة القسم.
+  const resolvedShop = useShopCommerce(product.shopId, shop);
+  const decision = commerce ?? resolveCommerce({ product, shop: resolvedShop, activity });
   const hasDiscount =
     product.oldPrice != null && product.oldPrice > (product.price || 0) && decision.showPrice;
   const discountPercent = hasDiscount

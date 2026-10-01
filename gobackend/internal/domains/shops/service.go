@@ -48,10 +48,14 @@ func (s *Service) CreateShop(ctx context.Context, ownerID string, req CreateShop
 			return nil, errors.Conflict("owner_already_has_shop", "المستخدم لديه متجر بالفعل")
 		}
 		// In development update the existing shop name/description only.
-		return s.repo.UpdateSettings(ctx, existing.ID, map[string]any{
+		updated, err := s.repo.UpdateSettings(ctx, existing.ID, map[string]any{
 			"name":        req.Name,
 			"description": req.Description,
 		})
+		if err == nil {
+			s.invalidatePublicList()
+		}
+		return updated, err
 	}
 
 	slug, err := s.generateUniqueSlug(ctx, req.Name)
@@ -133,6 +137,7 @@ func (s *Service) CreateShop(ctx context.Context, ownerID string, req CreateShop
 	}
 
 	logger.Global().Info("shop created", zap.String("shop_id", created.ID), zap.String("owner_id", ownerID))
+	s.invalidatePublicList()
 	return created, nil
 }
 
@@ -193,6 +198,16 @@ func (s *Service) GetShopByID(ctx context.Context, id string) (*Shop, error) {
 	return s.repo.FindByID(ctx, id)
 }
 
+// invalidatePublicList drops cached browse pages after a shop write. Without it
+// a merchant's settings — notably layoutConfig.commerce (سلة / حجز 24 ساعة /
+// موعد / تواصل) and hiding the price — would keep showing the previous decision
+// for up to the 30s TTL, so the marketplace would disagree with the dashboard.
+func (s *Service) invalidatePublicList() {
+	if s.cache != nil {
+		s.cache.DeletePrefix("shops:public:")
+	}
+}
+
 // ListPublic returns public-facing shops. The browse path (no free-text search,
 // which has unbounded key diversity) is served from a short TTL cache so the
 // marketplace homepage and /shops page do not hit Postgres on every visit.
@@ -232,7 +247,12 @@ func (s *Service) UpdateMyShop(ctx context.Context, actor middleware.AuthUser, s
 		return nil, errors.Validation("no_update_data", "لا توجد بيانات للتحديث")
 	}
 
-	return s.repo.UpdateSettings(ctx, shopID, fields)
+	shop, err := s.repo.UpdateSettings(ctx, shopID, fields)
+	if err != nil {
+		return nil, err
+	}
+	s.invalidatePublicList()
+	return shop, nil
 }
 
 // UpdateAdminShop allows admins to update any shop's fields directly.
@@ -249,7 +269,12 @@ func (s *Service) UpdateAdminShop(ctx context.Context, shopID string, body map[s
 		return nil, errors.Validation("no_update_data", "لا توجد بيانات للتحديث")
 	}
 
-	return s.repo.UpdateSettings(ctx, shopID, fields)
+	shop, err := s.repo.UpdateSettings(ctx, shopID, fields)
+	if err != nil {
+		return nil, err
+	}
+	s.invalidatePublicList()
+	return shop, nil
 }
 
 // UpdateStatus changes a shop status: approving activates the owner,
@@ -279,6 +304,7 @@ func (s *Service) UpdateStatus(ctx context.Context, shopID string, status ShopSt
 		}
 	}
 
+	s.invalidatePublicList()
 	return shop, nil
 }
 

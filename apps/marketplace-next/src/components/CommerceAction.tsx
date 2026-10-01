@@ -20,18 +20,33 @@ export function CommerceAction({
   shopId,
   shopName,
   variant = 'icon',
+  cartSize = 'sm',
+  cartColor,
+  showQuantityStepper = false,
 }: {
   decision: CommerceDecision;
   product: Product;
   shopId: string;
   shopName?: string;
   variant?: 'icon' | 'button';
+  /** حجم زر السلة — الكارت بيستخدم الأيقونة، وصفحة المنتج الزر الكبير */
+  cartSize?: 'sm' | 'md' | 'lg';
+  cartColor?: string;
+  showQuantityStepper?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
   // متجر بيبيع بسلة → السلوك القديم كما هو.
   if (decision.showAddToCart) {
-    return <AddToCartButton product={product} variant={variant} size="sm" />;
+    return (
+      <AddToCartButton
+        product={product}
+        variant={variant}
+        size={cartSize}
+        color={cartColor}
+        showQuantityStepper={showQuantityStepper}
+      />
+    );
   }
 
   if (decision.ctaKind !== 'booking') return null;
