@@ -299,3 +299,68 @@ export function getActivityGroupSections(): {
   }
   return sections;
 }
+
+// ===== الهوية البصرية لكل قسم =====
+// الهيدر/الفوتر/النافبار بهوية موحدة، وكل قسم ليه لون مميز بيظهر في:
+// هيدر صفحة القسم، كروت الأقسام، عناوين الأقسام في الرئيسية.
+
+export type ActivityTheme = {
+  /** اللون الأساسي (أيقونة، زر، رابط) */
+  accent: string;
+  /** بداية التدرج */
+  from: string;
+  /** نهاية التدرج */
+  to: string;
+  /** خلفية فاتحة للشارات والهيرو (وضع فاتح) */
+  soft: string;
+};
+
+const DEFAULT_THEME: ActivityTheme = {
+  accent: '#00B8D4',
+  from: '#00E5FF',
+  to: '#BD00FF',
+  soft: '#ECFEFF',
+};
+
+const ACTIVITY_THEMES: Record<string, ActivityTheme> = {
+  restaurant: { accent: '#EA580C', from: '#FB923C', to: '#EF4444', soft: '#FFF7ED' },
+  supermarket: { accent: '#16A34A', from: '#4ADE80', to: '#059669', soft: '#F0FDF4' },
+  fashion: { accent: '#DB2777', from: '#F472B6', to: '#8B5CF6', soft: '#FDF2F8' },
+  electronics: { accent: '#2563EB', from: '#60A5FA', to: '#06B6D4', soft: '#EFF6FF' },
+  furniture: { accent: '#B45309', from: '#FBBF24', to: '#B45309', soft: '#FFFBEB' },
+  health: { accent: '#0D9488', from: '#2DD4BF', to: '#0284C7', soft: '#F0FDFA' },
+  clinics: { accent: '#0284C7', from: '#38BDF8', to: '#4F46E5', soft: '#EFF6FF' },
+  beauty: { accent: '#E11D48', from: '#FB7185', to: '#D946EF', soft: '#FFF1F2' },
+  gyms: { accent: '#4D7C0F', from: '#A3E635', to: '#059669', soft: '#F7FEE7' },
+  bakery: { accent: '#EA580C', from: '#FBBF24', to: '#EA580C', soft: '#FFFBEB' },
+  cars: { accent: '#334155', from: '#64748B', to: '#0F172A', soft: '#F1F5F9' },
+  'real-estate': { accent: '#4F46E5', from: '#818CF8', to: '#7C3AED', soft: '#EEF2FF' },
+  construction: { accent: '#B45309', from: '#F59E0B', to: '#78350F', soft: '#FFFBEB' },
+  professional: { accent: '#475569', from: '#94A3B8', to: '#1E3A8A', soft: '#F1F5F9' },
+  home: { accent: '#059669', from: '#34D399', to: '#0D9488', soft: '#ECFDF5' },
+  agriculture: { accent: '#16A34A', from: '#4ADE80', to: '#15803D', soft: '#F0FDF4' },
+  // أسماء مستعارة (معرّفات قديمة في روابط المحلات)
+  medical: { accent: '#0284C7', from: '#38BDF8', to: '#4F46E5', soft: '#EFF6FF' },
+  vehicles: { accent: '#334155', from: '#64748B', to: '#0F172A', soft: '#F1F5F9' },
+  contractors: { accent: '#B45309', from: '#F59E0B', to: '#78350F', soft: '#FFFBEB' },
+  pharmacy: { accent: '#0D9488', from: '#2DD4BF', to: '#0284C7', soft: '#F0FDFA' },
+  gym: { accent: '#4D7C0F', from: '#A3E635', to: '#059669', soft: '#F7FEE7' },
+  realestate: { accent: '#4F46E5', from: '#818CF8', to: '#7C3AED', soft: '#EEF2FF' },
+  realEstate: { accent: '#4F46E5', from: '#818CF8', to: '#7C3AED', soft: '#EEF2FF' },
+};
+
+/** هات ثيم القسم — بيرجّع الثيم الافتراضي لو المعرّف مش موجود. */
+export function getActivityTheme(id: string): ActivityTheme {
+  return ACTIVITY_THEMES[id] ?? DEFAULT_THEME;
+}
+
+/** أسماء المجموعات بالعربي والإنجليزي لعناوين الدليل. */
+export const ACTIVITY_GROUP_LABELS: Record<ActivityGroup, { ar: string; en: string }> = {
+  food: { ar: 'أكل وشرب', en: 'Food & Drink' },
+  retail: { ar: 'تسوق', en: 'Shopping' },
+  health: { ar: 'صحة وجمال', en: 'Health & Beauty' },
+  services: { ar: 'خدمات', en: 'Services' },
+  vehicles: { ar: 'سيارات', en: 'Vehicles' },
+  property: { ar: 'عقارات', en: 'Property' },
+  agri: { ar: 'زراعة', en: 'Agriculture' },
+};

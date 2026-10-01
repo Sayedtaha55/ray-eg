@@ -1,9 +1,10 @@
 import { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
-import { Tag, TrendingUp, Sparkles } from 'lucide-react';
-import { getOffers, getSeasonalOffers, getLatestProducts } from '@/lib/services';
+import { Tag, TrendingUp, Sparkles, LayoutGrid, Store, ArrowLeft } from 'lucide-react';
+import { getOffers, getSeasonalOffers, getLatestProducts, getShops } from '@/lib/services';
 import { VISIBLE_ACTIVITIES, siteConfig } from '@/lib/config';
+import { getActivityTheme } from '@/lib/activity-catalog';
+import { SectionHeader, ActivityCard } from '@/components/SectionHeader';
 import { ProductRail } from '@/components/ProductRail';
 
 import { HeroSlider } from '@/components/HeroSlider';
@@ -21,11 +22,31 @@ export const metadata: Metadata = {
 
 export const revalidate = 300;
 
+// ترتيب وطريقة عرض "تسوّق على مزاجك" — كل وضع له نصه وزر "ابدأ" الخاص به.
+const MODE_ORDER = [
+  'products',
+  'menu',
+  'booking',
+  'request_quote',
+  'services',
+  'classifieds',
+] as const;
+
+const MODE_META: Record<(typeof MODE_ORDER)[number], { kicker: string; title: string }> = {
+  products: { kicker: 'تسوق', title: 'تسوّق بالسعر' },
+  menu: { kicker: 'أكل وشرب', title: 'منيو المطاعم' },
+  booking: { kicker: 'حجوزات', title: 'احجز موعدك' },
+  request_quote: { kicker: 'بدون سعر', title: 'احجز واحنا نكلمك' },
+  services: { kicker: 'خدمات', title: 'خدمات لحد باب البيت' },
+  classifieds: { kicker: 'إعلانات', title: 'عقارات وسيارات' },
+};
+
 export default async function HomePage() {
-  const [latestProducts, offers, seasonalOffers] = await Promise.all([
-    getLatestProducts(24),
+  const [latestProducts, offers, seasonalOffers, shops] = await Promise.all([
+    getLatestProducts(48),
     getOffers(),
     getSeasonalOffers(),
+    getShops(300).catch(() => []),
   ]);
   const featuredProducts = latestProducts.slice(0, 12);
   const newArrivals = latestProducts.slice(12, 24);
@@ -33,6 +54,15 @@ export default async function HomePage() {
   const activeSeasonal = seasonalOffers
     .filter((s) => s.status === 'active' || new Date(s.endDate) >= new Date())
     .slice(0, 3);
+
+  // عدد المتاجر لكل قسم — بيظهر تحت اسم القسم في كروت الرئيسية.
+  const shopCountByActivity = new Map<string, number>();
+  for (const shop of shops) {
+    if (!shop.activity) continue;
+    shopCountByActivity.set(shop.activity, (shopCountByActivity.get(shop.activity) ?? 0) + 1);
+  }
+  const countShopsFor = (query: string) =>
+    query.split(',').reduce((n, q) => n + (shopCountByActivity.get(q.trim()) ?? 0), 0) || undefined;
 
   const websiteJsonLd = {
     '@context': 'https://schema.org',
@@ -97,42 +127,34 @@ export default async function HomePage() {
         <h1 className="sr-only">من مكانك - المنصة الأولى للتجارة الذكية في مصر</h1>
       </section>
 
-      {/* Categories quick strip — small cards right under the hero banner */}
-      <section aria-label="الأقسام" className="pt-5 md:pt-8">
+      {/* ===== تسوّق حسب القسم — كل قسم بلونه ===== */}
+      <section aria-label="الأقسام" className="pt-6 md:pt-10 pb-2">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6">
-          <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 md:flex-wrap md:justify-center md:overflow-visible">
-            {VISIBLE_ACTIVITIES.map((a) => (
-              <Link
-                key={a.id}
-                href={`/activity/${a.id}`}
-                className="group flex flex-col items-center gap-1.5 shrink-0 w-[74px]"
-              >
-                <span className="w-14 h-14 rounded-2xl overflow-hidden transition-transform group-hover:scale-105">
-                  {/* صورة القسم — استبدل الملف في public/images/activities/ لتغييرها */}
-                  <Image
-                    src={a.image}
-                    alt={a.label.ar}
-                    width={56}
-                    height={56}
-                    className="w-full h-full object-cover"
-                  />
-                </span>
-                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 text-center leading-tight">
-                  {a.label.ar}
-                </span>
-              </Link>
+          <SectionHeader
+            kicker="الأقسام"
+            title="تسوّق حسب القسم"
+            subtitle="كل قسم ليه طريقته: سعر وسلة، منيو، حجز موعد، أو احجز واحنا نكلمك"
+            icon={<LayoutGrid className="w-5 h-5" />}
+            viewAllHref="/dalil"
+            viewAllLabel="كل الأقسام والمتاجر"
+            accent="#00B8D4"
+          />
+          {/* عمودين على الموبايل بدل تلاتة عشان الكروت تبقى مقروءة والأسماء ما تتكسرش */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4 items-stretch">
+            {VISIBLE_ACTIVITIES.slice(0, 8).map((a) => (
+              <ActivityCard key={a.id} activity={a} shopCount={countShopsFor(a.query)} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* Featured Products — شريط أفقي سريع بالسحب بالإصبع أو الأسهم */}
-      <section className="py-8 md:py-16 bg-slate-50 dark:bg-slate-950/50">
+      {/* ===== مختارات مميزة ===== */}
+      <section className="py-8 md:py-14 bg-gradient-to-b from-white to-slate-50 dark:from-brand-black dark:to-slate-950/60">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6">
           <ProductRail
-            title="منتجات مميزة"
-            subtitle="مختارة لك من أفضل المتاجر"
-            icon={<Sparkles className="w-5 h-5" />}
+            title="مختارات مميزة"
+            subtitle="منتجات مختارة بعناية من أفضل المتاجر"
+            icon={<Sparkles className="w-5 h-5 text-brand-purple" />}
             products={featuredProducts}
             viewAllHref="/offers"
             viewAllLabel="تصفح المزيد"
@@ -142,21 +164,77 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Seasonal Offers Banners */}
+      {/* ===== تسوّق على مزاجك — حسب طريقة الشراء ===== */}
+      <section aria-label="تسوّق على مزاجك" className="py-8 md:py-14">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6">
+          <SectionHeader
+            kicker="اختار طريقتك"
+            title="تسوّق على مزاجك"
+            subtitle="سعر وسلة، منيو مطعم، حجز عيادة، أو احجز القطعة واحنا نكلمك"
+            icon={<Store className="w-5 h-5" />}
+            accent="#BD00FF"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            {MODE_ORDER.map((mode) => {
+              const meta = MODE_META[mode];
+              const modeActivities = VISIBLE_ACTIVITIES.filter((a) => a.mode === mode).slice(0, 3);
+              if (modeActivities.length === 0) return null;
+              const theme = getActivityTheme(modeActivities[0].id);
+              return (
+                <Link
+                  key={mode}
+                  href={mode === 'products' ? '/offers' : `/activity/${modeActivities[0].id}`}
+                  className="group relative overflow-hidden rounded-3xl p-4 md:p-6 min-h-[150px] md:min-h-[175px] flex flex-col justify-between border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 hover:shadow-card-hover hover:-translate-y-1 transition-all"
+                >
+                  <span
+                    className="absolute inset-x-0 top-0 h-1.5"
+                    style={{ background: `linear-gradient(to left, ${theme.from}, ${theme.to})` }}
+                  />
+                  <span
+                    className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full blur-3xl opacity-20"
+                    style={{ backgroundColor: theme.accent }}
+                  />
+                  <div className="relative">
+                    <span
+                      className="inline-block px-2.5 py-1 rounded-full text-[10px] md:text-[11px] font-black mb-2"
+                      style={{ backgroundColor: `${theme.accent}1A`, color: theme.accent }}
+                    >
+                      {meta.kicker}
+                    </span>
+                    <h3 className="font-black text-base md:text-xl text-slate-900 dark:text-white">
+                      {meta.title}
+                    </h3>
+                    <p className="text-[11px] md:text-xs text-slate-500 dark:text-slate-400 font-bold mt-1.5 leading-relaxed">
+                      {modeActivities.map((a) => a.label.ar).join(' • ')}
+                    </p>
+                  </div>
+                  <span
+                    className="relative inline-flex items-center gap-1.5 text-xs md:text-sm font-black mt-4 group-hover:gap-3 transition-all"
+                    style={{ color: theme.accent }}
+                  >
+                    ابدأ من هنا
+                    <ArrowLeft className="w-4 h-4" />
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== عروض موسمية ===== */}
       {activeSeasonal.length > 0 && (
-        <section className="py-16 bg-white dark:bg-brand-black">
+        <section className="py-10 md:py-14 bg-slate-50 dark:bg-slate-950/50">
           <div className="max-w-[1400px] mx-auto px-4 md:px-6">
-            <div className="flex items-end justify-between mb-8">
-              <div className="text-right">
-                <div className="flex items-center gap-2 mb-3 justify-end">
-                  <Sparkles className="w-5 h-5 text-amber-400" />
-                  <span className="text-xs font-semibold text-amber-400">عروض موسمية</span>
-                </div>
-                <h2 className="text-3xl md:text-5xl font-bold tracking-tight">
-                  عروض خاصة لا تفوتها
-                </h2>
-              </div>
-            </div>
+            <SectionHeader
+              kicker="لفترة محدودة"
+              title="عروض خاصة لا تفوتها"
+              subtitle="خليها فرصة تلقط أحلى الأسعار قبل ما تخلص"
+              icon={<Tag className="w-5 h-5" />}
+              viewAllHref="/offers"
+              viewAllLabel="كل العروض"
+              accent="#F59E0B"
+            />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
               {activeSeasonal.map((offer) => (
                 <Link
