@@ -61,7 +61,9 @@ export default function middleware(req: NextRequest) {
     url.pathname !== '/coming-soon' &&
     url.searchParams.get('preview') !== 'live'
   ) {
-    return NextResponse.rewrite(new URL('/coming-soon', req.url));
+    // redirect (مش rewrite) عشان الـ URL يبقى /coming-soon والصفحة تظهر
+    // full-screen من غير هيدر/فوتر (AppChrome بيتحقق من المسار ده).
+    return NextResponse.redirect(new URL('/coming-soon', req.url));
   }
 
   // 1. Bypass main marketplace domains

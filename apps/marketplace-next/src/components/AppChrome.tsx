@@ -32,6 +32,12 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
     return <main className="min-h-screen">{children}</main>;
   }
 
+  // صفحة «قيد التطوير» بتصميمها الخاص بالكامل (full-screen) — مفيش هيدر ولا
+  // فوتر للمتجر حولاها. بتظهر نضيفة من غير أي Chrome.
+  if (pathname === '/coming-soon') {
+    return <>{children}</>;
+  }
+
   return (
     <>
       <Navbar />
