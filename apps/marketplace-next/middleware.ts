@@ -27,6 +27,22 @@ const MAIN_DOMAINS = new Set([
 ]);
 
 /**
+ * وضع «قيد التطوير» للمتجر الرئيسي (mnmknk.com).
+ *
+ * - في اللوكل (next dev / build عادي): المتجر شغال عادي.
+ * - في المنشور (production): كل زيارات المتجر الرئيسي تتحوّل لصفحة
+ *   «قيد التطوير» (/coming-soon) لحد ما نرفع NEXT_PUBLIC_MARKETPLACE_LIVE=true
+ *   في إعدادات النشر — وقتها يرجع المتجر يشتغل عادي من غير أي تعديل كود.
+ *
+ * معاينة مباشرة في المنشور: ضيف ?preview=live على أي لينك لتتخطّى البوّابة.
+ *
+ * ملاحظة: البوّابة دي على الدومينات الرئيسية بس — متاجر التجّار على الدومينات
+ * الفرعية/المخصّصة (/site/:slug) تفضل شغالة عادي.
+ */
+const COMING_SOON_ACTIVE =
+  process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_MARKETPLACE_LIVE !== 'true';
+
+/**
  * Multi-tenant Next.js Middleware:
  * 1. Checks if request comes from a custom domain (e.g. brand.com) or platform subdomain (e.g. store.ray.eg).
  * 2. Rewrites request internally to /site/:slug or /shop/:slug without changing browser URL.
@@ -37,6 +53,17 @@ export default function middleware(req: NextRequest) {
   const hostWithPort = req.headers.get('host')?.toLowerCase() || '';
   const hostname = hostWithPort.replace(/:\d+$/, '');
 
+  // 0. بوّابة «قيد التطوير» للدومينات الرئيسية (المتجر الرئيسي بس).
+  const isMainDomain = MAIN_DOMAINS.has(hostWithPort) || MAIN_DOMAINS.has(hostname);
+  if (
+    isMainDomain &&
+    COMING_SOON_ACTIVE &&
+    url.pathname !== '/coming-soon' &&
+    url.searchParams.get('preview') !== 'live'
+  ) {
+    return NextResponse.rewrite(new URL('/coming-soon', req.url));
+  }
+
   // 1. Bypass main marketplace domains
   if (MAIN_DOMAINS.has(hostWithPort) || MAIN_DOMAINS.has(hostname)) {
     return NextResponse.next();
@@ -45,7 +72,9 @@ export default function middleware(req: NextRequest) {
   // 2. Check for platform subdomains (e.g. "el-ezaby.ray.eg" or "el-ezaby.localhost")
   const isPlatformSubdomain =
     (hostname.endsWith('.ray.eg') && hostname !== 'ray.eg' && hostname !== 'www.ray.eg') ||
-    (hostname.endsWith('.mnmknk.com') && hostname !== 'mnmknk.com' && hostname !== 'www.mnmknk.com') ||
+    (hostname.endsWith('.mnmknk.com') &&
+      hostname !== 'mnmknk.com' &&
+      hostname !== 'www.mnmknk.com') ||
     (hostname.endsWith('.localhost') && hostname !== 'localhost');
 
   let tenantSlug = '';
@@ -65,4 +94,3 @@ export default function middleware(req: NextRequest) {
 
   return NextResponse.next();
 }
-
