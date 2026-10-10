@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { NammyDesktop } from '@/components/nammy/NammyDesktop';
 import ConsentBanner from '@ray-eg/shared/components/common/ConsentBanner';
+import { MEN_MAKANAK_LIVE } from '@/nammy/menMakanak';
 
 /**
  * صفحة الهبوط الجديدة — «نمّي أعمالك» (متصفح الأعمال الذكي).
@@ -9,8 +10,9 @@ import ConsentBanner from '@ray-eg/shared/components/common/ConsentBanner';
  */
 export const metadata: Metadata = {
   title: 'نمّي أعمالك — متصفح الأعمال الذكي',
-  description:
-    'قول لنمّي عايز تعمل إيه في تجارتك: كاشير سحابي، مخزون، فواتير ضريبية، متجر إلكتروني، وتطبيق من مكانك — في منظومة واحدة.',
+  description: MEN_MAKANAK_LIVE
+    ? 'قول لنمّي عايز تعمل إيه في تجارتك: كاشير سحابي، مخزون، فواتير ضريبية، متجر إلكتروني، وتطبيق من مكانك — في منظومة واحدة.'
+    : 'قول لنمّي عايز تعمل إيه في تجارتك: كاشير سحابي، مخزون، فواتير ضريبية، ومتجر إلكتروني — في منظومة واحدة.',
 };
 
 export const viewport: Viewport = {

@@ -84,6 +84,21 @@ export function visibleModules<T extends { id: ModuleId }>(modules: readonly T[]
   return modules.filter((m) => !LOCAL_ONLY_MODULES.has(String(m.id)));
 }
 
+/**
+ * Local-only modules (finance / accounting / HR / analytics / AI) are a dev-only
+ * feature: they exist in the local dashboard so they can be built and tested,
+ * but they were never released to merchants. So the onboarding wizard must
+ * never offer or grant them — in ANY environment, not just production.
+ */
+export function isLocalOnly(id: ModuleId): boolean {
+  return LOCAL_ONLY_MODULES.has(String(id));
+}
+
+/** Same as `visibleModules` but unconditional: always drops local-only modules. */
+export function withoutLocalOnly<T extends { id: ModuleId }>(modules: readonly T[]): T[] {
+  return modules.filter((m) => !isLocalOnly(m.id));
+}
+
 export type SystemSummaryData = {
   enabledModules: {
     id: ModuleId;
@@ -1301,8 +1316,8 @@ export function computeSystemSummary(enabledModuleIds: ModuleId[]): SystemSummar
 
   let totalFeatures = 0;
   let totalPages = 0;
-  let totalDashboardWidgets = 0;
-  let totalNavigationItems = 0;
+  const totalDashboardWidgets = 0;
+  const totalNavigationItems = 0;
   let estimatedSetupMinutes = 0;
 
   for (const id of resolved) {

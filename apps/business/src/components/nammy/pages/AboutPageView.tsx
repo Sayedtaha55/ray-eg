@@ -1,13 +1,9 @@
 ﻿'use client';
 
 import React from 'react';
-import { 
-  Building, 
-  Target, 
-  ShieldCheck, 
-  Zap
-} from 'lucide-react';
+import { Building, Target, ShieldCheck, Zap } from 'lucide-react';
 import { Language } from '@/nammy/types';
+import { MEN_MAKANAK_LIVE } from '@/nammy/menMakanak';
 
 interface AboutPageViewProps {
   lang: Language;
@@ -19,7 +15,6 @@ export const AboutPageView: React.FC<AboutPageViewProps> = ({ lang, onOpenDemo }
 
   return (
     <div className="space-y-10 max-w-3xl mx-auto">
-      
       {/* Header */}
       <div className="text-start space-y-3">
         <span className="text-xs font-black text-amber-600 uppercase tracking-wider">
@@ -61,7 +56,13 @@ export const AboutPageView: React.FC<AboutPageViewProps> = ({ lang, onOpenDemo }
             {isAr ? 'أدوات أقوى' : 'Robust Tooling'}
           </h3>
           <p className="text-xs text-slate-600 leading-relaxed">
-            {isAr ? 'لوحة تحكم مركزية، كاشير سحابي سريع، وتطبيق «من مكانك» لجلب زبائن منطقتك.' : 'Unified dashboard, fast cloud POS, and Men Makanak local discovery.'}
+            {isAr
+              ? 'لوحة تحكم مركزية، كاشير سحابي سريع، ' +
+                (MEN_MAKANAK_LIVE ? 'وتطبيق «من مكانك» ' : '') +
+                'لجلب زبائن منطقتك.'
+              : 'Unified dashboard, fast cloud POS' +
+                (MEN_MAKANAK_LIVE ? ', and Men Makanak local discovery' : '') +
+                '.'}
           </p>
         </div>
 
@@ -73,7 +74,9 @@ export const AboutPageView: React.FC<AboutPageViewProps> = ({ lang, onOpenDemo }
             {isAr ? 'دعم حقيقي' : 'Real Support'}
           </h3>
           <p className="text-xs text-slate-600 leading-relaxed">
-            {isAr ? 'فريق استشاري وتقني متواجد 24/7 لمساعدتك على مدار الأسبوع بدون توقف.' : 'Dedicated retail specialists available 24/7 whenever you need help.'}
+            {isAr
+              ? 'فريق استشاري وتقني متواجد 24/7 لمساعدتك على مدار الأسبوع بدون توقف.'
+              : 'Dedicated retail specialists available 24/7 whenever you need help.'}
           </p>
         </div>
 
@@ -85,7 +88,9 @@ export const AboutPageView: React.FC<AboutPageViewProps> = ({ lang, onOpenDemo }
             {isAr ? 'نمو مستمر' : 'Continuous Growth'}
           </h3>
           <p className="text-xs text-slate-600 leading-relaxed">
-            {isAr ? 'نطور معك أدوات التجارة الحديثة خطوة بخطوة من أول فاتورة لأكبر فرع.' : 'Continuous product engineering side-by-side with your retail ambitions.'}
+            {isAr
+              ? 'نطور معك أدوات التجارة الحديثة خطوة بخطوة من أول فاتورة لأكبر فرع.'
+              : 'Continuous product engineering side-by-side with your retail ambitions.'}
           </p>
         </div>
       </div>
@@ -100,7 +105,9 @@ export const AboutPageView: React.FC<AboutPageViewProps> = ({ lang, onOpenDemo }
             <li>{isAr ? 'المميزات الشاملة' : 'Core Capabilities'}</li>
             <li>{isAr ? 'مصمم الصفحات والدومينات' : 'Page & Domain Builder'}</li>
             <li>{isAr ? 'لوحة التحكم المركزية' : 'Central Dashboard'}</li>
-            <li>{isAr ? 'تطبيق من مكانك' : 'Men Makanak Local App'}</li>
+            {!MEN_MAKANAK_LIVE ? null : (
+              <li>{isAr ? 'تطبيق من مكانك' : 'Men Makanak Local App'}</li>
+            )}
           </ul>
         </div>
 
@@ -136,7 +143,6 @@ export const AboutPageView: React.FC<AboutPageViewProps> = ({ lang, onOpenDemo }
           {isAr ? 'ابدأ رحلتك معنا اليوم' : 'Begin Your Journey'}
         </button>
       </div>
-
     </div>
   );
 };

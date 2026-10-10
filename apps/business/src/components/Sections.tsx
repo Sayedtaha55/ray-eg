@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { HIDE_UNPUBLISHED } from '@/lib/moduleConfig';
+import { MEN_MAKANAK_LIVE } from '@/nammy/menMakanak';
 import {
   TrendingUp,
   ArrowLeft,
@@ -818,6 +819,8 @@ export function BeforeAfter() {
 }
 
 export function MahallyShowcase() {
+  // تسويق تطبيق «من مكانك» لسه مش منشور — مخفي في الإنتاج (شغال في اللوكل).
+  if (!MEN_MAKANAK_LIVE) return null;
   const points = [
     { icon: Navigation, text: 'متجرك يظهر للي حواليك على الخريطة — أول ما يدوروا يلاقوك.' },
     { icon: Zap, text: 'عروضك ومنتجاتك توصل لعملاء جاهزين يشتروا النهارده.' },

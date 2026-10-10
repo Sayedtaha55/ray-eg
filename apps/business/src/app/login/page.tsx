@@ -12,12 +12,14 @@ import {
   X,
   UserPlus,
   Store,
+  Sparkles,
   Eye,
   EyeOff,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import './login.css';
 import { businessBrand } from '@/lib/brand';
 import { DASHBOARD_URL, dashboardLoginUrl } from '@/lib/appUrls';
 import { AuthSkeleton } from '@/components/ui/Skeleton';
@@ -151,221 +153,240 @@ function LoginContent() {
   };
 
   return (
-    <div
-      className="max-w-[1400px] mx-auto px-6 py-20 flex items-center justify-center min-h-[80vh]"
-      dir="rtl"
-    >
-      <AnimatePresence>
-        {isForgotModalOpen && (
-          <MotionDiv
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6"
-            onClick={() => {
-              if (forgotLoading) return;
-              setForgotModalOpen(false);
-              setForgotResult(null);
-            }}
-          >
-            <MotionDiv
-              initial={{ opacity: 0, y: 20, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.98 }}
-              className="w-full max-w-xl bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl p-8 md:p-10 text-right"
-              onClick={(e: any) => e.stopPropagation()}
-            >
-              <div className="flex items-start justify-between flex-row-reverse gap-4 mb-6">
-                <div className="text-right">
-                  <h3 className="text-2xl font-black tracking-tight">نسيت كلمة المرور</h3>
-                  <p className="text-slate-400 font-bold text-sm mt-1">
-                    اكتب بريدك الإلكتروني علشان نجهز لك رابط إعادة تعيين.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  disabled={forgotLoading}
-                  onClick={() => {
-                    setForgotModalOpen(false);
-                    setForgotResult(null);
-                  }}
-                  className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full disabled:opacity-60"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-1">
-                    البريد الإلكتروني
-                  </label>
-                  <input
-                    type="email"
-                    disabled={forgotLoading}
-                    className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-5 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder="example@email.com"
-                  />
-                </div>
-
-                {forgotResult?.ok && (
-                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-                    <div className="text-sm font-black text-slate-700">تم إرسال الطلب</div>
-                    <div className="text-[12px] font-bold text-slate-500 mt-2">
-                      إذا كان البريد الإلكتروني مسجل لدينا، ستصلك خطوات إعادة التعيين على بريدك.
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  disabled={forgotLoading}
-                  onClick={handleForgotPassword}
-                  className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] font-black text-sm hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-70"
-                >
-                  {forgotLoading ? (
-                    <Loader2 className="animate-spin" size={18} />
-                  ) : (
-                    <KeyRound size={18} className="text-[#00E5FF]" />
-                  )}
-                  {forgotLoading ? 'جاري التجهيز...' : 'إرسال رابط إعادة التعيين'}
-                </button>
-              </div>
-            </MotionDiv>
-          </MotionDiv>
-        )}
-      </AnimatePresence>
-
-      <MotionDiv
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-xl bg-white border border-slate-100 p-8 md:p-16 rounded-[3.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.05)] text-right text-slate-900"
-      >
-        <div className="flex flex-col items-center text-center mb-12">
-          <div
-            onPointerDown={handleAdminSecretTap}
-            className="w-20 h-20 bg-[#1A1A1A] rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl relative group overflow-hidden cursor-pointer"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-[#00E5FF] to-[#BD00FF] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <Image
-              src={businessBrand.logo}
-              alt={businessBrand.name}
-              width={56}
-              height={56}
-              className="relative z-10 w-12 h-12 object-contain"
-            />
-          </div>
-          <h1 className="text-4xl font-black tracking-tighter mb-4">
-            أهلاً بك <span className="text-[#00E5FF]">مجدداً.</span>
-          </h1>
-          <p className="text-slate-400 font-bold text-sm">
-            سجّل الدخول لمتابعة حسابك أو إدارة نشاطك.
-          </p>
-        </div>
-
+    <div className="login-identity flex items-center justify-center min-h-screen py-20" dir="rtl">
+      <span aria-hidden="true" className="cloud cloud-top">
+        <i />
+        <i />
+        <i />
+      </span>
+      <span aria-hidden="true" className="cloud cloud-side">
+        <i />
+        <i />
+        <i />
+      </span>
+      <div className="relative max-w-[1400px] w-full mx-auto px-6 flex items-center justify-center">
         <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="bg-red-50 border-r-4 border-red-500 p-4 mb-8 flex items-center gap-3 flex-row-reverse text-red-600 font-bold text-sm"
+          {isForgotModalOpen && (
+            <MotionDiv
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6"
+              onClick={() => {
+                if (forgotLoading) return;
+                setForgotModalOpen(false);
+                setForgotResult(null);
+              }}
             >
-              <AlertCircle size={20} />
-              <p>{error}</p>
-            </motion.div>
+              <MotionDiv
+                initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.98 }}
+                className="w-full max-w-xl bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl p-8 md:p-10 text-right"
+                onClick={(e: any) => e.stopPropagation()}
+              >
+                <div className="flex items-start justify-between flex-row-reverse gap-4 mb-6">
+                  <div className="text-right">
+                    <h3 className="text-2xl font-black tracking-tight">نسيت كلمة المرور</h3>
+                    <p className="text-slate-400 font-bold text-sm mt-1">
+                      اكتب بريدك الإلكتروني علشان نجهز لك رابط إعادة تعيين.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={forgotLoading}
+                    onClick={() => {
+                      setForgotModalOpen(false);
+                      setForgotResult(null);
+                    }}
+                    className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full disabled:opacity-60"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-1">
+                      البريد الإلكتروني
+                    </label>
+                    <input
+                      type="email"
+                      disabled={forgotLoading}
+                      className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-5 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="example@email.com"
+                    />
+                  </div>
+
+                  {forgotResult?.ok && (
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                      <div className="text-sm font-black text-slate-700">تم إرسال الطلب</div>
+                      <div className="text-[12px] font-bold text-slate-500 mt-2">
+                        إذا كان البريد الإلكتروني مسجل لدينا، ستصلك خطوات إعادة التعيين على بريدك.
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={forgotLoading}
+                    onClick={handleForgotPassword}
+                    className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] font-black text-sm hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+                  >
+                    {forgotLoading ? (
+                      <Loader2 className="animate-spin" size={18} />
+                    ) : (
+                      <KeyRound size={18} className="text-[#00E5FF]" />
+                    )}
+                    {forgotLoading ? 'جاري التجهيز...' : 'إرسال رابط إعادة التعيين'}
+                  </button>
+                </div>
+              </MotionDiv>
+            </MotionDiv>
           )}
         </AnimatePresence>
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-4">
-              البريد الإلكتروني
-            </label>
-            <input
-              type="email"
-              required
-              disabled={loading}
-              className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-5 px-6 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+        <MotionDiv
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="login-card w-full max-w-xl p-8 md:p-16 text-right text-slate-900"
+        >
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className="mb-3">
+              <span className="new-sticker">
+                <span>جديد</span> من
+              </span>
+            </div>
+            <div
+              onPointerDown={handleAdminSecretTap}
+              className="w-20 h-20 bg-[#1A1A1A] rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl relative group overflow-hidden cursor-pointer"
+            >
+              <div className="absolute inset-0 bg-gradient-to-tr from-[#00E5FF] to-[#BD00FF] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <Image
+                src={businessBrand.logo}
+                alt={businessBrand.name}
+                width={56}
+                height={56}
+                className="relative z-10 w-12 h-12 object-contain"
+              />
+            </div>
+            <h1 className="text-4xl font-black tracking-tighter mb-4">
+              أهلاً بك <span className="text-[#00E5FF]">مجدداً.</span>
+            </h1>
+            <p className="text-slate-400 font-bold text-sm">
+              سجّل الدخول لمتابعة حسابك أو إدارة نشاطك.
+            </p>
+            <div className="mt-3">
+              <span className="update-pill">
+                <Sparkles size={16} /> تحديثات جديدة
+              </span>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-center flex-row-reverse mr-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                كلمة المرور
-              </label>
-              <button
-                type="button"
-                onClick={() => setForgotModalOpen(true)}
-                className="text-[10px] font-black text-[#BD00FF]"
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="bg-red-50 border-r-4 border-red-500 p-4 mb-8 flex items-center gap-3 flex-row-reverse text-red-600 font-bold text-sm"
               >
-                نسيت كلمة المرور؟
-              </button>
-            </div>
-            <div className="relative">
+                <AlertCircle size={20} />
+                <p>{error}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-4">
+                البريد الإلكتروني
+              </label>
               <input
-                type={showPassword ? 'text' : 'password'}
+                type="email"
                 required
                 disabled={loading}
-                className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-5 pr-6 pl-16 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-5 px-6 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                disabled={loading}
-                aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
-                className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors disabled:opacity-50"
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center flex-row-reverse mr-4">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                  كلمة المرور
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setForgotModalOpen(true)}
+                  className="text-[10px] font-black text-[#BD00FF]"
+                >
+                  نسيت كلمة المرور؟
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  disabled={loading}
+                  className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-5 pr-6 pl-16 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  disabled={loading}
+                  aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                  className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors disabled:opacity-50"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="login-btn-primary w-full py-6 text-white rounded-[2rem] font-black text-xl transition-all flex items-center justify-center gap-3"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <ShieldCheck size={24} className="text-[#00E5FF]" />
+              )}
+              {loading ? 'جاري التحقق...' : 'دخول آمن'}
+            </button>
+          </form>
+
+          <div className="mt-6">
+            <button
+              type="button"
+              disabled={loading}
+              onClick={handleGoogleLogin}
+              className="w-full py-5 bg-white border-2 border-slate-100 text-slate-900 rounded-[2rem] font-black text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+            >
+              <GoogleIcon size={20} />
+              تسجيل الدخول عبر Google
+            </button>
+          </div>
+
+          <div className="mt-12 pt-8 border-t border-slate-50 space-y-4">
+            <p className="text-center text-slate-400 font-bold text-xs mb-4">ليس لديك حساب؟</p>
+            <div className="grid grid-cols-1 gap-4">
+              <Link
+                href={buildSignupLink()}
+                className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-200/70 bg-white/70 hover:bg-white transition-all text-slate-900"
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
+                <Store size={20} className="text-[#BD00FF]" />
+                <span className="font-black text-[10px]">تسجيل نشاط</span>
+              </Link>
             </div>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-xl hover:bg-black transition-all shadow-2xl flex items-center justify-center gap-3"
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <ShieldCheck size={24} className="text-[#00E5FF]" />
-            )}
-            {loading ? 'جاري التحقق...' : 'دخول آمن'}
-          </button>
-        </form>
-
-        <div className="mt-6">
-          <button
-            type="button"
-            disabled={loading}
-            onClick={handleGoogleLogin}
-            className="w-full py-5 bg-white border-2 border-slate-100 text-slate-900 rounded-[2rem] font-black text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
-          >
-            <GoogleIcon size={20} />
-            تسجيل الدخول عبر Google
-          </button>
-        </div>
-
-        <div className="mt-12 pt-8 border-t border-slate-50 space-y-4">
-          <p className="text-center text-slate-400 font-bold text-xs mb-4">ليس لديك حساب؟</p>
-          <div className="grid grid-cols-1 gap-4">
-            <Link
-              href={buildSignupLink()}
-              className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all text-slate-900"
-            >
-              <Store size={20} className="text-[#BD00FF]" />
-              <span className="font-black text-[10px]">تسجيل نشاط</span>
-            </Link>
-          </div>
-        </div>
-      </MotionDiv>
+        </MotionDiv>
+      </div>
     </div>
   );
 }

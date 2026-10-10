@@ -1,20 +1,21 @@
 ﻿'use client';
 
 import React, { useState } from 'react';
-import { 
-  Home, 
-  Layers, 
-  Store, 
-  MapPin, 
-  BadgePercent, 
-  HelpCircle, 
-  ArrowUp, 
+import {
+  Home,
+  Layers,
+  Store,
+  MapPin,
+  BadgePercent,
+  HelpCircle,
+  ArrowUp,
   Sparkles,
-  Zap
+  Zap,
 } from 'lucide-react';
 import { NavTabId, Language, PromptSuggestion } from '@/nammy/types';
 import { PROMPT_SUGGESTIONS } from '@/nammy/landingData';
 import { TRANSLATIONS } from '@/nammy/translations';
+import { MEN_MAKANAK_LIVE } from '@/nammy/menMakanak';
 
 interface CenterLauncherProps {
   lang: Language;
@@ -38,45 +39,53 @@ export const CenterLauncher: React.FC<CenterLauncherProps> = ({
     icon: any;
     colorClass: string;
     hoverGlow: string;
+    /** true = لسه مش منشور — يظهر بشارة «قريبًا» ومش بيفتح حاجة */
+    soon?: boolean;
   }[] = [
-    { 
-      id: 'home', 
-      label: t.home, 
+    {
+      id: 'home',
+      label: t.home,
       icon: Home,
-      colorClass: 'text-amber-500 hover:text-amber-600 drop-shadow-[0_4px_10px_rgba(245,158,11,0.35)]',
+      colorClass:
+        'text-amber-500 hover:text-amber-600 drop-shadow-[0_4px_10px_rgba(245,158,11,0.35)]',
       hoverGlow: 'hover:drop-shadow-[0_8px_16px_rgba(245,158,11,0.5)]',
     },
-    { 
-      id: 'solutions', 
-      label: t.solutions, 
+    {
+      id: 'solutions',
+      label: t.solutions,
       icon: Layers,
-      colorClass: 'text-emerald-500 hover:text-emerald-600 drop-shadow-[0_4px_10px_rgba(16,185,129,0.35)]',
+      colorClass:
+        'text-emerald-500 hover:text-emerald-600 drop-shadow-[0_4px_10px_rgba(16,185,129,0.35)]',
       hoverGlow: 'hover:drop-shadow-[0_8px_16px_rgba(16,185,129,0.5)]',
     },
-    { 
-      id: 'activities', 
-      label: t.activities, 
+    {
+      id: 'activities',
+      label: t.activities,
       icon: Store,
-      colorClass: 'text-violet-600 hover:text-violet-700 drop-shadow-[0_4px_10px_rgba(139,92,246,0.35)]',
+      colorClass:
+        'text-violet-600 hover:text-violet-700 drop-shadow-[0_4px_10px_rgba(139,92,246,0.35)]',
       hoverGlow: 'hover:drop-shadow-[0_8px_16px_rgba(139,92,246,0.5)]',
     },
-    { 
-      id: 'men-makanak', 
-      label: t.menMakanak, 
+    {
+      id: 'men-makanak',
+      label: t.menMakanak,
       icon: MapPin,
       colorClass: 'text-rose-500 hover:text-rose-600 drop-shadow-[0_4px_10px_rgba(244,63,94,0.35)]',
       hoverGlow: 'hover:drop-shadow-[0_8px_16px_rgba(244,63,94,0.5)]',
+      // لسه مش منشور في الإنتاج — الزر يفضل ظاهر بس «قريبًا» ومش بيفتح صفحة.
+      soon: !MEN_MAKANAK_LIVE,
     },
-    { 
-      id: 'pricing', 
-      label: t.pricing, 
+    {
+      id: 'pricing',
+      label: t.pricing,
       icon: BadgePercent,
-      colorClass: 'text-orange-500 hover:text-orange-600 drop-shadow-[0_4px_10px_rgba(249,115,22,0.35)]',
+      colorClass:
+        'text-orange-500 hover:text-orange-600 drop-shadow-[0_4px_10px_rgba(249,115,22,0.35)]',
       hoverGlow: 'hover:drop-shadow-[0_8px_16px_rgba(249,115,22,0.5)]',
     },
-    { 
-      id: 'faq', 
-      label: t.faq, 
+    {
+      id: 'faq',
+      label: t.faq,
       icon: HelpCircle,
       colorClass: 'text-sky-500 hover:text-sky-600 drop-shadow-[0_4px_10px_rgba(14,165,233,0.35)]',
       hoverGlow: 'hover:drop-shadow-[0_8px_16px_rgba(14,165,233,0.5)]',
@@ -85,7 +94,8 @@ export const CenterLauncher: React.FC<CenterLauncherProps> = ({
       id: 'innovations',
       label: t.innovations,
       icon: Sparkles,
-      colorClass: 'text-fuchsia-500 hover:text-fuchsia-600 drop-shadow-[0_4px_10px_rgba(217,70,239,0.35)]',
+      colorClass:
+        'text-fuchsia-500 hover:text-fuchsia-600 drop-shadow-[0_4px_10px_rgba(217,70,239,0.35)]',
       hoverGlow: 'hover:drop-shadow-[0_8px_16px_rgba(217,70,239,0.5)]',
     },
   ];
@@ -94,10 +104,11 @@ export const CenterLauncher: React.FC<CenterLauncherProps> = ({
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
-    const matched = PROMPT_SUGGESTIONS.find(s => 
-      searchQuery.includes(s.query) || 
-      s.query.includes(searchQuery) ||
-      searchQuery.toLowerCase().includes(s.queryEn.toLowerCase())
+    const matched = PROMPT_SUGGESTIONS.find(
+      (s) =>
+        searchQuery.includes(s.query) ||
+        s.query.includes(searchQuery) ||
+        searchQuery.toLowerCase().includes(s.queryEn.toLowerCase())
     );
 
     onOpenAiChat(searchQuery, matched);
@@ -111,29 +122,37 @@ export const CenterLauncher: React.FC<CenterLauncherProps> = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-col items-center justify-center px-3 sm:px-4 z-20 transition-all duration-300">
-      
       {/* 6 Icons: Floating DIRECTLY without white wrappers/boxes, vibrant distinctive colors (معموله منغير غلاف حولها) */}
       <div className="flex items-center justify-center gap-4 sm:gap-6 md:gap-7 mb-4 sm:mb-5 flex-wrap">
         {launcherIcons.map((item) => {
           const Icon = item.icon;
+          const soon = item.soon === true;
           return (
             <button
               key={item.id}
               onClick={() => onOpenPage(item.id)}
-              className="group flex flex-col items-center gap-1.5 focus:outline-none cursor-pointer transition-transform duration-200 hover:-translate-y-1.5 active:scale-90"
+              title={soon ? (isAr ? 'قريبًا' : 'Coming soon') : undefined}
+              className={`group flex flex-col items-center gap-1.5 focus:outline-none cursor-pointer transition-transform duration-200 hover:-translate-y-1.5 active:scale-90`}
             >
               {/* Direct Floating Icon without box wrapper ("منغير غلاف حولها") */}
-              <div className={`p-2 transition-all duration-200 ${item.colorClass} ${item.hoverGlow}`}>
-                <Icon 
-                  size={32} 
-                  strokeWidth={2.1} 
-                  className="sm:w-9 sm:h-9 transition-transform group-hover:scale-110" 
+              <div
+                className={`p-2 transition-all duration-200 ${item.colorClass} ${item.hoverGlow}`}
+              >
+                <Icon
+                  size={32}
+                  strokeWidth={2.1}
+                  className="sm:w-9 sm:h-9 transition-transform group-hover:scale-110"
                 />
               </div>
 
               {/* Refined label text with soft desktop pill */}
-              <span className="text-[11px] sm:text-xs font-black text-slate-800 bg-white/75 hover:bg-white backdrop-blur-xs px-2.5 py-0.5 rounded-full shadow-2xs group-hover:shadow-xs transition-all tracking-tight">
+              <span className="relative text-[11px] sm:text-xs font-black text-slate-800 bg-white/75 hover:bg-white backdrop-blur-xs px-2.5 py-0.5 rounded-full shadow-2xs group-hover:shadow-xs transition-all tracking-tight">
                 {item.label}
+                {soon && (
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-l from-sky-500 to-cyan-400 text-white text-[8px] font-black px-1.5 py-[1px] shadow-sm">
+                    {isAr ? 'قريبًا' : 'Soon'}
+                  </span>
+                )}
               </span>
             </button>
           );
@@ -172,7 +191,9 @@ export const CenterLauncher: React.FC<CenterLauncherProps> = ({
 
         {/* Suggestion Pills underneath: All 7 Ready-Made AI Store Models */}
         <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1 sm:gap-1.5">
-          <span className="text-[10px] text-slate-700 font-black ml-1 bg-white/60 px-2 py-0.5 rounded-full">{t.tryPrompts}</span>
+          <span className="text-[10px] text-slate-700 font-black ml-1 bg-white/60 px-2 py-0.5 rounded-full">
+            {t.tryPrompts}
+          </span>
           {PROMPT_SUGGESTIONS.map((s) => (
             <button
               key={s.id}
@@ -184,8 +205,6 @@ export const CenterLauncher: React.FC<CenterLauncherProps> = ({
           ))}
         </div>
       </div>
-
     </div>
   );
 };
-

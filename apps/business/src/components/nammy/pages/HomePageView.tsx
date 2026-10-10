@@ -1,12 +1,12 @@
 ﻿'use client';
 
 import React, { useState } from 'react';
-import { 
-  Store, 
-  TrendingUp, 
-  Building2, 
-  Check, 
-  X, 
+import {
+  Store,
+  TrendingUp,
+  Building2,
+  Check,
+  X,
   ArrowLeft,
   Sparkles,
   Zap,
@@ -16,10 +16,11 @@ import {
   Package,
   Truck,
   CreditCard,
-  AlertTriangle
+  AlertTriangle,
 } from 'lucide-react';
 import { Language } from '@/nammy/types';
 import { BEFORE_AFTER_DATA, THREE_STEPS } from '@/nammy/landingData';
+import { MEN_MAKANAK_LIVE } from '@/nammy/menMakanak';
 
 interface HomePageViewProps {
   lang: Language;
@@ -34,12 +35,15 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
 
   return (
     <div className="space-y-12 max-w-4xl mx-auto">
-      
       {/* Creative Identity Banner for Egyptian Merchants */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-b border-slate-200/80 pb-3 text-start">
         <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl bg-amber-50/90 border border-amber-200/90 text-amber-950 text-xs font-bold shadow-2xs">
           <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-          <span>{isAr ? 'منظومة نقاط البيع وإدارة المتاجر المصممة للسوق المصري 🇪🇬' : 'Point of Sale & Retail OS Tailored for Egypt 🇪🇬'}</span>
+          <span>
+            {isAr
+              ? 'منظومة نقاط البيع وإدارة المتاجر المصممة للسوق المصري 🇪🇬'
+              : 'Point of Sale & Retail OS Tailored for Egypt 🇪🇬'}
+          </span>
         </div>
 
         <div className="text-[11px] font-bold text-slate-500 flex items-center gap-2">
@@ -53,7 +57,6 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
 
       {/* Human, PostHog-inspired Hero Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-1">
-        
         {/* Main Hero Copy with Highlighter Pen Accents */}
         <div className="lg:col-span-7 space-y-4 text-start">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-[1.2]">
@@ -87,21 +90,29 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
           <p className="text-sm sm:text-base text-slate-700 font-medium leading-relaxed">
             {isAr ? (
               <>
-                من أول محل في وسط البلد أو التجمع.. لأكبر شبكة فروع في المحافظات. أدوات حقيقية تساعدك{' '}
-                <mark className="bg-emerald-100/90 text-emerald-950 px-1.5 py-0.5 rounded font-bold">تبيع، تدير، وتتابع</mark>{' '}
+                من أول محل في وسط البلد أو التجمع.. لأكبر شبكة فروع في المحافظات. أدوات حقيقية
+                تساعدك{' '}
+                <mark className="bg-emerald-100/90 text-emerald-950 px-1.5 py-0.5 rounded font-bold">
+                  تبيع، تدير، وتتابع
+                </mark>{' '}
                 مخزونك ومبيعاتك وفروعك في مكان واحد وبشكل لحظي.
               </>
             ) : (
               <>
-                From your first storefront in Cairo to a multi-branch nationwide chain. Everything you need to{' '}
-                <mark className="bg-emerald-100/90 text-emerald-950 px-1.5 py-0.5 rounded font-bold">sell, operate, and track</mark>{' '}
+                From your first storefront in Cairo to a multi-branch nationwide chain. Everything
+                you need to{' '}
+                <mark className="bg-emerald-100/90 text-emerald-950 px-1.5 py-0.5 rounded font-bold">
+                  sell, operate, and track
+                </mark>{' '}
                 inventory and cashiers in one live dashboard.
               </>
             )}
           </p>
 
           <p className="text-xs text-slate-500 font-medium">
-            {isAr ? 'ابدأ اليوم بدون أي التزام مالي أو بطاقة ائتمانية — دعم مصري كامل.' : 'Get started today with zero commitments or credit cards — tailored for Egypt.'}
+            {isAr
+              ? 'ابدأ اليوم بدون أي التزام مالي أو بطاقة ائتمانية — دعم مصري كامل.'
+              : 'Get started today with zero commitments or credit cards — tailored for Egypt.'}
           </p>
         </div>
 
@@ -122,15 +133,27 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
             <div className="space-y-2 text-xs font-semibold text-slate-700">
               <div className="flex items-center gap-2">
                 <Check size={16} className="text-emerald-600 shrink-0" />
-                <span>{isAr ? 'تجربة حية فورية بدون بطاقة بنكية' : 'Instant live demo with zero credit cards'}</span>
+                <span>
+                  {isAr
+                    ? 'تجربة حية فورية بدون بطاقة بنكية'
+                    : 'Instant live demo with zero credit cards'}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <Check size={16} className="text-emerald-600 shrink-0" />
-                <span>{isAr ? 'فواتير وإيصالات متوافقة مع مصلحة الضرائب ETA' : 'ETA e-invoicing & e-receipt compliant'}</span>
+                <span>
+                  {isAr
+                    ? 'فواتير وإيصالات متوافقة مع مصلحة الضرائب ETA'
+                    : 'ETA e-invoicing & e-receipt compliant'}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <Check size={16} className="text-emerald-600 shrink-0" />
-                <span>{isAr ? 'ربط الكاشير والمخزن في أقل من 3 دقائق' : 'Setup wizard installs POS in 3 minutes'}</span>
+                <span>
+                  {isAr
+                    ? 'ربط الكاشير والمخزن في أقل من 3 دقائق'
+                    : 'Setup wizard installs POS in 3 minutes'}
+                </span>
               </div>
             </div>
 
@@ -143,7 +166,9 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
               </button>
 
               <button
-                onClick={() => onOpenDemo(isAr ? 'تحدث مع مستشار أعمال' : 'Talk with Retail Advisor')}
+                onClick={() =>
+                  onOpenDemo(isAr ? 'تحدث مع مستشار أعمال' : 'Talk with Retail Advisor')
+                }
                 className="w-full py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200 transition-colors cursor-pointer"
               >
                 {isAr ? 'تحدث مع مستشار تجاري' : 'Talk with an advisor'}
@@ -151,12 +176,10 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
             </div>
           </div>
         </div>
-
       </div>
 
       {/* PostHog Interactive Operations Terminal Simulator (Exact match to Image 2: "Ship with PostHog") */}
       <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xl space-y-5 text-start">
-        
         {/* Simulator Tabs */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
@@ -201,7 +224,6 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
 
         {/* Simulator Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          
           {/* Left: Feed of real-time tickets with P1, P2 badges */}
           <div className="lg:col-span-7 space-y-3">
             {activeSimulatorTab === 'pos' && (
@@ -211,13 +233,16 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
                     <span className="text-[10px] font-black px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
                       P1 كاشير مباشر
                     </span>
-                    <span className="text-[10px] text-slate-400 font-mono">منذ لحظات • فرع المعادي</span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      منذ لحظات • فرع المعادي
+                    </span>
                   </div>
                   <h4 className="font-bold text-xs text-slate-900">
                     تم إصدار فاتورة بيع #INV-2043 بقيمة 850 ج.م
                   </h4>
                   <p className="text-[11px] text-slate-600">
-                    تم الخصم الفوري لـ 2 قطعة من المخزن وتأكيد الدفع عبر إنستاباي، والتوثيق التلقائي في مصلحة الضرائب.
+                    تم الخصم الفوري لـ 2 قطعة من المخزن وتأكيد الدفع عبر إنستاباي، والتوثيق التلقائي
+                    في مصلحة الضرائب.
                   </p>
                 </div>
 
@@ -226,7 +251,9 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
                     <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
                       P2 طلب أونلاين
                     </span>
-                    <span className="text-[10px] text-slate-400 font-mono">منذ 3 دقائق • متجر الويب</span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      منذ 3 دقائق • متجر الويب
+                    </span>
                   </div>
                   <h4 className="font-bold text-xs text-slate-900">
                     أوردر جديد #ORD-1092 بالدفع عند الاستلام (COD)
@@ -236,20 +263,24 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 hover:border-amber-300 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-300">
-                      P3 تطبيق من مكانك
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">منذ 7 دقائق • عميل محيط</span>
+                {MEN_MAKANAK_LIVE && (
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 hover:border-amber-300 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-300">
+                        P3 تطبيق من مكانك
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        منذ 7 دقائق • عميل محيط
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-xs text-slate-900">
+                      زيارة واستلام من الفرع عبر خريطة المتجر
+                    </h4>
+                    <p className="text-[11px] text-slate-600">
+                      زبون وصل للفرع من خلال تفعيل العرض الترويجي المحيط، وسدد عبر فودافون كاش.
+                    </p>
                   </div>
-                  <h4 className="font-bold text-xs text-slate-900">
-                    زيارة واستلام من الفرع عبر خريطة المتجر
-                  </h4>
-                  <p className="text-[11px] text-slate-600">
-                    زبون وصل للفرع من خلال تفعيل العرض الترويجي المحيط، وسدد عبر فودافون كاش.
-                  </p>
-                </div>
+                )}
               </>
             )}
 
@@ -328,7 +359,7 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
               {isAr ? 'شغّل متجرك بنظام الإدارة الذاتي' : 'Run on the Self-Operating Retail OS'}
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              {isAr 
+              {isAr
                 ? 'لوحة تحكم واحدة تجمع حركة الكاشير، إشعارات المخزن، وتوصيل الطلبات لحظة بلحظة بدون لخبطة دفاتر أو برامج متفرقة.'
                 : 'Your central hub clusters POS transactions, inventory depleted per scan, and automated courier dispatches in real-time.'}
             </p>
@@ -350,21 +381,29 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
               </div>
               <div className="flex items-center gap-2 text-slate-700 font-bold">
                 <Package size={14} className="text-emerald-500 shrink-0" />
-                <span>{isAr ? 'خصم المخزون التلقائي من الرف' : 'Instant shelf-level inventory deduction'}</span>
+                <span>
+                  {isAr
+                    ? 'خصم المخزون التلقائي من الرف'
+                    : 'Instant shelf-level inventory deduction'}
+                </span>
               </div>
               <div className="flex items-center gap-2 text-slate-700 font-bold">
                 <Receipt size={14} className="text-indigo-500 shrink-0" />
-                <span>{isAr ? 'الفاتورة والإيصال الإلكتروني ETA' : 'Egyptian Tax Authority (ETA) compliance'}</span>
+                <span>
+                  {isAr
+                    ? 'الفاتورة والإيصال الإلكتروني ETA'
+                    : 'Egyptian Tax Authority (ETA) compliance'}
+                </span>
               </div>
               <div className="flex items-center gap-2 text-slate-700 font-bold">
                 <CreditCard size={14} className="text-rose-500 shrink-0" />
-                <span>{isAr ? 'إنستاباي، فوري، ومحافظ المحمول' : 'InstaPay, Fawry & Mobile Wallets'}</span>
+                <span>
+                  {isAr ? 'إنستاباي، فوري، ومحافظ المحمول' : 'InstaPay, Fawry & Mobile Wallets'}
+                </span>
               </div>
             </div>
           </div>
-
         </div>
-
       </div>
 
       {/* Section: رحلة نموّك */}
@@ -374,10 +413,12 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
             {isAr ? 'رحلة نموّك' : 'Your Growth Path'}
           </span>
           <h2 className="text-xl sm:text-3xl font-black text-slate-900">
-            {isAr ? 'مهما كانت تجارتك النهارده.. إحنا جاهزين لبكرة.' : 'Wherever your business stands today.. we are ready for tomorrow.'}
+            {isAr
+              ? 'مهما كانت تجارتك النهارده.. إحنا جاهزين لبكرة.'
+              : 'Wherever your business stands today.. we are ready for tomorrow.'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-600">
-            {isAr 
+            {isAr
               ? 'من أول عملية بيع.. لأكبر فرع. من محل واحد.. لمنظومة كاملة. ابدأ من مكانك الحالي وكبَّر واحنا معاك.'
               : 'From your first physical sale to multi-store rollout. Start right where you are.'}
           </p>
@@ -392,7 +433,9 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
               {isAr ? 'أول محل' : 'First Shop'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              {isAr ? 'ابدأ صح من أول فاتورة، ونظّم شغلك من اليوم الأول.' : 'Start clean from bill #1, and streamline your workflow right from day one.'}
+              {isAr
+                ? 'ابدأ صح من أول فاتورة، ونظّم شغلك من اليوم الأول.'
+                : 'Start clean from bill #1, and streamline your workflow right from day one.'}
             </p>
           </div>
 
@@ -404,7 +447,9 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
               {isAr ? 'تجارة بتتوسع' : 'Expanding Footprint'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              {isAr ? 'فروع أكتر، منتجات أكتر، عملاء أكتر.. وإدارة أسهل.' : 'More branches, broader catalog, larger clientele, yet simpler oversight.'}
+              {isAr
+                ? 'فروع أكتر، منتجات أكتر، عملاء أكتر.. وإدارة أسهل.'
+                : 'More branches, broader catalog, larger clientele, yet simpler oversight.'}
             </p>
           </div>
 
@@ -416,7 +461,9 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
               {isAr ? 'بزنس على مستوى أكبر' : 'Enterprise Chain'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              {isAr ? 'تحكّم في عملياتك وفروعك وبياناتك من مكان واحد.' : 'Centralized governance across all store locations, terminals, and ERP.'}
+              {isAr
+                ? 'تحكّم في عملياتك وفروعك وبياناتك من مكان واحد.'
+                : 'Centralized governance across all store locations, terminals, and ERP.'}
             </p>
           </div>
         </div>
@@ -428,16 +475,11 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
           <span className="text-xs font-black text-indigo-600 uppercase tracking-wider">
             {comparison.title}
           </span>
-          <h2 className="text-xl sm:text-3xl font-black text-slate-900">
-            {comparison.subtitle}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600">
-            {comparison.desc}
-          </p>
+          <h2 className="text-xl sm:text-3xl font-black text-slate-900">{comparison.subtitle}</h2>
+          <p className="text-xs sm:text-sm text-slate-600">{comparison.desc}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-start">
-          
           {/* بعد نمّي */}
           <div className="p-6 rounded-3xl bg-emerald-50/80 border-2 border-emerald-300 space-y-3">
             <div className="flex items-center gap-2 text-emerald-900 font-black text-base">
@@ -473,7 +515,6 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
               ))}
             </ul>
           </div>
-
         </div>
       </div>
 
@@ -487,15 +528,18 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
             {isAr ? 'ثلاث خطوات فقط من الفكرة إلى البيع' : 'Three Simple Steps to Selling'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-600">
-            {isAr 
-              ? 'صممنا نمّي لتبدأ بسرعة وبدون أي تعقيد تقني.' 
+            {isAr
+              ? 'صممنا نمّي لتبدأ بسرعة وبدون أي تعقيد تقني.'
               : 'Engineered for rapid deployment without operational friction.'}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-start">
           {steps.map((st) => (
-            <div key={st.step} className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
+            <div
+              key={st.step}
+              className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2"
+            >
               <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-900 font-black text-sm flex items-center justify-center">
                 {st.step}
               </span>
@@ -509,10 +553,12 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
       {/* Bottom Reassurance & Call to Action */}
       <div className="p-8 rounded-3xl bg-slate-900 text-white text-center space-y-4 shadow-xl">
         <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-          {isAr ? 'جاهز تنقل إدارة متجرك للمستوى التالي؟' : 'Ready to upgrade your store management?'}
+          {isAr
+            ? 'جاهز تنقل إدارة متجرك للمستوى التالي؟'
+            : 'Ready to upgrade your store management?'}
         </h2>
         <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
-          {isAr 
+          {isAr
             ? 'انضم إلى تجار مصر الذين يديرون كاشيراتهم ومخازنهم بنظام نمّي السحابي.'
             : 'Join leading retail pioneers running cloud registers and real-time inventory on Nammy.'}
         </p>
@@ -532,7 +578,6 @@ export const HomePageView: React.FC<HomePageViewProps> = ({ lang, onOpenDemo }) 
           </button>
         </div>
       </div>
-
     </div>
   );
 };

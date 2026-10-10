@@ -1,5 +1,5 @@
 import type { ModuleId } from './moduleConfig';
-import { HIDE_UNPUBLISHED, LOCAL_ONLY_MODULES } from './moduleConfig';
+import { isLocalOnly } from './moduleConfig';
 
 /**
  * Onboarding question system: for each activity the merchant answers a few
@@ -265,17 +265,16 @@ export function getQuestionsForActivity(
     ACTIVITY_QUESTIONS[activityId] ??
     (isBookingActivity ? BOOKING_QUESTION_SET : undefined) ??
     GENERIC_QUESTIONS;
-  // Market-launch switch: in production, strip any option that would opt the
-  // merchant into a local-only module — questions must never promise sections
-  // that stay hidden after launch. HR_QUESTION becomes useless once hr is
-  // scrubbed, so hide it entirely.
-  if (!HIDE_UNPUBLISHED) return raw;
+  // Local-only modules (finance / accounting / HR / analytics / AI) are never
+  // released to merchants, so a question must never promise a section that stays
+  // hidden: strip those options in every environment. HR_QUESTION then becomes
+  // useless (its only "yes" granted hr), so it disappears on its own.
   return raw
     .map((q) => ({
       ...q,
       options: q.options.map((opt) => ({
         ...opt,
-        modules: (opt.modules || []).filter((m) => !LOCAL_ONLY_MODULES.has(String(m))),
+        modules: (opt.modules || []).filter((m) => !isLocalOnly(m)),
       })),
     }))
     .filter((q) => {
@@ -303,9 +302,8 @@ export const ACTIVITY_BASE_MODULES: Record<string, ModuleId[]> = {
 export function getBaseModules(activityId: string, isBookingActivity: boolean): ModuleId[] {
   const raw = ACTIVITY_BASE_MODULES[activityId] ??
     (isBookingActivity ? ['core', 'sales', 'bookings'] : undefined) ?? ['core', 'sales'];
-  // Market-launch switch: local-only modules never ship in production baselines.
-  if (!HIDE_UNPUBLISHED) return raw;
-  return raw.filter((m) => !LOCAL_ONLY_MODULES.has(String(m)));
+  // Local-only modules never ship from the wizard, in any environment.
+  return raw.filter((m) => !isLocalOnly(m));
 }
 
 /** Union of modules selected through answers, on top of activity defaults. */
@@ -321,11 +319,9 @@ export function modulesFromAnswers(
       for (const m of opt?.modules || []) set.add(m);
     }
   }
-  // Market-launch switch: local-only modules can never be opted into in production.
-  if (HIDE_UNPUBLISHED) {
-    for (const m of Array.from(set)) {
-      if (LOCAL_ONLY_MODULES.has(String(m))) set.delete(m);
-    }
+  // Local-only modules can never be opted into through the wizard.
+  for (const m of Array.from(set)) {
+    if (isLocalOnly(m)) set.delete(m);
   }
   return Array.from(set);
 }
@@ -367,10 +363,8 @@ const DASHBOARD_FEATURE_MAP: Record<string, string[]> = {
 
 export function dashboardEnabledFeatures(moduleIds: ModuleId[]): Record<string, string[]> {
   const out: Record<string, string[]> = {};
-  // Market-launch switch: never emit feature gates for local-only modules in production.
-  const effective = HIDE_UNPUBLISHED
-    ? moduleIds.filter((m) => !LOCAL_ONLY_MODULES.has(String(m)))
-    : moduleIds;
+  // Never emit feature gates for local-only modules — the wizard can't sell them.
+  const effective = moduleIds.filter((m) => !isLocalOnly(m));
   // Sales always brings basic customer management with it (orders create customers).
   const withCustomers = effective.includes('sales')
     ? Array.from(new Set<ModuleId>([...effective, 'customers']))

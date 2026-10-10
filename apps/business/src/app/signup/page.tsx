@@ -11,7 +11,6 @@ import {
   Home,
   ArrowRight,
   Sparkles,
-  User,
   Store,
   Mail,
   Lock,
@@ -32,10 +31,11 @@ import { AuthSkeleton } from '@/components/ui/Skeleton';
 import { BUSINESS_ACTIVITIES, groupAccentColors, ActivityWithGroup } from '@/lib/activities';
 import {
   BOOKING_ACTIVITIES,
-  HIDE_UNPUBLISHED,
-  LOCAL_ONLY_MODULES,
   MODULE_DEFINITIONS,
+  isLocalOnly,
   resolveDependencies,
+  toggleModule,
+  withoutLocalOnly,
   type ModuleId,
 } from '@/lib/moduleConfig';
 import {
@@ -47,6 +47,7 @@ import {
   type ActivityQuestion,
 } from '@/lib/activityQuestions';
 import { ShopLocationPicker, type ResolvedShopLocation } from '@/components/ShopLocationPicker';
+import './signup.css';
 
 const MotionDiv = motion.div as any;
 
@@ -91,7 +92,7 @@ const ACTIVITY_ICONS: Record<string, string> = {
   other: '🏷️',
 };
 
-type Step = 'account' | 'activity' | 'questions' | 'data';
+type Step = 'account' | 'activity' | 'questions' | 'modules' | 'data';
 
 const ACTIVITIES: ActivityWithGroup[] = BUSINESS_ACTIVITIES;
 
@@ -112,6 +113,10 @@ function SignupContent() {
   const [activityId, setActivityId] = useState<string>('');
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [skipped, setSkipped] = useState(false);
+  /** الأقسام اللي التاجر اختارها يدويًا في خطوة «الأقسام» (زراير toggle). */
+  const [manualModules, setManualModules] = useState<ModuleId[]>([]);
+  /** true بعد ما التاجر يوصل خطوة «الأقسام» (أو يتخطى الأسئلة) — ساعتها اختياره اليدوي هو المصدر. */
+  const [manualTouched, setManualTouched] = useState(false);
   const [activitySearch, setActivitySearch] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [showPassword, setShowPassword] = useState(false);
@@ -189,19 +194,28 @@ function SignupContent() {
 
   const answeredCount = questions.filter((q) => (answers[q.id] || []).length > 0).length;
 
+  /** الأقسام المستنتجة من إجابات التاجر (على أساس الأساسيات) — بتتحسب لحظيًا. */
+  const answerModules = useMemo(() => {
+    if (!selectedActivity) return [] as ModuleId[];
+    const base = getBaseModules(selectedActivity.id, BOOKING_ACTIVITIES.has(selectedActivity.id));
+    return resolveDependencies(modulesFromAnswers(base, questions, answers));
+  }, [selectedActivity, questions, answers]);
+
   const finalModules = useMemo(() => {
     if (!selectedActivity) return [] as ModuleId[];
     // The wizard is the source of truth: the activity baseline (its simple
     // essentials) plus ONLY the modules the merchant opted into. Nothing else.
     const base = getBaseModules(selectedActivity.id, BOOKING_ACTIVITIES.has(selectedActivity.id));
-    if (skipped) return resolveDependencies(base);
-    return resolveDependencies(modulesFromAnswers(base, questions, answers));
-  }, [selectedActivity, skipped, questions, answers]);
+    if (manualTouched) return resolveDependencies([...base, ...manualModules]);
+    return answerModules;
+  }, [selectedActivity, manualTouched, manualModules, answerModules]);
 
   const applyActivity = (a: ActivityWithGroup) => {
     setActivityId(a.id);
     setAnswers({});
     setSkipped(false);
+    setManualModules([]);
+    setManualTouched(false);
     setError('');
   };
 
@@ -396,6 +410,15 @@ function SignupContent() {
       return;
     }
     if (step === 'questions') {
+      // Seed the manual picker with whatever the answers produced, so the
+      // merchant fine-tunes instead of starting from zero. Re-entering the
+      // questions step and changing answers re-seeds from the new answers.
+      setManualModules(Array.from(answerModules));
+      setManualTouched(true);
+      setStep('modules');
+      return;
+    }
+    if (step === 'modules') {
       setStep('data');
       return;
     }
@@ -407,16 +430,23 @@ function SignupContent() {
 
   const goBack = () => {
     setError('');
+    // «رجوع» خطوة واحدة لورا دايمًا — حتى لو تخطى الأسئلة بيرجع لخطوة الأسئلة
+    // نفسه (يقدر يجاوب أو يتخطى تاني) مش لخطوة الحساب.
     if (step === 'activity') setStep('account');
     else if (step === 'questions') setStep('activity');
-    else if (step === 'data') setStep(skipped ? 'activity' : 'questions');
+    else if (step === 'modules') setStep('questions');
+    else if (step === 'data') setStep('modules');
   };
 
   const skipToManual = () => {
     setSkipped(true);
     setAnswers({});
+    setManualModules(
+      getBaseModules(selectedActivity!.id, BOOKING_ACTIVITIES.has(selectedActivity!.id))
+    );
+    setManualTouched(true);
     setError('');
-    setStep('data');
+    setStep('modules');
   };
 
   const goHome = () => router.push('/');
@@ -434,11 +464,11 @@ function SignupContent() {
     const steps = [
       { key: 'account', label: 'حسابك', num: 1 },
       { key: 'activity', label: 'نشاطك', num: 2 },
-      { key: 'questions', label: 'أسئلة سريعة', num: 3 },
-      { key: 'data', label: 'التسجيل', num: 4 },
+      { key: 'questions', label: skipped ? 'تخطيت الأسئلة' : 'أسئلة سريعة', num: 3 },
+      { key: 'modules', label: 'الأقسام', num: 4 },
+      { key: 'data', label: 'التسجيل', num: 5 },
     ];
-    const activeNum =
-      step === 'account' ? 1 : step === 'activity' ? 2 : step === 'questions' ? 3 : 4;
+    const activeNum = steps.reduce((acc, s, idx) => (s.key === step ? idx + 1 : acc), 1);
     return (
       <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
         {steps.map((s, idx) => (
@@ -500,9 +530,9 @@ function SignupContent() {
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white border border-slate-100 rounded-[2rem] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.15)] p-8"
+        className="signup-card p-8"
       >
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center mb-5">
+        <div className="w-14 h-14 rounded-2xl signup-btn-primary flex items-center justify-center mb-5">
           <Sparkles className="w-7 h-7 text-[#00E5FF]" />
         </div>
         <h2 className="text-2xl font-black text-slate-900 mb-1">أهلاً بيك 👋</h2>
@@ -613,15 +643,11 @@ function SignupContent() {
     sales: { label: 'المبيعات والطلبات', icon: '🛒' },
     pos: { label: 'الكاشير', icon: '🧾' },
     inventory: { label: 'المخزون', icon: '📦' },
-    finance: { label: 'المالية والفواتير', icon: '💰' },
     bookings: { label: 'الحجوزات', icon: '📅' },
-    hr: { label: 'الموظفين', icon: '👥' },
     website: { label: 'متجر أونلاين', icon: '🌐' },
     marketing: { label: 'التسويق', icon: '📣' },
     customers: { label: 'العملاء', icon: '🤝' },
     crm: { label: 'العملاء', icon: '🤝' },
-    accounting: { label: 'المحاسبة', icon: '📚' },
-    analytics: { label: 'التحليلات', icon: '📈' },
   };
 
   const previewModules = useMemo(() => {
@@ -629,9 +655,10 @@ function SignupContent() {
       ? getBaseModules(selectedActivity.id, BOOKING_ACTIVITIES.has(selectedActivity.id))
       : [];
     const baseSet = new Set(base.map((m) => String(m)));
-    // Market-launch switch: local-only sections (finance + accounting + HR +
-    // analytics + AI) never appear in the merchant's live dashboard preview.
-    const keep = (m: ModuleId) => !HIDE_UNPUBLISHED || !LOCAL_ONLY_MODULES.has(String(m));
+    // Local-only sections (finance + accounting + HR + analytics + AI) are a
+    // local-dashboard feature: they never show up in the merchant's wizard or
+    // his live preview — not in production, not on a dev machine either.
+    const keep = (m: ModuleId) => !isLocalOnly(m);
     return {
       base: base.filter((m) => m !== 'core' && keep(m)),
       added: finalModules.filter((m) => !baseSet.has(String(m)) && m !== 'core' && keep(m)),
@@ -640,6 +667,64 @@ function SignupContent() {
 
   // How many of the merchant's modules are actually shown in the preview.
   const previewModuleCount = previewModules.base.length + previewModules.added.length;
+
+  /** Live dashboard preview — the merchant watches his panel build itself. */
+  const LivePreview = ({ sticky = true, hint }: { sticky?: boolean; hint?: string }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`bg-slate-900 rounded-[2rem] p-5 text-white ${sticky ? 'sticky bottom-24' : ''}`}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+          معاينة لوحتك
+        </span>
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={previewModuleCount}
+            initial={{ scale: 1.25, color: '#00E5FF' }}
+            animate={{ scale: 1, color: 'rgba(255,255,255,0.4)' }}
+            className="text-[10px] font-black"
+          >
+            {previewModuleCount} تطبيق مفعّل
+          </motion.span>
+        </AnimatePresence>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {previewModules.base.map((m) => {
+          const meta = MODULE_PREVIEW[String(m)];
+          return (
+            <span
+              key={String(m)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black text-white/80"
+            >
+              <span>{meta?.icon || '📦'}</span> {meta?.label || String(m)}
+            </span>
+          );
+        })}
+        <AnimatePresence>
+          {previewModules.added.map((m) => {
+            const meta = MODULE_PREVIEW[String(m)];
+            return (
+              <motion.span
+                key={String(m)}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#00E5FF]/15 border border-[#00E5FF]/40 text-[11px] font-black text-[#00E5FF]"
+              >
+                <span>{meta?.icon || '✨'}</span> {meta?.label || String(m)}
+              </motion.span>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+      <p className="text-[10px] font-bold text-white/30 mt-3">
+        {hint ||
+          'الأزرار السماوية هي اللي فتحناها من إجاباتك — والباقي كله متاح في «الترقية» من لوحتك في أي وقت'}
+      </p>
+    </motion.div>
+  );
 
   const renderQuestionsStep = () => {
     if (!selectedActivity) return null;
@@ -667,7 +752,7 @@ function SignupContent() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05 }}
-              className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm"
+              className="signup-card p-5 shadow-sm"
             >
               <div className="flex items-center gap-2 mb-1">
                 <HelpCircle className="w-4 h-4 text-[#00E5FF]" />
@@ -706,60 +791,7 @@ function SignupContent() {
         })}
 
         {/* Live dashboard preview — the merchant watches his panel build itself */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-900 rounded-[2rem] p-5 text-white sticky bottom-24"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">
-              معاينة لوحتك
-            </span>
-            <AnimatePresence mode="wait">
-              <motion.span
-                key={previewModuleCount}
-                initial={{ scale: 1.25, color: '#00E5FF' }}
-                animate={{ scale: 1, color: 'rgba(255,255,255,0.4)' }}
-                className="text-[10px] font-black"
-              >
-                {previewModuleCount} تطبيق مفعّل
-              </motion.span>
-            </AnimatePresence>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {previewModules.base.map((m) => {
-              const meta = MODULE_PREVIEW[String(m)];
-              return (
-                <span
-                  key={String(m)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black text-white/80"
-                >
-                  <span>{meta?.icon || '📦'}</span> {meta?.label || String(m)}
-                </span>
-              );
-            })}
-            <AnimatePresence>
-              {previewModules.added.map((m) => {
-                const meta = MODULE_PREVIEW[String(m)];
-                return (
-                  <motion.span
-                    key={String(m)}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#00E5FF]/15 border border-[#00E5FF]/40 text-[11px] font-black text-[#00E5FF]"
-                  >
-                    <span>{meta?.icon || '✨'}</span> {meta?.label || String(m)}
-                  </motion.span>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-          <p className="text-[10px] font-bold text-white/30 mt-3">
-            الأزرار السماوية هي اللي فتحناها من إجاباتك — والباقي كله متاح في «الترقية» من لوحتك في
-            أي وقت
-          </p>
-        </motion.div>
+        <LivePreview />
 
         {/* Skip + manual */}
         <div className="text-center pt-2">
@@ -773,6 +805,112 @@ function SignupContent() {
           </button>
           <p className="text-[10px] font-bold text-slate-300 mt-2">
             أسئلة {answeredCount} من {questions.length} مُجابة · مش إجباري تجاوب على كله
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  /** زراير الأقسام في خطوة «الأقسام» — toggle مع حل الاعتماديات تلقائيًا. */
+  const toggleManualModule = (id: ModuleId) => {
+    setManualModules((prev) => toggleModule(prev, id).next);
+  };
+
+  const renderModulesStep = () => {
+    if (!selectedActivity) return null;
+    const BASE = getBaseModules(selectedActivity.id, BOOKING_ACTIVITIES.has(selectedActivity.id));
+    const baseSet = new Set<string>(BASE.map(String));
+    const options = withoutLocalOnly(MODULE_DEFINITIONS.filter((m) => m.optional));
+    const isActive = (id: ModuleId) => manualModules.map(String).includes(String(id));
+    const activeCount = options.filter((m) => isActive(m.id)).length;
+    const resetToBase = () => {
+      setSkipped(true);
+      setAnswers({});
+      setManualModules(BASE);
+      setManualTouched(true);
+      setError('');
+    };
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto">
+        <div className="signup-card p-5 md:p-8 text-center">
+          <h2 className="text-xl font-black text-slate-900 mb-1">اختار الأقسام اللي تناسبك</h2>
+          <p className="text-slate-400 font-bold text-xs mb-6">
+            {skipped
+              ? 'تخطيت الأسئلة — فعّل بنفسك الأقسام والأزرار اللي محتاجها، والأساسيات متفعّلة لوحدها'
+              : 'دي الأقسام اللي اخترناها من إجاباتك — عدّل عليها براحتك قبل ما تكمل'}
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-right">
+            {options.map((m) => {
+              const Icon = m.icon;
+              const active = isActive(m.id);
+              const isBase = baseSet.has(String(m.id));
+              return (
+                <button
+                  key={String(m.id)}
+                  type="button"
+                  disabled={isBase}
+                  aria-pressed={active || isBase}
+                  title={isBase ? 'أساسي لنشاطك — مفعّل دائمًا' : undefined}
+                  onClick={() => toggleManualModule(m.id)}
+                  className={`flex items-center gap-3 p-4 rounded-2xl border-2 text-right transition-all ${
+                    isBase
+                      ? 'border-slate-900/10 bg-slate-50 cursor-default'
+                      : active
+                        ? 'border-[#00E5FF] bg-[#00E5FF]/10 shadow-[0_8px_24px_-8px_rgba(0,229,255,0.5)]'
+                        : 'border-slate-100 bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <span
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: `${m.color}1A`, color: m.color }}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-black text-sm text-slate-900 truncate">
+                      {m.nameAr || m.name}
+                    </span>
+                    <span className="block text-[10px] font-bold text-slate-400 truncate">
+                      {isBase ? 'أساسي لنشاطك — مفعّل دائمًا' : m.descriptionAr || m.description}
+                    </span>
+                  </span>
+                  <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${
+                      active || isBase
+                        ? 'bg-[#00E5FF] border-[#00E5FF] text-white'
+                        : 'border-slate-200 text-transparent'
+                    }`}
+                  >
+                    {isBase ? <Lock className="w-3.5 h-3.5" /> : <Check className="w-4 h-4" />}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10px] font-bold text-slate-300 mt-4">
+            {activeCount} قسم اختياري مفعّل · الأساسيات ({BASE.length}) بتتضاف تلقائيًا مع
+            الاعتماديات
+          </p>
+        </div>
+
+        <LivePreview
+          sticky={false}
+          hint="الأزرار السماوية هي اللي ضفتها بنفسك — أي قسم تقفله بيتشال هو وكل الأزرار اللي بتعتمد عليه"
+        />
+
+        <div className="text-center pt-1">
+          <button
+            type="button"
+            onClick={resetToBase}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white border-2 border-dashed border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-400 text-xs font-black transition-all"
+          >
+            <SkipForward className="w-4 h-4" />
+            صفّر اختياراتي — الأساسيات بس
+          </button>
+          <p className="text-[10px] font-bold text-slate-300 mt-2">
+            {skipped
+              ? 'الأساسيات متفعّلة — زوّد عليها اللي يناسبك'
+              : 'مش إجباري تعدّل — كمل زي ما هي'}
           </p>
         </div>
       </div>
@@ -969,16 +1107,37 @@ function SignupContent() {
     </div>
   );
 
+  const STATES: Step[] = ['account', 'activity', 'questions', 'modules', 'data'];
+  const currentStepIndex = STATES.indexOf(step);
+  const totalSteps = STATES.length;
+  // نص زر الشريط السفلي — يوضّح للتاجر الخطوة الجاية.
+  const nextLabel =
+    step === 'questions'
+      ? 'التالي — اختيار الأقسام'
+      : step === 'modules'
+        ? 'التالي — بيانات الدخول'
+        : 'التالي';
   const stepHint = {
     account: 'عرفنا بنفسك — الاسم والمتجر والموبايل',
     activity: 'اختار نشاطك عشان نظبط اللوحة علي مقاسه',
     questions: 'سؤالين سريعين — وإحنا نظبط كل حاجة',
+    modules: 'اختار الأقسام والأزرار اللي تناسبك — الباقي علينا',
     data: 'حساب الدخول وآخر خطوة وهتدخل لوحتك على طول',
   }[step];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white" dir="rtl">
-      <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-5 md:py-8">
+    <div className="signup-identity min-h-screen" dir="rtl">
+      <span aria-hidden="true" className="cloud cloud-top">
+        <i />
+        <i />
+        <i />
+      </span>
+      <span aria-hidden="true" className="cloud cloud-side">
+        <i />
+        <i />
+        <i />
+      </span>
+      <div className="relative max-w-[1400px] mx-auto px-4 md:px-6 py-5 md:py-8">
         <MotionDiv
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
@@ -994,8 +1153,7 @@ function SignupContent() {
               <Home className="w-4 h-4" /> الرئيسية
             </button>
             <div className="text-xs font-black text-slate-300">
-              الخطوة{' '}
-              {step === 'account' ? 1 : step === 'activity' ? 2 : step === 'questions' ? 3 : 4} من 4
+              الخطوة {currentStepIndex + 1} من {totalSteps}
             </div>
           </div>
 
@@ -1004,10 +1162,20 @@ function SignupContent() {
               <LayoutDashboard className="w-5 h-5 text-[#00E5FF]" />
               <span className="font-black text-slate-900">نمّي أعمالك</span>
             </div>
+            <div className="mb-2">
+              <span className="new-sticker">
+                <span>جديد</span> من
+              </span>
+            </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 mb-1.5">
               ابدأ مشروعك في دقيقتين
             </h1>
             <p className="text-slate-400 font-bold text-xs md:text-sm">{stepHint}</p>
+            <div className="mt-2">
+              <span className="update-pill">
+                <Sparkles className="w-4 h-4" /> تحديثات جديدة
+              </span>
+            </div>
           </div>
 
           <Stepper />
@@ -1054,12 +1222,13 @@ function SignupContent() {
             {step === 'account' && renderAccountStep()}
             {step === 'activity' && renderActivityStep()}
             {step === 'questions' && renderQuestionsStep()}
+            {step === 'modules' && renderModulesStep()}
             {step === 'data' && renderDataStep()}
           </div>
 
           {/* شريط تنقل عائم ثابت أسفل الشاشة */}
           <div className="fixed bottom-0 inset-x-0 z-50 pointer-events-none">
-            <div className="max-w-[60rem] mx-auto px-4 md:px-6 pb-4 pt-8 bg-gradient-to-t from-white via-white/90 to-transparent">
+            <div className="max-w-[60rem] mx-auto px-4 md:px-6 pb-4 pt-8 bg-gradient-to-t from-[oklch(.96_.035_220)] via-[oklch(.96_.035_220)]/90 to-transparent">
               <div className="pointer-events-auto flex gap-3 rounded-3xl border border-slate-200 bg-white/95 backdrop-blur p-3 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.25)]">
                 {step !== 'account' && (
                   <button
@@ -1075,7 +1244,7 @@ function SignupContent() {
                   type="button"
                   disabled={loading}
                   onClick={goNext}
-                  className="flex-1 py-4 rounded-2xl bg-slate-900 text-white font-black hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                  className="signup-btn-primary flex-1 py-4 rounded-2xl text-white font-black transition-all flex items-center justify-center gap-2 disabled:opacity-70"
                 >
                   {loading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -1086,7 +1255,7 @@ function SignupContent() {
                     </>
                   ) : (
                     <>
-                      {'التالي'} <ArrowRight size={18} />
+                      {nextLabel} <ArrowRight size={18} />
                     </>
                   )}
                 </button>
