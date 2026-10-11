@@ -64,6 +64,10 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 		}
 	}
 
+	// Complete a login that requires a second factor. Public: the challenge
+	// token (not an access token) is what proves the password step succeeded.
+	g.Post("/2fa/login", h.Login2FA)
+
 	g.Post("/2fa/generate", middleware.RequireAuth(h.appCfg), h.Generate2FA)
 	g.Post("/2fa/enable", middleware.RequireAuth(h.appCfg), h.Enable2FA)
 	g.Post("/2fa/disable", middleware.RequireAuth(h.appCfg), h.Disable2FA)
@@ -130,14 +134,61 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 		return err
 	}
 
-	resp, err := h.service.Login(c.UserContext(), req, extractMeta(c))
+	result, err := h.service.Login(c.UserContext(), req, extractMeta(c))
 	if err != nil {
 		return err
 	}
+
+	// 2FA required: the password was correct but no tokens exist yet. Return
+	// the challenge so the client can complete the second factor via
+	// POST /auth/2fa/login. No cookies are set at this stage.
+	if result.Challenge != "" {
+		return c.JSON(fiber.Map{"success": true, "data": fiber.Map{
+			"requires2FA": true,
+			"challenge":   result.Challenge,
+		}})
+	}
+
+	resp := result.Auth
 	h.setAuthCookie(c, resp.Token.RefreshToken)
 	h.setAccessCookie(c, resp.Token.AccessToken, h.appCfg.Auth.AccessTokenExpiry)
 
 	// Record login audit event
+	if h.auditService != nil && resp.User.ID != "" {
+		_, _ = h.auditService.RecordLogin(
+			c.UserContext(),
+			resp.User.ID,
+			resp.User.Email,
+			string(resp.User.Role),
+			c.IP(),
+			c.Get("User-Agent"),
+			resp.Token.RefreshToken,
+		)
+	}
+
+	return c.JSON(fiber.Map{"success": true, "data": resp})
+}
+
+// Login2FA completes a two-factor login: it exchanges the challenge returned by
+// Login (after a correct password on a 2FA-enabled account) plus a valid TOTP
+// code for a full token pair, setting the auth cookies on success.
+func (h *Handler) Login2FA(c *fiber.Ctx) error {
+	var req Login2FARequest
+	if err := c.BodyParser(&req); err != nil {
+		return errors.Validation("invalid_body", "تعذر قراءة بيانات الطلب")
+	}
+	if err := validate.Struct(req); err != nil {
+		return err
+	}
+
+	resp, err := h.service.Login2FA(c.UserContext(), req, extractMeta(c))
+	if err != nil {
+		return err
+	}
+
+	h.setAuthCookie(c, resp.Token.RefreshToken)
+	h.setAccessCookie(c, resp.Token.AccessToken, h.appCfg.Auth.AccessTokenExpiry)
+
 	if h.auditService != nil && resp.User.ID != "" {
 		_, _ = h.auditService.RecordLogin(
 			c.UserContext(),
@@ -339,6 +390,7 @@ func (h *Handler) Enable2FA(c *fiber.Ctx) error {
 
 	var req struct {
 		Secret string `json:"secret" validate:"required"`
+		Code   string `json:"code" validate:"required,len=6"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return errors.Validation("invalid_body", "تعذر قراءة بيانات الطلب")
@@ -347,7 +399,7 @@ func (h *Handler) Enable2FA(c *fiber.Ctx) error {
 		return err
 	}
 
-	if err := h.service.Enable2FA(c.UserContext(), user.ID, req.Secret); err != nil {
+	if err := h.service.Confirm2FA(c.UserContext(), user.ID, req.Secret, req.Code); err != nil {
 		return err
 	}
 	return c.JSON(fiber.Map{"success": true, "message": "تم تفعيل المصادقة الثنائية"})
@@ -359,7 +411,17 @@ func (h *Handler) Disable2FA(c *fiber.Ctx) error {
 		return errors.Unauthorized("unauthenticated", "يجب تسجيل الدخول")
 	}
 
-	if err := h.service.Disable2FA(c.UserContext(), user.ID, ""); err != nil {
+	var req struct {
+		Code string `json:"code" validate:"required,len=6"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return errors.Validation("invalid_body", "تعذر قراءة بيانات الطلب")
+	}
+	if err := validate.Struct(req); err != nil {
+		return err
+	}
+
+	if err := h.service.Disable2FA(c.UserContext(), user.ID, req.Code); err != nil {
 		return err
 	}
 	return c.JSON(fiber.Map{"success": true, "message": "تم تعطيل المصادقة الثنائية"})

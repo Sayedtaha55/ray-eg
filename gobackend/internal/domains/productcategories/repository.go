@@ -48,14 +48,21 @@ func (r *Repository) ListByShop(ctx context.Context, shopID string) ([]Category,
 	return cats, rows.Err()
 }
 
-// GetByID returns a single category.
-func (r *Repository) GetByID(ctx context.Context, id string) (*Category, error) {
+// GetByID returns a single category scoped to the caller's shop.
+// Non-admins only see their own shop's categories.
+func (r *Repository) GetByID(ctx context.Context, id, shopID string) (*Category, error) {
 	var c Category
-	err := r.pool.QueryRow(ctx, `
+	query := `
 		SELECT id, shop_id, name, name_ar, description, parent_category_id, image, status, created_at, updated_at
 		FROM product_categories
 		WHERE id = $1
-	`, id).Scan(
+	`
+	args := []any{id}
+	if shopID != "" {
+		query += ` AND shop_id = $2`
+		args = append(args, shopID)
+	}
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&c.ID, &c.ShopID, &c.Name, &c.NameAr, &c.Description,
 		&c.ParentCategoryID, &c.Image, &c.Status, &c.CreatedAt, &c.UpdatedAt,
 	)
@@ -86,11 +93,13 @@ func (r *Repository) Create(ctx context.Context, req CreateCategoryRequest) (*Ca
 	if err != nil {
 		return nil, err
 	}
-	return r.GetByID(ctx, id)
+	return r.GetByID(ctx, id, req.ShopID)
 }
 
-// Update modifies an existing category.
-func (r *Repository) Update(ctx context.Context, id string, req UpdateCategoryRequest) (*Category, error) {
+// Update modifies an existing category scoped to its owning shop.
+// shopID is "" for admins (platform-wide access); merchants are pinned to
+// their own shop so a forged :id can never touch another shop's category.
+func (r *Repository) Update(ctx context.Context, id, shopID string, req UpdateCategoryRequest) (*Category, error) {
 	setParts := []string{}
 	args := []interface{}{}
 	idx := 1
@@ -132,7 +141,7 @@ func (r *Repository) Update(ctx context.Context, id string, req UpdateCategoryRe
 	}
 
 	if len(setParts) == 0 {
-		return r.GetByID(ctx, id)
+		return r.GetByID(ctx, id, shopID)
 	}
 
 	setParts = append(setParts, fmt.Sprintf("updated_at = $%d", idx))
@@ -153,11 +162,17 @@ func (r *Repository) Update(ctx context.Context, id string, req UpdateCategoryRe
 	if err != nil {
 		return nil, err
 	}
-	return r.GetByID(ctx, id)
+	return r.GetByID(ctx, id, shopID)
 }
 
-// Delete removes a category.
-func (r *Repository) Delete(ctx context.Context, id string) error {
-	_, err := r.pool.Exec(ctx, "DELETE FROM product_categories WHERE id = $1", id)
+// Delete removes a category scoped to its owning shop.
+func (r *Repository) Delete(ctx context.Context, id, shopID string) error {
+	query := "DELETE FROM product_categories WHERE id = $1"
+	args := []any{id}
+	if shopID != "" {
+		query += " AND shop_id = $2"
+		args = append(args, shopID)
+	}
+	_, err := r.pool.Exec(ctx, query, args...)
 	return err
 }

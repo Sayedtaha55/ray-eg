@@ -42,6 +42,10 @@ func (h *Handler) CreateTaxRate(c *fiber.Ctx) error {
 }
 
 func (h *Handler) UpdateTaxRate(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	user, _ := middleware.AuthUserFromContext(c)
 	var dto UpdateTaxRateDTO
 	if err := c.BodyParser(&dto); err != nil {
@@ -50,7 +54,7 @@ func (h *Handler) UpdateTaxRate(c *fiber.Ctx) error {
 	if err := dto.Validate(h.validate); err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
-	rate, err := h.service.UpdateTaxRate(c.Context(), c.Params("id"), user.ID, &dto)
+	rate, err := h.service.UpdateTaxRate(c.Context(), c.Params("id"), shopID, user.ID, &dto)
 	if err != nil {
 		return fail(c, fiber.StatusInternalServerError, err.Error())
 	}
@@ -58,8 +62,12 @@ func (h *Handler) UpdateTaxRate(c *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteTaxRate(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	user, _ := middleware.AuthUserFromContext(c)
-	if err := h.service.DeleteTaxRate(c.Context(), c.Params("id"), user.ID); err != nil {
+	if err := h.service.DeleteTaxRate(c.Context(), c.Params("id"), shopID, user.ID); err != nil {
 		return fail(c, fiber.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(map[string]any{"success": true})
@@ -102,8 +110,12 @@ func (h *Handler) CreateFiscalPeriod(c *fiber.Ctx) error {
 }
 
 func (h *Handler) CloseFiscalPeriod(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	user, _ := middleware.AuthUserFromContext(c)
-	period, err := h.service.CloseFiscalPeriod(c.Context(), c.Params("id"), user.ID)
+	period, err := h.service.CloseFiscalPeriod(c.Context(), c.Params("id"), shopID, user.ID)
 	if err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
@@ -111,8 +123,12 @@ func (h *Handler) CloseFiscalPeriod(c *fiber.Ctx) error {
 }
 
 func (h *Handler) ReopenFiscalPeriod(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	user, _ := middleware.AuthUserFromContext(c)
-	period, err := h.service.ReopenFiscalPeriod(c.Context(), c.Params("id"), user.ID)
+	period, err := h.service.ReopenFiscalPeriod(c.Context(), c.Params("id"), shopID, user.ID)
 	if err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
@@ -156,8 +172,12 @@ func (h *Handler) GenerateTaxReturn(c *fiber.Ctx) error {
 }
 
 func (h *Handler) SubmitTaxReturn(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	user, _ := middleware.AuthUserFromContext(c)
-	if err := h.service.SubmitTaxReturn(c.Context(), c.Params("id"), user.ID); err != nil {
+	if err := h.service.SubmitTaxReturn(c.Context(), c.Params("id"), shopID, user.ID); err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
 	return c.JSON(map[string]any{"success": true})

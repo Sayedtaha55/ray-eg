@@ -92,7 +92,9 @@ func handleErr(c *fiber.Ctx, err error) error {
 	if errors.Is(err, errNotFound) {
 		return fail(c, fiber.StatusNotFound, "Not found")
 	}
-	return fail(c, fiber.StatusInternalServerError, err.Error())
+	// Never expose raw driver/DB messages to clients; the central error
+	// handler logs the root cause server-side.
+	return fail(c, fiber.StatusInternalServerError, "internal server error")
 }
 
 // handleList serves GET /{route}/shop/:shopId and also GET /{route} when the

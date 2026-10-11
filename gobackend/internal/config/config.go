@@ -126,6 +126,11 @@ type Security struct {
 	CSRFDisabled         bool     `env:"CSRF_DISABLED" envDefault:"false"`
 	AdminIPAllowlist     []string `env:"ADMIN_IP_ALLOWLIST" envSeparator:","`
 	EnableRequestSigning bool     `env:"SECURITY_ENABLE_REQUEST_SIGNING" envDefault:"false"`
+	// MetricsToken guards GET /metrics in production. When set, scrapers must
+	// send "Authorization: Bearer <token>". When empty in production the
+	// endpoint falls back to the admin IP allowlist; when both are empty the
+	// endpoint is disabled (404) so internal telemetry never leaks publicly.
+	MetricsToken string `env:"METRICS_TOKEN"`
 }
 
 // RateLimit configures rate limiting behavior.
@@ -139,6 +144,11 @@ type RateLimit struct {
 	// endpoint and previously fell under the generous global limit only.
 	RefreshMax     int           `env:"AUTH_REFRESH_RATE_LIMIT_MAX" envDefault:"30"`
 	RefreshWindow  time.Duration `env:"AUTH_REFRESH_RATE_LIMIT_WINDOW" envDefault:"1m"`
+	// Dedicated budget for account creation: signup writes a user row and (in
+	// the merchant wizard) a shop, so a single IP must not be able to flood the
+	// database with accounts. Kept intentionally tiny (5/hour by default).
+	SignupMax     int           `env:"AUTH_SIGNUP_RATE_LIMIT_MAX" envDefault:"5"`
+	SignupWindow  time.Duration `env:"AUTH_SIGNUP_RATE_LIMIT_WINDOW" envDefault:"1h"`
 }
 
 // LogConfig holds logging configuration.
@@ -277,6 +287,12 @@ func (c *Config) validate() error {
 	if err := validatePositiveDuration("AUTH_RATE_LIMIT_LOCKOUT_MAX", c.RateLimit.AuthLockoutMax); err != nil {
 		return err
 	}
+	if c.RateLimit.SignupMax < 1 {
+		return fmt.Errorf("AUTH_SIGNUP_RATE_LIMIT_MAX must be greater than 0")
+	}
+	if err := validatePositiveDuration("AUTH_SIGNUP_RATE_LIMIT_WINDOW", c.RateLimit.SignupWindow); err != nil {
+		return err
+	}
 	if c.S3.MaxUploadSizeMB < 1 {
 		return fmt.Errorf("MEDIA_MAX_UPLOAD_MB must be greater than 0")
 	}
@@ -296,6 +312,9 @@ func (c *Config) validate() error {
 		if err := validateHTTPURL("CORS_ORIGIN", origin); err != nil {
 			return err
 		}
+		if strings.HasPrefix(strings.ToLower(origin), "http://") {
+			return errors.New("CORS_ORIGIN must use https:// in production-style configs (plain http is rejected except for localhost dev)")
+		}
 	}
 
 	if c.App.Env == "production" {
@@ -305,11 +324,44 @@ func (c *Config) validate() error {
 		if c.Auth.AdminBootstrapToken == "change-this-to-secure-random-string-in-production" {
 			return errors.New("ADMIN_BOOTSTRAP_TOKEN is using default value in production")
 		}
+		// Reject the well-known dev fallback explicitly — an empty/missing or
+		// placeholder bootstrap/admin token in production is a backdoor.
+		if t := strings.TrimSpace(c.Auth.AdminBootstrapToken); t != "" {
+			lowered := strings.ToLower(t)
+			if t == "admin1234" || t == "admin" || t == "changeme" || t == "password" ||
+				strings.Contains(lowered, "change-this") || strings.Contains(lowered, "example") {
+				return errors.New("ADMIN_BOOTSTRAP_TOKEN looks like a dev/placeholder value; set a strong random token in production")
+			}
+			if len(t) < 16 {
+				return errors.New("ADMIN_BOOTSTRAP_TOKEN must be at least 16 characters in production")
+			}
+		}
 		if c.Security.CSRFDisabled {
 			return errors.New("CSRF_DISABLED cannot be true in production")
 		}
 		if containsWildcard(c.Security.CORSOrigins) {
 			return errors.New("CORS_ORIGIN wildcard (*) is not allowed in production")
+		}
+		// Explicit dev/test secrets must never reach production.
+		for _, kv := range [][2]string{
+			{"JWT_SECRET", c.Auth.JWTSecret},
+			{"REDIS_PASSWORD", c.Redis.Password},
+			{"SMTP_PASS", c.SMTP.Password},
+			{"S3_SECRET_ACCESS_KEY", c.S3.SecretAccessKey},
+			{"GEMINI_API_KEY", c.External.GeminiAPIKey},
+			{"GROQ_API_KEY", c.External.GroqAPIKey},
+			{"OPENAI_API_KEY", c.External.OpenAIAPIKey},
+			{"METRICS_TOKEN", c.Security.MetricsToken},
+		} {
+			if v := strings.TrimSpace(kv[1]); v != "" {
+				lowered := strings.ToLower(v)
+				if v == "secret" || v == "test" || v == "changeme" || v == "password" || v == "123456" ||
+					strings.Contains(lowered, "change-this") || strings.Contains(lowered, "example") ||
+					strings.Contains(lowered, "todo") || strings.HasPrefix(lowered, "dev-") ||
+					strings.HasPrefix(lowered, "test-") {
+					return fmt.Errorf("%s looks like a dev/placeholder value; set a real secret in production", kv[0])
+				}
+			}
 		}
 	}
 

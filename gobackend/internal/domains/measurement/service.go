@@ -81,7 +81,7 @@ func (s *Service) GetOne(ctx context.Context, id, userID string) (*MeasurementRe
 	if userID == "" {
 		return nil, errors.Validation("unauthorized", "غير مصرح")
 	}
-	m, err := s.repo.FindByID(ctx, id)
+	m, err := s.repo.FindByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (s *Service) Update(ctx context.Context, id, userID string, req UpdateMeasu
 	if userID == "" {
 		return nil, errors.Validation("unauthorized", "غير مصرح")
 	}
-	m, err := s.repo.FindByID(ctx, id)
+	m, err := s.repo.FindByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (s *Service) Update(ctx context.Context, id, userID string, req UpdateMeasu
 		return nil, errors.Validation("invalid_unit", "الوحدة يجب أن تكون cm أو inch أو mm")
 	}
 
-	updated, err := s.repo.Update(ctx, id, req)
+	updated, err := s.repo.Update(ctx, id, userID, req)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (s *Service) Remove(ctx context.Context, id, userID string) error {
 	if userID == "" {
 		return errors.Validation("unauthorized", "غير مصرح")
 	}
-	m, err := s.repo.FindByID(ctx, id)
+	m, err := s.repo.FindByID(ctx, id, userID)
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (s *Service) Remove(ctx context.Context, id, userID string) error {
 	if m.UserID != userID {
 		return errors.Forbidden("unauthorized", "غير مصرح")
 	}
-	return s.repo.Deactivate(ctx, id)
+	return s.repo.Deactivate(ctx, id, userID)
 }
 
 // BulkCreate creates multiple measurements.
@@ -177,7 +177,7 @@ func (s *Service) BulkUpdate(ctx context.Context, userID string, items []BulkUpd
 
 	var results []MeasurementResponse
 	for _, item := range items {
-		m, err := s.repo.FindByID(ctx, item.ID)
+		m, err := s.repo.FindByID(ctx, item.ID, userID)
 		if err != nil || m == nil || m.UserID != userID {
 			continue
 		}
@@ -191,7 +191,7 @@ func (s *Service) BulkUpdate(ctx context.Context, userID string, items []BulkUpd
 			Notes:    item.Notes,
 			IsActive: item.IsActive,
 		}
-		updated, err := s.repo.Update(ctx, item.ID, req)
+		updated, err := s.repo.Update(ctx, item.ID, userID, req)
 		if err != nil || updated == nil {
 			continue
 		}

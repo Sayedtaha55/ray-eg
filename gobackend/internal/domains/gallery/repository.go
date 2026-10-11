@@ -117,8 +117,9 @@ func (r *Repository) ListGalleryItems(ctx context.Context, shopID string, limit,
 	return items, total, nil
 }
 
-// UpdateGalleryItem updates a gallery item
-func (r *Repository) UpdateGalleryItem(ctx context.Context, id string, data *UpdateGalleryItemDTO) error {
+// UpdateGalleryItem updates a gallery item scoped to its owning shop.
+// The shopID filter prevents one merchant from modifying another shop's items.
+func (r *Repository) UpdateGalleryItem(ctx context.Context, shopID, id string, data *UpdateGalleryItemDTO) error {
 	query := `UPDATE gallery_items SET updated_at = NOW()`
 	args := []interface{}{}
 	argIndex := 1
@@ -141,15 +142,27 @@ func (r *Repository) UpdateGalleryItem(ctx context.Context, id string, data *Upd
 		argIndex++
 	}
 
-	query += fmt.Sprintf(" WHERE id = $%d", argIndex)
-	args = append(args, id)
+	query += fmt.Sprintf(" WHERE id = $%d AND shop_id = $%d", argIndex, argIndex+1)
+	args = append(args, id, shopID)
 
-	_, err := r.pool.Exec(ctx, query, args...)
-	return err
+	tag, err := r.pool.Exec(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("gallery item not found")
+	}
+	return nil
 }
 
-// DeleteGalleryItem deletes a gallery item
-func (r *Repository) DeleteGalleryItem(ctx context.Context, id string) error {
-	_, err := r.pool.Exec(ctx, "DELETE FROM gallery_items WHERE id = $1", id)
+// DeleteGalleryItem deletes a gallery item scoped to its owning shop.
+func (r *Repository) DeleteGalleryItem(ctx context.Context, shopID, id string) error {
+	tag, err := r.pool.Exec(ctx, "DELETE FROM gallery_items WHERE id = $1 AND shop_id = $2", id, shopID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("gallery item not found")
+	}
 	return err
 }

@@ -54,18 +54,28 @@ func (r *Repository) CreateFiscalPeriod(ctx context.Context, shopID string, year
 	return &p, nil
 }
 
-func (r *Repository) CloseFiscalPeriod(ctx context.Context, id, userID string) error {
-	_, err := r.pool.Exec(ctx, `
-		UPDATE acc_fiscal_periods SET status = 'closed', closed_by = $2, closed_at = NOW() WHERE id = $1 AND status = 'open'`, id, userID)
+func (r *Repository) CloseFiscalPeriod(ctx context.Context, id, shopID, userID string) error {
+	query := `UPDATE acc_fiscal_periods SET status = 'closed', closed_by = $2, closed_at = NOW() WHERE id = $1 AND status = 'open'`
+	args := []any{id, userID}
+	if shopID != "" {
+		query += " AND shop_id = $3"
+		args = append(args, shopID)
+	}
+	_, err := r.pool.Exec(ctx, query, args...)
 	return err
 }
 
-func (r *Repository) GetFiscalPeriod(ctx context.Context, id string) (*FiscalPeriod, error) {
+func (r *Repository) GetFiscalPeriod(ctx context.Context, id, shopID string) (*FiscalPeriod, error) {
+	query := `SELECT id, shop_id, name, start_date, end_date, status, COALESCE(closed_by::text,''), COALESCE(closed_at::text,''), created_at
+		FROM acc_fiscal_periods WHERE id = $1`
+	args := []any{id}
+	if shopID != "" {
+		query += " AND shop_id = $2"
+		args = append(args, shopID)
+	}
 	var p FiscalPeriod
 	var startDate, endDate, createdAt time.Time
-	err := r.pool.QueryRow(ctx, `
-		SELECT id, shop_id, name, start_date, end_date, status, COALESCE(closed_by::text,''), COALESCE(closed_at::text,''), created_at
-		FROM acc_fiscal_periods WHERE id = $1`, id).
+	err := r.pool.QueryRow(ctx, query, args...).
 		Scan(&p.ID, &p.ShopID, &p.Name, &startDate, &endDate, &p.Status, &p.ClosedBy, &p.ClosedAt, &createdAt)
 	if err != nil {
 		return nil, err
@@ -76,9 +86,14 @@ func (r *Repository) GetFiscalPeriod(ctx context.Context, id string) (*FiscalPer
 	return &p, nil
 }
 
-func (r *Repository) ReopenFiscalPeriod(ctx context.Context, id string) error {
-	_, err := r.pool.Exec(ctx, `
-		UPDATE acc_fiscal_periods SET status = 'open', closed_by = NULL, closed_at = NULL WHERE id = $1 AND status = 'closed'`, id)
+func (r *Repository) ReopenFiscalPeriod(ctx context.Context, id, shopID string) error {
+	query := `UPDATE acc_fiscal_periods SET status = 'open', closed_by = NULL, closed_at = NULL WHERE id = $1 AND status = 'closed'`
+	args := []any{id}
+	if shopID != "" {
+		query += " AND shop_id = $2"
+		args = append(args, shopID)
+	}
+	_, err := r.pool.Exec(ctx, query, args...)
 	return err
 }
 

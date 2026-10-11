@@ -52,7 +52,7 @@ func (h *Handler) Cashflow(c *fiber.Ctx) error {
 	}
 	summary, err := h.service.GetCashflowSummary(c.Context(), shopID)
 	if err != nil {
-		return fail(c, fiber.StatusInternalServerError, err.Error())
+		return fail(c, fiber.StatusInternalServerError, "internal server error")
 	}
 	return c.JSON(map[string]any{"success": true, "data": summary})
 }
@@ -64,7 +64,7 @@ func (h *Handler) Profit(c *fiber.Ctx) error {
 	}
 	summary, err := h.service.GetProfitSummary(c.Context(), shopID)
 	if err != nil {
-		return fail(c, fiber.StatusInternalServerError, err.Error())
+		return fail(c, fiber.StatusInternalServerError, "internal server error")
 	}
 	return c.JSON(map[string]any{"success": true, "data": summary})
 }
@@ -76,7 +76,7 @@ func (h *Handler) Revenue(c *fiber.Ctx) error {
 	}
 	summary, err := h.service.GetRevenueSummary(c.Context(), shopID)
 	if err != nil {
-		return fail(c, fiber.StatusInternalServerError, err.Error())
+		return fail(c, fiber.StatusInternalServerError, "internal server error")
 	}
 	return c.JSON(map[string]any{"success": true, "data": summary})
 }

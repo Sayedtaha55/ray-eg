@@ -134,6 +134,30 @@ func (s *TokenService) IssuePasswordResetToken(user User) (string, error) {
 	return s.sign(claims)
 }
 
+// Issue2FAChallengeToken creates a short-lived one-time token that gates the
+// second factor during login. It is handed back to the client after the
+// password check succeeds on a 2FA-enabled account; the client exchanges it,
+// together with a valid TOTP code, for a real token pair via Login2FA. It
+// cannot authenticate API requests (RequireAuth only accepts typ=access or
+// typ=refresh) and expires in five minutes.
+func (s *TokenService) Issue2FAChallengeToken(user User) (string, error) {
+	now := time.Now()
+	claims := TokenClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   user.ID,
+			Issuer:    s.issuer,
+			Audience:  s.audience,
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(5 * time.Minute)),
+			NotBefore: jwt.NewNumericDate(now),
+			ID:        uuid.Must(uuid.NewV7()).String(),
+		},
+		Email: user.Email,
+		Type:  "2fa_challenge",
+	}
+	return s.sign(claims)
+}
+
 // IssueEmailVerificationToken creates an email verification token.
 func (s *TokenService) IssueEmailVerificationToken(user User) (string, error) {
 	now := time.Now()

@@ -109,8 +109,10 @@ func (s *Service) Signup(ctx context.Context, req SignupRequest, meta RequestMet
 	return s.issueAuthResponse(ctx, *created, meta)
 }
 
-// Login authenticates a user and returns fresh tokens.
-func (s *Service) Login(ctx context.Context, req LoginRequest, meta RequestMeta) (*AuthResponse, error) {
+// Login authenticates a user. On success it returns a LoginResult carrying the
+// token pair, or — when the account has 2FA enabled — a short-lived challenge
+// the client must exchange via Login2FA before any tokens are issued.
+func (s *Service) Login(ctx context.Context, req LoginRequest, meta RequestMeta) (*LoginResult, error) {
 	email := normalizeEmail(req.Email)
 
 	locked, err := s.lockout.IsLocked(ctx, email)
@@ -159,8 +161,64 @@ func (s *Service) Login(ctx context.Context, req LoginRequest, meta RequestMeta)
 	}
 
 	_ = s.lockout.Reset(ctx, email)
+
+	// 2FA gate: when the account has TOTP enabled we must not issue session
+	// tokens on the password check alone — otherwise the second factor is
+	// cosmetic. Hand back a short-lived challenge the client exchanges for a
+	// real token pair via Login2FA.
+	if user.TFASecret != "" {
+		challenge, cerr := s.tokens.Issue2FAChallengeToken(*user)
+		if cerr != nil {
+			return nil, errors.Internal("2fa_challenge_issue_failed", cerr)
+		}
+		s.recordAuthEvent(ctx, user, "login", "2fa_required", meta)
+		return &LoginResult{Challenge: challenge}, nil
+	}
+
 	_ = s.repo.UpdateLastLogin(ctx, user.ID)
 
+	s.recordAuthEvent(ctx, user, "login", "success", meta)
+	resp, err := s.issueAuthResponse(ctx, *user, meta)
+	if err != nil {
+		return nil, err
+	}
+	return &LoginResult{Auth: resp}, nil
+}
+
+// Login2FA exchanges a login challenge (issued by Login after a correct
+// password on a 2FA-enabled account) plus a valid TOTP code for a full token
+// pair. The challenge proves the password step already succeeded.
+func (s *Service) Login2FA(ctx context.Context, req Login2FARequest, meta RequestMeta) (*AuthResponse, error) {
+	claims, err := s.tokens.Parse(req.Challenge)
+	if err != nil || claims == nil || claims.Type != "2fa_challenge" || claims.Subject == "" {
+		return nil, errors.Unauthorized("invalid_2fa_challenge", "جلسة التحقق منتهية. سجّل الدخول مجدداً.")
+	}
+
+	// Slow TOTP brute force by reusing the same email-keyed lockout.
+	if locked, _ := s.lockout.IsLocked(ctx, claims.Email); locked {
+		return nil, errors.Forbidden("account_locked", "تم قفل الحساب مؤقتاً بسبب محاولات متكررة. حاول لاحقاً.")
+	}
+
+	user, err := s.repo.FindByID(ctx, claims.Subject)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil || !user.IsActive || user.TFASecret == "" {
+		return nil, errors.Unauthorized("invalid_2fa_challenge", "جلسة التحقق منتهية. سجّل الدخول مجدداً.")
+	}
+
+	valid, err := s.Verify2FA(ctx, user.ID, req.Code)
+	if err != nil {
+		return nil, err
+	}
+	if !valid {
+		count, _ := s.lockout.RecordFailure(ctx, user.Email)
+		s.recordAuthEvent(ctx, user, "login", "failed", meta, "reason", "invalid_2fa_code", "attempt", count)
+		return nil, errors.Unauthorized("invalid_2fa_code", "رمز المصادقة الثنائية غير صحيح")
+	}
+
+	_ = s.lockout.Reset(ctx, user.Email)
+	_ = s.repo.UpdateLastLogin(ctx, user.ID)
 	s.recordAuthEvent(ctx, user, "login", "success", meta)
 	return s.issueAuthResponse(ctx, *user, meta)
 }
@@ -504,12 +562,6 @@ func (s *Service) ResendVerification(ctx context.Context, email string, meta Req
 	return nil
 }
 
-// Enable2FA enables two-factor authentication for a user.
-// Requires a valid TOTP code to confirm the secret.
-func (s *Service) Enable2FA(ctx context.Context, userID, secret string) error {
-	return s.repo.Set2FASecret(ctx, userID, secret)
-}
-
 // Confirm2FA verifies the provided code before enabling 2FA. This prevents an
 // attacker from enabling 2FA with an arbitrary secret on a compromised account.
 func (s *Service) Confirm2FA(ctx context.Context, userID, secret, code string) error {
@@ -595,45 +647,10 @@ func (s *Service) Generate2FASecret(ctx context.Context, userID, email string) (
 		return "", "", err
 	}
 
-	if err := s.repo.Set2FASecret(ctx, userID, key.Secret()); err != nil {
-		return "", "", err
-	}
-
+	// The secret is intentionally NOT persisted here. It is stored only after
+	// the user proves possession via Confirm2FA, preventing a half-enrolled
+	// state where an unconfirmed secret could lock the account out later.
 	return key.Secret(), key.URL(), nil
-}
-
-// GenerateRecoveryCodes generates recovery codes for a user's 2FA.
-func (s *Service) GenerateRecoveryCodes(ctx context.Context, userID string) ([]string, error) {
-	codes := make([]string, 10)
-	for i := range codes {
-		codes[i] = generateRecoveryCode()
-	}
-
-	// TODO: Implement SetRecoveryCodes in repository
-	// if err := s.repo.SetRecoveryCodes(ctx, userID, codes); err != nil {
-	// 	return nil, err
-	// }
-
-	return codes, nil
-}
-
-// UseRecoveryCode validates and consumes a recovery code.
-func (s *Service) UseRecoveryCode(ctx context.Context, userID, code string) (bool, error) {
-	// TODO: Implement ValidateRecoveryCode in repository
-	// valid, err := s.repo.ValidateRecoveryCode(ctx, userID, code)
-	// if err != nil {
-	// 	return false, err
-	// }
-	// if !valid {
-	// 	return false, nil
-	// }
-	return false, nil
-
-	// TODO: Implement ConsumeRecoveryCode in repository
-	// if err := s.repo.ConsumeRecoveryCode(ctx, userID, code); err != nil {
-	// 	return false, err
-	// }
-	// return true, nil
 }
 
 // BootstrapAdmin initializes the first admin user.

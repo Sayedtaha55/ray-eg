@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"net/netip"
 	"strings"
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
@@ -44,6 +45,22 @@ func AdminIPAllowlist(cfg *config.Config) fiber.Handler {
 	}
 }
 
+// ClientIPAllowed reports whether ip passes the configured admin IP allowlist.
+// An empty allowlist means "no IPs allowed" (deny by default) — callers decide
+// the fallback (e.g. disable the endpoint) instead of silently opening it.
+func ClientIPAllowed(cfg *config.Config, ip string) bool {
+	if len(cfg.Security.AdminIPAllowlist) == 0 {
+		return false
+	}
+	clientIP := normalizeIP(ip)
+	for _, allowed := range cfg.Security.AdminIPAllowlist {
+		if matchIP(clientIP, normalizeIP(allowed)) {
+			return true
+		}
+	}
+	return false
+}
+
 func isAdminPath(path string) bool {
 	for _, p := range adminPathPrefixes {
 		if strings.HasPrefix(path, p) {
@@ -54,18 +71,34 @@ func isAdminPath(path string) bool {
 }
 
 func normalizeIP(ip string) string {
-	return strings.TrimPrefix(ip, "::ffff:")
+	return strings.TrimPrefix(strings.TrimSpace(ip), "::ffff:")
 }
 
+// matchIP compares the client IP against one allowlist entry. Supported entry
+// forms: exact IP ("203.0.113.7"), CIDR range ("203.0.113.0/24"), or a dotted
+// prefix ending with a dot for a /24-style range ("10.0.0." -> 10.0.0.0/24).
+// The old strings.HasSuffix fallback is intentionally gone: suffix matching
+// would accept "91.2.3.4" for an "1.2.3.4" entry.
 func matchIP(client, allowed string) bool {
 	client = normalizeIP(client)
 	allowed = normalizeIP(allowed)
+	if client == "" || allowed == "" {
+		return false
+	}
 	if client == allowed {
 		return true
 	}
-	// Support suffix matching, e.g. allowed="10.0.0." matches "10.0.0.42".
-	if strings.HasSuffix(client, allowed) {
-		return true
+	clientAddr, err := netip.ParseAddr(client)
+	if err != nil {
+		return false
+	}
+	if prefix, err := netip.ParsePrefix(allowed); err == nil {
+		return prefix.Contains(clientAddr)
+	}
+	if strings.HasSuffix(allowed, ".") {
+		if prefix, err := netip.ParsePrefix(allowed + "0/24"); err == nil {
+			return prefix.Contains(clientAddr)
+		}
 	}
 	return false
 }

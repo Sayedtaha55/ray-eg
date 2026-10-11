@@ -33,11 +33,11 @@ func (s *Service) invalidatePublicList() {
 // GetByID returns a public product by ID. The detail page is shared between
 // the two surfaces, so a product is fetchable as long as it is shown on at
 // least one of them (الموقع أو التطبيق) — fully hidden ones 404.
-func (s *Service) GetByID(ctx context.Context, id string) (*Product, error) {
+func (s *Service) GetByID(ctx context.Context, id, shopID string) (*Product, error) {
 	if id == "" {
 		return nil, errors.Validation("id_required", "id مطلوب")
 	}
-	p, err := s.repo.FindByID(ctx, id)
+	p, err := s.repo.FindByID(ctx, id, shopID)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateProductReques
 	if id == "" {
 		return nil, errors.Validation("id_required", "id مطلوب")
 	}
-	existing, err := s.repo.FindByID(ctx, id)
+	existing, err := s.repo.FindByID(ctx, id, actorShopID)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +291,7 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateProductReques
 	}
 
 	s.invalidatePublicList()
-	return s.repo.Update(ctx, id, fields, furnitureMeta)
+	return s.repo.Update(ctx, id, actorShopID, fields, furnitureMeta)
 }
 
 // Delete removes a product.
@@ -299,7 +299,7 @@ func (s *Service) Delete(ctx context.Context, id, actorShopID, actorRole string)
 	if id == "" {
 		return errors.Validation("id_required", "id مطلوب")
 	}
-	existing, err := s.repo.FindByID(ctx, id)
+	existing, err := s.repo.FindByID(ctx, id, actorShopID)
 	if err != nil {
 		return err
 	}
@@ -310,7 +310,7 @@ func (s *Service) Delete(ctx context.Context, id, actorShopID, actorRole string)
 		return errors.Forbidden("insufficient_role", "صلاحيات غير كافية")
 	}
 	s.invalidatePublicList()
-	return s.repo.Delete(ctx, id)
+	return s.repo.Delete(ctx, id, actorShopID)
 }
 
 func normalizePaging(page, limit int) (normalizedPage, normalizedLimit, offset int) {

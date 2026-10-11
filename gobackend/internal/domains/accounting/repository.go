@@ -148,12 +148,24 @@ func (r *Repository) ListAccounts(ctx context.Context, shopID string) ([]Account
 	return out, rows.Err()
 }
 
-func (r *Repository) GetAccount(ctx context.Context, id string) (*Account, error) {
-	a, err := scanAccount(r.pool.QueryRow(ctx, `SELECT `+accountCols+` FROM acc_accounts WHERE id = $1`, id))
+func (r *Repository) GetAccount(ctx context.Context, id, shopID string) (*Account, error) {
+	var a Account
+	var createdAt time.Time
+	query := `SELECT id, shop_id, code, name, type, parent_id, is_group, is_system, opening_balance, status, created_at FROM acc_accounts WHERE id = $1`
+	args := []any{id}
+	if shopID != "" {
+		query += " AND shop_id = $2"
+		args = append(args, shopID)
+	}
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
+		&a.ID, &a.ShopID, &a.Code, &a.Name, &a.Type, &a.ParentID,
+		&a.IsGroup, &a.IsSystem, &a.OpeningBalance, &a.Status, &createdAt,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("get account: %w", err)
 	}
-	return a, nil
+	a.CreatedAt = createdAt.Format(time.RFC3339)
+	return &a, nil
 }
 
 func (r *Repository) CreateAccount(ctx context.Context, shopID string, dto *CreateAccountDTO) (*Account, error) {
@@ -168,15 +180,20 @@ func (r *Repository) CreateAccount(ctx context.Context, shopID string, dto *Crea
 	return a, nil
 }
 
-func (r *Repository) UpdateAccount(ctx context.Context, id string, dto *UpdateAccountDTO) (*Account, error) {
-	row := r.pool.QueryRow(ctx,
-		`UPDATE acc_accounts SET
+func (r *Repository) UpdateAccount(ctx context.Context, id, shopID string, dto *UpdateAccountDTO) (*Account, error) {
+	query := `UPDATE acc_accounts SET
 			name = COALESCE($2, name),
 			parent_id = COALESCE($3, parent_id),
 			status = COALESCE($4, status),
 			updated_at = NOW()
-		 WHERE id = $1 RETURNING `+accountCols,
-		id, dto.Name, dto.ParentID, dto.Status)
+		 WHERE id = $1`
+	args := []any{id, dto.Name, dto.ParentID, dto.Status}
+	if shopID != "" {
+		query += " AND shop_id = $5"
+		args = append(args, shopID)
+	}
+	query += " RETURNING " + accountCols
+	row := r.pool.QueryRow(ctx, query, args...)
 	a, err := scanAccount(row)
 	if err != nil {
 		return nil, fmt.Errorf("update account: %w", err)
@@ -184,8 +201,14 @@ func (r *Repository) UpdateAccount(ctx context.Context, id string, dto *UpdateAc
 	return a, nil
 }
 
-func (r *Repository) DeleteAccount(ctx context.Context, id string) error {
-	ct, err := r.pool.Exec(ctx, `DELETE FROM acc_accounts WHERE id = $1 AND is_system = FALSE AND is_group = FALSE`, id)
+func (r *Repository) DeleteAccount(ctx context.Context, id, shopID string) error {
+	query := `DELETE FROM acc_accounts WHERE id = $1 AND is_system = FALSE AND is_group = FALSE`
+	args := []any{id}
+	if shopID != "" {
+		query += " AND shop_id = $2"
+		args = append(args, shopID)
+	}
+	ct, err := r.pool.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("delete account: %w", err)
 	}
@@ -196,9 +219,10 @@ func (r *Repository) DeleteAccount(ctx context.Context, id string) error {
 }
 
 // AccountHasJournalLines reports whether an account is used by journal lines.
-func (r *Repository) AccountHasJournalLines(ctx context.Context, id string) (bool, error) {
+func (r *Repository) AccountHasJournalLines(ctx context.Context, id, shopID string) (bool, error) {
 	var n int
-	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM acc_journal_lines WHERE account_id = $1`, id).Scan(&n); err != nil {
+	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM acc_journal_lines WHERE account_id = $1`, id).Scan(&n)
+	if err != nil {
 		return false, err
 	}
 	return n > 0, nil
@@ -269,24 +293,29 @@ func (r *Repository) CreateJournalEntry(ctx context.Context, shopID, createdBy s
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("commit: %w", err)
 	}
-	return r.GetJournalEntry(ctx, e.ID)
+	return r.GetJournalEntry(ctx, e.ID, "")
 }
 
 // UpdateJournalEntry replaces editable fields of a draft entry.
-func (r *Repository) UpdateJournalEntry(ctx context.Context, id string, dto *UpdateJournalEntryDTO) (*JournalEntry, error) {
+func (r *Repository) UpdateJournalEntry(ctx context.Context, id, shopID string, dto *UpdateJournalEntryDTO) (*JournalEntry, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
 
-	ct, err := tx.Exec(ctx,
-		`UPDATE acc_journal_entries SET
+	update := `UPDATE acc_journal_entries SET
 			entry_date = COALESCE(NULLIF($2,''), entry_date),
 			description = COALESCE(NULLIF($3,''), description),
 			reference = COALESCE($4, reference),
 			updated_at = NOW()
-		 WHERE id = $1 AND status = 'draft'`, id, dto.EntryDate, dto.Description, dto.Reference)
+		 WHERE id = $1 AND status = 'draft'`
+	args := []any{id, dto.EntryDate, dto.Description, dto.Reference}
+	if shopID != "" {
+		update += " AND shop_id = $5"
+		args = append(args, shopID)
+	}
+	ct, err := tx.Exec(ctx, update, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -308,11 +337,11 @@ func (r *Repository) UpdateJournalEntry(ctx context.Context, id string, dto *Upd
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
-	return r.GetJournalEntry(ctx, id)
+	return r.GetJournalEntry(ctx, id, shopID)
 }
 
 // PostJournalEntry validates balance and posts the entry.
-func (r *Repository) PostJournalEntry(ctx context.Context, id, postedBy string) (*JournalEntry, error) {
+func (r *Repository) PostJournalEntry(ctx context.Context, id, shopID, postedBy string) (*JournalEntry, error) {
 	var d, c float64
 	if err := r.pool.QueryRow(ctx,
 		`SELECT COALESCE(SUM(debit),0), COALESCE(SUM(credit),0) FROM acc_journal_lines WHERE entry_id = $1`, id).
@@ -325,17 +354,22 @@ func (r *Repository) PostJournalEntry(ctx context.Context, id, postedBy string) 
 	if d != c {
 		return nil, fmt.Errorf("القيد غير متوازن: مدين %.2f ≠ دائن %.2f", d, c)
 	}
-	if _, err := r.pool.Exec(ctx,
-		`UPDATE acc_journal_entries SET status='posted', posted_at=NOW(), posted_by=$2, total_debit=$4, total_credit=$5, updated_at=NOW()
-		 WHERE id=$1 AND status='draft'`, id, postedBy, d, c); err != nil {
+	query := `UPDATE acc_journal_entries SET status='posted', posted_at=NOW(), posted_by=$2, total_debit=$3, total_credit=$4, updated_at=NOW()
+		 WHERE id=$1 AND status='draft'`
+	args := []any{id, postedBy, d, c}
+	if shopID != "" {
+		query += " AND shop_id = $5"
+		args = append(args, shopID)
+	}
+	if _, err := r.pool.Exec(ctx, query, args...); err != nil {
 		return nil, err
 	}
-	return r.GetJournalEntry(ctx, id)
+	return r.GetJournalEntry(ctx, id, shopID)
 }
 
 // ReverseJournalEntry posts an opposite entry and marks the original reversed.
-func (r *Repository) ReverseJournalEntry(ctx context.Context, id, postedBy string) (*JournalEntry, error) {
-	orig, err := r.GetJournalEntry(ctx, id)
+func (r *Repository) ReverseJournalEntry(ctx context.Context, id, shopID, postedBy string) (*JournalEntry, error) {
+	orig, err := r.GetJournalEntry(ctx, id, shopID)
 	if err != nil {
 		return nil, err
 	}
@@ -365,7 +399,7 @@ func (r *Repository) ReverseJournalEntry(ctx context.Context, id, postedBy strin
 	if err != nil {
 		return nil, err
 	}
-	if _, err := r.PostJournalEntry(ctx, rev.ID, postedBy); err != nil {
+	if _, err := r.PostJournalEntry(ctx, rev.ID, shopID, postedBy); err != nil {
 		return nil, err
 	}
 	if _, err := r.pool.Exec(ctx,
@@ -373,11 +407,17 @@ func (r *Repository) ReverseJournalEntry(ctx context.Context, id, postedBy strin
 		id, rev.ID); err != nil {
 		return nil, err
 	}
-	return r.GetJournalEntry(ctx, rev.ID)
+	return r.GetJournalEntry(ctx, rev.ID, shopID)
 }
 
-func (r *Repository) DeleteJournalEntry(ctx context.Context, id string) error {
-	ct, err := r.pool.Exec(ctx, `DELETE FROM acc_journal_entries WHERE id=$1 AND status='draft'`, id)
+func (r *Repository) DeleteJournalEntry(ctx context.Context, id, shopID string) error {
+	query := `DELETE FROM acc_journal_entries WHERE id=$1 AND status='draft'`
+	args := []any{id}
+	if shopID != "" {
+		query += " AND shop_id = $2"
+		args = append(args, shopID)
+	}
+	ct, err := r.pool.Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -389,13 +429,18 @@ func (r *Repository) DeleteJournalEntry(ctx context.Context, id string) error {
 
 const entryCols = `e.id, e.shop_id, e.number, e.entry_date, e.description, e.reference, e.status, e.total_debit, e.total_credit, e.posted_at, e.posted_by, COALESCE(e.reversed_by_entry_id::TEXT,''), COALESCE(e.created_by,''), e.created_at`
 
-func (r *Repository) GetJournalEntry(ctx context.Context, id string) (*JournalEntry, error) {
+func (r *Repository) GetJournalEntry(ctx context.Context, id, shopID string) (*JournalEntry, error) {
+	query := `SELECT ` + entryCols + ` FROM acc_journal_entries e WHERE e.id=$1`
+	args := []any{id}
+	if shopID != "" {
+		query += " AND e.shop_id = $2"
+		args = append(args, shopID)
+	}
 	var e JournalEntry
 	var entryDate time.Time
 	var postedAt *time.Time
 	var createdAt time.Time
-	err := r.pool.QueryRow(ctx,
-		`SELECT `+entryCols+` FROM acc_journal_entries e WHERE e.id=$1`, id).
+	err := r.pool.QueryRow(ctx, query, args...).
 		Scan(&e.ID, &e.ShopID, &e.Number, &entryDate, &e.Description, &e.Reference, &e.Status, &e.TotalDebit, &e.TotalCredit, &postedAt, &e.PostedBy, &e.ReversedByEntryID, &e.CreatedBy, &createdAt)
 	if err != nil {
 		return nil, fmt.Errorf("get entry: %w", err)
@@ -607,12 +652,18 @@ func (r *Repository) ListEntities(ctx context.Context, shopID, entityType string
 	return out, rows.Err()
 }
 
-func (r *Repository) GetEntity(ctx context.Context, id string) (*Entity, error) {
+func (r *Repository) GetEntity(ctx context.Context, id, shopID string) (*Entity, error) {
+	query := `
+		SELECT id, shop_id, entity_type, name, name_en, tax_id, phone, email, address, currency_code, credit_limit, balance, status, created_at, updated_at
+		FROM acc_entities WHERE id = $1`
+	args := []any{id}
+	if shopID != "" {
+		query += " AND shop_id = $2"
+		args = append(args, shopID)
+	}
 	var e Entity
 	var nameEn, taxID, phone, email, address sql.NullString
-	err := r.pool.QueryRow(ctx, `
-		SELECT id, shop_id, entity_type, name, name_en, tax_id, phone, email, address, currency_code, credit_limit, balance, status, created_at, updated_at
-		FROM acc_entities WHERE id = $1`, id).Scan(
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&e.ID, &e.ShopID, &e.EntityType, &e.Name, &nameEn, &taxID, &phone, &email, &address, &e.CurrencyCode, &e.CreditLimit, &e.Balance, &e.Status, &e.CreatedAt, &e.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -648,25 +699,43 @@ func (r *Repository) CreateEntity(ctx context.Context, shopID, userID string, dt
 	return &e, nil
 }
 
-func (r *Repository) GetEntityBalance(ctx context.Context, entityID string) (float64, error) {
+func (r *Repository) GetEntityBalance(ctx context.Context, entityID, shopID string) (float64, error) {
 	var bal float64
-	err := r.pool.QueryRow(ctx, `SELECT balance FROM acc_entities WHERE id = $1`, entityID).Scan(&bal)
+	query := `SELECT balance FROM acc_entities WHERE id = $1`
+	args := []any{entityID}
+	if shopID != "" {
+		query += " AND shop_id = $2"
+		args = append(args, shopID)
+	}
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&bal)
 	return bal, err
 }
 
-func (r *Repository) UpdateEntityBalance(ctx context.Context, entityID string, amount float64) error {
-	_, err := r.pool.Exec(ctx, `UPDATE acc_entities SET balance = balance + $1 WHERE id = $2`, amount, entityID)
+func (r *Repository) UpdateEntityBalance(ctx context.Context, entityID, shopID string, amount float64) error {
+	query := `UPDATE acc_entities SET balance = balance + $1 WHERE id = $2`
+	args := []any{amount, entityID}
+	if shopID != "" {
+		query += " AND shop_id = $3"
+		args = append(args, shopID)
+	}
+	_, err := r.pool.Exec(ctx, query, args...)
 	return err
 }
 
-func (r *Repository) DeleteEntity(ctx context.Context, id string) error {
-	_, err := r.pool.Exec(ctx, `DELETE FROM acc_entities WHERE id = $1
+func (r *Repository) DeleteEntity(ctx context.Context, id, shopID string) error {
+	query := `DELETE FROM acc_entities WHERE id = $1
 		AND (SELECT COUNT(*) FROM acc_invoices WHERE entity_id = $1) = 0
-		AND (SELECT COUNT(*) FROM acc_payments WHERE entity_id = $1) = 0`, id)
+		AND (SELECT COUNT(*) FROM acc_payments WHERE entity_id = $1) = 0`
+	args := []any{id}
+	if shopID != "" {
+		query += " AND shop_id = $2"
+		args = append(args, shopID)
+	}
+	_, err := r.pool.Exec(ctx, query, args...)
 	return err
 }
 
-func (r *Repository) UpdateEntity(ctx context.Context, id string, dto *UpdateEntityDTO) (*Entity, error) {
+func (r *Repository) UpdateEntity(ctx context.Context, id, shopID string, dto *UpdateEntityDTO) (*Entity, error) {
 	set, args := []string{"updated_at = NOW()"}, []any{}
 	ai := 1
 	if dto.Name != nil {
@@ -710,7 +779,13 @@ func (r *Repository) UpdateEntity(ctx context.Context, id string, dto *UpdateEnt
 		ai++
 	}
 	args = append(args, id)
-	query := fmt.Sprintf(`UPDATE acc_entities SET %s WHERE id = $%d RETURNING id, shop_id, entity_type, name, name_en, tax_id, phone, email, address, currency_code, credit_limit, balance, status, created_at, updated_at`, strings.Join(set, ", "), ai)
+	where := fmt.Sprintf("WHERE id = $%d", ai)
+	if shopID != "" {
+		ai++
+		where += fmt.Sprintf(" AND shop_id = $%d", ai)
+		args = append(args, shopID)
+	}
+	query := fmt.Sprintf(`UPDATE acc_entities SET %s %s RETURNING id, shop_id, entity_type, name, name_en, tax_id, phone, email, address, currency_code, credit_limit, balance, status, created_at, updated_at`, strings.Join(set, ", "), where)
 	var e Entity
 	var nameEn, taxID, phone, email, address sql.NullString
 	err := r.pool.QueryRow(ctx, query, args...).Scan(
@@ -760,17 +835,23 @@ func (r *Repository) CreateInvoice(ctx context.Context, shopID, userID string, d
 			return nil, err
 		}
 	}
-	return r.GetInvoice(ctx, invID)
+	return r.GetInvoice(ctx, invID, "")
 }
 
-func (r *Repository) GetInvoice(ctx context.Context, id string) (*Invoice, error) {
+func (r *Repository) GetInvoice(ctx context.Context, id, shopID string) (*Invoice, error) {
+	query := `
+		SELECT i.id, i.shop_id, i.entity_id, e.name, i.entity_type, i.invoice_type, i.number, i.invoice_date, i.due_date, i.currency_code, i.subtotal, i.tax_total, i.total, i.paid_amount, i.balance, i.status, i.journal_id, i.created_by, i.created_at, i.updated_at
+		FROM acc_invoices i LEFT JOIN acc_entities e ON e.id = i.entity_id
+		WHERE i.id = $1`
+	args := []any{id}
+	if shopID != "" {
+		query += " AND i.shop_id = $2"
+		args = append(args, shopID)
+	}
 	var inv Invoice
 	var entityName, journalID, createdBy sql.NullString
 	var invoiceDate, dueDate, createdAt, updatedAt string
-	err := r.pool.QueryRow(ctx, `
-		SELECT i.id, i.shop_id, i.entity_id, e.name, i.entity_type, i.invoice_type, i.number, i.invoice_date, i.due_date, i.currency_code, i.subtotal, i.tax_total, i.total, i.paid_amount, i.balance, i.status, i.journal_id, i.created_by, i.created_at, i.updated_at
-		FROM acc_invoices i LEFT JOIN acc_entities e ON e.id = i.entity_id
-		WHERE i.id = $1`, id).Scan(
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&inv.ID, &inv.ShopID, &inv.EntityID, &entityName, &inv.EntityType, &inv.InvoiceType, &inv.Number, &invoiceDate, &dueDate, &inv.CurrencyCode, &inv.Subtotal, &inv.TaxTotal, &inv.Total, &inv.PaidAmount, &inv.Balance, &inv.Status, &journalID, &createdBy, &createdAt, &updatedAt)
 	if err != nil {
 		return nil, err
@@ -865,8 +946,14 @@ func (r *Repository) GetInvoiceEntityID(ctx context.Context, invoiceID string) (
 	return entityID, err
 }
 
-func (r *Repository) UpdateInvoice(ctx context.Context, id, number, dueDate string) error {
-	_, err := r.pool.Exec(ctx, `UPDATE acc_invoices SET number = $1, due_date = $2, updated_at = NOW() WHERE id = $3`, number, dueDate, id)
+func (r *Repository) UpdateInvoice(ctx context.Context, id, shopID, number, dueDate string) error {
+	query := `UPDATE acc_invoices SET number = $1, due_date = $2, updated_at = NOW() WHERE id = $3`
+	args := []any{number, dueDate, id}
+	if shopID != "" {
+		query += " AND shop_id = $4"
+		args = append(args, shopID)
+	}
+	_, err := r.pool.Exec(ctx, query, args...)
 	return err
 }
 
@@ -898,17 +985,23 @@ func (r *Repository) CreatePayment(ctx context.Context, shopID, userID string, d
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
-	return r.GetPayment(ctx, pID)
+	return r.GetPayment(ctx, pID, "")
 }
 
-func (r *Repository) GetPayment(ctx context.Context, id string) (*Payment, error) {
+func (r *Repository) GetPayment(ctx context.Context, id, shopID string) (*Payment, error) {
+	query := `
+		SELECT p.id, p.shop_id, p.entity_id, e.name, p.entity_type, p.payment_type, p.number, p.payment_date::text, p.amount, p.currency_code, p.method, p.reference, p.status, p.journal_id, p.created_by, p.created_at::text, p.updated_at::text
+		FROM acc_payments p LEFT JOIN acc_entities e ON e.id = p.entity_id
+		WHERE p.id = $1`
+	args := []any{id}
+	if shopID != "" {
+		query += " AND p.shop_id = $2"
+		args = append(args, shopID)
+	}
 	var p Payment
 	var entityName, reference, journalID, createdBy sql.NullString
 	var paymentDate, createdAt, updatedAt string
-	err := r.pool.QueryRow(ctx, `
-		SELECT p.id, p.shop_id, p.entity_id, e.name, p.entity_type, p.payment_type, p.number, p.payment_date::text, p.amount, p.currency_code, p.method, p.reference, p.status, p.journal_id, p.created_by, p.created_at::text, p.updated_at::text
-		FROM acc_payments p LEFT JOIN acc_entities e ON e.id = p.entity_id
-		WHERE p.id = $1`, id).Scan(
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&p.ID, &p.ShopID, &p.EntityID, &entityName, &p.EntityType, &p.PaymentType, &p.Number, &paymentDate, &p.Amount, &p.CurrencyCode, &p.Method, &reference, &p.Status, &journalID, &createdBy, &createdAt, &updatedAt)
 	if err != nil {
 		return nil, err

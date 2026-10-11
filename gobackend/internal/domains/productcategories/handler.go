@@ -101,7 +101,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 
 // Update handles PUT /categories/:id
 func (h *Handler) Update(c *fiber.Ctx) error {
-	_, ok := middleware.AuthUserFromContext(c)
+	user, ok := middleware.AuthUserFromContext(c)
 	if !ok {
 		return errors.Unauthorized("unauthenticated", "يجب تسجيل الدخول")
 	}
@@ -116,7 +116,7 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 		return errors.Validation("invalid_body", "تعذر قراءة بيانات الطلب")
 	}
 
-	cat, err := h.service.Update(c.UserContext(), id, req)
+	cat, err := h.service.Update(c.UserContext(), id, user.ShopID, req)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 
 // Delete handles DELETE /categories/:id
 func (h *Handler) Delete(c *fiber.Ctx) error {
-	_, ok := middleware.AuthUserFromContext(c)
+	user, ok := middleware.AuthUserFromContext(c)
 	if !ok {
 		return errors.Unauthorized("unauthenticated", "يجب تسجيل الدخول")
 	}
@@ -135,7 +135,7 @@ func (h *Handler) Delete(c *fiber.Ctx) error {
 		return errors.Validation("id_required", "id مطلوب")
 	}
 
-	if err := h.service.Delete(c.UserContext(), id); err != nil {
+	if err := h.service.Delete(c.UserContext(), id, user.ShopID); err != nil {
 		return err
 	}
 	return c.JSON(fiber.Map{"success": true, "message": "تم حذف الفئة"})

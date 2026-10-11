@@ -2,9 +2,11 @@ package app
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -568,8 +570,15 @@ func (a *App) registerRoutes() {
 	h := health.NewHandler(a.DB, a.Redis, a.Logger)
 	h.RegisterRoutes(a.Fiber)
 
-	// Prometheus metrics endpoint.
-	a.Fiber.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
+	// Prometheus metrics endpoint. In production this is guarded: a
+	// METRICS_TOKEN bearer token wins, otherwise the admin IP allowlist
+	// applies, otherwise the endpoint is disabled so internal telemetry
+	// (route labels, Go runtime stats) never leaks to the public internet.
+	if a.Config.IsProduction() {
+		a.Fiber.Get("/metrics", a.metricsHandler())
+	} else {
+		a.Fiber.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
+	}
 
 	// API v1 group.
 	api := a.Fiber.Group("/api/v1")
@@ -771,6 +780,27 @@ func (a *App) registerRoutes() {
 	}
 
 	api.Get("/status", a.statusHandler)
+}
+
+// metricsHandler guards the Prometheus endpoint in production: a METRICS_TOKEN
+// bearer token wins, otherwise the admin IP allowlist applies, otherwise the
+// endpoint answers 404 so internal telemetry never leaks publicly.
+func (a *App) metricsHandler() fiber.Handler {
+	prom := adaptor.HTTPHandler(promhttp.Handler())
+	return func(c *fiber.Ctx) error {
+		token := strings.TrimSpace(a.Config.Security.MetricsToken)
+		if token != "" {
+			provided := strings.TrimSpace(strings.TrimPrefix(c.Get("Authorization"), "Bearer "))
+			if provided != "" && subtle.ConstantTimeCompare([]byte(provided), []byte(token)) == 1 {
+				return prom(c)
+			}
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"success": false, "error": "forbidden"})
+		}
+		if middleware.ClientIPAllowed(a.Config, c.IP()) {
+			return prom(c)
+		}
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"success": false, "error": "not_found"})
+	}
 }
 
 func (a *App) statusHandler(c *fiber.Ctx) error {

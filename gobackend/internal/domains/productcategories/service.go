@@ -22,11 +22,6 @@ func (s *Service) ListByShop(ctx context.Context, shopID string) ([]Category, er
 	return s.repo.ListByShop(ctx, shopID)
 }
 
-// GetByID returns a single category.
-func (s *Service) GetByID(ctx context.Context, id string) (*Category, error) {
-	return s.repo.GetByID(ctx, id)
-}
-
 // Create creates a new category.
 func (s *Service) Create(ctx context.Context, req CreateCategoryRequest) (*Category, error) {
 	if req.ShopID == "" {
@@ -48,12 +43,12 @@ func (s *Service) Create(ctx context.Context, req CreateCategoryRequest) (*Categ
 	return s.repo.Create(ctx, req)
 }
 
-// Update updates a category.
-func (s *Service) Update(ctx context.Context, id string, req UpdateCategoryRequest) (*Category, error) {
-	return s.repo.Update(ctx, id, req)
+// Update updates a category scoped to the owner's shop.
+func (s *Service) Update(ctx context.Context, id, shopID string, req UpdateCategoryRequest) (*Category, error) {
+	return s.repo.Update(ctx, id, shopID, req)
 }
 
-// Delete deletes a category.
-func (s *Service) Delete(ctx context.Context, id string) error {
-	return s.repo.Delete(ctx, id)
+// Delete deletes a category scoped to the owner's shop.
+func (s *Service) Delete(ctx context.Context, id, shopID string) error {
+	return s.repo.Delete(ctx, id, shopID)
 }

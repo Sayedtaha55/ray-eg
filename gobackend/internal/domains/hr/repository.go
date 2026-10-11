@@ -84,13 +84,18 @@ func (r *Repository) listRolePermissions(ctx context.Context, roleID string) ([]
 	return perms, nil
 }
 
-// GetRole retrieves a single role by ID
-func (r *Repository) GetRole(ctx context.Context, roleID string) (*Role, error) {
+// GetRole retrieves a single role by ID scoped to its shop.
+func (r *Repository) GetRole(ctx context.Context, shopID, roleID string) (*Role, error) {
 	var role Role
 	var createdAt time.Time
-	err := r.pool.QueryRow(ctx,
-		`SELECT id, shop_id, name, COALESCE(name_ar,''), color, is_system, full_access, status, created_at
-		 FROM hr_roles WHERE id = $1`, roleID).
+	query := `SELECT id, shop_id, name, COALESCE(name_ar,''), color, is_system, full_access, status, created_at
+		 FROM hr_roles WHERE id = $1`
+	args := []any{roleID}
+	if shopID != "" {
+		query += ` AND shop_id = $2`
+		args = append(args, shopID)
+	}
+	err := r.pool.QueryRow(ctx, query, args...).
 		Scan(&role.ID, &role.ShopID, &role.Name, &role.NameAr, &role.Color,
 			&role.IsSystem, &role.FullAccess, &role.Status, &createdAt)
 	if err != nil {
@@ -134,38 +139,46 @@ func (r *Repository) CreateRole(ctx context.Context, shopID string, dto *CreateR
 	return &role, nil
 }
 
-// UpdateRole updates a role
-func (r *Repository) UpdateRole(ctx context.Context, roleID string, dto *UpdateRoleDTO) (*Role, error) {
+// UpdateRole updates a role scoped to its owning shop.
+func (r *Repository) UpdateRole(ctx context.Context, shopID, roleID string, dto *UpdateRoleDTO) (*Role, error) {
+	// Ownership gate: verify the role belongs to this shop before touching
+	// the role or its permission rows (the permission INSERT below has no
+	// shop column, so the filter on hr_roles alone would not stop it).
+	if _, err := r.GetRole(ctx, shopID, roleID); err != nil {
+		return nil, err
+	}
+	shop := " AND shop_id = $%d"
+	next := 3
 	if dto.Name != nil {
-		if _, err := r.pool.Exec(ctx, "UPDATE hr_roles SET name = $2, updated_at = NOW() WHERE id = $1", roleID, *dto.Name); err != nil {
+		if _, err := r.pool.Exec(ctx, "UPDATE hr_roles SET name = $2, updated_at = NOW() WHERE id = $1"+fmt.Sprintf(shop, next), roleID, *dto.Name, shopID); err != nil {
 			return nil, err
 		}
 	}
 	if dto.NameAr != nil {
-		if _, err := r.pool.Exec(ctx, "UPDATE hr_roles SET name_ar = $2, updated_at = NOW() WHERE id = $1", roleID, *dto.NameAr); err != nil {
+		if _, err := r.pool.Exec(ctx, "UPDATE hr_roles SET name_ar = $2, updated_at = NOW() WHERE id = $1"+fmt.Sprintf(shop, next), roleID, *dto.NameAr, shopID); err != nil {
 			return nil, err
 		}
 	}
 	if dto.Color != nil {
-		if _, err := r.pool.Exec(ctx, "UPDATE hr_roles SET color = $2, updated_at = NOW() WHERE id = $1", roleID, *dto.Color); err != nil {
+		if _, err := r.pool.Exec(ctx, "UPDATE hr_roles SET color = $2, updated_at = NOW() WHERE id = $1"+fmt.Sprintf(shop, next), roleID, *dto.Color, shopID); err != nil {
 			return nil, err
 		}
 	}
 	if dto.FullAccess != nil {
-		if _, err := r.pool.Exec(ctx, "UPDATE hr_roles SET full_access = $2, updated_at = NOW() WHERE id = $1", roleID, *dto.FullAccess); err != nil {
+		if _, err := r.pool.Exec(ctx, "UPDATE hr_roles SET full_access = $2, updated_at = NOW() WHERE id = $1"+fmt.Sprintf(shop, next), roleID, *dto.FullAccess, shopID); err != nil {
 			return nil, err
 		}
 		if *dto.FullAccess {
-			_, _ = r.pool.Exec(ctx, "DELETE FROM hr_role_permissions WHERE role_id = $1", roleID)
+			_, _ = r.pool.Exec(ctx, "DELETE FROM hr_role_permissions WHERE role_id = $1 AND EXISTS (SELECT 1 FROM hr_roles WHERE id = $1 AND shop_id = $2)", roleID, shopID)
 		}
 	}
 	if dto.Status != nil {
-		if _, err := r.pool.Exec(ctx, "UPDATE hr_roles SET status = $2, updated_at = NOW() WHERE id = $1", roleID, *dto.Status); err != nil {
+		if _, err := r.pool.Exec(ctx, "UPDATE hr_roles SET status = $2, updated_at = NOW() WHERE id = $1"+fmt.Sprintf(shop, next), roleID, *dto.Status, shopID); err != nil {
 			return nil, err
 		}
 	}
 	if dto.Permissions != nil {
-		_, _ = r.pool.Exec(ctx, "DELETE FROM hr_role_permissions WHERE role_id = $1", roleID)
+		_, _ = r.pool.Exec(ctx, "DELETE FROM hr_role_permissions WHERE role_id = $1 AND EXISTS (SELECT 1 FROM hr_roles WHERE id = $1 AND shop_id = $2)", roleID, shopID)
 		for _, p := range *dto.Permissions {
 			if p.ModuleID == "" || len(p.Actions) == 0 {
 				continue
@@ -176,20 +189,20 @@ func (r *Repository) UpdateRole(ctx context.Context, roleID string, dto *UpdateR
 				roleID, p.ModuleID, p.Actions)
 		}
 	}
-	return r.GetRole(ctx, roleID)
+	return r.GetRole(ctx, shopID, roleID)
 }
 
-// DeleteRole deletes a role (system roles cannot be deleted)
-func (r *Repository) DeleteRole(ctx context.Context, roleID string) error {
+// DeleteRole deletes a role (system roles cannot be deleted), scoped to its shop.
+func (r *Repository) DeleteRole(ctx context.Context, shopID, roleID string) error {
 	var isSystem bool
-	err := r.pool.QueryRow(ctx, "SELECT is_system FROM hr_roles WHERE id = $1", roleID).Scan(&isSystem)
+	err := r.pool.QueryRow(ctx, "SELECT is_system FROM hr_roles WHERE id = $1 AND shop_id = $2", roleID, shopID).Scan(&isSystem)
 	if err != nil {
 		return err
 	}
 	if isSystem {
 		return fmt.Errorf("system roles cannot be deleted")
 	}
-	_, err = r.pool.Exec(ctx, "DELETE FROM hr_roles WHERE id = $1", roleID)
+	_, err = r.pool.Exec(ctx, "DELETE FROM hr_roles WHERE id = $1 AND shop_id = $2", roleID, shopID)
 	return err
 }
 
@@ -291,28 +304,29 @@ func (r *Repository) CreateEmployee(ctx context.Context, shopID string, dto *Cre
 	return &e, nil
 }
 
-// UpdateEmployee updates an employee
-func (r *Repository) UpdateEmployee(ctx context.Context, employeeID string, dto *UpdateEmployeeDTO) (*Employee, error) {
+// UpdateEmployee updates an employee scoped to its owning shop.
+func (r *Repository) UpdateEmployee(ctx context.Context, shopID, employeeID string, dto *UpdateEmployeeDTO) (*Employee, error) {
+	scoped := " AND shop_id = $3"
 	if dto.Name != nil {
-		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET name = $2, updated_at = NOW() WHERE id = $1", employeeID, *dto.Name)
+		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET name = $2, updated_at = NOW() WHERE id = $1"+scoped, employeeID, *dto.Name, shopID)
 	}
 	if dto.Email != nil {
-		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET email = $2, updated_at = NOW() WHERE id = $1", employeeID, *dto.Email)
+		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET email = $2, updated_at = NOW() WHERE id = $1"+scoped, employeeID, *dto.Email, shopID)
 	}
 	if dto.Phone != nil {
-		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET phone = $2, updated_at = NOW() WHERE id = $1", employeeID, *dto.Phone)
+		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET phone = $2, updated_at = NOW() WHERE id = $1"+scoped, employeeID, *dto.Phone, shopID)
 	}
 	if dto.Role != nil {
-		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET role = $2, updated_at = NOW() WHERE id = $1", employeeID, *dto.Role)
+		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET role = $2, updated_at = NOW() WHERE id = $1"+scoped, employeeID, *dto.Role, shopID)
 	}
 	if dto.Status != nil {
-		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET status = $2, updated_at = NOW() WHERE id = $1", employeeID, *dto.Status)
+		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET status = $2, updated_at = NOW() WHERE id = $1"+scoped, employeeID, *dto.Status, shopID)
 	}
 	if dto.Salary != nil {
-		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET salary = $2, updated_at = NOW() WHERE id = $1", employeeID, *dto.Salary)
+		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET salary = $2, updated_at = NOW() WHERE id = $1"+scoped, employeeID, *dto.Salary, shopID)
 	}
 	if dto.HireDate != nil {
-		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET hire_date = NULLIF($2,'')::date, updated_at = NOW() WHERE id = $1", employeeID, *dto.HireDate)
+		_, _ = r.pool.Exec(ctx, "UPDATE hr_employees SET hire_date = NULLIF($2,'')::date, updated_at = NOW() WHERE id = $1"+scoped, employeeID, *dto.HireDate, shopID)
 	}
 
 	var e Employee
@@ -320,7 +334,7 @@ func (r *Repository) UpdateEmployee(ctx context.Context, employeeID string, dto 
 	err := r.pool.QueryRow(ctx,
 		`SELECT id, shop_id, name, COALESCE(email,''), COALESCE(phone,''), COALESCE(role,''),
 		        COALESCE(role_id::text,''), status, salary, COALESCE(hire_date::text,''), created_at
-		 FROM hr_employees WHERE id = $1`, employeeID).
+		 FROM hr_employees WHERE id = $1 AND shop_id = $2`, employeeID, shopID).
 		Scan(&e.ID, &e.ShopID, &e.Name, &e.Email, &e.Phone, &e.Role,
 			&e.RoleID, &e.Status, &e.Salary, &e.HireDate, &createdAt)
 	if err != nil {
@@ -330,9 +344,9 @@ func (r *Repository) UpdateEmployee(ctx context.Context, employeeID string, dto 
 	return &e, nil
 }
 
-// DeleteEmployee deletes an employee
-func (r *Repository) DeleteEmployee(ctx context.Context, employeeID string) error {
-	_, err := r.pool.Exec(ctx, "DELETE FROM hr_employees WHERE id = $1", employeeID)
+// DeleteEmployee deletes an employee scoped to its owning shop.
+func (r *Repository) DeleteEmployee(ctx context.Context, shopID, employeeID string) error {
+	_, err := r.pool.Exec(ctx, "DELETE FROM hr_employees WHERE id = $1 AND shop_id = $2", employeeID, shopID)
 	return err
 }
 
@@ -503,16 +517,16 @@ func (r *Repository) CreateLeave(ctx context.Context, shopID string, dto *Create
 	return &l, nil
 }
 
-// UpdateLeaveStatus updates the status of a leave request
-func (r *Repository) UpdateLeaveStatus(ctx context.Context, leaveID, status string) (*Leave, error) {
+// UpdateLeaveStatus updates the status of a leave request scoped to its shop.
+func (r *Repository) UpdateLeaveStatus(ctx context.Context, shopID, leaveID, status string) (*Leave, error) {
 	var l Leave
 	var createdAt time.Time
 	err := r.pool.QueryRow(ctx,
-		`UPDATE hr_leaves SET status = $2, updated_at = NOW()
-		 WHERE id = $1
+		`UPDATE hr_leaves SET status = $3, updated_at = NOW()
+		 WHERE id = $1 AND shop_id = $2
 		 RETURNING id, shop_id, employee_name, type, start_date::text, end_date::text,
 		           days, COALESCE(reason,''), status, created_at`,
-		leaveID, status).
+		leaveID, shopID, status).
 		Scan(&l.ID, &l.ShopID, &l.EmployeeName, &l.Type, &l.StartDate,
 			&l.EndDate, &l.Days, &l.Reason, &l.Status, &createdAt)
 	if err != nil {
@@ -578,25 +592,26 @@ func (r *Repository) CreateTask(ctx context.Context, shopID string, dto *CreateT
 	return &t, nil
 }
 
-// UpdateTask updates a task
-func (r *Repository) UpdateTask(ctx context.Context, taskID string, dto *UpdateTaskDTO) (*Task, error) {
+// UpdateTask updates a task scoped to its owning shop.
+func (r *Repository) UpdateTask(ctx context.Context, shopID, taskID string, dto *UpdateTaskDTO) (*Task, error) {
+	scoped := " AND shop_id = $3"
 	if dto.Title != nil {
-		_, _ = r.pool.Exec(ctx, "UPDATE hr_tasks SET title = $2, updated_at = NOW() WHERE id = $1", taskID, *dto.Title)
+		_, _ = r.pool.Exec(ctx, "UPDATE hr_tasks SET title = $2, updated_at = NOW() WHERE id = $1"+scoped, taskID, *dto.Title, shopID)
 	}
 	if dto.Assignee != nil {
-		_, _ = r.pool.Exec(ctx, "UPDATE hr_tasks SET assignee = $2, updated_at = NOW() WHERE id = $1", taskID, *dto.Assignee)
+		_, _ = r.pool.Exec(ctx, "UPDATE hr_tasks SET assignee = $2, updated_at = NOW() WHERE id = $1"+scoped, taskID, *dto.Assignee, shopID)
 	}
 	if dto.Priority != nil {
-		_, _ = r.pool.Exec(ctx, "UPDATE hr_tasks SET priority = $2, updated_at = NOW() WHERE id = $1", taskID, *dto.Priority)
+		_, _ = r.pool.Exec(ctx, "UPDATE hr_tasks SET priority = $2, updated_at = NOW() WHERE id = $1"+scoped, taskID, *dto.Priority, shopID)
 	}
 	if dto.Status != nil {
-		_, _ = r.pool.Exec(ctx, "UPDATE hr_tasks SET status = $2, updated_at = NOW() WHERE id = $1", taskID, *dto.Status)
+		_, _ = r.pool.Exec(ctx, "UPDATE hr_tasks SET status = $2, updated_at = NOW() WHERE id = $1"+scoped, taskID, *dto.Status, shopID)
 	}
 	if dto.DueDate != nil {
-		_, _ = r.pool.Exec(ctx, "UPDATE hr_tasks SET due_date = NULLIF($2,'')::date, updated_at = NOW() WHERE id = $1", taskID, *dto.DueDate)
+		_, _ = r.pool.Exec(ctx, "UPDATE hr_tasks SET due_date = NULLIF($2,'')::date, updated_at = NOW() WHERE id = $1"+scoped, taskID, *dto.DueDate, shopID)
 	}
 	if dto.Description != nil {
-		_, _ = r.pool.Exec(ctx, "UPDATE hr_tasks SET description = $2, updated_at = NOW() WHERE id = $1", taskID, *dto.Description)
+		_, _ = r.pool.Exec(ctx, "UPDATE hr_tasks SET description = $2, updated_at = NOW() WHERE id = $1"+scoped, taskID, *dto.Description, shopID)
 	}
 
 	var t Task
@@ -604,7 +619,7 @@ func (r *Repository) UpdateTask(ctx context.Context, taskID string, dto *UpdateT
 	err := r.pool.QueryRow(ctx,
 		`SELECT id, shop_id, title, COALESCE(assignee,''), priority, status,
 		        COALESCE(due_date::text,''), COALESCE(description,''), created_at
-		 FROM hr_tasks WHERE id = $1`, taskID).
+		 FROM hr_tasks WHERE id = $1 AND shop_id = $2`, taskID, shopID).
 		Scan(&t.ID, &t.ShopID, &t.Title, &t.Assignee, &t.Priority,
 			&t.Status, &t.DueDate, &t.Description, &createdAt)
 	if err != nil {
@@ -614,9 +629,9 @@ func (r *Repository) UpdateTask(ctx context.Context, taskID string, dto *UpdateT
 	return &t, nil
 }
 
-// DeleteTask deletes a task
-func (r *Repository) DeleteTask(ctx context.Context, taskID string) error {
-	_, err := r.pool.Exec(ctx, "DELETE FROM hr_tasks WHERE id = $1", taskID)
+// DeleteTask deletes a task scoped to its owning shop.
+func (r *Repository) DeleteTask(ctx context.Context, shopID, taskID string) error {
+	_, err := r.pool.Exec(ctx, "DELETE FROM hr_tasks WHERE id = $1 AND shop_id = $2", taskID, shopID)
 	return err
 }
 

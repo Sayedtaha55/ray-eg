@@ -28,8 +28,8 @@ func (s *Service) CreateTaxRate(ctx context.Context, shopID, userID string, dto 
 	return t, nil
 }
 
-func (s *Service) UpdateTaxRate(ctx context.Context, id, userID string, dto *UpdateTaxRateDTO) (*TaxRate, error) {
-	t, err := s.repo.UpdateTaxRate(ctx, id, dto)
+func (s *Service) UpdateTaxRate(ctx context.Context, id, shopID, userID string, dto *UpdateTaxRateDTO) (*TaxRate, error) {
+	t, err := s.repo.UpdateTaxRate(ctx, id, shopID, dto)
 	if err != nil {
 		return nil, err
 	}
@@ -38,11 +38,11 @@ func (s *Service) UpdateTaxRate(ctx context.Context, id, userID string, dto *Upd
 	return t, nil
 }
 
-func (s *Service) DeleteTaxRate(ctx context.Context, id, userID string) error {
-	if err := s.repo.DeleteTaxRate(ctx, id); err != nil {
+func (s *Service) DeleteTaxRate(ctx context.Context, id, shopID, userID string) error {
+	if err := s.repo.DeleteTaxRate(ctx, id, shopID); err != nil {
 		return err
 	}
-	s.repo.LogAudit(ctx, "", userID, "", "delete", "tax_rate", id, "حذف ضريبة")
+	s.repo.LogAudit(ctx, shopID, userID, "", "delete", "tax_rate", id, "حذف ضريبة")
 	return nil
 }
 
@@ -64,11 +64,11 @@ func (s *Service) CreateFiscalPeriod(ctx context.Context, shopID, userID string,
 	return p, nil
 }
 
-func (s *Service) CloseFiscalPeriod(ctx context.Context, id, userID string) (*FiscalPeriod, error) {
-	if err := s.repo.CloseFiscalPeriod(ctx, id, userID); err != nil {
+func (s *Service) CloseFiscalPeriod(ctx context.Context, id, shopID, userID string) (*FiscalPeriod, error) {
+	if err := s.repo.CloseFiscalPeriod(ctx, id, shopID, userID); err != nil {
 		return nil, err
 	}
-	p, err := s.repo.GetFiscalPeriod(ctx, id)
+	p, err := s.repo.GetFiscalPeriod(ctx, id, shopID)
 	if err != nil {
 		return nil, err
 	}
@@ -77,11 +77,11 @@ func (s *Service) CloseFiscalPeriod(ctx context.Context, id, userID string) (*Fi
 	return p, nil
 }
 
-func (s *Service) ReopenFiscalPeriod(ctx context.Context, id, userID string) (*FiscalPeriod, error) {
-	if err := s.repo.ReopenFiscalPeriod(ctx, id); err != nil {
+func (s *Service) ReopenFiscalPeriod(ctx context.Context, id, shopID, userID string) (*FiscalPeriod, error) {
+	if err := s.repo.ReopenFiscalPeriod(ctx, id, shopID); err != nil {
 		return nil, err
 	}
-	p, err := s.repo.GetFiscalPeriod(ctx, id)
+	p, err := s.repo.GetFiscalPeriod(ctx, id, shopID)
 	if err != nil {
 		return nil, err
 	}
@@ -112,11 +112,11 @@ func (s *Service) ListTaxReturns(ctx context.Context, shopID string) ([]TaxRetur
 	return s.repo.ListTaxReturns(ctx, shopID)
 }
 
-func (s *Service) SubmitTaxReturn(ctx context.Context, id, userID string) error {
-	if err := s.repo.SubmitTaxReturn(ctx, id, userID); err != nil {
+func (s *Service) SubmitTaxReturn(ctx context.Context, id, shopID, userID string) error {
+	if err := s.repo.SubmitTaxReturn(ctx, id, shopID); err != nil {
 		return err
 	}
-	s.repo.LogAudit(ctx, "", userID, "", "submit", "tax_return", id, "تقديم إقرار ضريبي")
+	s.repo.LogAudit(ctx, shopID, userID, "", "submit", "tax_return", id, "تقديم إقرار ضريبي")
 	return nil
 }
 

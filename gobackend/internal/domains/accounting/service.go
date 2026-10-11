@@ -23,26 +23,34 @@ func (s *Service) ListAccounts(ctx context.Context, shopID string) ([]AccountWit
 func (s *Service) CreateAccount(ctx context.Context, shopID string, dto *CreateAccountDTO) (*Account, error) {
 	return s.repo.CreateAccount(ctx, shopID, dto)
 }
-func (s *Service) UpdateAccount(ctx context.Context, id string, dto *UpdateAccountDTO) (*Account, error) {
-	return s.repo.UpdateAccount(ctx, id, dto)
+func (s *Service) UpdateAccount(ctx context.Context, id, shopID string, dto *UpdateAccountDTO) (*Account, error) {
+	acc, err := s.repo.UpdateAccount(ctx, id, shopID, dto)
+	if err != nil {
+		return nil, err
+	}
+	return acc, nil
 }
-func (s *Service) DeleteAccount(ctx context.Context, id string) error {
-	has, err := s.repo.AccountHasJournalLines(ctx, id)
+func (s *Service) DeleteAccount(ctx context.Context, id, shopID string) error {
+	has, err := s.repo.AccountHasJournalLines(ctx, id, shopID)
 	if err != nil {
 		return err
 	}
 	if has {
 		return ErrAccountInUse
 	}
-	return s.repo.DeleteAccount(ctx, id)
+	return s.repo.DeleteAccount(ctx, id, shopID)
 }
 
 // Journal
 func (s *Service) ListJournalEntries(ctx context.Context, shopID, status, from, to string) ([]JournalEntry, error) {
 	return s.repo.ListJournalEntries(ctx, shopID, status, from, to)
 }
-func (s *Service) GetJournalEntry(ctx context.Context, id string) (*JournalEntry, error) {
-	return s.repo.GetJournalEntry(ctx, id)
+func (s *Service) GetJournalEntry(ctx context.Context, id, shopID string) (*JournalEntry, error) {
+	entry, err := s.repo.GetJournalEntry(ctx, id, shopID)
+	if err != nil {
+		return nil, err
+	}
+	return entry, nil
 }
 func (s *Service) CreateJournalEntry(ctx context.Context, shopID, userID string, dto *CreateJournalEntryDTO) (*JournalEntry, error) {
 	if err := validateBalanced(dto.Lines); err != nil {
@@ -50,23 +58,23 @@ func (s *Service) CreateJournalEntry(ctx context.Context, shopID, userID string,
 	}
 	return s.repo.CreateJournalEntry(ctx, shopID, userID, dto)
 }
-func (s *Service) UpdateJournalEntry(ctx context.Context, id string, dto *UpdateJournalEntryDTO) (*JournalEntry, error) {
+func (s *Service) UpdateJournalEntry(ctx context.Context, id, shopID string, dto *UpdateJournalEntryDTO) (*JournalEntry, error) {
 	if len(dto.Lines) > 0 {
 		if err := validateBalancedLines(dto.Lines); err != nil {
 			return nil, err
 		}
 	}
-	return s.repo.UpdateJournalEntry(ctx, id, dto)
+	return s.repo.UpdateJournalEntry(ctx, id, shopID, dto)
 }
-func (s *Service) PostJournalEntry(ctx context.Context, id, userID string) (*JournalEntry, error) {
-	entry, err := s.repo.GetJournalEntry(ctx, id)
+func (s *Service) PostJournalEntry(ctx context.Context, id, shopID, userID string) (*JournalEntry, error) {
+	entry, err := s.repo.GetJournalEntry(ctx, id, shopID)
 	if err != nil {
 		return nil, err
 	}
 	if closed, periodName, _ := s.repo.IsPeriodClosed(ctx, entry.ShopID, entry.EntryDate); closed {
 		return nil, ErrPeriodClosed(periodName)
 	}
-	posted, err := s.repo.PostJournalEntry(ctx, id, userID)
+	posted, err := s.repo.PostJournalEntry(ctx, id, shopID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -74,12 +82,12 @@ func (s *Service) PostJournalEntry(ctx context.Context, id, userID string) (*Jou
 		fmt.Sprintf("ترحيل قيد %s بمبلغ %.2f", entry.Number, entry.TotalDebit))
 	return posted, nil
 }
-func (s *Service) ReverseJournalEntry(ctx context.Context, id, userID string) (*JournalEntry, error) {
-	entry, err := s.repo.GetJournalEntry(ctx, id)
+func (s *Service) ReverseJournalEntry(ctx context.Context, id, shopID, userID string) (*JournalEntry, error) {
+	entry, err := s.repo.GetJournalEntry(ctx, id, shopID)
 	if err != nil {
 		return nil, err
 	}
-	reversed, err := s.repo.ReverseJournalEntry(ctx, id, userID)
+	reversed, err := s.repo.ReverseJournalEntry(ctx, id, shopID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -87,8 +95,8 @@ func (s *Service) ReverseJournalEntry(ctx context.Context, id, userID string) (*
 		fmt.Sprintf("قيد عكسي للقيد %s", entry.Number))
 	return reversed, nil
 }
-func (s *Service) DeleteJournalEntry(ctx context.Context, id string) error {
-	return s.repo.DeleteJournalEntry(ctx, id)
+func (s *Service) DeleteJournalEntry(ctx context.Context, id, shopID string) error {
+	return s.repo.DeleteJournalEntry(ctx, id, shopID)
 }
 
 // Reports
@@ -217,20 +225,20 @@ func (s *Service) ListEntities(ctx context.Context, shopID, entityType string) (
 	return s.repo.ListEntities(ctx, shopID, entityType)
 }
 
-func (s *Service) GetEntity(ctx context.Context, id string) (*Entity, error) {
-	return s.repo.GetEntity(ctx, id)
+func (s *Service) GetEntity(ctx context.Context, id, shopID string) (*Entity, error) {
+	return s.repo.GetEntity(ctx, id, shopID)
 }
 
 func (s *Service) CreateEntity(ctx context.Context, shopID, userID string, dto *CreateEntityDTO) (*Entity, error) {
 	return s.repo.CreateEntity(ctx, shopID, userID, dto)
 }
 
-func (s *Service) UpdateEntity(ctx context.Context, id string, dto *UpdateEntityDTO) (*Entity, error) {
-	return s.repo.UpdateEntity(ctx, id, dto)
+func (s *Service) UpdateEntity(ctx context.Context, id, shopID string, dto *UpdateEntityDTO) (*Entity, error) {
+	return s.repo.UpdateEntity(ctx, id, shopID, dto)
 }
 
-func (s *Service) DeleteEntity(ctx context.Context, id string) error {
-	return s.repo.DeleteEntity(ctx, id)
+func (s *Service) DeleteEntity(ctx context.Context, id, shopID string) error {
+	return s.repo.DeleteEntity(ctx, id, shopID)
 }
 
 // ---------------------------------------------------------------------------
@@ -244,28 +252,28 @@ func (s *Service) CreateInvoice(ctx context.Context, shopID, userID string, dto 
 	return s.repo.CreateInvoice(ctx, shopID, userID, dto)
 }
 
-func (s *Service) GetInvoice(ctx context.Context, id string) (*Invoice, error) {
-	return s.repo.GetInvoice(ctx, id)
+func (s *Service) GetInvoice(ctx context.Context, id, shopID string) (*Invoice, error) {
+	return s.repo.GetInvoice(ctx, id, shopID)
 }
 
 func (s *Service) ListInvoices(ctx context.Context, shopID, entityID, status string) ([]Invoice, error) {
 	return s.repo.ListInvoices(ctx, shopID, entityID, status)
 }
 
-func (s *Service) UpdateInvoice(ctx context.Context, id, number, dueDate string) (*Invoice, error) {
-	err := s.repo.UpdateInvoice(ctx, id, number, dueDate)
+func (s *Service) UpdateInvoice(ctx context.Context, id, shopID, number, dueDate string) (*Invoice, error) {
+	err := s.repo.UpdateInvoice(ctx, id, shopID, number, dueDate)
 	if err != nil {
 		return nil, err
 	}
-	return s.repo.GetInvoice(ctx, id)
+	return s.repo.GetInvoice(ctx, id, shopID)
 }
 
 // ---------------------------------------------------------------------------
 // Phase 2: Invoices (Post/Cancel)
 // ---------------------------------------------------------------------------
 
-func (s *Service) PostInvoice(ctx context.Context, id, userID string) (*Invoice, error) {
-	inv, err := s.repo.GetInvoice(ctx, id)
+func (s *Service) PostInvoice(ctx context.Context, id, shopID, userID string) (*Invoice, error) {
+	inv, err := s.repo.GetInvoice(ctx, id, shopID)
 	if err != nil {
 		return nil, err
 	}
@@ -288,10 +296,10 @@ func (s *Service) PostInvoice(ctx context.Context, id, userID string) (*Invoice,
 	if inv.InvoiceType == "purchase" {
 		amt = -amt
 	}
-	_ = s.repo.UpdateEntityBalance(ctx, inv.EntityID, amt)
+	_ = s.repo.UpdateEntityBalance(ctx, inv.EntityID, inv.ShopID, amt)
 	s.repo.LogAudit(ctx, inv.ShopID, userID, "", "post", "invoice", inv.ID,
 		fmt.Sprintf("ترحيل فاتورة %s بمبلغ %.2f", inv.Number, inv.Total))
-	return s.repo.GetInvoice(ctx, id)
+	return s.repo.GetInvoice(ctx, id, shopID)
 }
 
 // autoPostInvoiceEntry creates the double-entry journal for an invoice with VAT split.
@@ -336,8 +344,8 @@ func (s *Service) autoPostInvoiceEntry(ctx context.Context, inv *Invoice, userID
 	return s.repo.CreateJournalEntry(ctx, inv.ShopID, userID, dto)
 }
 
-func (s *Service) CancelInvoice(ctx context.Context, id, userID string) (*Invoice, error) {
-	inv, err := s.repo.GetInvoice(ctx, id)
+func (s *Service) CancelInvoice(ctx context.Context, id, shopID, userID string) (*Invoice, error) {
+	inv, err := s.repo.GetInvoice(ctx, id, shopID)
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +353,7 @@ func (s *Service) CancelInvoice(ctx context.Context, id, userID string) (*Invoic
 		return inv, nil
 	}
 	if inv.Status == "posted" && inv.JournalID != "" {
-		_, err := s.repo.ReverseJournalEntry(ctx, inv.JournalID, userID)
+		_, err := s.repo.ReverseJournalEntry(ctx, inv.JournalID, shopID, userID)
 		if err != nil {
 			return nil, err
 		}
@@ -358,10 +366,10 @@ func (s *Service) CancelInvoice(ctx context.Context, id, userID string) (*Invoic
 	if inv.InvoiceType == "purchase" {
 		amt = inv.Total
 	}
-	_ = s.repo.UpdateEntityBalance(ctx, inv.EntityID, amt)
+	_ = s.repo.UpdateEntityBalance(ctx, inv.EntityID, inv.ShopID, amt)
 	s.repo.LogAudit(ctx, inv.ShopID, userID, "", "cancel", "invoice", inv.ID,
 		fmt.Sprintf("إلغاء فاتورة %s", inv.Number))
-	return s.repo.GetInvoice(ctx, id)
+	return s.repo.GetInvoice(ctx, id, shopID)
 }
 
 // ---------------------------------------------------------------------------
@@ -375,16 +383,16 @@ func (s *Service) CreatePayment(ctx context.Context, shopID, userID string, dto 
 	return s.repo.CreatePayment(ctx, shopID, userID, dto)
 }
 
-func (s *Service) GetPayment(ctx context.Context, id string) (*Payment, error) {
-	return s.repo.GetPayment(ctx, id)
+func (s *Service) GetPayment(ctx context.Context, id, shopID string) (*Payment, error) {
+	return s.repo.GetPayment(ctx, id, shopID)
 }
 
 func (s *Service) ListPayments(ctx context.Context, shopID, entityID string) ([]Payment, error) {
 	return s.repo.ListPayments(ctx, shopID, entityID)
 }
 
-func (s *Service) PostPayment(ctx context.Context, id, userID string) (*Payment, error) {
-	p, err := s.repo.GetPayment(ctx, id)
+func (s *Service) PostPayment(ctx context.Context, id, shopID, userID string) (*Payment, error) {
+	p, err := s.repo.GetPayment(ctx, id, shopID)
 	if err != nil {
 		return nil, err
 	}
@@ -403,11 +411,11 @@ func (s *Service) PostPayment(ctx context.Context, id, userID string) (*Payment,
 	if p.PaymentType == "receipt" {
 		debitCode = cashAccount
 		creditCode = receivableAccount
-		_ = s.repo.UpdateEntityBalance(ctx, p.EntityID, -amt)
+		_ = s.repo.UpdateEntityBalance(ctx, p.EntityID, p.ShopID, -amt)
 	} else {
 		debitCode = payableAccount
 		creditCode = bankAccount
-		_ = s.repo.UpdateEntityBalance(ctx, p.EntityID, amt)
+		_ = s.repo.UpdateEntityBalance(ctx, p.EntityID, p.ShopID, amt)
 	}
 	dto := &CreateJournalEntryDTO{
 		EntryDate:   p.PaymentDate,
@@ -428,7 +436,7 @@ func (s *Service) PostPayment(ctx context.Context, id, userID string) (*Payment,
 	}
 	s.repo.LogAudit(ctx, p.ShopID, userID, "", "post", "payment", p.ID,
 		fmt.Sprintf("ترحيل دفعة %s بمبلغ %.2f", p.Number, p.Amount))
-	return s.repo.GetPayment(ctx, id)
+	return s.repo.GetPayment(ctx, id, shopID)
 }
 
 // ---------------------------------------------------------------------------

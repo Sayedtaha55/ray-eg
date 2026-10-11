@@ -39,12 +39,12 @@ func (s *Service) ListGalleryItems(ctx context.Context, shopID string, limit, of
 	return s.repo.ListGalleryItems(ctx, shopID, limit, offset)
 }
 
-// UpdateGalleryItem updates a gallery item
-func (s *Service) UpdateGalleryItem(ctx context.Context, id string, data *UpdateGalleryItemDTO) error {
-	return s.repo.UpdateGalleryItem(ctx, id, data)
+// UpdateGalleryItem updates a gallery item scoped to its owning shop.
+func (s *Service) UpdateGalleryItem(ctx context.Context, shopID, id string, data *UpdateGalleryItemDTO) error {
+	return s.repo.UpdateGalleryItem(ctx, shopID, id, data)
 }
 
-// DeleteGalleryItem deletes a gallery item
-func (s *Service) DeleteGalleryItem(ctx context.Context, id string) error {
-	return s.repo.DeleteGalleryItem(ctx, id)
+// DeleteGalleryItem deletes a gallery item scoped to its owning shop.
+func (s *Service) DeleteGalleryItem(ctx context.Context, shopID, id string) error {
+	return s.repo.DeleteGalleryItem(ctx, shopID, id)
 }

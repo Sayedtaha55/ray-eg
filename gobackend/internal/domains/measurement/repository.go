@@ -33,9 +33,9 @@ func (r *Repository) Create(ctx context.Context, m *Measurement) (*Measurement, 
 	return scanMeasurement(row)
 }
 
-// FindByID returns a measurement by ID.
-func (r *Repository) FindByID(ctx context.Context, id string) (*Measurement, error) {
-	row := r.pool.QueryRow(ctx, "SELECT "+measurementColumns+" FROM user_measurements WHERE id = $1", id)
+// FindByID returns a measurement by ID scoped to its owning user.
+func (r *Repository) FindByID(ctx context.Context, id, userID string) (*Measurement, error) {
+	row := r.pool.QueryRow(ctx, "SELECT "+measurementColumns+" FROM user_measurements WHERE id = $1 AND user_id = $2", id, userID)
 	return scanMeasurement(row)
 }
 
@@ -59,8 +59,8 @@ func (r *Repository) ListByUser(ctx context.Context, userID string, limit, offse
 	return scanMeasurements(rows, total)
 }
 
-// Update updates a measurement.
-func (r *Repository) Update(ctx context.Context, id string, req UpdateMeasurementRequest) (*Measurement, error) {
+// Update updates a measurement scoped to its owning user.
+func (r *Repository) Update(ctx context.Context, id, userID string, req UpdateMeasurementRequest) (*Measurement, error) {
 	setParts := []string{"updated_at = NOW()"}
 	args := []any{}
 	idx := 1
@@ -91,16 +91,16 @@ func (r *Repository) Update(ctx context.Context, id string, req UpdateMeasuremen
 		idx++
 	}
 
-	args = append(args, id)
-	query := fmt.Sprintf("UPDATE user_measurements SET %s WHERE id = $%d RETURNING "+measurementColumns,
-		joinStrings(setParts, ", "), idx)
+	args = append(args, id, userID)
+	query := fmt.Sprintf("UPDATE user_measurements SET %s WHERE id = $%d AND user_id = $%d RETURNING "+measurementColumns,
+		joinStrings(setParts, ", "), idx, idx+1)
 	row := r.pool.QueryRow(ctx, query, args...)
 	return scanMeasurement(row)
 }
 
-// Deactivate sets is_active = false.
-func (r *Repository) Deactivate(ctx context.Context, id string) error {
-	_, err := r.pool.Exec(ctx, "UPDATE user_measurements SET is_active = false, updated_at = NOW() WHERE id = $1", id)
+// Deactivate sets is_active = false for a measurement scoped to its owning user.
+func (r *Repository) Deactivate(ctx context.Context, id, userID string) error {
+	_, err := r.pool.Exec(ctx, "UPDATE user_measurements SET is_active = false, updated_at = NOW() WHERE id = $1 AND user_id = $2", id, userID)
 	if err != nil {
 		return errors.Internal("deactivate_measurement_failed", err)
 	}

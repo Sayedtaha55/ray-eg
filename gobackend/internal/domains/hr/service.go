@@ -16,17 +16,17 @@ func NewService(repo *Repository) *Service {
 func (s *Service) ListRoles(ctx context.Context, shopID string) ([]Role, error) {
 	return s.repo.ListRoles(ctx, shopID)
 }
-func (s *Service) GetRole(ctx context.Context, roleID string) (*Role, error) {
-	return s.repo.GetRole(ctx, roleID)
+func (s *Service) GetRole(ctx context.Context, shopID, roleID string) (*Role, error) {
+	return s.repo.GetRole(ctx, shopID, roleID)
 }
 func (s *Service) CreateRole(ctx context.Context, shopID string, dto *CreateRoleDTO) (*Role, error) {
 	return s.repo.CreateRole(ctx, shopID, dto)
 }
-func (s *Service) UpdateRole(ctx context.Context, roleID string, dto *UpdateRoleDTO) (*Role, error) {
-	return s.repo.UpdateRole(ctx, roleID, dto)
+func (s *Service) UpdateRole(ctx context.Context, shopID, roleID string, dto *UpdateRoleDTO) (*Role, error) {
+	return s.repo.UpdateRole(ctx, shopID, roleID, dto)
 }
-func (s *Service) DeleteRole(ctx context.Context, roleID string) error {
-	return s.repo.DeleteRole(ctx, roleID)
+func (s *Service) DeleteRole(ctx context.Context, shopID, roleID string) error {
+	return s.repo.DeleteRole(ctx, shopID, roleID)
 }
 
 // Access Logs
@@ -44,11 +44,11 @@ func (s *Service) ListEmployees(ctx context.Context, shopID string) ([]Employee,
 func (s *Service) CreateEmployee(ctx context.Context, shopID string, dto *CreateEmployeeDTO) (*Employee, error) {
 	return s.repo.CreateEmployee(ctx, shopID, dto)
 }
-func (s *Service) UpdateEmployee(ctx context.Context, employeeID string, dto *UpdateEmployeeDTO) (*Employee, error) {
-	return s.repo.UpdateEmployee(ctx, employeeID, dto)
+func (s *Service) UpdateEmployee(ctx context.Context, shopID, employeeID string, dto *UpdateEmployeeDTO) (*Employee, error) {
+	return s.repo.UpdateEmployee(ctx, shopID, employeeID, dto)
 }
-func (s *Service) DeleteEmployee(ctx context.Context, employeeID string) error {
-	return s.repo.DeleteEmployee(ctx, employeeID)
+func (s *Service) DeleteEmployee(ctx context.Context, shopID, employeeID string) error {
+	return s.repo.DeleteEmployee(ctx, shopID, employeeID)
 }
 
 // Attendance
@@ -74,8 +74,8 @@ func (s *Service) ListLeaves(ctx context.Context, shopID string) ([]Leave, error
 func (s *Service) CreateLeave(ctx context.Context, shopID string, dto *CreateLeaveDTO) (*Leave, error) {
 	return s.repo.CreateLeave(ctx, shopID, dto)
 }
-func (s *Service) UpdateLeaveStatus(ctx context.Context, leaveID, status string) (*Leave, error) {
-	return s.repo.UpdateLeaveStatus(ctx, leaveID, status)
+func (s *Service) UpdateLeaveStatus(ctx context.Context, shopID, leaveID, status string) (*Leave, error) {
+	return s.repo.UpdateLeaveStatus(ctx, shopID, leaveID, status)
 }
 
 // Tasks
@@ -85,11 +85,11 @@ func (s *Service) ListTasks(ctx context.Context, shopID string) ([]Task, error) 
 func (s *Service) CreateTask(ctx context.Context, shopID string, dto *CreateTaskDTO) (*Task, error) {
 	return s.repo.CreateTask(ctx, shopID, dto)
 }
-func (s *Service) UpdateTask(ctx context.Context, taskID string, dto *UpdateTaskDTO) (*Task, error) {
-	return s.repo.UpdateTask(ctx, taskID, dto)
+func (s *Service) UpdateTask(ctx context.Context, shopID, taskID string, dto *UpdateTaskDTO) (*Task, error) {
+	return s.repo.UpdateTask(ctx, shopID, taskID, dto)
 }
-func (s *Service) DeleteTask(ctx context.Context, taskID string) error {
-	return s.repo.DeleteTask(ctx, taskID)
+func (s *Service) DeleteTask(ctx context.Context, shopID, taskID string) error {
+	return s.repo.DeleteTask(ctx, shopID, taskID)
 }
 
 // CheckOuts

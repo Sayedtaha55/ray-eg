@@ -50,17 +50,23 @@ func (r *Repository) CreateTaxRate(ctx context.Context, shopID string, dto *Crea
 	return &t, nil
 }
 
-func (r *Repository) UpdateTaxRate(ctx context.Context, id string, dto *UpdateTaxRateDTO) (*TaxRate, error) {
-	var t TaxRate
-	var createdAt time.Time
-	err := r.pool.QueryRow(ctx, `
+func (r *Repository) UpdateTaxRate(ctx context.Context, id, shopID string, dto *UpdateTaxRateDTO) (*TaxRate, error) {
+	query := `
 		UPDATE acc_tax_rates SET
 			name = COALESCE($2, name),
 			rate = COALESCE($3, rate),
 			status = COALESCE($4, status)
-		WHERE id = $1
-		RETURNING id, shop_id, name, rate, tax_type, is_default, status, created_at`,
-		id, dto.Name, dto.Rate, dto.Status).
+		WHERE id = $1`
+	args := []any{id, dto.Name, dto.Rate, dto.Status}
+	if shopID != "" {
+		query += " AND shop_id = $5"
+		args = append(args, shopID)
+	}
+	query += `
+		RETURNING id, shop_id, name, rate, tax_type, is_default, status, created_at`
+	var t TaxRate
+	var createdAt time.Time
+	err := r.pool.QueryRow(ctx, query, args...).
 		Scan(&t.ID, &t.ShopID, &t.Name, &t.Rate, &t.TaxType, &t.IsDefault, &t.Status, &createdAt)
 	if err != nil {
 		return nil, fmt.Errorf("update tax rate: %w", err)
@@ -69,8 +75,14 @@ func (r *Repository) UpdateTaxRate(ctx context.Context, id string, dto *UpdateTa
 	return &t, nil
 }
 
-func (r *Repository) DeleteTaxRate(ctx context.Context, id string) error {
-	_, err := r.pool.Exec(ctx, `DELETE FROM acc_tax_rates WHERE id = $1`, id)
+func (r *Repository) DeleteTaxRate(ctx context.Context, id, shopID string) error {
+	query := `DELETE FROM acc_tax_rates WHERE id = $1`
+	args := []any{id}
+	if shopID != "" {
+		query += " AND shop_id = $2"
+		args = append(args, shopID)
+	}
+	_, err := r.pool.Exec(ctx, query, args...)
 	return err
 }
 
@@ -144,9 +156,15 @@ func (r *Repository) ListTaxReturns(ctx context.Context, shopID string) ([]TaxRe
 	return out, rows.Err()
 }
 
-func (r *Repository) SubmitTaxReturn(ctx context.Context, id, userID string) error {
-	_, err := r.pool.Exec(ctx, `
-		UPDATE acc_tax_returns SET status = 'submitted', submitted_at = NOW(), submitted_by = $2
-		WHERE id = $1 AND status = 'draft'`, id, userID)
+func (r *Repository) SubmitTaxReturn(ctx context.Context, id, shopID string) error {
+	query := `
+		UPDATE acc_tax_returns SET status = 'submitted', submitted_at = NOW()
+		WHERE id = $1 AND status = 'draft'`
+	args := []any{id}
+	if shopID != "" {
+		query += " AND shop_id = $2"
+		args = append(args, shopID)
+	}
+	_, err := r.pool.Exec(ctx, query, args...)
 	return err
 }

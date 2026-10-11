@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,15 +24,21 @@ func NewRepository(pool *db.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
-// FindByID returns a product by ID or nil if not found.
-func (r *Repository) FindByID(ctx context.Context, id string) (*Product, error) {
-	row := r.pool.QueryRow(ctx, selectProduct+" WHERE p.id = $1 LIMIT 1", id)
+// FindByID returns a product by ID scoped to a shop, or nil if not found.
+func (r *Repository) FindByID(ctx context.Context, id, shopID string) (*Product, error) {
+	query := selectProduct + " WHERE p.id = $1"
+	args := []any{id}
+	if shopID != "" {
+		query += " AND shop_id = $2"
+		args = append(args, shopID)
+	}
+	row := r.pool.QueryRow(ctx, query, args...)
 	return scanProduct(row)
 }
 
-// FindByIDWithInactive returns a product by ID regardless of is_active.
-func (r *Repository) FindByIDWithInactive(ctx context.Context, id string) (*Product, error) {
-	return r.FindByID(ctx, id)
+// FindByIDWithInactive returns a product by ID scoped to a shop regardless of is_active.
+func (r *Repository) FindByIDWithInactive(ctx context.Context, id, shopID string) (*Product, error) {
+	return r.FindByID(ctx, id, shopID)
 }
 
 // listOptions combines shop-scoped + filter + paging params.
@@ -282,7 +289,7 @@ func (r *Repository) Create(ctx context.Context, p *Product) (*Product, error) {
 }
 
 // Update applies a partial update to a product and optionally updates furniture meta.
-func (r *Repository) Update(ctx context.Context, id string, fields map[string]any, furnitureMeta *FurnitureMeta) (*Product, error) {
+func (r *Repository) Update(ctx context.Context, id, shopID string, fields map[string]any, furnitureMeta *FurnitureMeta) (*Product, error) {
 	set := []string{}
 	args := []any{}
 	i := 1
@@ -292,7 +299,7 @@ func (r *Repository) Update(ctx context.Context, id string, fields map[string]an
 		i++
 	}
 	if len(set) == 0 && furnitureMeta == nil {
-		return r.FindByID(ctx, id)
+		return r.FindByID(ctx, id, shopID)
 	}
 	set = append(set, fmt.Sprintf("updated_at = $%d", i))
 	args = append(args, time.Now().UTC())
@@ -302,7 +309,12 @@ func (r *Repository) Update(ctx context.Context, id string, fields map[string]an
 	// "AS p" is required: productColumns returns p-prefixed columns. RETURNING
 	// can't reference the fm join, so furniture columns come back NULL and are
 	// filled from product_furniture_meta right after.
-	query := "UPDATE products AS p SET " + strings.Join(set, ", ") + fmt.Sprintf(" WHERE p.id = $%d RETURNING ", i) + fmNullColumns
+	where := " WHERE p.id = $" + strconv.Itoa(i)
+	if shopID != "" {
+		where += " AND p.shop_id = $" + strconv.Itoa(i+1)
+	}
+	query := "UPDATE products AS p SET " + strings.Join(set, ", ") + where + " RETURNING " + fmNullColumns
+	args = append(args, shopID)
 	row := r.pool.QueryRow(ctx, query, args...)
 	updated, err := scanProduct(row)
 	if err != nil {
@@ -310,7 +322,7 @@ func (r *Repository) Update(ctx context.Context, id string, fields map[string]an
 	}
 	// re-read with the full join so furniture meta is accurate
 	if updated != nil {
-		if fresh, ferr := r.FindByID(ctx, id); ferr == nil && fresh != nil {
+		if fresh, ferr := r.FindByID(ctx, id, shopID); ferr == nil && fresh != nil {
 			updated = fresh
 		}
 	}
@@ -324,9 +336,15 @@ func (r *Repository) Update(ctx context.Context, id string, fields map[string]an
 	return updated, nil
 }
 
-// Delete removes a product by ID.
-func (r *Repository) Delete(ctx context.Context, id string) error {
-	_, err := r.pool.Exec(ctx, "DELETE FROM products WHERE id = $1", id)
+// Delete removes a product scoped to its owning shop.
+func (r *Repository) Delete(ctx context.Context, id, shopID string) error {
+	query := "DELETE FROM products WHERE id = $1"
+	args := []any{id}
+	if shopID != "" {
+		query += " AND shop_id = $2"
+		args = append(args, shopID)
+	}
+	_, err := r.pool.Exec(ctx, query, args...)
 	return err
 }
 

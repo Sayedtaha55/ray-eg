@@ -32,8 +32,11 @@ func CORS(cfg *config.Config) fiber.Handler {
 			if cfg.IsDevelopment() {
 				return true
 			}
+			// In production an empty/missing Origin (curl, server-to-server)
+			// gets no CORS headers, and browsers never treat it as an
+			// allowed origin — never combine AllowCredentials with a wildcard.
 			if origin == "" {
-				return true
+				return false
 			}
 			for _, allowed := range origins {
 				if strings.EqualFold(strings.TrimSpace(allowed), origin) {

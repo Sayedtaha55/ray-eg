@@ -56,7 +56,12 @@ func (h *Handler) List(c *fiber.Ctx) error {
 
 func (h *Handler) GetByID(c *fiber.Ctx) error {
 	id := c.Params("id")
-	product, err := h.service.GetByID(c.UserContext(), id)
+	user, ok := middleware.AuthUserFromContext(c)
+	var shopID string
+	if ok {
+		shopID = user.ShopID
+	}
+	product, err := h.service.GetByID(c.UserContext(), id, shopID)
 	if err != nil {
 		return err
 	}

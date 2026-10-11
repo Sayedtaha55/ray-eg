@@ -2,6 +2,7 @@ package gallery
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/middleware"
@@ -85,12 +86,27 @@ func (h *Handler) CreateGalleryItem(c *fiber.Ctx) error {
 	})
 }
 
-// GetGalleryItemByID handles retrieving a gallery item by ID
+// GetGalleryItemByID handles retrieving a gallery item by ID.
+// Ownership of cross-shop reads is enforced: non-admins only see their own shop's item.
 func (h *Handler) GetGalleryItemByID(c *fiber.Ctx) error {
 	id := c.Params("id")
 
+	user, ok := middleware.AuthUserFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(GalleryItemResponse{
+			Success: false,
+			Error:   "Unauthorized",
+		})
+	}
+
 	item, err := h.service.GetGalleryItemByID(c.Context(), id)
 	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(GalleryItemResponse{
+			Success: false,
+			Error:   "Gallery item not found",
+		})
+	}
+	if !isAdmin(user) && item.ShopID != user.ShopID {
 		return c.Status(fiber.StatusNotFound).JSON(GalleryItemResponse{
 			Success: false,
 			Error:   "Gallery item not found",
@@ -137,7 +153,7 @@ func (h *Handler) ListGalleryItemsByShop(c *fiber.Ctx) error {
 	})
 }
 
-// UpdateGalleryItem handles updating a gallery item
+// UpdateGalleryItem handles updating a gallery item (scoped to the caller's shop).
 func (h *Handler) UpdateGalleryItem(c *fiber.Ctx) error {
 	id := c.Params("id")
 
@@ -156,28 +172,85 @@ func (h *Handler) UpdateGalleryItem(c *fiber.Ctx) error {
 		})
 	}
 
-	err := h.service.UpdateGalleryItem(c.Context(), id, &req)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(GalleryItemResponse{
+	user, ok := middleware.AuthUserFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(GalleryItemResponse{
 			Success: false,
-			Error:   "Failed to update gallery item",
+			Error:   "Unauthorized",
+		})
+	}
+
+	// Resolve the owner shop: non-admins act only on their own shop.
+	// Admins operate on the item's owning shop to avoid moving items across shops.
+	targetShopID := user.ShopID
+	if isAdmin(user) {
+		item, err := h.service.GetGalleryItemByID(c.Context(), id)
+		if err != nil {
+			return c.Status(fiber.StatusNotFound).JSON(GalleryItemResponse{
+				Success: false,
+				Error:   "Gallery item not found",
+			})
+		}
+		targetShopID = item.ShopID
+	} else if targetShopID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(GalleryItemResponse{
+			Success: false,
+			Error:   "User does not have a shop",
+		})
+	}
+
+	err := h.service.UpdateGalleryItem(c.Context(), targetShopID, id, &req)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(GalleryItemResponse{
+			Success: false,
+			Error:   "Gallery item not found",
 		})
 	}
 
 	return c.JSON(GalleryItemResponse{Success: true})
 }
 
-// DeleteGalleryItem handles deleting a gallery item
+// DeleteGalleryItem handles deleting a gallery item (scoped to the caller's shop).
 func (h *Handler) DeleteGalleryItem(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	err := h.service.DeleteGalleryItem(c.Context(), id)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(GalleryItemResponse{
+	user, ok := middleware.AuthUserFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(GalleryItemResponse{
 			Success: false,
-			Error:   "Failed to delete gallery item",
+			Error:   "Unauthorized",
+		})
+	}
+
+	targetShopID := user.ShopID
+	if isAdmin(user) {
+		item, err := h.service.GetGalleryItemByID(c.Context(), id)
+		if err != nil {
+			return c.Status(fiber.StatusNotFound).JSON(GalleryItemResponse{
+				Success: false,
+				Error:   "Gallery item not found",
+			})
+		}
+		targetShopID = item.ShopID
+	} else if targetShopID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(GalleryItemResponse{
+			Success: false,
+			Error:   "User does not have a shop",
+		})
+	}
+
+	err := h.service.DeleteGalleryItem(c.Context(), targetShopID, id)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(GalleryItemResponse{
+			Success: false,
+			Error:   "Gallery item not found",
 		})
 	}
 
 	return c.JSON(GalleryItemResponse{Success: true})
+}
+
+func isAdmin(user middleware.AuthUser) bool {
+	role := strings.ToUpper(strings.TrimSpace(user.Role))
+	return role == "ADMIN" || role == "SUPER_ADMIN" || role == "SUPERADMIN"
 }

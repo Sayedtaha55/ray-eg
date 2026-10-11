@@ -85,6 +85,21 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
+// LoginResult carries either a completed authentication (Auth non-nil) or,
+// when the account has 2FA enabled, a short-lived challenge the client must
+// exchange for a real token pair via POST /auth/2fa/login.
+type LoginResult struct {
+	Auth      *AuthResponse
+	Challenge string // non-empty when the second factor is required
+}
+
+// Login2FARequest exchanges a login challenge plus a valid TOTP code for a
+// full token pair.
+type Login2FARequest struct {
+	Challenge string `json:"challenge" validate:"required"`
+	Code      string `json:"code" validate:"required,len=6"`
+}
+
 // TokenPair holds access and refresh tokens.
 type TokenPair struct {
 	AccessToken  string    `json:"accessToken"`

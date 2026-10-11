@@ -1,6 +1,8 @@
 package accounting
 
 import (
+	"strings"
+
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/httpx"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/middleware"
@@ -99,6 +101,27 @@ func resolveShop(c *fiber.Ctx) (string, bool) {
 	return httpx.ResolveShop(c)
 }
 
+// ownerShop resolves the shop a by-id mutation must be scoped to. The
+// /accounting routes that carry :id (and no :shopId) can otherwise be pointed
+// at any row in the database — a merchant editing another merchant's journal
+// entry. ADMINS keep cross-shop access; everyone else is pinned to their own
+// shop and the repository adds `AND shop_id = $n` to the statement.
+func ownerShop(c *fiber.Ctx) (string, bool) {
+	user, ok := middleware.AuthUserFromContext(c)
+	if !ok {
+		_ = fail(c, fiber.StatusUnauthorized, "Unauthorized")
+		return "", false
+	}
+	if strings.EqualFold(user.Role, "ADMIN") {
+		return "", true // admin: no shop scoping (platform-wide access)
+	}
+	if user.ShopID == "" {
+		_ = fail(c, fiber.StatusForbidden, "Forbidden")
+		return "", false
+	}
+	return user.ShopID, true
+}
+
 // ------------------------------- Accounts ---------------------------------
 
 func (h *Handler) ListAccounts(c *fiber.Ctx) error {
@@ -133,6 +156,10 @@ func (h *Handler) CreateAccount(c *fiber.Ctx) error {
 }
 
 func (h *Handler) UpdateAccount(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	var dto UpdateAccountDTO
 	if err := c.BodyParser(&dto); err != nil {
 		return fail(c, fiber.StatusBadRequest, "Invalid request body")
@@ -140,7 +167,7 @@ func (h *Handler) UpdateAccount(c *fiber.Ctx) error {
 	if err := dto.Validate(h.validate); err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
-	acc, err := h.service.UpdateAccount(c.Context(), c.Params("id"), &dto)
+	acc, err := h.service.UpdateAccount(c.Context(), c.Params("id"), shopID, &dto)
 	if err != nil {
 		return fail(c, fiber.StatusInternalServerError, err.Error())
 	}
@@ -148,7 +175,11 @@ func (h *Handler) UpdateAccount(c *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteAccount(c *fiber.Ctx) error {
-	if err := h.service.DeleteAccount(c.Context(), c.Params("id")); err != nil {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
+	if err := h.service.DeleteAccount(c.Context(), c.Params("id"), shopID); err != nil {
 		if err == ErrAccountInUse {
 			return fail(c, fiber.StatusConflict, err.Error())
 		}
@@ -172,7 +203,11 @@ func (h *Handler) ListJournalEntries(c *fiber.Ctx) error {
 }
 
 func (h *Handler) GetJournalEntry(c *fiber.Ctx) error {
-	entry, err := h.service.GetJournalEntry(c.Context(), c.Params("id"))
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
+	entry, err := h.service.GetJournalEntry(c.Context(), c.Params("id"), shopID)
 	if err != nil {
 		return fail(c, fiber.StatusNotFound, "القيد غير موجود")
 	}
@@ -200,6 +235,10 @@ func (h *Handler) CreateJournalEntry(c *fiber.Ctx) error {
 }
 
 func (h *Handler) UpdateJournalEntry(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	var dto UpdateJournalEntryDTO
 	if err := c.BodyParser(&dto); err != nil {
 		return fail(c, fiber.StatusBadRequest, "Invalid request body")
@@ -207,7 +246,7 @@ func (h *Handler) UpdateJournalEntry(c *fiber.Ctx) error {
 	if err := dto.Validate(h.validate); err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
-	entry, err := h.service.UpdateJournalEntry(c.Context(), c.Params("id"), &dto)
+	entry, err := h.service.UpdateJournalEntry(c.Context(), c.Params("id"), shopID, &dto)
 	if err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
@@ -215,8 +254,12 @@ func (h *Handler) UpdateJournalEntry(c *fiber.Ctx) error {
 }
 
 func (h *Handler) PostJournalEntry(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	user, _ := middleware.AuthUserFromContext(c)
-	entry, err := h.service.PostJournalEntry(c.Context(), c.Params("id"), user.ID)
+	entry, err := h.service.PostJournalEntry(c.Context(), c.Params("id"), shopID, user.ID)
 	if err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
@@ -224,8 +267,12 @@ func (h *Handler) PostJournalEntry(c *fiber.Ctx) error {
 }
 
 func (h *Handler) ReverseJournalEntry(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	user, _ := middleware.AuthUserFromContext(c)
-	entry, err := h.service.ReverseJournalEntry(c.Context(), c.Params("id"), user.ID)
+	entry, err := h.service.ReverseJournalEntry(c.Context(), c.Params("id"), shopID, user.ID)
 	if err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
@@ -233,7 +280,11 @@ func (h *Handler) ReverseJournalEntry(c *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteJournalEntry(c *fiber.Ctx) error {
-	if err := h.service.DeleteJournalEntry(c.Context(), c.Params("id")); err != nil {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
+	if err := h.service.DeleteJournalEntry(c.Context(), c.Params("id"), shopID); err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
 	return c.JSON(map[string]any{"success": true})
@@ -294,7 +345,11 @@ func (h *Handler) ListEntities(c *fiber.Ctx) error {
 }
 
 func (h *Handler) GetEntity(c *fiber.Ctx) error {
-	entity, err := h.service.GetEntity(c.Context(), c.Params("id"))
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
+	entity, err := h.service.GetEntity(c.Context(), c.Params("id"), shopID)
 	if err != nil {
 		return fail(c, fiber.StatusNotFound, ErrEntityNotFound.Error())
 	}
@@ -322,6 +377,10 @@ func (h *Handler) CreateEntity(c *fiber.Ctx) error {
 }
 
 func (h *Handler) UpdateEntity(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	var dto UpdateEntityDTO
 	if err := c.BodyParser(&dto); err != nil {
 		return fail(c, fiber.StatusBadRequest, "Invalid request body")
@@ -329,7 +388,7 @@ func (h *Handler) UpdateEntity(c *fiber.Ctx) error {
 	if err := dto.Validate(h.validate); err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
-	entity, err := h.service.UpdateEntity(c.Context(), c.Params("id"), &dto)
+	entity, err := h.service.UpdateEntity(c.Context(), c.Params("id"), shopID, &dto)
 	if err != nil {
 		return fail(c, fiber.StatusInternalServerError, err.Error())
 	}
@@ -337,7 +396,11 @@ func (h *Handler) UpdateEntity(c *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteEntity(c *fiber.Ctx) error {
-	err := h.service.DeleteEntity(c.Context(), c.Params("id"))
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
+	err := h.service.DeleteEntity(c.Context(), c.Params("id"), shopID)
 	if err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
@@ -361,7 +424,11 @@ func (h *Handler) ListInvoices(c *fiber.Ctx) error {
 }
 
 func (h *Handler) GetInvoice(c *fiber.Ctx) error {
-	inv, err := h.service.GetInvoice(c.Context(), c.Params("id"))
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
+	inv, err := h.service.GetInvoice(c.Context(), c.Params("id"), shopID)
 	if err != nil {
 		return fail(c, fiber.StatusNotFound, ErrInvoiceNotFound.Error())
 	}
@@ -389,6 +456,10 @@ func (h *Handler) CreateInvoice(c *fiber.Ctx) error {
 }
 
 func (h *Handler) UpdateInvoice(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	var dto UpdateInvoiceDTO
 	if err := c.BodyParser(&dto); err != nil {
 		return fail(c, fiber.StatusBadRequest, "Invalid request body")
@@ -403,7 +474,7 @@ func (h *Handler) UpdateInvoice(c *fiber.Ctx) error {
 	if dto.DueDate != nil {
 		dueDate = *dto.DueDate
 	}
-	inv, err := h.service.UpdateInvoice(c.Context(), c.Params("id"), number, dueDate)
+	inv, err := h.service.UpdateInvoice(c.Context(), c.Params("id"), shopID, number, dueDate)
 	if err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
@@ -411,8 +482,12 @@ func (h *Handler) UpdateInvoice(c *fiber.Ctx) error {
 }
 
 func (h *Handler) PostInvoice(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	user, _ := middleware.AuthUserFromContext(c)
-	inv, err := h.service.PostInvoice(c.Context(), c.Params("id"), user.ID)
+	inv, err := h.service.PostInvoice(c.Context(), c.Params("id"), shopID, user.ID)
 	if err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
@@ -420,8 +495,12 @@ func (h *Handler) PostInvoice(c *fiber.Ctx) error {
 }
 
 func (h *Handler) CancelInvoice(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	user, _ := middleware.AuthUserFromContext(c)
-	inv, err := h.service.CancelInvoice(c.Context(), c.Params("id"), user.ID)
+	inv, err := h.service.CancelInvoice(c.Context(), c.Params("id"), shopID, user.ID)
 	if err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}
@@ -445,7 +524,11 @@ func (h *Handler) ListPayments(c *fiber.Ctx) error {
 }
 
 func (h *Handler) GetPayment(c *fiber.Ctx) error {
-	p, err := h.service.GetPayment(c.Context(), c.Params("id"))
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
+	p, err := h.service.GetPayment(c.Context(), c.Params("id"), shopID)
 	if err != nil {
 		return fail(c, fiber.StatusNotFound, ErrPaymentNotFound.Error())
 	}
@@ -473,8 +556,12 @@ func (h *Handler) CreatePayment(c *fiber.Ctx) error {
 }
 
 func (h *Handler) PostPayment(c *fiber.Ctx) error {
+	shopID, ok := ownerShop(c)
+	if !ok {
+		return nil
+	}
 	user, _ := middleware.AuthUserFromContext(c)
-	p, err := h.service.PostPayment(c.Context(), c.Params("id"), user.ID)
+	p, err := h.service.PostPayment(c.Context(), c.Params("id"), shopID, user.ID)
 	if err != nil {
 		return fail(c, fiber.StatusBadRequest, err.Error())
 	}

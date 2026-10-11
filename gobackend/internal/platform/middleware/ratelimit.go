@@ -21,6 +21,11 @@ type RateLimiter struct {
 	global  *limiter.Limiter
 	auth    *limiter.Limiter
 	refresh *limiter.Limiter
+	signup  *limiter.Limiter
+	// failClosed makes a store error (Redis unreachable) reject the request
+	// instead of silently allowing it. Enabled for auth buckets in production
+	// so an attacker cannot disable rate limiting by breaking Redis.
+	failClosed bool
 }
 
 // NewRateLimiter creates the global and auth limiters backed by Redis when
@@ -52,6 +57,16 @@ func NewRateLimiter(cfg *config.Config, client redis.UniversalClient) (*RateLimi
 		return nil, err
 	}
 
+	// Dedicated bucket for account creation (signup): a DB-writing endpoint
+	// that must stay cheap even for a coordinated IP rotation attack.
+	signupStore, err := newStore(client, "rl_signup", limiter.Rate{
+		Period: cfg.RateLimit.SignupWindow,
+		Limit:  int64(cfg.RateLimit.SignupMax),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &RateLimiter{
 		global: limiter.New(globalStore, limiter.Rate{
 			Period: cfg.RateLimit.GlobalWindow,
@@ -65,6 +80,11 @@ func NewRateLimiter(cfg *config.Config, client redis.UniversalClient) (*RateLimi
 			Period: cfg.RateLimit.RefreshWindow,
 			Limit:  int64(cfg.RateLimit.RefreshMax),
 		}),
+		signup: limiter.New(signupStore, limiter.Rate{
+			Period: cfg.RateLimit.SignupWindow,
+			Limit:  int64(cfg.RateLimit.SignupMax),
+		}),
+		failClosed: cfg.IsProduction(),
 	}, nil
 }
 
@@ -75,11 +95,15 @@ func (rl *RateLimiter) Global() fiber.Handler {
 
 // Auth middleware applies a stricter rate limit to authentication endpoints.
 // /auth/refresh gets its own, tighter budget (AUTH_REFRESH_RATE_LIMIT_MAX
-// per window) because it mints fresh tokens.
+// per window) because it mints fresh tokens. Account creation gets the
+// tightest budget of all (AUTH_SIGNUP_RATE_LIMIT_MAX, 5/hour by default).
 func (rl *RateLimiter) Auth() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		if c.Path() == "/api/v1/auth/refresh" {
 			return rl.handle(rl.refresh, "refresh")(c)
+		}
+		if isSignupPath(c.Path()) {
+			return rl.handle(rl.signup, "signup")(c)
 		}
 		if !isAuthPath(c.Path()) {
 			return c.Next()
@@ -90,10 +114,13 @@ func (rl *RateLimiter) Auth() fiber.Handler {
 
 func (rl *RateLimiter) handle(instance *limiter.Limiter, _ string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		key := c.IP()
-		if key == "" {
-			key = "unknown"
+		// Key on IP + path so one abusive IP cannot burn the budget of a
+		// different endpoint that shares the same limiter bucket.
+		ip := c.IP()
+		if ip == "" {
+			ip = "unknown"
 		}
+		key := ip + "|" + c.Path()
 
 		ctx, cancel := context.WithTimeout(c.UserContext(), 2*time.Second)
 		defer cancel()
@@ -101,6 +128,11 @@ func (rl *RateLimiter) handle(instance *limiter.Limiter, _ string) fiber.Handler
 		limitCtx, err := instance.Get(ctx, key)
 		if err != nil {
 			zap.L().Warn("rate limiter error", zap.Error(err), zap.String("path", c.Path()))
+			// Fail-closed in production: if the shared store is unreachable we
+			// refuse the request rather than hand the attacker free attempts.
+			if rl.failClosed {
+				return errors.Internal("rate_limiter_unavailable", err)
+			}
 			return c.Next()
 		}
 
@@ -147,6 +179,20 @@ func setRateHeaders(c *fiber.Ctx, ctx limiter.Context) {
 	c.Set("X-RateLimit-Reset", time.Unix(ctx.Reset, 0).Format(time.RFC3339))
 }
 
+func isSignupPath(path string) bool {
+	prefixes := []string{
+		"/api/v1/auth/signup",
+		"/api/v1/auth/courier-signup",
+	}
+	path = strings.ToLower(path)
+	for _, p := range prefixes {
+		if strings.HasPrefix(path, p) {
+			return true
+		}
+	}
+	return false
+}
+
 func isAuthPath(path string) bool {
 	prefixes := []string{
 		"/api/v1/auth/login",
@@ -164,6 +210,8 @@ func isAuthPath(path string) bool {
 		"/api/v1/auth/2fa/enable",
 		"/api/v1/auth/2fa/generate",
 		"/api/v1/auth/2fa/confirm",
+		"/api/v1/auth/2fa/login",
+		"/api/v1/auth/2fa/disable",
 	}
 	path = strings.ToLower(path)
 	for _, p := range prefixes {

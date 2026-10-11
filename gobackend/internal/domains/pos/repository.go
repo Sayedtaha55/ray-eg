@@ -132,13 +132,15 @@ func (r *Repository) Active(ctx context.Context, shopID string) (*Shift, error) 
 }
 
 // List returns the latest shifts of a shop.
+// take is clamped to [1,200] and bound as a query parameter — no Sprintf —
+// so a tampered limit can never alter the query shape.
 func (r *Repository) List(ctx context.Context, shopID string, take int) ([]*Shift, error) {
 	if take <= 0 || take > 200 {
 		take = 20
 	}
 	rows, err := r.pool.Query(ctx,
-		fmt.Sprintf(`SELECT %s FROM pos_shifts WHERE shop_id = $1 ORDER BY opened_at DESC LIMIT %d`, shiftCols, take),
-		shopID,
+		fmt.Sprintf(`SELECT %s FROM pos_shifts WHERE shop_id = $1 ORDER BY opened_at DESC LIMIT $2`, shiftCols),
+		shopID, take,
 	)
 	if err != nil {
 		return nil, err

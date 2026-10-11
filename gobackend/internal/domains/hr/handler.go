@@ -2,6 +2,7 @@ package hr
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/middleware"
@@ -78,10 +79,21 @@ func (h *Handler) checkShopAccess(c *fiber.Ctx) (string, bool) {
 	if !ok {
 		return shopID, false
 	}
-	if user.Role != "admin" && user.Role != "ADMIN" && user.ShopID != shopID {
+	if !isAdminRole(user.Role) && user.ShopID != shopID {
 		return shopID, false
 	}
 	return shopID, true
+}
+
+// isAdminRole matches admin roles case-insensitively so "admin", "ADMIN"
+// and "Super_Admin" style values all pass the gate.
+func isAdminRole(role string) bool {
+	switch strings.ToUpper(strings.TrimSpace(role)) {
+	case "ADMIN", "SUPER_ADMIN", "SUPERADMIN", "SUPER-ADMIN":
+		return true
+	default:
+		return false
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -101,11 +113,11 @@ func (h *Handler) ListRoles(c *fiber.Ctx) error {
 }
 
 func (h *Handler) GetRole(c *fiber.Ctx) error {
-	_, ok := h.checkShopAccess(c)
+	shopID, ok := h.checkShopAccess(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(RoleResponse{Success: false, Error: "Unauthorized"})
 	}
-	role, err := h.service.GetRole(c.Context(), c.Params("roleId"))
+	role, err := h.service.GetRole(c.Context(), shopID, c.Params("roleId"))
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(RoleResponse{Success: false, Error: "Role not found"})
 	}
@@ -147,7 +159,7 @@ func (h *Handler) UpdateRole(c *fiber.Ctx) error {
 	if err := dto.Validate(h.validate); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(RoleResponse{Success: false, Error: err.Error()})
 	}
-	role, err := h.service.UpdateRole(c.Context(), c.Params("roleId"), &dto)
+	role, err := h.service.UpdateRole(c.Context(), shopID, c.Params("roleId"), &dto)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(RoleResponse{Success: false, Error: "Failed to update role"})
 	}
@@ -161,7 +173,7 @@ func (h *Handler) DeleteRole(c *fiber.Ctx) error {
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(GenericResponse{Success: false, Error: "Unauthorized"})
 	}
-	if err := h.service.DeleteRole(c.Context(), c.Params("roleId")); err != nil {
+	if err := h.service.DeleteRole(c.Context(), shopID, c.Params("roleId")); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(GenericResponse{Success: false, Error: err.Error()})
 	}
 	user, _ := middleware.AuthUserFromContext(c)
@@ -227,7 +239,7 @@ func (h *Handler) CreateEmployee(c *fiber.Ctx) error {
 }
 
 func (h *Handler) UpdateEmployee(c *fiber.Ctx) error {
-	_, ok := h.checkShopAccess(c)
+	shopID, ok := h.checkShopAccess(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(EmployeeResponse{Success: false, Error: "Unauthorized"})
 	}
@@ -238,7 +250,7 @@ func (h *Handler) UpdateEmployee(c *fiber.Ctx) error {
 	if err := dto.Validate(h.validate); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(EmployeeResponse{Success: false, Error: err.Error()})
 	}
-	emp, err := h.service.UpdateEmployee(c.Context(), c.Params("employeeId"), &dto)
+	emp, err := h.service.UpdateEmployee(c.Context(), shopID, c.Params("employeeId"), &dto)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(EmployeeResponse{Success: false, Error: "Failed to update employee"})
 	}
@@ -246,11 +258,11 @@ func (h *Handler) UpdateEmployee(c *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteEmployee(c *fiber.Ctx) error {
-	_, ok := h.checkShopAccess(c)
+	shopID, ok := h.checkShopAccess(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(GenericResponse{Success: false, Error: "Unauthorized"})
 	}
-	if err := h.service.DeleteEmployee(c.Context(), c.Params("employeeId")); err != nil {
+	if err := h.service.DeleteEmployee(c.Context(), shopID, c.Params("employeeId")); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(GenericResponse{Success: false, Error: "Failed to delete employee"})
 	}
 	return c.JSON(GenericResponse{Success: true})
@@ -362,7 +374,7 @@ func (h *Handler) CreateLeave(c *fiber.Ctx) error {
 }
 
 func (h *Handler) UpdateLeaveStatus(c *fiber.Ctx) error {
-	_, ok := h.checkShopAccess(c)
+	shopID, ok := h.checkShopAccess(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(LeaveResponse{Success: false, Error: "Unauthorized"})
 	}
@@ -373,7 +385,7 @@ func (h *Handler) UpdateLeaveStatus(c *fiber.Ctx) error {
 	if err := dto.Validate(h.validate); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(LeaveResponse{Success: false, Error: err.Error()})
 	}
-	leave, err := h.service.UpdateLeaveStatus(c.Context(), c.Params("leaveId"), dto.Status)
+	leave, err := h.service.UpdateLeaveStatus(c.Context(), shopID, c.Params("leaveId"), dto.Status)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(LeaveResponse{Success: false, Error: "Failed to update leave"})
 	}
@@ -416,7 +428,7 @@ func (h *Handler) CreateTask(c *fiber.Ctx) error {
 }
 
 func (h *Handler) UpdateTask(c *fiber.Ctx) error {
-	_, ok := h.checkShopAccess(c)
+	shopID, ok := h.checkShopAccess(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(TaskResponse{Success: false, Error: "Unauthorized"})
 	}
@@ -427,7 +439,7 @@ func (h *Handler) UpdateTask(c *fiber.Ctx) error {
 	if err := dto.Validate(h.validate); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(TaskResponse{Success: false, Error: err.Error()})
 	}
-	task, err := h.service.UpdateTask(c.Context(), c.Params("taskId"), &dto)
+	task, err := h.service.UpdateTask(c.Context(), shopID, c.Params("taskId"), &dto)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(TaskResponse{Success: false, Error: "Failed to update task"})
 	}
@@ -435,11 +447,11 @@ func (h *Handler) UpdateTask(c *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteTask(c *fiber.Ctx) error {
-	_, ok := h.checkShopAccess(c)
+	shopID, ok := h.checkShopAccess(c)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(GenericResponse{Success: false, Error: "Unauthorized"})
 	}
-	if err := h.service.DeleteTask(c.Context(), c.Params("taskId")); err != nil {
+	if err := h.service.DeleteTask(c.Context(), shopID, c.Params("taskId")); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(GenericResponse{Success: false, Error: "Failed to delete task"})
 	}
 	return c.JSON(GenericResponse{Success: true})

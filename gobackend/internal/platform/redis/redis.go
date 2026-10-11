@@ -17,9 +17,13 @@ type Client struct {
 	log *zap.Logger
 }
 
-// New creates a Redis client from configuration. If Redis is unavailable it
-// still returns a client; callers should check IsHealthy before using it for
-// features that require Redis (rate limiting, queues, etc.).
+// New creates a Redis client from configuration and verifies connectivity.
+// It still returns a client when Redis is unreachable (callers degrade to
+// memory stores), but it logs loudly and — in production — surfaces the
+// failure through Health() so /health and the deploy checklist notice.
+// REDIS_URL wins over host/port; a redis:// URL password overrides
+// REDIS_PASSWORD. Cluster URLs (rediss:// with multiple addresses) fall
+// back to a single-node client with a warning.
 func New(cfg config.Redis, log *zap.Logger) *Client {
 	var client redis.UniversalClient
 	if cfg.URL != "" {
@@ -28,13 +32,28 @@ func New(cfg config.Redis, log *zap.Logger) *Client {
 			log.Warn("failed to parse REDIS_URL, falling back to host/port", zap.Error(err))
 			client = standaloneClient(cfg)
 		} else {
+			if opt.Password == "" && cfg.Password != "" {
+				opt.Password = cfg.Password
+			}
+			if opt.DialTimeout == 0 {
+				opt.DialTimeout = cfg.DialTimeout
+			}
 			client = redis.NewClient(opt)
 		}
 	} else {
 		client = standaloneClient(cfg)
 	}
 
-	return &Client{UniversalClient: client, cfg: cfg, log: log}
+	c := &Client{UniversalClient: client, cfg: cfg, log: log}
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	if err := client.Ping(ctx).Err(); err != nil {
+		log.Warn("redis unreachable at startup — rate limiting and queues degrade to memory/single-node",
+			zap.String("addr", cfg.Addr()), zap.Error(err))
+	} else {
+		log.Info("redis connected", zap.String("addr", cfg.Addr()))
+	}
+	return c
 }
 
 func standaloneClient(cfg config.Redis) redis.UniversalClient {
