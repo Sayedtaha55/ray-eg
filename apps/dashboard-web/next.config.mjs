@@ -31,7 +31,6 @@ const nextConfig = {
         ? backendUrl
         : `https://${backendUrl}`
       : 'http://localhost:4000';
-    console.log('Backend URL configured:', backendOrigin);
     return [{ source: '/api/:path*', destination: `${backendOrigin}/api/:path*` }];
   },
   async headers() {
@@ -49,9 +48,10 @@ const nextConfig = {
         key: 'Content-Security-Policy',
         value: [
           "default-src 'self'",
-          // 'unsafe-inline' and 'unsafe-eval' are required for Next.js/React Fast Refresh in development
-          // vercel.live hosts Vercel's preview toolbar script (preview deployments only)
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
+          // 'unsafe-inline' is required for Next.js inline styles/scripts injected at runtime.
+          // 'unsafe-eval' only in development (React Refresh); production keeps the strict policy.
+          // vercel.live hosts Vercel's preview toolbar script (preview deployments only).
+          `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''} https://vercel.live`,
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: blob: https:",
           "font-src 'self' data:",

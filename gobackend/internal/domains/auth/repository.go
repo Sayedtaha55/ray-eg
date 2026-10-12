@@ -191,6 +191,53 @@ func (r *Repository) Get2FASecret(ctx context.Context, userID string) (string, e
 	return secret.String, nil
 }
 
+// ReplaceRecoveryCodes clears any existing recovery codes for a user and
+// inserts the given hashed codes. Only hashes are stored.
+func (r *Repository) ReplaceRecoveryCodes(ctx context.Context, userID string, codeHashes []string) error {
+	if _, err := r.pool.Exec(ctx,
+		`DELETE FROM user_recovery_codes WHERE user_id = $1`, userID,
+	); err != nil {
+		return errors.Internal("clear_recovery_codes_failed", err)
+	}
+	for _, h := range codeHashes {
+		if _, err := r.pool.Exec(ctx,
+			`INSERT INTO user_recovery_codes (user_id, code_hash) VALUES ($1, $2)`,
+			userID, h,
+		); err != nil {
+			return errors.Internal("insert_recovery_code_failed", err)
+		}
+	}
+	return nil
+}
+
+// FindUnusedRecoveryCodeID returns the id of an unused recovery code matching
+// the given hash, or "" when there is no match.
+func (r *Repository) FindUnusedRecoveryCodeID(ctx context.Context, userID, codeHash string) (string, error) {
+	var id string
+	err := r.pool.QueryRow(ctx,
+		`SELECT id FROM user_recovery_codes
+		 WHERE user_id = $1 AND code_hash = $2 AND used_at IS NULL
+		 LIMIT 1`,
+		userID, codeHash,
+	).Scan(&id)
+	if err == pgx.ErrNoRows {
+		return "", nil
+	}
+	if err != nil {
+		return "", errors.Internal("find_recovery_code_failed", err)
+	}
+	return id, nil
+}
+
+// ConsumeRecoveryCode marks a recovery code as used (idempotent per code).
+func (r *Repository) ConsumeRecoveryCode(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE user_recovery_codes SET used_at = NOW() WHERE id = $1 AND used_at IS NULL`,
+		id,
+	)
+	return err
+}
+
 // RecordAuthEvent inserts an authentication audit event.
 func (r *Repository) RecordAuthEvent(ctx context.Context, userID, email, action, status string, ip, userAgent string, meta map[string]any) error {
 	_, err := r.pool.Exec(ctx,

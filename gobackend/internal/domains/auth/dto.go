@@ -93,11 +93,12 @@ type LoginResult struct {
 	Challenge string // non-empty when the second factor is required
 }
 
-// Login2FARequest exchanges a login challenge plus a valid TOTP code for a
-// full token pair.
+// Login2FARequest exchanges a login challenge (from Login) plus a valid TOTP
+// code — or a one-time recovery code — for a full token pair.
 type Login2FARequest struct {
 	Challenge string `json:"challenge" validate:"required"`
-	Code      string `json:"code" validate:"required,len=6"`
+	// Code is either a 6-digit TOTP code or a 10-character recovery code.
+	Code string `json:"code" validate:"required,min=6,max=10"`
 }
 
 // TokenPair holds access and refresh tokens.

@@ -399,10 +399,15 @@ func (h *Handler) Enable2FA(c *fiber.Ctx) error {
 		return err
 	}
 
-	if err := h.service.Confirm2FA(c.UserContext(), user.ID, req.Secret, req.Code); err != nil {
+	codes, err := h.service.Confirm2FA(c.UserContext(), user.ID, req.Secret, req.Code)
+	if err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{"success": true, "message": "تم تفعيل المصادقة الثنائية"})
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "تم تفعيل المصادقة الثنائية",
+		"data":    fiber.Map{"recoveryCodes": codes},
+	})
 }
 
 func (h *Handler) Disable2FA(c *fiber.Ctx) error {

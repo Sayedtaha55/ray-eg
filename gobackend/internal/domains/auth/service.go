@@ -212,9 +212,23 @@ func (s *Service) Login2FA(ctx context.Context, req Login2FARequest, meta Reques
 		return nil, err
 	}
 	if !valid {
-		count, _ := s.lockout.RecordFailure(ctx, user.Email)
-		s.recordAuthEvent(ctx, user, "login", "failed", meta, "reason", "invalid_2fa_code", "attempt", count)
-		return nil, errors.Unauthorized("invalid_2fa_code", "رمز المصادقة الثنائية غير صحيح")
+		// Fall back to a one-time recovery code (authenticator device lost).
+		// TOTP codes are 6 digits; recovery codes are 10 hex chars, so the two
+		// never collide.
+		consumed := false
+		if len(req.Code) == 10 {
+			if rcID, _ := s.repo.FindUnusedRecoveryCodeID(ctx, user.ID, sha256Hex(req.Code)); rcID != "" {
+				if cerr := s.repo.ConsumeRecoveryCode(ctx, rcID); cerr == nil {
+					consumed = true
+				}
+			}
+		}
+		if !consumed {
+			count, _ := s.lockout.RecordFailure(ctx, user.Email)
+			s.recordAuthEvent(ctx, user, "login", "failed", meta, "reason", "invalid_2fa_code", "attempt", count)
+			return nil, errors.Unauthorized("invalid_2fa_code", "رمز المصادقة الثنائية غير صحيح")
+		}
+		s.recordAuthEvent(ctx, user, "login", "recovery_code_used", meta)
 	}
 
 	_ = s.lockout.Reset(ctx, user.Email)
@@ -564,10 +578,12 @@ func (s *Service) ResendVerification(ctx context.Context, email string, meta Req
 
 // Confirm2FA verifies the provided code before enabling 2FA. This prevents an
 // attacker from enabling 2FA with an arbitrary secret on a compromised account.
-func (s *Service) Confirm2FA(ctx context.Context, userID, secret, code string) error {
+// On success it stores the secret and returns a fresh set of one-time recovery
+// codes (plaintext, shown to the user exactly once).
+func (s *Service) Confirm2FA(ctx context.Context, userID, secret, code string) ([]string, error) {
 	existing, err := s.repo.Get2FASecret(ctx, userID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	checkSecret := secret
 	if existing != "" {
@@ -575,10 +591,25 @@ func (s *Service) Confirm2FA(ctx context.Context, userID, secret, code string) e
 	}
 
 	if !totp.Validate(code, checkSecret) {
-		return errors.Unauthorized("invalid_2fa_code", "رمز المصادقة الثنائية غير صحيح")
+		return nil, errors.Unauthorized("invalid_2fa_code", "رمز المصادقة الثنائية غير صحيح")
 	}
 
-	return s.repo.Set2FASecret(ctx, userID, checkSecret)
+	if err := s.repo.Set2FASecret(ctx, userID, checkSecret); err != nil {
+		return nil, err
+	}
+
+	// Issue a fresh batch of recovery codes so a user who loses their
+	// authenticator device is not locked out. Only hashes are persisted.
+	codes := generateRecoveryCodes(recoveryCodeCount)
+	hashes := make([]string, 0, len(codes))
+	for _, c := range codes {
+		hashes = append(hashes, sha256Hex(c))
+	}
+	if err := s.repo.ReplaceRecoveryCodes(ctx, userID, hashes); err != nil {
+		// Non-fatal: 2FA is on; the user simply has no recovery codes yet.
+		logger.Global().Warn("failed to store recovery codes", zap.Error(err))
+	}
+	return codes, nil
 }
 
 // Disable2FA disables two-factor authentication for a user.
@@ -917,6 +948,23 @@ func (s *Service) sendEmail(ctx context.Context, msg mailer.Message) error {
 
 func normalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
+}
+
+// recoveryCodeCount is how many one-time recovery codes are issued when 2FA is
+// enabled.
+const recoveryCodeCount = 8
+
+// generateRecoveryCodes returns n random recovery codes. A non-positive n
+// yields an empty slice rather than panicking on a negative slice capacity.
+func generateRecoveryCodes(n int) []string {
+	if n <= 0 {
+		return nil
+	}
+	out := make([]string, 0, n)
+	for i := 0; i < n; i++ {
+		out = append(out, generateRecoveryCode())
+	}
+	return out
 }
 
 // generateRecoveryCode creates a random 10-character recovery code.
