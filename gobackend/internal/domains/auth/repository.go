@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"sync"
 	"time"
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/db"
@@ -16,6 +17,65 @@ import (
 // Repository handles persistence for the Auth domain.
 type Repository struct {
 	pool *db.Pool
+
+	// recoveryCodesTableReady is set once the 2FA recovery-code table has been
+	// confirmed to exist, so the check is paid at most once per process.
+	recoveryCodesMu     sync.Mutex
+	recoveryCodesReady  bool
+	recoveryCodesFailed bool
+}
+
+// createRecoveryCodesTableSQL mirrors migration 000077. It is idempotent, so
+// whichever of the two runs first, the resulting schema is identical.
+const createRecoveryCodesTableSQL = `
+CREATE TABLE IF NOT EXISTS user_recovery_codes (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code_hash  TEXT NOT NULL,
+    used_at    TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`
+
+const createRecoveryCodesIndexSQL = `
+CREATE INDEX IF NOT EXISTS idx_user_recovery_codes_user
+    ON user_recovery_codes (user_id, used_at)`
+
+// ensureRecoveryCodesTable creates the 2FA recovery-code table when it is
+// missing.
+//
+// Deployments running with DB_MIGRATE_ON_BOOT=false never apply migration
+// 000077, so on those hosts the table simply does not exist and the first user
+// to enable 2FA would get an opaque 500. Creating it here keeps 2FA working
+// without requiring any change to the deployment environment.
+//
+// Both statements are idempotent, so this is safe whether or not the migration
+// already ran. The DDL runs at most once per process; if it fails (for example
+// the role lacks CREATE rights) the failure is remembered so it does not stall
+// every request, and the caller's own query returns the real database error.
+func (r *Repository) ensureRecoveryCodesTable(ctx context.Context) {
+	r.recoveryCodesMu.Lock()
+	defer r.recoveryCodesMu.Unlock()
+
+	if r.recoveryCodesReady || r.recoveryCodesFailed {
+		return
+	}
+	if r.pool == nil {
+		r.recoveryCodesFailed = true
+		return
+	}
+	if _, err := r.pool.Exec(ctx, createRecoveryCodesTableSQL); err != nil {
+		logger.Global().Warn("failed to ensure user_recovery_codes table exists",
+			zap.Error(err))
+		r.recoveryCodesFailed = true
+		return
+	}
+	if _, err := r.pool.Exec(ctx, createRecoveryCodesIndexSQL); err != nil {
+		// The table is usable without the index; this is only a performance
+		// nicety, so treat it as created and move on.
+		logger.Global().Warn("failed to ensure user_recovery_codes index exists",
+			zap.Error(err))
+	}
+	r.recoveryCodesReady = true
 }
 
 // NewRepository creates a new auth repository.
@@ -194,6 +254,7 @@ func (r *Repository) Get2FASecret(ctx context.Context, userID string) (string, e
 // ReplaceRecoveryCodes clears any existing recovery codes for a user and
 // inserts the given hashed codes. Only hashes are stored.
 func (r *Repository) ReplaceRecoveryCodes(ctx context.Context, userID string, codeHashes []string) error {
+	r.ensureRecoveryCodesTable(ctx)
 	if _, err := r.pool.Exec(ctx,
 		`DELETE FROM user_recovery_codes WHERE user_id = $1`, userID,
 	); err != nil {
@@ -213,6 +274,7 @@ func (r *Repository) ReplaceRecoveryCodes(ctx context.Context, userID string, co
 // FindUnusedRecoveryCodeID returns the id of an unused recovery code matching
 // the given hash, or "" when there is no match.
 func (r *Repository) FindUnusedRecoveryCodeID(ctx context.Context, userID, codeHash string) (string, error) {
+	r.ensureRecoveryCodesTable(ctx)
 	var id string
 	err := r.pool.QueryRow(ctx,
 		`SELECT id FROM user_recovery_codes
@@ -231,6 +293,7 @@ func (r *Repository) FindUnusedRecoveryCodeID(ctx context.Context, userID, codeH
 
 // ConsumeRecoveryCode marks a recovery code as used (idempotent per code).
 func (r *Repository) ConsumeRecoveryCode(ctx context.Context, id string) error {
+	r.ensureRecoveryCodesTable(ctx)
 	_, err := r.pool.Exec(ctx,
 		`UPDATE user_recovery_codes SET used_at = NOW() WHERE id = $1 AND used_at IS NULL`,
 		id,

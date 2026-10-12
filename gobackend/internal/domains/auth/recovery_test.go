@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -63,4 +64,49 @@ func TestRecoveryCodeLengthDoesNotOverlapTOTP(t *testing.T) {
 	assert.Equal(t, 10, len(generateRecoveryCode()))
 	assert.NotEqual(t, 6, len(generateRecoveryCode()),
 		"recovery codes must not be 6 chars long, or they would collide with TOTP codes")
+}
+
+// On hosts running with DB_MIGRATE_ON_BOOT=false, migration 000077 never runs,
+// so the repository creates the table itself. That only works if the DDL is
+// idempotent — dropping "IF NOT EXISTS" would make every call after the first
+// fail with "relation already exists".
+func TestEnsureRecoveryCodesDDLIsIdempotent(t *testing.T) {
+	assert.Contains(t, createRecoveryCodesTableSQL, "CREATE TABLE IF NOT EXISTS user_recovery_codes",
+		"table DDL must be idempotent")
+	assert.Contains(t, createRecoveryCodesIndexSQL, "CREATE INDEX IF NOT EXISTS idx_user_recovery_codes_user",
+		"index DDL must be idempotent")
+}
+
+// The in-code DDL has to stay in step with migration 000077, otherwise a host
+// that does run the migration ends up with a different schema than one that
+// self-heals.
+func TestEnsureRecoveryCodesDDLMatchesMigration(t *testing.T) {
+	for _, col := range []string{"id", "user_id", "code_hash", "used_at", "created_at"} {
+		assert.Contains(t, createRecoveryCodesTableSQL, col)
+	}
+	assert.Contains(t, createRecoveryCodesTableSQL, "REFERENCES users(id) ON DELETE CASCADE",
+		"codes must be removed when the owning user is deleted")
+	assert.Contains(t, createRecoveryCodesTableSQL, "gen_random_uuid()")
+	assert.Contains(t, createRecoveryCodesTableSQL, "TIMESTAMPTZ")
+}
+
+// A failed DDL attempt must not be retried on every request — that would stall
+// each login attempt on a broken deployment — but it must not be cached as a
+// success either, or the table would never be created once the cause cleared.
+func TestEnsureRecoveryCodesStateAfterFailure(t *testing.T) {
+	r := &Repository{}
+	r.ensureRecoveryCodesTable(context.Background())
+
+	assert.False(t, r.recoveryCodesReady, "a failed attempt must not report the table as ready")
+	assert.True(t, r.recoveryCodesFailed, "a failed attempt must be remembered so it is not retried per request")
+}
+
+// Once the table is known to exist the guard must short-circuit without
+// touching the database again.
+func TestEnsureRecoveryCodesSkipsAfterSuccess(t *testing.T) {
+	r := &Repository{recoveryCodesReady: true}
+	r.ensureRecoveryCodesTable(context.Background())
+
+	assert.True(t, r.recoveryCodesReady)
+	assert.False(t, r.recoveryCodesFailed)
 }
